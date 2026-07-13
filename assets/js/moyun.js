@@ -4099,6 +4099,7 @@ function cleanAIResponse(text) {
     ]);
 
     function getCurrentStylePrompt() {
+      if (isSnowwingPresetLocked()) return '';
       if (!currentWritingStyleId.value) return '';
       const s = writingStyles.value.find(ws => ws.id === currentWritingStyleId.value);
       return s ? s.prompt : '';
