@@ -1,0 +1,7 @@
+{
+  "name": "moyun-web",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-static-site.cjs"
+  }
+}

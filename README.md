@@ -42,14 +42,21 @@
 
 ```text
 Moyun/
-├── index.html              # 单文件 Web 应用
+├── index.html              # GitHub Pages 入口（由构建器生成）
+├── source/
+│   └── moyun.single.html   # 保留离线能力的单文件源
+├── assets/
+│   ├── css/moyun.css       # 生成的应用样式
+│   └── js/moyun.js         # 生成的应用逻辑
+├── scripts/
+│   └── build-static-site.cjs # 从单文件源生成网页资产
 ├── README.md               # 项目介绍与使用说明
 ├── LICENSE                 # CC BY-NC 4.0 完整协议
 └── docs/
     └── DEPLOYMENT.md       # GitHub Pages 更新与部署说明
 ```
 
-单文件是当前刻意采用的交付方式：没有拆分为空的 `assets/` 或 `src/` 目录。后续只有在引入真实的独立样式、脚本或资源时，才应按职责拆分目录。
+`source/moyun.single.html` 保留单文件离线交付能力；公开站将其拆分为真实的 CSS 与 JavaScript 资产。修改源文件后运行 `npm run build`，不要直接修改生成的 `index.html` 或 `assets/` 文件。
 
 ## 部署
 
