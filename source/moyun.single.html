@@ -2249,7 +2249,8 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 
     <!-- ───── 预设/文风/流水线 Tab ───── -->
-    <div v-show="currentTab==='presets'" class="absolute inset-0 overflow-y-auto p-4 space-y-4 pb-20">
+    <div v-show="currentTab==='presets'" data-moyun-region="presets" class="absolute inset-0 overflow-y-auto p-4 space-y-4 pb-20 relative" :aria-disabled="isSnowwingPresetLocked() ? 'true' : 'false'">
+      <div :style="isSnowwingPresetLocked() ? 'filter:grayscale(1);opacity:.32;pointer-events:none;user-select:none' : ''">
 
       <!-- 提示词流水线 -->
       <div>
@@ -2427,6 +2428,13 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <textarea v-model="atmospherePrompt" @change="saveData()" rows="4"
                     placeholder="五感描写规则：视觉/听觉/嗅觉/触觉/情绪描写要求..."
                     class="textarea-field text-xs"></textarea>
+        </div>
+      </div>
+      </div>
+      <div v-if="isSnowwingPresetLocked()" class="absolute inset-0 z-20 flex items-center justify-center p-4 text-center" style="background:rgba(100,116,139,.36);backdrop-filter:grayscale(1) blur(1px)">
+        <div class="max-w-[270px] rounded-2xl px-5 py-4 shadow-xl" style="background:rgba(15,23,42,.86);border:1px solid rgba(226,232,240,.45);color:#f8fafc">
+          <div class="text-base font-black leading-relaxed">您正在使用白鸟·雪翼成双Mod</div>
+          <div class="mt-1 text-[11px] leading-relaxed" style="color:#cbd5e1">宿主预设已暂停，并不会进入本次上下文请求。</div>
         </div>
       </div>
     </div>
@@ -11305,6 +11313,7 @@ function cleanAIResponse(text) {
       saveData();
     }
     function getPresetsForModule(moduleKey) {
+      if (isSnowwingPresetLocked()) return '';
       return presets.value
         .filter(p => p.enabled && p.applyTo?.includes(moduleKey) && p.content)
         .map(p => p.content).join('\n');
@@ -12764,6 +12773,10 @@ function cleanAIResponse(text) {
 
     function isSnowwingImportMod(mod) {
       return mod && mod.id === 'moyun.linxun.snowwing-pair' && mod.name === '白鸟·雪翼成双';
+    }
+
+    function isSnowwingPresetLocked() {
+      return modPacks.value.some(mod => mod && mod.enabled !== false && isSnowwingImportMod(mod));
     }
 
     const SNOWWING_CURRENT_MOD_ID = 'moyun.linxun.snowwing-pair';
@@ -22699,16 +22712,19 @@ function getModHubPermissionLabels(mod) {
 
     function buildFullSystemPrompt(options = {}) {
       const parts = [];
+      const presetLocked = isSnowwingPresetLocked();
 
       // 中文注释：提示词流水线只负责正文写作方向，不承担破限职责。
       // 中文注释：破限核心由 buildNsfwMessages()/buildChapterMessages() 在 system 层最前面注入。
-      promptPipeline.value.forEach(layer => {
-        const part = buildPipelineLayerPrompt(layer, options);
-        if (part) parts.push(part);
-      });
+      if (!presetLocked) {
+        promptPipeline.value.forEach(layer => {
+          const part = buildPipelineLayerPrompt(layer, options);
+          if (part) parts.push(part);
+        });
+      }
 
       // 环境氛围增强
-      if (atmosphereEnabled.value && atmospherePrompt.value.trim()) {
+      if (!presetLocked && atmosphereEnabled.value && atmospherePrompt.value.trim()) {
         parts.push(atmospherePrompt.value.trim());
       }
 
@@ -22716,7 +22732,7 @@ function getModHubPermissionLabels(mod) {
       parts.push('【叙事视角】\n' + getPersonPresetContent());
 
       // 文风优先级
-      parts.push('[Style Priority]\n前文章节只用于理解剧情事实、人物关系和场景状态，不作为文风模板；不要继承或模仿前文的句式、语气密度、段落节奏。新章节的文风必须优先遵守系统预设中的规定文风。');
+      if (!presetLocked) parts.push('[Style Priority]\n前文章节只用于理解剧情事实、人物关系和场景状态，不作为文风模板；不要继承或模仿前文的句式、语气密度、段落节奏。新章节的文风必须优先遵守系统预设中的规定文风。');
 
       // 严格主题模式
       if (novel.value.theme && novel.value.theme.length >= 500) {
@@ -30693,6 +30709,7 @@ function getWritingModelLabel() {
     }
 
     function getMergedStylePrompt() {
+      if (isSnowwingPresetLocked()) return '';
       // 优先使用单选的currentWritingStyleId
       if (currentWritingStyleId.value) {
         const s = writingStyles.value.find(ws => ws.id === currentWritingStyleId.value);
@@ -30919,7 +30936,7 @@ function getWritingModelLabel() {
       modPacks, modImportInput, modPrivateData, modUiHostSlots, modAiToolRunning, modWorkflowRunning, modEventRunning, addModPack, addModRule, deleteModPack,
       exportModPack, importModPack, handleModImport, getModRulesForPosition,
       MOD_API_VERSION, MOD_RULE_POSITIONS, MOD_UI_SLOT_CATALOG, MOD_PERMISSION_CATALOG, MOD_UI_ACTION_CATALOG, MOD_WORKFLOW_STEP_TYPE_CATALOG, MOD_HOSTED_VIEW_COMPONENT_CATALOG, MOD_EVENT_CATALOG, MOD_EVENT_HANDLER_TYPE_CATALOG, MOD_THEME_VARIABLE_CATALOG, normalizeModPack, validateModPack,
-      getModDisplayVersion, summarizeModFeatures, summarizeModModules, summarizeModAssets, summarizeModDataSchemas, summarizeModAiTools, summarizeModWorkflows, summarizeModHostedViews, summarizeModEventHandlers, summarizeModUiSlots, formatModDeveloperPreview, formatModPermissions, isSnowwingImportMod, isSnowwingSkillHostMod, buildSnowwingImportConfirmConfig, isModPermissionEnabled, toggleModPermission,
+      getModDisplayVersion, summarizeModFeatures, summarizeModModules, summarizeModAssets, summarizeModDataSchemas, summarizeModAiTools, summarizeModWorkflows, summarizeModHostedViews, summarizeModEventHandlers, summarizeModUiSlots, formatModDeveloperPreview, formatModPermissions, isSnowwingImportMod, isSnowwingPresetLocked, isSnowwingSkillHostMod, buildSnowwingImportConfirmConfig, isModPermissionEnabled, toggleModPermission,
       getModRuntimeModules, getModRuntimeDataSchemas, getModRuntimeAiTools, getModRuntimeWorkflows, getModRuntimeHostedViews, getModRuntimeActiveContextTools, getModRuntimeSettingsSchema, getInstalledSnowwingSkillPacks, getSnowwingSkillRegistryData, getSnowwingSkillCompatMatrixData, runSnowwingSkillRuntime, getSnowwingSkillRuntimeRuns, getSnowwingSkillLastRuntimeRun,
       addModFeature, deleteModFeature, renameModFeature, isModFeatureEnabled, toggleModModule, setModRecommendedModules, setAllModModules, applyModAssets,
       formatModSettingsSchema, updateModSettingsSchema, getModSettingsFields, getModVisibleSettingsFields, getModSettingInputType, getModSettingValue, setModSettingValue, getModPrivateData, setModPrivateData,

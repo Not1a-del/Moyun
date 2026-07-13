@@ -4219,6 +4219,7 @@ function cleanAIResponse(text) {
       saveData();
     }
     function getPresetsForModule(moduleKey) {
+      if (isSnowwingPresetLocked()) return '';
       return presets.value
         .filter(p => p.enabled && p.applyTo?.includes(moduleKey) && p.content)
         .map(p => p.content).join('\n');
@@ -5678,6 +5679,10 @@ function cleanAIResponse(text) {
 
     function isSnowwingImportMod(mod) {
       return mod && mod.id === 'moyun.linxun.snowwing-pair' && mod.name === '白鸟·雪翼成双';
+    }
+
+    function isSnowwingPresetLocked() {
+      return modPacks.value.some(mod => mod && mod.enabled !== false && isSnowwingImportMod(mod));
     }
 
     const SNOWWING_CURRENT_MOD_ID = 'moyun.linxun.snowwing-pair';
@@ -15613,16 +15618,19 @@ function getModHubPermissionLabels(mod) {
 
     function buildFullSystemPrompt(options = {}) {
       const parts = [];
+      const presetLocked = isSnowwingPresetLocked();
 
       // 中文注释：提示词流水线只负责正文写作方向，不承担破限职责。
       // 中文注释：破限核心由 buildNsfwMessages()/buildChapterMessages() 在 system 层最前面注入。
-      promptPipeline.value.forEach(layer => {
-        const part = buildPipelineLayerPrompt(layer, options);
-        if (part) parts.push(part);
-      });
+      if (!presetLocked) {
+        promptPipeline.value.forEach(layer => {
+          const part = buildPipelineLayerPrompt(layer, options);
+          if (part) parts.push(part);
+        });
+      }
 
       // 环境氛围增强
-      if (atmosphereEnabled.value && atmospherePrompt.value.trim()) {
+      if (!presetLocked && atmosphereEnabled.value && atmospherePrompt.value.trim()) {
         parts.push(atmospherePrompt.value.trim());
       }
 
@@ -15630,7 +15638,7 @@ function getModHubPermissionLabels(mod) {
       parts.push('【叙事视角】\n' + getPersonPresetContent());
 
       // 文风优先级
-      parts.push('[Style Priority]\n前文章节只用于理解剧情事实、人物关系和场景状态，不作为文风模板；不要继承或模仿前文的句式、语气密度、段落节奏。新章节的文风必须优先遵守系统预设中的规定文风。');
+      if (!presetLocked) parts.push('[Style Priority]\n前文章节只用于理解剧情事实、人物关系和场景状态，不作为文风模板；不要继承或模仿前文的句式、语气密度、段落节奏。新章节的文风必须优先遵守系统预设中的规定文风。');
 
       // 严格主题模式
       if (novel.value.theme && novel.value.theme.length >= 500) {
@@ -23607,6 +23615,7 @@ function getWritingModelLabel() {
     }
 
     function getMergedStylePrompt() {
+      if (isSnowwingPresetLocked()) return '';
       // 优先使用单选的currentWritingStyleId
       if (currentWritingStyleId.value) {
         const s = writingStyles.value.find(ws => ws.id === currentWritingStyleId.value);
@@ -23833,7 +23842,7 @@ function getWritingModelLabel() {
       modPacks, modImportInput, modPrivateData, modUiHostSlots, modAiToolRunning, modWorkflowRunning, modEventRunning, addModPack, addModRule, deleteModPack,
       exportModPack, importModPack, handleModImport, getModRulesForPosition,
       MOD_API_VERSION, MOD_RULE_POSITIONS, MOD_UI_SLOT_CATALOG, MOD_PERMISSION_CATALOG, MOD_UI_ACTION_CATALOG, MOD_WORKFLOW_STEP_TYPE_CATALOG, MOD_HOSTED_VIEW_COMPONENT_CATALOG, MOD_EVENT_CATALOG, MOD_EVENT_HANDLER_TYPE_CATALOG, MOD_THEME_VARIABLE_CATALOG, normalizeModPack, validateModPack,
-      getModDisplayVersion, summarizeModFeatures, summarizeModModules, summarizeModAssets, summarizeModDataSchemas, summarizeModAiTools, summarizeModWorkflows, summarizeModHostedViews, summarizeModEventHandlers, summarizeModUiSlots, formatModDeveloperPreview, formatModPermissions, isSnowwingImportMod, isSnowwingSkillHostMod, buildSnowwingImportConfirmConfig, isModPermissionEnabled, toggleModPermission,
+      getModDisplayVersion, summarizeModFeatures, summarizeModModules, summarizeModAssets, summarizeModDataSchemas, summarizeModAiTools, summarizeModWorkflows, summarizeModHostedViews, summarizeModEventHandlers, summarizeModUiSlots, formatModDeveloperPreview, formatModPermissions, isSnowwingImportMod, isSnowwingPresetLocked, isSnowwingSkillHostMod, buildSnowwingImportConfirmConfig, isModPermissionEnabled, toggleModPermission,
       getModRuntimeModules, getModRuntimeDataSchemas, getModRuntimeAiTools, getModRuntimeWorkflows, getModRuntimeHostedViews, getModRuntimeActiveContextTools, getModRuntimeSettingsSchema, getInstalledSnowwingSkillPacks, getSnowwingSkillRegistryData, getSnowwingSkillCompatMatrixData, runSnowwingSkillRuntime, getSnowwingSkillRuntimeRuns, getSnowwingSkillLastRuntimeRun,
       addModFeature, deleteModFeature, renameModFeature, isModFeatureEnabled, toggleModModule, setModRecommendedModules, setAllModModules, applyModAssets,
       formatModSettingsSchema, updateModSettingsSchema, getModSettingsFields, getModVisibleSettingsFields, getModSettingInputType, getModSettingValue, setModSettingValue, getModPrivateData, setModPrivateData,

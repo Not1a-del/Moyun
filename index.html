@@ -780,7 +780,8 @@
 
 
     <!-- ───── 预设/文风/流水线 Tab ───── -->
-    <div v-show="currentTab==='presets'" class="absolute inset-0 overflow-y-auto p-4 space-y-4 pb-20">
+    <div v-show="currentTab==='presets'" data-moyun-region="presets" class="absolute inset-0 overflow-y-auto p-4 space-y-4 pb-20 relative" :aria-disabled="isSnowwingPresetLocked() ? 'true' : 'false'">
+      <div :style="isSnowwingPresetLocked() ? 'filter:grayscale(1);opacity:.32;pointer-events:none;user-select:none' : ''">
 
       <!-- 提示词流水线 -->
       <div>
@@ -958,6 +959,13 @@
           <textarea v-model="atmospherePrompt" @change="saveData()" rows="4"
                     placeholder="五感描写规则：视觉/听觉/嗅觉/触觉/情绪描写要求..."
                     class="textarea-field text-xs"></textarea>
+        </div>
+      </div>
+      </div>
+      <div v-if="isSnowwingPresetLocked()" class="absolute inset-0 z-20 flex items-center justify-center p-4 text-center" style="background:rgba(100,116,139,.36);backdrop-filter:grayscale(1) blur(1px)">
+        <div class="max-w-[270px] rounded-2xl px-5 py-4 shadow-xl" style="background:rgba(15,23,42,.86);border:1px solid rgba(226,232,240,.45);color:#f8fafc">
+          <div class="text-base font-black leading-relaxed">您正在使用白鸟·雪翼成双Mod</div>
+          <div class="mt-1 text-[11px] leading-relaxed" style="color:#cbd5e1">宿主预设已暂停，并不会进入本次上下文请求。</div>
         </div>
       </div>
     </div>
@@ -5616,7 +5624,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=709830c615ca"></script>
+<script src="./assets/js/moyun.js?v=cb82b1a3109a"></script>
 <!-- PART_1_END -->
 </body>
 </html>
