@@ -2436,7 +2436,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       <div v-if="isSnowwingPresetLocked()" class="absolute inset-0 z-30 flex items-center justify-center p-4 text-center" style="background:rgba(100,116,139,.58);backdrop-filter:grayscale(1) blur(1px)">
         <div class="max-w-[280px] rounded-2xl px-5 py-4 shadow-xl" style="background:#0f172a;border:1px solid rgba(226,232,240,.65);color:#f8fafc">
           <div class="text-base font-black leading-relaxed">您正在使用白鸟·雪翼成双Mod</div>
-          <div class="mt-1 text-[11px] leading-relaxed" style="color:#e2e8f0">宿主预设已全部关闭，且不会进入本次上下文请求。</div>
+          <div class="mt-1 text-[11px] leading-relaxed" style="color:#e2e8f0">宿主预设已全部关闭，且不会进入本次上下文。</div>
         </div>
       </div>
     </div>
@@ -5320,20 +5320,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           </div>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">为各功能指定不同模型，未选择则跟随主模型</div>
           <div class="space-y-2">
-            <div v-if="modUiHostSlots.sidebarTool && modUiHostSlots.sidebarTool.length" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
-              <div class="text-xs font-bold" style="color:var(--tx)">MOD 侧栏工具</div>
-              <div v-for="entry in modUiHostSlots.sidebarTool" :key="getModUiEntryKey(entry)" class="p-2 rounded-lg" style="background:var(--bg-card);border:1px solid var(--bd)">
-                <div class="flex items-center gap-2">
-                  <span>{{ entry.icon || '🧩' }}</span>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[11px] font-bold text-truncate" style="color:var(--tx)">{{ entry.title }}</div>
-                    <div class="text-[9px] text-truncate" style="color:var(--tx4)">{{ entry.desc }}</div>
-                  </div>
-                  <button v-for="btn in entry.buttons" :key="btn.label" @click="runModUiAction(entry, btn)" class="text-[9px] px-2 py-0.5 rounded" style="background:var(--accent-soft);color:var(--accent)">{{ btn.label }}</button>
-                </div>
-                <div v-if="entry.content" class="text-[9px] leading-relaxed mt-1" style="color:var(--tx3)">{{ entry.content }}</div>
-              </div>
-            </div>
             <div v-for="mod in moduleModelConfig" :key="mod.key" class="flex items-center gap-2 py-1">
               <div class="flex-1 min-w-0">
                 <div class="text-xs font-bold" style="color:var(--tx)">{{ mod.name }}</div>
