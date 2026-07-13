@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">墨韵 favicon</title>
+  <desc id="desc">深墨圆角底上的留白墨滴、山脊、书页与朱砂红印点。</desc>
+  <rect width="64" height="64" rx="15" fill="#121A22"/>
+  <path d="M13 43.6c5.1-1.5 10.8-1.3 16.2.8 1.7.7 3.2.7 4.8 0 5.4-2.1 11.1-2.3 16.2-.8v8.8c-5.1-1.5-10.8-1.3-16.2.8-1.6.6-3.1.6-4.8 0-5.4-2.1-11.1-2.3-16.2-.8z" fill="#F6F1E7"/>
+  <path d="M32 45.2v7.4" fill="none" stroke="#C9C0B2" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M17 41.7 27.8 29l5 5 8.7-10.4 6.6 18.1c-4.8-.8-9.8.1-14.1 1.8-1.4.6-2.7.6-4.1 0-4.2-1.7-8.2-2.5-12.9-1.8z" fill="#F6F1E7"/>
+  <path d="M23.4 22.1c0-3.9 3.1-7.1 6.9-7.1s6.9 3.2 6.9 7.1c0 5.1-6.9 10.4-6.9 10.4s-6.9-5.3-6.9-10.4z" fill="#F6F1E7"/>
+  <circle cx="44.8" cy="18.5" r="4.2" fill="#B83A2E"/>
+  <circle cx="44.8" cy="18.5" r="1.35" fill="#E6A48B" opacity=".75"/>
+</svg>
