@@ -15,6 +15,14 @@
 </head>
 
 <body class="h-screen flex overflow-hidden">
+<div id="moyun-page-loader" class="moyun-page-loader" role="status" aria-live="polite" aria-label="墨韵正在加载">
+  <div class="moyun-loader-brand">
+    <div class="moyun-loader-mark"><img src="./assets/favicon/moyun.svg" alt="墨韵图标"><span class="moyun-loader-seal" aria-hidden="true"></span></div>
+    <div class="moyun-loader-wordmark">Moyun</div>
+    <div class="moyun-loader-track" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
+  </div>
+</div>
 <div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
@@ -4542,9 +4550,9 @@
 			  <span class="block">狗头半仙哈特　空V</span>
 			  <span class="block italic">*排名不分先后*</span>
 			  <br>
-			  墨韵·造梦是面向长篇小说创作的本地化写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件共创和运行态辅助能力。它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
+			  墨韵·造梦是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
 			  <br>
-			  本项目为全开源公益项目，欢迎在墨韵圈子内交流、测试和共创。严禁倒卖源码、打包牟利或冒名分发；如果有朋友喜欢，请让他加入墨韵社群获取正式版本并参与反馈。<br>
+			  本项目为全开源公益项目，欢迎测试，二改需要经过作者本人许可。严禁倒卖源码、打包牟利或冒名分发；<br>
             </div>
             <div class="flex gap-4 mt-3 text-[10px]" style="color:var(--tx3)">
               <span>定位: 长篇小说本地写作、长篇工程规划、插件共创与主题 UI 开放版</span>

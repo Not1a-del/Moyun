@@ -1479,10 +1479,19 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 .paragraph-comment-input{flex:1;border-radius:14px;background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3);padding:10px 12px;font-size:13px}
 @media (min-width:768px){.paragraph-comment-mask{align-items:flex-end;padding:20px}.paragraph-comment-sheet{border-radius:22px 22px 0 0;max-height:78vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-body{padding-bottom:18px}.paragraph-comment-actions{position:static}.paragraph-comment-line{margin-bottom:1.1em}}
 @media (max-width:520px){.paragraph-comment-line{font-size:16px;line-height:2.15}.paragraph-comment-bubble{padding:2px 7px;margin-left:6px;font-size:10px}.paragraph-comment-sheet{max-height:84vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-content{font-size:14px}}
+.moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;font-size:clamp(29px,5vw,43px);font-weight:600;letter-spacing:.18em;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
 </style>
 </head>
 
 <body class="h-screen flex overflow-hidden">
+<div id="moyun-page-loader" class="moyun-page-loader" role="status" aria-live="polite" aria-label="墨韵正在加载">
+  <div class="moyun-loader-brand">
+    <div class="moyun-loader-mark"><img src="./assets/favicon/moyun.svg" alt="墨韵图标"><span class="moyun-loader-seal" aria-hidden="true"></span></div>
+    <div class="moyun-loader-wordmark">Moyun</div>
+    <div class="moyun-loader-track" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
+  </div>
+</div>
 <div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
@@ -6010,9 +6019,9 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 			  <span class="block">狗头半仙哈特　空V</span>
 			  <span class="block italic">*排名不分先后*</span>
 			  <br>
-			  墨韵·造梦是面向长篇小说创作的本地化写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件共创和运行态辅助能力。它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
+			  墨韵·造梦是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
 			  <br>
-			  本项目为全开源公益项目，欢迎在墨韵圈子内交流、测试和共创。严禁倒卖源码、打包牟利或冒名分发；如果有朋友喜欢，请让他加入墨韵社群获取正式版本并参与反馈。<br>
+			  本项目为全开源公益项目，欢迎测试，二改需要经过作者本人许可。严禁倒卖源码、打包牟利或冒名分发；<br>
             </div>
             <div class="flex gap-4 mt-3 text-[10px]" style="color:var(--tx3)">
               <span>定位: 长篇小说本地写作、长篇工程规划、插件共创与主题 UI 开放版</span>
@@ -30808,6 +30817,11 @@ function getWritingModelLabel() {
     onMounted(() => {
       initTheme();
       Promise.resolve(loadData()).finally(() => {
+        window.setTimeout(() => {
+          const loader = document.getElementById('moyun-page-loader');
+          if (!loader) return;
+          loader.classList.add('is-ready');
+        }, 420);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });

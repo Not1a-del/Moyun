@@ -23731,6 +23731,11 @@ function getWritingModelLabel() {
     onMounted(() => {
       initTheme();
       Promise.resolve(loadData()).finally(() => {
+        window.setTimeout(() => {
+          const loader = document.getElementById('moyun-page-loader');
+          if (!loader) return;
+          loader.classList.add('is-ready');
+        }, 420);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });
