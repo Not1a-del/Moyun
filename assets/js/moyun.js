@@ -23735,7 +23735,7 @@ function getWritingModelLabel() {
           const loader = document.getElementById('moyun-page-loader');
           if (!loader) return;
           loader.classList.add('is-ready');
-        }, 420);
+        }, 2000);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });
