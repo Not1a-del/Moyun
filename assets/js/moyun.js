@@ -674,10 +674,10 @@ createApp({
     const CONNECTION_CREDENTIALS_DB_KEY = 'connection_credentials_v1';
     const CONNECTION_MODULE_KEYS = ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
     const PROVIDER_TEMPLATES = Object.freeze([
+      { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
       { id:'openai', name:'OpenAI', adapterId:'openai-chat', source:'builtin-template', canDiscoverModels:true },
       { id:'anthropic', name:'Anthropic', adapterId:'anthropic-messages', source:'builtin-template', canDiscoverModels:false },
       { id:'gemini', name:'Google Gemini', adapterId:'gemini-generate', source:'builtin-template', canDiscoverModels:false },
-      { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
       { id:'custom', name:'自定义配置', adapterId:'', source:'custom', canDiscoverModels:false }
     ]);
 
@@ -730,15 +730,28 @@ createApp({
     const connectionCenterTab = ref('profiles');
     const connectionProfileEditorOpen = ref(false);
     const connectionProfileEditorMode = ref('create');
-    const connectionProfileDraft = ref({ templateId:'openai-compatible', name:'', baseUrl:'', apiKey:'', defaultModel:'', modelCatalogText:'', adapterId:'openai-compatible' });
+    const connectionProfileDraft = ref({ templateId:'openai-compatible', name:'', baseUrl:'', apiKey:'', defaultModel:'', modelCatalogText:'', discoveredModelIds:[], adapterId:'openai-compatible' });
     const connectionProfileDraftError = ref('');
     const connectionProfileTesting = ref(false);
     const connectionProfileTestResult = ref({ status:'unknown', detail:'' });
+    const connectionProfileModelDiscovery = ref({ loading:false, models:[], error:'' });
     const expandedConnectionProfileId = ref('');
     const expandedModuleRouteKey = ref('writing');
 
     function getConnectionProfile(profileId) {
       return connectionCenter.value.profiles.find(profile => profile.id === String(profileId || '')) || null;
+    }
+
+    function getEffectiveDefaultConnectionProfile(center = connectionCenter.value) {
+      const profiles = Array.isArray(center?.profiles) ? center.profiles : [];
+      const preferredId = String(center?.defaultProfileId || '').trim();
+      const preferred = profiles.find(profile => profile.id === preferredId) || null;
+      if (getConnectionProfileStatus(preferred).ok) return preferred;
+      return profiles.find(profile => getConnectionProfileStatus(profile).ok) || null;
+    }
+
+    function getEffectiveDefaultConnectionProfileId() {
+      return getEffectiveDefaultConnectionProfile()?.id || '';
     }
 
     function isConnectionProfileAdapterSupported(profile) {
@@ -804,11 +817,13 @@ createApp({
         baseUrl: source.baseUrl || '',
         apiKey: profile ? getConnectionCredential(source.id) : '',
         defaultModel: source.defaultModel || '',
-        modelCatalogText: Array.isArray(source.modelCatalog) ? source.modelCatalog.map(item => item.id).join('\n') : '',
-        adapterId: source.adapterId || template.adapterId || ''
+        modelCatalogText: Array.isArray(source.modelCatalog) ? source.modelCatalog.filter(item => item.source !== 'discovered').map(item => item.id).join('\n') : '',
+        discoveredModelIds: Array.isArray(source.modelCatalog) ? source.modelCatalog.filter(item => item.source === 'discovered').map(item => item.id) : [],
+        adapterId: source.adapterId || template.adapterId || (template.id === 'custom' ? 'openai-compatible' : '')
       };
       connectionProfileDraftError.value = '';
       connectionProfileTestResult.value = profile?.lastTest || { status:'unknown', detail:'' };
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
       connectionProfileEditorOpen.value = true;
     }
 
@@ -816,6 +831,79 @@ createApp({
       if (connectionProfileTesting.value) return;
       connectionProfileEditorOpen.value = false;
       connectionProfileDraftError.value = '';
+    }
+
+    function updateConnectionProfileDraftTemplate() {
+      const template = getProviderTemplate(connectionProfileDraft.value.templateId);
+      connectionProfileDraft.value.adapterId = template.id === 'custom'
+        ? (isConnectionProfileAdapterSupported({ adapterId:connectionProfileDraft.value.adapterId }) ? connectionProfileDraft.value.adapterId : 'openai-compatible')
+        : template.adapterId;
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      invalidateConnectionProfileDraftTest();
+    }
+
+    function invalidateConnectionProfileDraftTest() {
+      if (connectionProfileTesting.value) return;
+      connectionProfileTestResult.value = { status:'unknown', detail:'' };
+    }
+
+    function getConnectionProfileDraftModelIds(raw = connectionProfileDraft.value.modelCatalogText) {
+      return String(raw || '').split(/\r?\n|,/).map(item => item.trim()).filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
+    }
+
+    function isConnectionProfileDiscoveredModelSelected(modelId) {
+      return Array.isArray(connectionProfileDraft.value.discoveredModelIds) && connectionProfileDraft.value.discoveredModelIds.includes(String(modelId || ''));
+    }
+
+    function setConnectionProfileDiscoveredModelSelected(modelId, selected) {
+      const id = String(modelId || '').trim();
+      if (!id) return;
+      const current = Array.isArray(connectionProfileDraft.value.discoveredModelIds) ? connectionProfileDraft.value.discoveredModelIds : [];
+      connectionProfileDraft.value.discoveredModelIds = selected ? [...new Set([...current, id])] : current.filter(item => item !== id);
+      if (selected && !String(connectionProfileDraft.value.defaultModel || '').trim()) connectionProfileDraft.value.defaultModel = id;
+      invalidateConnectionProfileDraftTest();
+    }
+
+    function buildConnectionProfileModelCatalog() {
+      const discoveredIds = Array.isArray(connectionProfileDraft.value.discoveredModelIds) ? connectionProfileDraft.value.discoveredModelIds.map(item => String(item || '').trim()).filter(Boolean) : [];
+      const selected = [...new Set(discoveredIds)];
+      const selectedSet = new Set(selected);
+      const manual = getConnectionProfileDraftModelIds().filter(id => !selectedSet.has(id));
+      return [...selected.map(id => ({ id, source:'discovered' })), ...manual.map(id => ({ id, source:'manual' }))];
+    }
+
+    function getConnectionProfileModelsUrl(draft) {
+      const adapterId = String(draft.adapterId || '');
+      const base = getApiBaseUrl(draft.baseUrl);
+      if (adapterId === 'gemini-generate') return base + '/models?key=' + encodeURIComponent(String(draft.apiKey || '').trim());
+      return base + '/models';
+    }
+
+    async function fetchConnectionProfileModels() {
+      const draft = connectionProfileDraft.value;
+      if (!String(draft.baseUrl || '').trim()) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:'请先填写 API 地址' }; return false; }
+      const key = String(draft.apiKey || '').trim();
+      if (!key) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:'请先填写 API 密钥' }; return false; }
+      const adapterId = String(draft.adapterId || '');
+      if (!isConnectionProfileAdapterSupported({ adapterId })) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:'该协议暂未开放模型获取' }; return false; }
+      connectionProfileModelDiscovery.value = { loading:true, models:[], error:'' };
+      try {
+        const headers = adapterId === 'anthropic-messages'
+          ? { 'x-api-key':key, 'anthropic-version':'2023-06-01' }
+          : adapterId === 'gemini-generate' ? {} : { Authorization:'Bearer ' + key };
+        const resp = await fetch(getConnectionProfileModelsUrl(draft), { headers });
+        if (!resp.ok) throw new Error('API ' + resp.status);
+        const data = await resp.json();
+        const rows = Array.isArray(data?.data) ? data.data : Array.isArray(data?.models) ? data.models : [];
+        const models = [...new Set(rows.map(item => String(item?.id || item?.name || item?.model || '').replace(/^models\//, '').trim()).filter(Boolean))];
+        if (!models.length) throw new Error('接口未返回可用模型');
+        connectionProfileModelDiscovery.value = { loading:false, models, error:'' };
+        showToast('已获取 ' + models.length + ' 个模型，请勾选需要使用的模型', 'success');
+        return true;
+      } catch (e) {
+        connectionProfileModelDiscovery.value = { loading:false, models:[], error:'获取模型失败：' + sanitizeApiErrorDetail(e.message || e) };
+        return false;
+      }
     }
 
     function validateConnectionProfileDraft() {
@@ -863,18 +951,22 @@ createApp({
       const error = validateConnectionProfileDraft();
       if (error) { connectionProfileDraftError.value = error; return false; }
       if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先测试连接并通过'; return false; }
-      const modelCatalog = String(draft.modelCatalogText || '').split(/\r?\n|,/).map(item => item.trim()).filter(Boolean).filter((item, index, list) => list.indexOf(item) === index).map(id => ({ id, source:'manual' }));
+      const modelCatalog = buildConnectionProfileModelCatalog();
       const existingId = connectionProfileEditorMode.value === 'edit' ? expandedConnectionProfileId.value : '';
+      let savedProfile = null;
       if (existingId) {
         const profile = getConnectionProfile(existingId);
         if (!profile) return false;
         Object.assign(profile, normalizeConnectionProfile({ ...profile, templateId:draft.templateId, adapterId:draft.adapterId, name:draft.name, baseUrl:draft.baseUrl, defaultModel:draft.defaultModel, modelCatalog, lastTest:connectionProfileTestResult.value }));
         setConnectionCredential(existingId, draft.apiKey);
+        savedProfile = profile;
       } else {
         const created = createConnectionProfile({ templateId:draft.templateId, adapterId:draft.adapterId, name:draft.name, baseUrl:draft.baseUrl, defaultModel:draft.defaultModel, modelCatalog, apiKey:draft.apiKey, lastTest:connectionProfileTestResult.value });
         if (!created.ok) { connectionProfileDraftError.value = created.reason; return false; }
         expandedConnectionProfileId.value = created.profile.id;
+        savedProfile = created.profile;
       }
+      if (savedProfile && !getEffectiveDefaultConnectionProfile()) connectionCenter.value.defaultProfileId = savedProfile.id;
       saveDataNow('保存 API 配置');
       connectionProfileEditorOpen.value = false;
       showToast('API 配置已保存', 'success');
@@ -3588,11 +3680,9 @@ function copyLastChapterContextText() {
         const profile = connectionCenter.value.profiles?.find(item => item.id === explicitRouteId);
         return profile?.defaultModel || '';
       }
-      const defaultProfileId = connectionCenter.value?.defaultProfileId || '';
-      if (defaultProfileId) {
-        const profile = connectionCenter.value.profiles?.find(item => item.id === defaultProfileId);
-        if (profile?.defaultModel) return profile.defaultModel;
-      }
+      const defaultProfile = getEffectiveDefaultConnectionProfile();
+      if (defaultProfile?.defaultModel) return defaultProfile.defaultModel;
+      if (Array.isArray(connectionCenter.value?.profiles) && connectionCenter.value.profiles.length) return '';
       const mm = settings.value.moduleModels?.[key];
       if (mm) return mm;
       return settings.value.model || '';
@@ -3604,10 +3694,13 @@ function copyLastChapterContextText() {
       const center = normalizeConnectionCenter(connectionCenter.value);
       const route = center.moduleRoutes[key] || { profileId:'' };
       const hasExplicitRoute = !!String(route.profileId || '').trim();
-      const routeId = hasExplicitRoute ? String(route.profileId).trim() : String(center.defaultProfileId || '').trim();
-      const profile = center.profiles.find(item => item.id === routeId) || null;
+      const routeId = hasExplicitRoute ? String(route.profileId).trim() : '';
+      const profile = hasExplicitRoute ? (center.profiles.find(item => item.id === routeId) || null) : getEffectiveDefaultConnectionProfile(center);
       if (hasExplicitRoute && !profile) {
         return { ok:false, reason:'模块“' + key + '”绑定的 API 配置不存在', source:'connection-center', profile:null };
+      }
+      if (!hasExplicitRoute && center.profiles.length && !profile) {
+        return { ok:false, reason:'请先测试至少一个 API 配置；模块将跟随首个测试成功的配置', source:'connection-center', profile:null };
       }
       if (profile) {
         if (!profile.enabled) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”已停用', source:'connection-center', profile:null };
@@ -3666,14 +3759,10 @@ function copyLastChapterContextText() {
     function getApiBaseUrl(rawUrl = settings.value.apiUrl) {
       let url = String(rawUrl || '').trim().replace(/\/+$/, '');
       if (!url) return '';
-      // 如果包含 /chat/completions，截取到 /chat 之前
-      const chatIdx = url.indexOf('/chat/completions');
-      if (chatIdx >= 0) url = url.substring(0, chatIdx);
-      // 如果以 /chat 结尾，去掉
-      if (url.endsWith('/chat')) url = url.substring(0, url.length - 5);
-      // 如果包含 /models，截取到 /models 之前
-      const modelsIdx = url.indexOf('/models');
-      if (modelsIdx >= 0) url = url.substring(0, modelsIdx);
+      // 仅移除路径末尾的端点，不能把域名中的 "models" 当成路径截断。
+      url = url.replace(/\/chat\/completions(?:[?#].*)?$/i, '');
+      url = url.replace(/\/chat(?:[?#].*)?$/i, '');
+      url = url.replace(/\/models(?:\/[^/?#]+)?(?:[?#].*)?$/i, '');
       // 去掉尾部斜杠
       url = url.replace(/\/+$/, '');
       // 确保以 /v1 结尾（兼容不带 /v1 的输入）
@@ -24284,6 +24373,11 @@ function getWritingModelLabel() {
     onMounted(() => {
       initTheme();
       Promise.resolve(loadData()).finally(() => {
+        window.setTimeout(() => {
+          const loader = document.getElementById('moyun-page-loader');
+          if (!loader) return;
+          loader.classList.add('is-ready');
+        }, 2000);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });
@@ -24468,8 +24562,8 @@ function getWritingModelLabel() {
 
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
-      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, setConnectionProfileDiscoveredModelSelected, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

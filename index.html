@@ -10,10 +10,18 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=609407337e6b">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=97b072ea50c1">
 </head>
 
 <body class="h-screen flex overflow-hidden">
+<div id="moyun-page-loader" class="moyun-page-loader" role="status" aria-live="polite" aria-label="墨韵正在加载">
+  <div class="moyun-loader-brand">
+    <div class="moyun-loader-mark"><img src="./assets/favicon/moyun.svg" alt="墨韵图标"><span class="moyun-loader-seal" aria-hidden="true"></span></div>
+    <div class="moyun-loader-wordmark">Moyun</div>
+    <div class="moyun-loader-track" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
+  </div>
+</div>
 <div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
@@ -3650,7 +3658,7 @@
           <div v-for="profile in connectionCenter.profiles" :key="profile.id" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="flex items-start justify-between gap-3">
               <button type="button" class="min-w-0 text-left" @click="expandedConnectionProfileId=expandedConnectionProfileId===profile.id?'':profile.id">
-                <div class="text-xs font-bold truncate" style="color:var(--tx)">{{ profile.name || '未命名配置' }} <span v-if="connectionCenter.defaultProfileId===profile.id" class="text-[9px] ml-1" style="color:var(--ok)">默认</span></div>
+                <div class="text-xs font-bold truncate" style="color:var(--tx)">{{ profile.name || '未命名配置' }} <span v-if="getEffectiveDefaultConnectionProfileId()===profile.id" class="text-[9px] ml-1" style="color:var(--ok)">{{ connectionCenter.defaultProfileId===profile.id ? '默认' : '自动默认' }}</span></div>
                 <div class="text-[10px] truncate mt-0.5" style="color:var(--tx3)">{{ getConnectionProfileDisplay(profile) }}</div>
               </button>
               <div class="flex items-center gap-1 shrink-0"><span class="text-[9px]" :style="getConnectionProfileStatus(profile).ok?'color:var(--ok)':'color:var(--tx3)'">{{ getConnectionProfileStatus(profile).label }}</span><button type="button" class="moyun-icon-button" :aria-label="'编辑配置：'+profile.name" title="编辑" @click="expandedConnectionProfileId=profile.id;openConnectionProfileEditor(profile.templateId, profile)">✎</button></div>
@@ -3825,7 +3833,7 @@
               <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" value="" :checked="getModuleRouteProfileId(mod.key)===''" @change="setModuleRouteProfile(mod.key,'')">
                 <span class="text-[10px]" style="color:var(--tx)">跟随默认配置</span>
-                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ getConnectionProfileDisplay(getConnectionProfile(connectionCenter.defaultProfileId)) }}</span>
+                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ getConnectionProfileDisplay(getEffectiveDefaultConnectionProfile()) }}</span>
               </label>
               <label v-for="profile in getAssignableConnectionProfiles()" :key="profile.id" class="flex items-center gap-2 p-2 mt-1 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" :value="profile.id" :checked="getModuleRouteProfileId(mod.key)===profile.id" @change="setModuleRouteProfile(mod.key, profile.id)">
@@ -5336,11 +5344,19 @@
         <div class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
           <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" class="moyun-icon-button" @click="closeConnectionProfileEditor" aria-label="关闭 API 配置编辑">×</button></div>
           <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="connectionProfileDraft.adapterId=getProviderTemplate(connectionProfileDraft.templateId).adapterId" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
-          <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">模型目录（可选，一行一个）<textarea v-model="connectionProfileDraft.modelCatalogText" class="textarea-field text-xs font-mono mt-1" rows="3" placeholder="gpt-4.1\ngpt-4.1-mini"></textarea></label>
+          <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="updateConnectionProfileDraftTemplate" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
+          <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
+          <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="invalidateConnectionProfileDraftTest" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
+          <div class="space-y-1">
+            <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
+            <div v-if="connectionProfileModelDiscovery.error" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
+            <div v-if="connectionProfileModelDiscovery.models.length" class="max-h-36 overflow-auto rounded-lg p-2 space-y-1" style="border:1px solid var(--bd);background:var(--bg-inset)">
+              <label v-for="modelId in connectionProfileModelDiscovery.models" :key="modelId" class="flex items-center gap-2 min-w-0 cursor-pointer"><input type="checkbox" :checked="isConnectionProfileDiscoveredModelSelected(modelId)" @change="setConnectionProfileDiscoveredModelSelected(modelId,$event.target.checked)"><span class="text-[10px] font-mono truncate" style="color:var(--tx)">{{ modelId }}</span></label>
+            </div>
+          </div>
+          <label class="text-[10px]" style="color:var(--tx3)">手填模型目录（可选，一行一个）<textarea v-model="connectionProfileDraft.modelCatalogText" class="textarea-field text-xs font-mono mt-1" rows="3" placeholder="gpt-4.1\ngpt-4.1-mini"></textarea></label>
           <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
           <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">{{ connectionProfileTestResult.detail }}</div>
           <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '测试中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" class="btn-primary flex-1 text-xs py-2">保存配置</button></div>
@@ -5606,7 +5622,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=8a7ac3c09358"></script>
+<script src="./assets/js/moyun.js?v=e990bdfbbb06"></script>
 <!-- PART_1_END -->
 </body>
 </html>
