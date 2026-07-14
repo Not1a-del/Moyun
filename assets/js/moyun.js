@@ -16,11 +16,11 @@ function debounce(fn, ms) {
 
 /* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-14-outline-safe-stop-and-modal-policy',
+  id: 'web-2026-07-15-connection-model-routing-fix',
   badge: '网页更新',
-  title: '大纲与弹窗安全优化',
-  publishedAt: '2026-07-14',
-  message: '大纲与细纲生成现在可以安全停止。\n\n生成中关闭工作台时，可以继续生成，或选择停止并关闭；停止后不会自动重试，未完成内容不会写入。细纲会保留已经完成的批次。\n\n同时优化了弹窗关闭策略：编辑草稿不会再因点击空白处而静默丢失，运行中的 AI 任务也不会被误关。'
+  title: '连接中心模型切换修复',
+  publishedAt: '2026-07-15',
+  message: '已修复连接中心中同一 API 配置修改模型后，实际请求仍可能使用旧模型的问题。现在保存配置后，各模块会即时使用该配置的最新模型。\n\n同一中转 Key 可用“派生模型”创建多个独立模型配置，方便在模块模型分配中分别选用。'
 });
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
