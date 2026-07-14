@@ -1619,6 +1619,7 @@
               <span class="text-xl font-art shrink-0" style="color:var(--tx4)">{{ idx+1 }}</span>
 
               <span class="flex-1 text-base font-bold text-truncate" style="color:var(--tx)">{{ getDisplayChapterTitle(ch, idx) }}</span>
+              <button @click.stop="scrollChapterToEnd(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)" title="滚动到本章底部">回到本章底</button>
               <button @click.stop="renameChapterTitle(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--accent-soft);color:var(--accent)" title="手动修改章节标题">改名</button>
               <!-- 版本导航 -->
               <template v-if="ch.versions&&ch.versions.length>0">
@@ -1799,8 +1800,7 @@
                   <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前章节内容保存为可切换的历史稿">保存历史稿</button>
                   <button @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-1.5" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
                   <button @click.stop="openAiEdit(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--warn-soft);color:var(--warn)">AI编辑</button>
-                  <button @click.stop="aiRewriteTitle(idx)" :disabled="rewritingTitleIdx>=0" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)"
-                          :style="rewritingTitleIdx===idx?'opacity:.5':''">{{ rewritingTitleIdx===idx ? '改写中...' : '改标题' }}</button>
+                  <button @click.stop="scrollChapterToStart(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)" title="滚动到本章开头">回到本章首</button>
                   <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)"
                           :style="rewritingSummaryIdx===idx?'opacity:.5':''">{{ rewritingSummaryIdx===idx ? '生成中...' : '生成摘要' }}</button>
 
@@ -2981,6 +2981,29 @@
         <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">保存标题</button>
       </div>
     </form>
+  </div>
+</transition>
+
+<!-- 网页版发布公告：公告 ID 更新后会对尚未阅读该 ID 的浏览器再次显示。 -->
+<transition name="pop">
+  <div v-if="showWebUpdateAnnouncement" data-moyun-region="modal" data-moyun-modal="web-update-announcement"
+       data-moyun-initial-focus="[data-web-update-ack]" role="dialog" aria-modal="true" aria-labelledby="moyun-web-update-title"
+       class="fixed inset-0 z-[250] flex items-center justify-center p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="dismissWebUpdateAnnouncement">
+    <section data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3)">
+      <div class="px-5 py-4 flex items-start justify-between gap-3" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
+        <div class="min-w-0">
+          <div class="text-[10px] font-bold tracking-[0.16em]" style="color:var(--accent)">{{ webUpdateAnnouncement.badge }}</div>
+          <h3 id="moyun-web-update-title" class="mt-1 text-lg font-black" style="color:var(--tx)">{{ webUpdateAnnouncement.title }}</h3>
+          <p class="mt-1 text-xs" style="color:var(--tx3)">{{ webUpdateAnnouncement.publishedAt }}</p>
+        </div>
+        <button type="button" data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="moyun-icon-button shrink-0" style="background:var(--bg-card);color:var(--tx3);border:1px solid var(--bd)" aria-label="关闭更新公告" title="关闭">×</button>
+      </div>
+      <div class="px-5 py-6 text-sm leading-7 whitespace-pre-wrap" style="color:var(--tx)">{{ webUpdateAnnouncement.message }}</div>
+      <div class="px-5 py-4" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-web-update-ack data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">我知道了</button>
+      </div>
+    </section>
   </div>
 </transition>
 
@@ -5620,7 +5643,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=91599c6bc175"></script>
+<script src="./assets/js/moyun.js?v=489a3e5a1d03"></script>
 <!-- PART_1_END -->
 </body>
 </html>

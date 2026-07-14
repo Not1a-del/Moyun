@@ -13,6 +13,16 @@ function debounce(fn, ms) {
   let t;
   return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
+
+/* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
+const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
+  id: 'web-2026-07-14-test-announcement',
+  badge: '网页更新',
+  title: '更新公告',
+  publishedAt: '2026-07-14',
+  message: '这是一个测试公告'
+});
+const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function escapeRegExp(text) { return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 const MOYUN_THINK_TAGS = [
@@ -1780,7 +1790,25 @@ createApp({
     /* 确认弹窗 */
     const showConfirm = ref(false);
     const confirmCfg = ref({ title: '', message: '', confirmText: '确认' });
+    const showWebUpdateAnnouncement = ref(false);
+    const webUpdateAnnouncement = WEB_UPDATE_ANNOUNCEMENT;
     let _confirmCb = null;
+
+    function shouldShowWebUpdateAnnouncement() {
+      if (!webUpdateAnnouncement.id || !webUpdateAnnouncement.message) return false;
+      try { return localStorage.getItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY) !== webUpdateAnnouncement.id; }
+      catch { return true; }
+    }
+
+    function openWebUpdateAnnouncement() {
+      if (shouldShowWebUpdateAnnouncement()) showWebUpdateAnnouncement.value = true;
+    }
+
+    function dismissWebUpdateAnnouncement() {
+      try { localStorage.setItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY, webUpdateAnnouncement.id); } catch {}
+      showWebUpdateAnnouncement.value = false;
+    }
+
     function openConfirm(cfg, cb) {
       confirmCfg.value = Object.assign({ title: '请确认', message: '确定执行？', confirmText: '确认' }, cfg || {});
       _confirmCb = cb; showConfirm.value = true;
@@ -14506,6 +14534,7 @@ function isStandaloneModFloatingEntry(mod) {
 function isModHubVisible() {
       const modalOpen = !!(
         showSettings_modal.value ||
+        showWebUpdateAnnouncement.value ||
         showImportExport.value ||
         showSnapshots.value ||
         showConfirm.value ||
@@ -18509,21 +18538,63 @@ function getModHubPermissionLabels(mod) {
     }
 
 
+    function getMainScrollStickyBottomInset(scroller) {
+      const normalComposer = Array.from(document.querySelectorAll('[data-moyun-region="composer"]'))
+        .find(element => getComputedStyle(element).display !== 'none');
+      const controls = normalComposer || infiniteControlRef.value;
+      if (!scroller || !(controls instanceof HTMLElement)) return 0;
+      const scrollerRect = scroller.getBoundingClientRect();
+      const controlsRect = controls.getBoundingClientRect();
+      if (controlsRect.bottom <= scrollerRect.top || controlsRect.top >= scrollerRect.bottom) return 0;
+      return Math.max(0, scrollerRect.bottom - Math.max(scrollerRect.top, controlsRect.top));
+    }
+
+    function getChapterScrollTop(idx, edge = 'start') {
+      const el = document.getElementById('chapter-' + idx);
+      const scroller = mainScroll.value;
+      if (!el || !scroller) return null;
+      const chapterRect = el.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      const delta = edge === 'end'
+        ? chapterRect.bottom - (scrollerRect.bottom - getMainScrollStickyBottomInset(scroller)) + 16
+        : chapterRect.top - scrollerRect.top - 20;
+      const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+      return Math.max(0, Math.min(maxTop, scroller.scrollTop + delta));
+    }
+
+    function scrollChapterToPosition(idx, edge = 'start', options = {}) {
+      const immediate = options.immediate === true;
+      const behavior = options.behavior || 'smooth';
+      nextTick(() => {
+        const apply = () => {
+          const scroller = mainScroll.value;
+          const top = getChapterScrollTop(idx, edge);
+          if (!scroller || top === null) return;
+          if (immediate) {
+            // 正文容器带有 scroll-smooth；此处只为展开新章临时关闭它，避免出现“先到章尾再回章首”。
+            const previousScrollBehavior = scroller.style.scrollBehavior;
+            scroller.style.scrollBehavior = 'auto';
+            scroller.scrollTop = top;
+            scroller.style.scrollBehavior = previousScrollBehavior;
+          } else scroller.scrollTo({ top, behavior });
+        };
+        if (immediate) requestAnimationFrame(apply);
+        else setTimeout(apply, 150);
+      });
+    }
+
     function toggleChapter(idx) {
       const ch = visibleChapters.value[idx]; if (!ch) return;
       const was = ch.isExpanded;
       visibleChapters.value.forEach(c => c.isExpanded = false);
       ch.isExpanded = !was;
       currentChapterIndex.value = ch.isExpanded ? idx : -1;
-      if (ch.isExpanded) scrollChapterToStart(idx);
+      // 展开下一章时立即定位，避免先落到章尾、再被延迟平滑滚动带回章首。
+      if (ch.isExpanded) scrollChapterToStart(idx, { immediate:true });
     }
 
-    function scrollChapterToStart(idx) {
-      nextTick(() => setTimeout(() => {
-        const el = document.getElementById('chapter-'+idx);
-        if (el && mainScroll.value) mainScroll.value.scrollTo({top: el.offsetTop - 20, behavior:'smooth'});
-      }, 150));
-    }
+    function scrollChapterToStart(idx, options = {}) { scrollChapterToPosition(idx, 'start', options); }
+    function scrollChapterToEnd(idx, options = {}) { scrollChapterToPosition(idx, 'end', options); }
 
     function scrollToChapter(idx) {
       currentChapterIndex.value = idx;
@@ -24391,8 +24462,9 @@ function getWritingModelLabel() {
         }, 2000);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
+          openWebUpdateAnnouncement();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });
-        }, 0);
+        }, 2100);
       });
       updateMobileBrowserBottomInset();
       initMoyunModalCoordinator();
@@ -24452,6 +24524,7 @@ function getWritingModelLabel() {
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast,
+      showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showSnapshots, showSettings_modal,
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
@@ -24534,7 +24607,7 @@ function getWritingModelLabel() {
       // ── Part 3: 章节 ──
       currentChapterIndex, renderMarkdown, renderCotMarkdown, renderChapterContent,
       getChapterNativeThinking, getChapterSnowwingThinking, getChapterToolTimeline, formatToolTimelineTime, formatToolTimelineDetail,
-      toggleChapter, scrollToChapter,
+      toggleChapter, scrollToChapter, scrollChapterToStart, scrollChapterToEnd,
       startChapterEdit, saveChapterEdit, cancelChapterEdit, getDisplayChapterTitle,
       showChapterRenameModal, chapterRenameIdx, chapterRenameDraft, chapterRenameError, renameChapterTitle, closeChapterRenameModal, confirmChapterRename,
       copyChapter, deleteChapter, insertChapterAt,
