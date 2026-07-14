@@ -16,11 +16,11 @@ function debounce(fn, ms) {
 
 /* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-14-test-announcement',
+  id: 'web-2026-07-14-connection-center-routing-fix',
   badge: '网页更新',
-  title: '更新公告',
+  title: '连接中心修复',
   publishedAt: '2026-07-14',
-  message: '这是一个测试公告'
+  message: '连接中心的模块模型分配已修复。\n\n为模块单独选择 API 配置后，请求会严格使用该配置的地址、模型与密钥；配置不可用时将直接显示上游错误，不会回退到默认配置。'
 });
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
