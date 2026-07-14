@@ -4457,13 +4457,13 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   </div>
 </transition>
 
-<!-- 网页版发布公告：公告 ID 更新后会对尚未阅读该 ID 的浏览器再次显示。 -->
+<!-- 首次欢迎说明：说明内容与“关于”页共用，已读记录只保存在当前浏览器。 -->
 <transition name="pop">
   <div v-if="showWebUpdateAnnouncement" data-moyun-region="modal" data-moyun-modal="web-update-announcement"
        data-moyun-initial-focus="[data-web-update-ack]" role="dialog" aria-modal="true" aria-labelledby="moyun-web-update-title"
        class="fixed inset-0 z-[250] flex items-center justify-center p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="dismissWebUpdateAnnouncement">
-    <section data-moyun-modal-panel tabindex="-1" class="relative isolate z-[1] w-full max-w-md overflow-hidden rounded-2xl" style="background:var(--bg-card);opacity:1;box-shadow:var(--sh3)">
+    <section data-moyun-modal-panel tabindex="-1" class="relative isolate z-[1] w-full max-w-md max-h-[calc(100dvh-2rem)] md:max-h-[min(760px,calc(100dvh-2rem))] overflow-hidden rounded-2xl flex flex-col" style="background:var(--bg-card);opacity:1;box-shadow:var(--sh3)">
       <div class="px-5 py-4 flex items-start justify-between gap-3" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
         <div class="min-w-0">
           <div class="text-[10px] font-bold tracking-[0.16em]" style="color:var(--accent)">{{ webUpdateAnnouncement.badge }}</div>
@@ -4472,9 +4472,15 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         </div>
         <button type="button" data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="moyun-icon-button shrink-0" style="background:var(--bg-card);color:var(--tx3);border:1px solid var(--bd)" aria-label="关闭更新公告" title="关闭">×</button>
       </div>
-      <div class="px-5 py-6 text-sm leading-7 whitespace-pre-wrap" style="color:var(--tx)">{{ webUpdateAnnouncement.message }}</div>
-      <div class="px-5 py-4" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-        <button type="button" data-web-update-ack data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">我知道了</button>
+      <div class="px-5 py-5 text-sm leading-7 space-y-4 overflow-y-auto" style="color:var(--tx)">
+        <p class="font-medium" style="color:var(--tx2)">{{ webUpdateAnnouncement.message }}</p>
+        <section v-for="section in webUpdateAnnouncement.sections" :key="section.key" class="space-y-1">
+          <h4 class="text-xs font-bold" style="color:var(--tx)">{{ section.title }}</h4>
+          <p style="color:var(--tx2)">{{ section.body }}</p>
+        </section>
+      </div>
+      <div class="px-5 py-4 shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-web-update-ack data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">{{ webUpdateAnnouncement.acknowledge }}</button>
       </div>
     </section>
   </div>
@@ -6020,24 +6026,16 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
                以下内容直接在代码中修改即可
                ═══════════════════════════════════════ -->
 
-          <!-- 项目信息卡 -->
-          <div class="p-4 rounded-xl" style="background:var(--accent-soft);border:1px solid var(--bd)">
-            <div class="mb-2">
+          <!-- 项目说明：不展示个人署名，说明与首次欢迎公告共用同一份项目内容。 -->
+          <div class="p-4 rounded-xl space-y-4" style="background:var(--accent-soft);border:1px solid var(--bd)">
+            <div>
               <span class="moyun-wordmark text-lg flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0">Moyun</span>
+              <p class="mt-2 text-xs leading-relaxed" style="color:var(--tx2)">{{ projectIntro.lead }}</p>
             </div>
-            <div class="text-xs leading-relaxed" style="color:var(--tx2)">
-			  <span class="block">作者：</span>
-			  <span class="block">STA1N　柒.　临循</span>
-			  <span class="block">狗头半仙哈特　空V</span>
-			  <span class="block italic">*排名不分先后*</span>
-			  <br>
-			  Moyun 是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
-			  <br>
-			  本项目为全开源公益项目，欢迎测试，二改需要经过作者本人许可。严禁倒卖源码、打包牟利或冒名分发；<br>
-            </div>
-            <div class="flex gap-4 mt-3 text-[10px]" style="color:var(--tx3)">
-              <span>定位: 长篇小说本地写作、长篇工程规划、插件共创与主题 UI 开放版</span>
-            </div>
+            <section v-for="section in projectIntro.sections" :key="section.key" class="pt-3 space-y-1.5" style="border-top:1px solid var(--bd)">
+              <h3 class="text-xs font-bold" style="color:var(--tx)">{{ section.title }}</h3>
+              <p class="text-xs leading-relaxed" style="color:var(--tx2)">{{ section.body }}</p>
+            </section>
           </div>
 
         </div>
@@ -6340,13 +6338,27 @@ function debounce(fn, ms) {
   return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
 
-/* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
+/* 项目说明：关于页与首次欢迎说明共用，避免两处文案漂移。 */
+const MOYUN_PROJECT_INTRO = Object.freeze({
+  lead: 'Moyun 是面向小说创作的本地优先写作工作台。它把设定、角色、梗概、大纲、细纲、章节与资料放进同一条创作链路，让灵感可以从一句想法逐步沉淀为可继续书写的长篇工程。',
+  sections: Object.freeze([
+    Object.freeze({ key:'writing', title:'从灵感到长篇工程', body:'你可以先写下一个主题、一段剧情走向或一个人物念头，再逐步补全设定、角色关系、大纲和细纲。正文创作并不是孤立的一次请求：Moyun 会把当前章节、已完成内容和你选择保留的资料整理为可检查的上下文，帮助故事在持续书写中保持连贯。' }),
+    Object.freeze({ key:'connections', title:'连接中心与模型分配', body:'模型服务由你自行配置。连接中心支持常见的 OpenAI 兼容、OpenAI Chat Completions、Anthropic Messages 与 Google Gemini 协议；一个配置只对应一个模型，同一中转 Key 需要使用多个模型时，可以派生独立配置，再为正文、设定、大纲等模块分别分配。' }),
+    Object.freeze({ key:'local-data', title:'数据、隐私与可控性', body:'作品内容、设置和 API 凭据优先保存在你自己的浏览器与设备中。Moyun 不要求你把小说和密钥交给项目服务器；请自行使用可信设备、定期导出数据，并在分享截图、日志或配置前隐藏 API Key 与个人信息。' }),
+    Object.freeze({ key:'co-create', title:'可扩展的创作空间', body:'除了基础工作流，Moyun 也提供插件、主题和共创接口，让不同写作习惯能够形成自己的工具组合。第三方扩展可能读取或改写当前页面状态，导入前请核验来源与权限说明；工具可以提供结构和辅助，但叙事判断、人物选择与作品方向始终由你决定。' }),
+    Object.freeze({ key:'start', title:'如何开始', body:'新建一本书后，可以先在“连接中心”建立并测试 API 配置，再按需要为模块分配模型；随后从设定、角色或大纲任意一处开始。没有准备完整也没有关系：先写下当前最确定的部分，在创作过程中持续补齐、调整和回看，Moyun 会陪你把零散素材整理成自己的故事。' })
+  ])
+});
+
+/* 首次欢迎说明：新浏览器首次打开时展示；更新 ID 可让既有用户重新阅读新版说明。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-15-connection-model-routing-fix',
-  badge: '网页更新',
-  title: '连接中心模型切换修复',
-  publishedAt: '2026-07-15',
-  message: '已修复连接中心中同一 API 配置修改模型后，实际请求仍可能使用旧模型的问题。现在保存配置后，各模块会即时使用该配置的最新模型。\n\n同一中转 Key 可用“派生模型”创建多个独立模型配置，方便在模块模型分配中分别选用。'
+  id: 'moyun-first-run-project-introduction-v1',
+  badge: '新手说明',
+  title: '欢迎来到 Moyun',
+  publishedAt: '首次使用指南',
+  message: MOYUN_PROJECT_INTRO.lead,
+  sections: MOYUN_PROJECT_INTRO.sections,
+  acknowledge: '开始使用'
 });
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -8194,6 +8206,7 @@ createApp({
     /* 确认弹窗 */
     const showConfirm = ref(false);
     const confirmCfg = ref({ title: '', message: '', confirmText: '确认' });
+    const projectIntro = MOYUN_PROJECT_INTRO;
     const showWebUpdateAnnouncement = ref(false);
     const webUpdateAnnouncement = WEB_UPDATE_ANNOUNCEMENT;
     let _confirmCb = null;
@@ -31213,7 +31226,7 @@ function getWritingModelLabel() {
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast,
-      showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
+      projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showSnapshots, showSettings_modal,
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,

@@ -14,13 +14,27 @@ function debounce(fn, ms) {
   return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
 
-/* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
+/* 项目说明：关于页与首次欢迎说明共用，避免两处文案漂移。 */
+const MOYUN_PROJECT_INTRO = Object.freeze({
+  lead: 'Moyun 是面向小说创作的本地优先写作工作台。它把设定、角色、梗概、大纲、细纲、章节与资料放进同一条创作链路，让灵感可以从一句想法逐步沉淀为可继续书写的长篇工程。',
+  sections: Object.freeze([
+    Object.freeze({ key:'writing', title:'从灵感到长篇工程', body:'你可以先写下一个主题、一段剧情走向或一个人物念头，再逐步补全设定、角色关系、大纲和细纲。正文创作并不是孤立的一次请求：Moyun 会把当前章节、已完成内容和你选择保留的资料整理为可检查的上下文，帮助故事在持续书写中保持连贯。' }),
+    Object.freeze({ key:'connections', title:'连接中心与模型分配', body:'模型服务由你自行配置。连接中心支持常见的 OpenAI 兼容、OpenAI Chat Completions、Anthropic Messages 与 Google Gemini 协议；一个配置只对应一个模型，同一中转 Key 需要使用多个模型时，可以派生独立配置，再为正文、设定、大纲等模块分别分配。' }),
+    Object.freeze({ key:'local-data', title:'数据、隐私与可控性', body:'作品内容、设置和 API 凭据优先保存在你自己的浏览器与设备中。Moyun 不要求你把小说和密钥交给项目服务器；请自行使用可信设备、定期导出数据，并在分享截图、日志或配置前隐藏 API Key 与个人信息。' }),
+    Object.freeze({ key:'co-create', title:'可扩展的创作空间', body:'除了基础工作流，Moyun 也提供插件、主题和共创接口，让不同写作习惯能够形成自己的工具组合。第三方扩展可能读取或改写当前页面状态，导入前请核验来源与权限说明；工具可以提供结构和辅助，但叙事判断、人物选择与作品方向始终由你决定。' }),
+    Object.freeze({ key:'start', title:'如何开始', body:'新建一本书后，可以先在“连接中心”建立并测试 API 配置，再按需要为模块分配模型；随后从设定、角色或大纲任意一处开始。没有准备完整也没有关系：先写下当前最确定的部分，在创作过程中持续补齐、调整和回看，Moyun 会陪你把零散素材整理成自己的故事。' })
+  ])
+});
+
+/* 首次欢迎说明：新浏览器首次打开时展示；更新 ID 可让既有用户重新阅读新版说明。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-15-connection-model-routing-fix',
-  badge: '网页更新',
-  title: '连接中心模型切换修复',
-  publishedAt: '2026-07-15',
-  message: '已修复连接中心中同一 API 配置修改模型后，实际请求仍可能使用旧模型的问题。现在保存配置后，各模块会即时使用该配置的最新模型。\n\n同一中转 Key 可用“派生模型”创建多个独立模型配置，方便在模块模型分配中分别选用。'
+  id: 'moyun-first-run-project-introduction-v1',
+  badge: '新手说明',
+  title: '欢迎来到 Moyun',
+  publishedAt: '首次使用指南',
+  message: MOYUN_PROJECT_INTRO.lead,
+  sections: MOYUN_PROJECT_INTRO.sections,
+  acknowledge: '开始使用'
 });
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -1868,6 +1882,7 @@ createApp({
     /* 确认弹窗 */
     const showConfirm = ref(false);
     const confirmCfg = ref({ title: '', message: '', confirmText: '确认' });
+    const projectIntro = MOYUN_PROJECT_INTRO;
     const showWebUpdateAnnouncement = ref(false);
     const webUpdateAnnouncement = WEB_UPDATE_ANNOUNCEMENT;
     let _confirmCb = null;
@@ -24887,7 +24902,7 @@ function getWritingModelLabel() {
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast,
-      showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
+      projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showSnapshots, showSettings_modal,
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
