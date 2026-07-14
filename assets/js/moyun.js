@@ -7055,7 +7055,7 @@ function cleanAIResponse(text) {
         variant: 'snowwingModImport',
         importEyebrow: '白鸟专属 MOD 包',
         importName: mod.name || '白鸟·雪翼成双',
-        importSub: (mod.version || manifest.version || 'v2.3.1') + ' · 作者 ' + (mod.author || '临循') + ' · 适配 ' + (manifest.compatibility || mod.compatibility || '墨韵v2.4.1以上版本'),
+        importSub: (mod.version || manifest.version || 'v2.3.1') + ' · 作者 ' + (mod.author || '临循') + ' · 适配 ' + (manifest.compatibility || mod.compatibility || 'Moyun 当前网页版本'),
         rows: [
           { label: '版本', value: mod.version || manifest.version || 'v2.3.1' },
           { label: '作者', value: mod.author || '临循' },
@@ -8077,7 +8077,7 @@ function cleanAIResponse(text) {
         '# 白鸟 Skill 诊断信息',
         '',
         '生成时间：' + new Date().toISOString(),
-        '宿主：墨韵v2.4.1',
+        '宿主：Moyun',
         '白鸟：' + (mod?.name || '白鸟·雪翼成双') + ' ' + (mod?.version || mod?.manifest?.version || ''),
         '',
         '## Skill',
@@ -24795,7 +24795,7 @@ function getWritingModelLabel() {
         }
       });
 
-      console.log('%c墨韵·造梦 v2.4.1', 'color:#44403c;font-size:20px;font-weight:bold;font-family:serif');
+      console.log('%cMoyun', 'color:#44403c;font-size:20px;font-weight:bold;font-family:serif');
       console.log('%c全部模块已加载', 'color:#16a34a;font-size:12px');
     });
 

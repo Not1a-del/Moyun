@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-<title>墨韵·造梦 v2.4.1</title>
+<title>Moyun</title>
+<link rel="icon" href="./assets/favicon/moyun.svg" type="image/svg+xml">
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1478,7 +1479,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 .paragraph-comment-input{flex:1;border-radius:14px;background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3);padding:10px 12px;font-size:13px}
 @media (min-width:768px){.paragraph-comment-mask{align-items:flex-end;padding:20px}.paragraph-comment-sheet{border-radius:22px 22px 0 0;max-height:78vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-body{padding-bottom:18px}.paragraph-comment-actions{position:static}.paragraph-comment-line{margin-bottom:1.1em}}
 @media (max-width:520px){.paragraph-comment-line{font-size:16px;line-height:2.15}.paragraph-comment-bubble{padding:2px 7px;margin-left:6px;font-size:10px}.paragraph-comment-sheet{max-height:84vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-content{font-size:14px}}
-.moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;font-size:clamp(29px,5vw,43px);font-weight:600;letter-spacing:.18em;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
+.moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Arial,"Noto Sans SC",sans-serif;font-size:clamp(29px,5vw,43px);font-weight:700;letter-spacing:0;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
 </style>
 </head>
 
@@ -1522,7 +1523,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
   </button>
-  <span class="font-art text-lg" style="color:var(--tx)">墨韵 · 造梦</span>
+  <span class="font-sans font-semibold text-lg flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
   <div class="flex items-center gap-0">
     <button type="button" @click="showSnapshots=true;loadSnapshots()" class="moyun-icon-button" style="color:var(--tx2)" title="快照历史" aria-label="打开快照历史">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18z"/></svg>
@@ -1556,7 +1557,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <!-- 侧边栏顶部 -->
   <div class="px-5 py-4 flex justify-between items-center shrink-0 desktop-only"
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
-    <h1 class="font-art text-2xl select-none" style="color:var(--tx)">墨韵 · 造梦</h1>
+    <h1 class="font-sans font-bold text-2xl select-none flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-6 h-6 shrink-0">Moyun</h1>
     <div class="flex gap-1 items-center">
       <button @click="toggleImmersive" class="p-2 rounded-full" style="color:var(--tx3)" title="沉浸阅读">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>
@@ -1579,7 +1580,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <!-- 移动端侧边栏头部 -->
   <div class="px-4 py-3 flex justify-between items-center shrink-0 md:hidden"
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
-    <span class="font-art text-xl" style="color:var(--tx)">墨韵 · 造梦</span>
+    <span class="font-sans font-semibold text-xl flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
     <div class="flex items-center gap-0">
       <button type="button" @click="showImportExport=true" class="moyun-icon-button" style="color:var(--tx3)" title="导入或导出" aria-label="打开导入导出">
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
@@ -2936,8 +2937,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <img :src="coverImage" class="w-64 md:w-80 h-auto rounded-xl cursor-pointer" style="border:1px solid var(--bd);box-shadow:var(--sh2)"
              @click="previewImage(coverImage)">
       </div>
-        <h1 class="text-2xl md:text-5xl font-art mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || '墨韵·造梦' }}</h1>
-        <div v-if="!novel.title" class="text-[10px] mb-2" style="color:var(--tx4)">v2.4.1</div>
+        <h1 class="text-2xl md:text-5xl font-sans font-bold mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -5860,7 +5860,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
             <div class="flex items-center justify-between py-2 mb-2 px-3 rounded-lg" style="background:var(--bg-inset)">
               <div>
                 <span class="text-sm font-bold" style="color:var(--tx)">NAI 调用模式</span><br>
-                <span class="text-[10px]" style="color:var(--tx3)">墨韵·造梦支持STA1N渠道</span>
+                <span class="text-[10px]" style="color:var(--tx3)">Moyun 支持 STA1N 渠道</span>
               </div>
               <div class="flex gap-1">
                 <button @click="naiCallMode='canary';saveData()" class="text-[10px] px-3 py-1 rounded-md font-bold border"
@@ -6019,7 +6019,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <!-- 项目信息卡 -->
           <div class="p-4 rounded-xl" style="background:var(--accent-soft);border:1px solid var(--bd)">
             <div class="mb-2">
-              <span class="text-lg font-bold font-art" style="color:var(--tx)">墨韵·造梦</span>
+              <span class="text-lg font-sans font-bold flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
             </div>
             <div class="text-xs leading-relaxed" style="color:var(--tx2)">
 			  <span class="block">作者：</span>
@@ -6027,7 +6027,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 			  <span class="block">狗头半仙哈特　空V</span>
 			  <span class="block italic">*排名不分先后*</span>
 			  <br>
-			  墨韵·造梦是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
+			  Moyun 是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
 			  <br>
 			  本项目为全开源公益项目，欢迎测试，二改需要经过作者本人许可。严禁倒卖源码、打包牟利或冒名分发；<br>
             </div>
@@ -6035,801 +6035,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
               <span>定位: 长篇小说本地写作、长篇工程规划、插件共创与主题 UI 开放版</span>
             </div>
           </div>
-
-          <!-- ═══════════════════════════════════════
-               【更新日志区域 · 在这里添加新版本】
-               格式说明：
-               - 每个版本是一个 <details> 标签
-               - <summary> 里写版本号和标题
-               - 里面的 <ul><li> 写更新内容
-               - 最新版本加 open 属性默认展开
-               ═══════════════════════════════════════ -->
-
-          <div class="text-[11px] font-bold" style="color:var(--tx3)">── 版本历史 ──</div>
-
-
-          <!-- 【最新版本 · 默认展开】 -->
-
-          
-          <details open class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.4.1版本</span>
-                <span class="text-xs" style="color:var(--tx2)">后发布可靠性 + 数据安全 + 移动端闭环 + 统一弹窗</span>
-              </div>
-              <span class="badge-ok text-[9px] px-2">当前版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>请求、生成状态与分支重写事务</b></li>
-                <li>　├ 主模型支持手动填写并在开书前预检启用模块；API 错误脱敏展示，普通 4xx 不再盲目重试</li>
-                <li>　└ 正文任务使用 run 级取消与过期回调隔离；分支重写成功前不提交空分支，并隔离辅助上下文</li>
-                <li>✅ <b>破坏性操作与数据完整性保护</b></li>
-                <li>　├ 中断正文、快照、自定义资产、章节索引和暗线计划删除均提供明确确认、影响说明或撤销</li>
-                <li>　└ JSON 导出提供“包含图片 / 仅文字 / 取消”真实分支；角色与风格删除支持引用清理或改绑</li>
-                <li>✅ <b>大纲/细纲与移动端关键流程闭环</b></li>
-                <li>　├ 390×450 键盘态、短屏底栏、滚动缓冲、触控热区和工作台入口完成适配</li>
-                <li>　└ 缺 API/模型/前置数据时给出可操作原因；检查问题可定位，索引范围无匹配时不再扩大为全部</li>
-                <li>✅ <b>暗线回收计划完整化</b></li>
-                <li>　├ 用户可见名称统一为“暗线回收计划”，兼容字段继续使用 foreshadowMatrix</li>
-                <li>　└ payoffChapter 表示计划窗口、resolvedChapter 表示实际回收章；向插件资料池发送只允许显式确认的停用草稿 strict append</li>
-                <li>✅ <b>统一弹窗与剩余 P2/P3 打磨</b></li>
-                <li>　├ 18 类共享弹窗统一初始焦点、焦点圈定、Escape、背景隔离、关闭后焦点归还和移动端返回</li>
-                <li>　└ 设置、导入导出、快照、AI 角色、新建书籍、模型列表、空书、JSON 重试等操作完成一致化</li>
-                <li>✅ <b>正式发布收口</b></li>
-                <li>　├ 完成全量回归、真实 Microsoft Edge 桌面/手机/短屏验收和正式交付包重打</li>
-                <li>　└ 宿主升至 v2.4.1，完成版本、教程、截图和交付证据同步</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.4.0版本</span>
-                <span class="text-xs" style="color:var(--tx2)">长篇工程规划 + 一键开书对齐 + 前端 UI 开口</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主正式命名为 v2.4.0 长篇写作工程完成版</b></li>
-                <li>　├ 基于 v2.3.9 连续五轮大纲/细纲构建优化完成命名，不覆盖旧 v2.3.9 文件</li>
-                <li>　├ 版本命名仅跟随宿主本体变化，避免无关版本号联动</li>
-                <li>　└ 关于页、首页版本标识、内部 version 字段、导出宿主标识和控制台标识统一到 v2.4.0</li>
-                <li>✅ <b>大纲/细纲稳定性与分批生成</b></li>
-                <li>　├ 大纲、细纲、单章细纲改写支持独立请求模式和自动流/非流 fallback</li>
-                <li>　├ 细纲支持顺序分批、只补空白、失败记录、失败批次重试和最小状态 UI</li>
-                <li>　└ 空返回、截断、缺章、范围外输出、过短内容不再静默当作成功</li>
-                <li>✅ <b>结构化写作工程能力</b></li>
-                <li>　├ 大纲 Prompt 对齐核心卖点、主线目标、世界规则、人物弧线、阶段大纲、伏笔回收和写作节奏</li>
-                <li>　├ 细纲 Prompt 对齐本章目标、场景、人物、事件推进、冲突反转、状态变化、伏笔回收、章末钩子和写作注意</li>
-                <li>　└ 新增大纲结构覆盖、细纲质量摘要、章节索引草案、暗线回收计划与检查面板</li>
-                <li>✅ <b>一键开书对齐前四轮能力</b></li>
-                <li>　├ 一键开书先生成设定、总大纲、章节索引草案等核心结果，再复用分批细纲引擎</li>
-                <li>　├ 复用 parseGeneratedDetailedOutlines、细纲质量检查、章节索引、暗线回收计划和检查面板状态</li>
-                <li>　└ 章节索引缺失或解析为空时明确失败，不再静默生成空目标细纲</li>
-                <li>✅ <b>前端 UI 开口与 release 交付口径</b></li>
-                <li>　├ 前端 UI 开口文档补齐运行态字段、接口边界、章节索引、暗线回收计划、检查结果和 release 交付口径</li>
-                <li>　├ Full Access CSS/HTML/JS 主题能力继续保留，二次确认、安全模式和信任清除边界保持明确</li>
-                <li>　└ 完整 release、截图、教程、日志、哈希和发布包均完成归档</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.9版本</span>
-                <span class="text-xs" style="color:var(--tx2)">作者主题 UI + 美化包材质包 + Full Access</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.9 主题 UI 美化包开放版本</b></li>
-                <li>　├ 保留 v2.3.8 的移动端控制栏温和置底、弹窗电脑/手机分流和夜间按钮避让修复</li>
-                <li>　├ 本栏只记录墨韵宿主本体能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.8 文件不覆盖，v2.3.9 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>作者自定义主题 UI / 美化包口子</b></li>
-                <li>　├ MOD 资产包新增 themePacks / themes / uiSkins / texturePacks 兼容字段，作者可用 JSON 声明主题 UI</li>
-                <li>　├ 支持安全变量主题，也支持 customCss、mountHtml、customJs 的完整主题 UI 包</li>
-                <li>　├ 新增 theme:install 与 theme:fullAccess 权限，完整 CSS/JS 主题导入和安装后不会自动执行</li>
-                <li>　└ 设置页新增主题 UI / 美化包管理区，Full Access 主题必须用户二次确认后才会启用</li>
-                <li>✅ <b>主题 UI 制作资料补齐</b></li>
-                <li>　├ 新增主题 UI 样品包，包含 Full Access 赛博墨韵 UI、安全变量暖纸主题、星舰写作台、灵宠书房全功能测试 UI</li>
-                <li>　├ 新增作者教程、使用者教程、AI 生成规范，并整理为统一总文档</li>
-                <li>　└ 明确 customCss、mountHtml、customJs、api.cleanup 和权限声明写法，方便作者直接制作主题 UI</li>
-                <li>✅ <b>全页面高级美化包样例</b></li>
-                <li>　├ 发布包补充“新艾利都高级美化包”独立 JSON，演示精美背景、开场动画、原创助手挂件、终端 HUD、互动按钮和多层装饰</li>
-                <li>　├ 使用者教程补充从导入 MOD、安装资产、启用主题、确认 Full Access 到安全模式恢复的完整步骤</li>
-                <li>　└ 文档说明官方/授权素材可用 base64 内嵌或 URL 引用，普通分发建议优先使用内嵌压缩 WebP 以保证离线可用</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.8版本</span>
-                <span class="text-xs" style="color:var(--tx2)">移动端底部控制栏 + 弹窗置底 + 夜间按钮避让</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.8 电脑/手机适配修复版本</b></li>
-                <li>　├ 保留 v2.3.6 的移动端安全区、MOD 分组按钮兼容和导入确认弹窗修复</li>
-                <li>　├ 本栏只记录墨韵宿主本体能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.7 文件不覆盖，v2.3.8 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>提笔续写控制栏温和置底生效</b></li>
-                <li>　├ 给底部控制框恢复 moyun-soft-bottom-composer，让“温和置底”规则真正作用在主界面控制栏上</li>
-                <li>　├ 手机端轻微收紧底部间距和圆角，继续保留 sticky 布局，不再使用 fixed 强制钉底</li>
-                <li>　└ 电脑端继续走 md:bottom-8，避免移动端置底规则影响桌面写作布局</li>
-                <li>✅ <b>弹窗电脑/手机分流适配</b></li>
-                <li>　├ 弹窗外层统一调整为 items-end md:items-center justify-center，手机置底、电脑居中</li>
-                <li>　├ 弹窗内容圆角调整为 rounded-t-2xl md:rounded-2xl，手机像底部面板，电脑像正常弹窗</li>
-                <li>　└ 段评弹窗、确认弹窗、导入导出、AI角色、书评、快照、世界模板和关系图等同步纳入检查</li>
-                <li>✅ <b>夜间/日间切换按钮避让</b></li>
-                <li>　├ 移动端主题浮动按钮上移，避免压住或干扰提笔续写控制栏</li>
-                <li>　└ 电脑端隐藏主题浮动按钮，避免与桌面弹窗和写作区布局互相影响</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.7版本</span>
-                <span class="text-xs" style="color:var(--tx2)">移动端弹窗排查 + 底部交互过渡版本</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.7 移动端交互排查版本</b></li>
-                <li>　├ 保留 v2.3.6 的移动端安全区、导入确认弹窗和 MOD 分组按钮兼容能力</li>
-                <li>　├ 对手机端普通业务弹窗居中问题进行集中排查，确认来源为外层 fixed 遮罩的 items-center 布局</li>
-                <li>　└ 本版本作为 v2.3.8 底部控制栏与弹窗分流修复前的过渡版本记录</li>
-                <li>✅ <b>移动端弹窗布局问题定位</b></li>
-                <li>　├ 检查确认弹窗、导入导出、AI角色、书评、快照、世界模板和关系图等同类弹窗结构</li>
-                <li>　├ 发现多处弹窗仍使用居中对齐，导致手机端遮挡正文且不符合底部面板交互习惯</li>
-                <li>　└ 为后续手机置底、电脑居中的响应式分流规则提供基础清单</li>
-                <li>✅ <b>提笔续写控制栏悬空问题确认</b></li>
-                <li>　├ 根据手机截图确认异常位置并非普通弹窗，而是主界面“下一章剧情走向 / 提笔续写”控制框</li>
-                <li>　├ 排查主题浮动按钮、sticky 底部控制栏和移动浏览器安全区之间的相互影响</li>
-                <li>　└ 最终在 v2.3.8 改为温和置底方案，避免继续使用强制 fixed 或 Teleport 方案</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.6版本</span>
-                <span class="text-xs" style="color:var(--tx2)">手机导入弹窗 + 底部安全区 + MOD 分组按钮兼容</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.6 移动端兼容补丁版本</b></li>
-                <li>　├ 保留 v2.3.5 的 Skill 扩展承载、资料回读、响应解析、折叠动画和运行态门禁能力</li>
-                <li>　├ 本栏只记录墨韵宿主本体能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.5 文件不覆盖，v2.3.6 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>手机导入确认弹窗安全区修复</b></li>
-                <li>　├ 通用确认弹窗改为正文内部滚动、底部按钮固定的布局</li>
-                <li>　├ 插件导入确认内容较长时，取消和确认按钮不会再被正文挤到手机底部浏览器栏后面</li>
-                <li>　└ 390x640 短屏和 64px 底部保留区已纳入专项回归</li>
-                <li>✅ <b>移动端底部浏览器栏预留加固</b></li>
-                <li>　├ 增加 hover:none、触控点、本地文件窄屏等兜底判断</li>
-                <li>　├ 降低 Android Edge、手机 WebView 和本地文件环境中 visualViewport 异常带来的贴底风险</li>
-                <li>　└ hostedView、工作台、导入弹窗和主界面按钮继续复用统一安全区变量</li>
-                <li>✅ <b>MOD 分组按钮旧宿主兼容</b></li>
-                <li>　├ 宿主识别 buttonGroups 时过滤带 groupId 的 fallback 按钮，避免新宿主重复渲染</li>
-                <li>　├ 不识别 buttonGroups 的旧宿主仍可通过 buttons fallback 显示完整入口</li>
-                <li>　└ 该修复是通用 MOD UI 承载能力，不改变 MOD 提示词、模型配置或工具调用边界</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.5版本</span>
-                <span class="text-xs" style="color:var(--tx2)">Skill 扩展承载 + 响应解析 + 全书资料回读 + 折叠动画</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.5 兼容维护版本</b></li>
-                <li>　├ 保留 v2.3.3 的移动端安全区、流式尾段收束、导入导出回归、即时落盘和折叠组件承载能力</li>
-                <li>　├ 本栏只记录墨韵宿主本体能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.3 文件不覆盖，v2.3.5 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>MOD Skill 扩展承载加固</b></li>
-                <li>　├ 支持复杂 Skill 原包的文件树保存、文本/二进制资源审计、中文路径、深层路径和超长文本读取边界</li>
-                <li>　├ 运行时文件 API 支持列表、读取、搜索、截断和二进制跳过统计，只允许访问当前 Skill 自身资料</li>
-                <li>　└ 默认不执行 Skill 内 JS、HTML 或外部脚本；受控运行保持 Worker 沙盒，完全访问必须用户确认免责声明</li>
-                <li>✅ <b>多 Skill 与私有资料隔离</b></li>
-                <li>　├ 多个 Skill 并存时，设置、资料表、AI 工具、工作流、视图、运行数据和运行日志均按命名空间隔离</li>
-                <li>　├ 删除单个 Skill 会清理对应私有文件与运行记录，不影响其它 Skill 或普通 MOD 导出</li>
-                <li>　└ 导入、启用和普通正文生成不会静默使用墨韵主 Key 或主模型</li>
-                <li>✅ <b>全书资料回读与旧资料保护</b></li>
-                <li>　├ 工作流模板可读取当前书全部可见章节，空书或无材料会在请求前拦截，不误调用模型</li>
-                <li>　├ 旧记忆、旧伏笔、旧状态、旧向量状态和旧运行记录迁移时保留原资料，重复导入不重复追加</li>
-                <li>　└ AI 返回空数组时不会写入伪资料，也不会清空用户已有资料</li>
-                <li>✅ <b>多模型中转响应兼容</b></li>
-                <li>　├ 兼容常见 choices、content parts、output_text、Responses output array、data/body/payload 包裹和工具调用参数</li>
-                <li>　├ 增强嵌套错误、嵌套截断、Claude message_delta max_tokens、Gemini MAX_TOKENS 与纯 JSONL 流式识别</li>
-                <li>　└ 有可见正文时尽量保存正文，空回、reasoning-only 和截断输出继续按失败处理，不伪成功</li>
-                <li>✅ <b>hostedViews 折叠动画与移动端复验</b></li>
-                <li>　├ 折叠组新增通用展开/收起动画 wrapper，减少配置弹窗和长列表跳变</li>
-                <li>　├ 桌面、移动短屏、底部安全区、横向溢出和 reduced motion 均纳入截图专项</li>
-                <li>　└ 本版本已通过 Edge full runtime 总门禁 51 项检查</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.3版本</span>
-                <span class="text-xs" style="color:var(--tx2)">移动端安全区 + 流式收束 + 表单即时落盘 + 折叠视图承载</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.3 维护版本</b></li>
-                <li>　├ 保留 v2.3.2 的资料回读承载、联网检索边界、私有资料写入和发布门禁能力</li>
-                <li>　├ 本栏只记录宿主本体能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.2 文件不覆盖，v2.3.3 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>移动端底部安全区修复</b></li>
-                <li>　├ 在 Android Edge / 本地文件等 visualViewport 不稳定场景下，为底部浏览器工具栏提供保守预留</li>
-                <li>　├ 底部输入区、AI建议和提笔续写按钮不再贴进移动浏览器底栏遮挡区</li>
-                <li>　└ 短屏手机视口和模拟底部地址栏遮挡已纳入运行态复查路径</li>
-                <li>✅ <b>流式尾段断连收束</b></li>
-                <li>　├ 正文生成和中断续写在已收到有效正文后，若尾段 reader.read 报 Failed to fetch / network 类错误，会先收束已有内容</li>
-                <li>　├ 响应建立前失败仍按真实网络失败处理，短内容和空内容继续由响应门禁拦截</li>
-                <li>　└ Claude、DeepSeek 等中转尾段断开时，降低“中转已有输出但宿主只提示失败”的概率</li>
-                <li>✅ <b>导入导出与章节版本回归</b></li>
-                <li>　├ TXT 导入能识别书籍 JSON 备份并提示改用 JSON 导入，不再把整份备份塞进第一章正文</li>
-                <li>　├ TXT 结构化导出回导时只读取正文区块，遇到角色、大纲、细纲等区块会截断</li>
-                <li>　└ 章节历史版本新增删除入口，删除前二次确认且不影响主版本快照</li>
-                <li>✅ <b>MOD 设置和资料编辑即时落盘</b></li>
-                <li>　├ hostedViews 与插件管理页的文本类设置在输入时即时写入，不再依赖失焦后才保存</li>
-                <li>　├ AI 工具表单、资料表文本编辑、向量连接、模型列表和重建索引都能读取最新输入值</li>
-                <li>　└ MOD embedding 请求补充 60 秒超时和明确错误提示，避免慢向量模型被过早判失败</li>
-                <li>✅ <b>hostedViews 折叠组件承载</b></li>
-                <li>　├ 新增安全组件 collapsibleGroup，支持在宿主白名单内渲染默认收起的嵌套配置组</li>
-                <li>　├ 导入校验、开发者统计和弹窗渲染会递归识别折叠组内的按钮、设置表单和模型列表</li>
-                <li>　└ 该能力是通用宿主接口，不执行外部脚本，也不放宽 MOD 的 DOM 或网络权限</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.2版本</span>
-                <span class="text-xs" style="color:var(--tx2)">资料回读承载 + 私有工具边界 + 资料表写入硬化</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.2 维护版本</b></li>
-                <li>　├ 保留 v2.3.1 的正文净化、响应门禁、向量作业、事件工作流和工具事件归档能力</li>
-                <li>　├ 本栏只记录宿主承载能力，不混写单个 MOD 包的提示词、按钮、栏目或世界设定内容</li>
-                <li>　└ 旧 v2.3.1 文件和交付包不覆盖，v2.3.2 作为新的宿主命名版本单独派生</li>
-                <li>✅ <b>生成中资料回读承载</b></li>
-                <li>　├ 新增声明式 activeContextTools 承载，支持 MOD 在生成中请求宿主读取私有资料</li>
-                <li>　├ 工具请求、工具结果和续写回灌会被宿主剥离，不写入用户输入框、章节正文、摘要、书评或导出正文</li>
-                <li>　└ 工具权重、调用上限、结果数量和字符预算由宿主门禁控制，避免单类资料挤占全部预算</li>
-                <li>✅ <b>可选联网检索边界</b></li>
-                <li>　├ 新增 web:search 权限与 webSearch 工具类型，联网检索默认关闭</li>
-                <li>　├ 联网工具必须使用对应 MOD 的私有 Key；缺 Key 时写入 skipped 工具事件，不回退墨韵主 Key</li>
-                <li>　└ 联网结果只进入内部续写上下文，宿主会清理工具标签和结果块，避免工具内容落入正文</li>
-                <li>✅ <b>MOD 私有资料表安全写入</b></li>
-                <li>　├ 新增 writeModDataTableRows 与 dataTableRows 工作流步骤，统一资料表写入路径</li>
-                <li>　├ 支持 append / upsert / updateOnly、matchBy、allowedFields、strictFields、ignoreEmpty 和 maxRows</li>
-                <li>　└ 写表只作用于当前 MOD 私有资料池，并按表记录向量索引 stale 原因，便于后续重建和排查</li>
-                <li>✅ <b>伏笔图谱与旧状态兼容承载</b></li>
-                <li>　├ 宿主图谱组件支持 seeded / touched / escalated / revealed / resolved / dormant 六阶段状态</li>
-                <li>　├ 兼容 active / open / escalating / done / paused 等旧状态，不因缺状态或旧状态导致图谱异常</li>
-                <li>　└ 图谱仍为只读展示，不直接编辑资料，资料修改继续走安全资料表路径</li>
-                <li>✅ <b>私有运行态和旧资料接入收紧</b></li>
-                <li>　├ 收紧私有工具运行态识别，避免同名但 ID 不匹配的 MOD 误触发专属工具链路</li>
-                <li>　├ 旧资料接入保留旧分区，不清空、不覆盖；重复导入按标题和字段签名去重</li>
-                <li>　└ 缺标题资料使用中性兜底标题，避免把迁移痕迹暴露给用户可见资料</li>
-                <li>✅ <b>发布门禁与兼容性验证补强</b></li>
-                <li>　├ quick / runtime-core / runtime / release 分层门禁稳定运行，适合日常验收与发布前全量复查</li>
-                <li>　├ Edge 运行态覆盖导入、移动端安全区、弹窗、续写、响应门禁、资料迁移、书籍隔离和多 MOD 组合</li>
-                <li>　└ release 白名单目录、哈希清单和发布报告已同步当前包基线，减少交付目录滞后风险</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.1版本</span>
-                <span class="text-xs" style="color:var(--tx2)">宿主净化门禁 + 向量作业韧性 + 事件工作流硬化</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.1 维护版本</b></li>
-                <li>　├ 保留 v2.3.0 的稳定写作、真实上下文、移动端安全区、导入删除与续写门禁</li>
-                <li>　├ 旧 v2.3.0 文件和交付包不覆盖，v2.3.1 作为新的宿主命名版本单独派生</li>
-                <li>　└ 本栏只记录宿主更新，不混写单个 MOD 包的提示词、按钮或世界设定内容</li>
-                <li>✅ <b>正文净化与响应门禁</b></li>
-                <li>　├ 总结、段评、书评、导出、复制章节、阅读渲染和续写上下文统一读取清洗后的可见正文</li>
-                <li>　├ AI 空回、只有思考、过短正文或 token 截断时不会误保存为成功章节</li>
-                <li>　└ AI 工具也复用统一响应解析，支持更多返回形态，并阻止截断结果写成成功资料</li>
-                <li>✅ <b>向量索引作业硬化</b></li>
-                <li>　├ 新增资料源审计、体积统计、分批进度、索引趋势、资料表耗时榜和主动作业状态</li>
-                <li>　├ 支持暂停、继续、放弃、重试失败批次；继续时复用已完成批次，减少重复请求</li>
-                <li>　└ 关闭记忆或资料为空时不再绕过门禁发起向量请求，局部重建失败时尽量保留范围外旧索引</li>
-                <li>✅ <b>MOD 事件与工作流承载</b></li>
-                <li>　├ 生成、保存、删除、导入等事件处理器可按宿主白名单运行，不执行外部脚本</li>
-                <li>　├ 工具事件可独立归档，正文渲染和 prompt 构建不会读取该轨</li>
-                <li>　└ 工作流直接调用 AI 工具时会合并默认输入；自动事件可按设置开关运行并留下日志</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.3.0版本</span>
-                <span class="text-xs" style="color:var(--tx2)">稳定性修复 + 重型 MOD 兼容 + 生成链路加固</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>宿主升级到 v2.3.0 稳定版本</b></li>
-                <li>　├ 修复了大量生成、续写、导入、移动端和 MOD 管理相关问题</li>
-                <li>　├ 保留 MOD API 1.1、插件管理、事件总线和声明式 JSON 安全边界</li>
-                <li>　├ 增强真实上下文、MOD Hub、段评、移动端和生成链路的稳定性</li>
-                <li>　└ 作者行在原三位作者后追加临循；此处记录宿主更新，不混写单个 MOD 包版本</li>
-                <li>✅ <b>真实上下文请求可视化</b></li>
-                <li>　├ “提笔续写”会保留上一轮真实发送给 AI 的 messages、模型名和捕获时间</li>
-                <li>　├ 主工具栏新增真实上下文入口，可查看并复制文本或 JSON，方便复现生成问题</li>
-                <li>　├ 默认使用安全视图，重型 MOD 的内置提示词不会直接暴露给普通查看</li>
-                <li>　└ 只暴露只读快照，不开放插件脚本或任意 DOM 操作，继续走宿主白名单</li>
-                <li>✅ <b>CoT / think 思考内容双轨分流</b></li>
-                <li>　├ 模型原生 reasoning_content 进入“模型原生思考”框，MOD 推演资料进入独立承载框</li>
-                <li>　├ &lt;think&gt;、&lt;thinking&gt; 与声明式 MOD 推演块会被宿主剥离，不再混入正文</li>
-                <li>　├ 段评、摘要、字数统计、章节保存和中断续写统一读取清洗后的正文</li>
-                <li>　├ 残留的 &lt;/think&gt; / &lt;/thinking&gt;、HTML entity 与畸形闭合标签会被兜底清理</li>
-                <li>　└ MOD 推演与模型原生思考默认分开归档，便于排查模型返回</li>
-                <li>✅ <b>正文解析、摘要抢救与中断续写防覆盖</b></li>
-                <li>　├ 章节解析支持 &lt;content&gt;、正文标题、章节正文、剧情摘要、读者评论等常见返回格式</li>
-                <li>　├ 摘要标题错位或正文被塞进摘要块时，优先保护正文并从摘要块抢救正文内容</li>
-                <li>　├ continueGeneration() 改走完整续写消息链，保留系统提示、MOD 规则、记忆召回和模块模型检查</li>
-                <li>　├ 中断续写会剥离旧摘要/评论尾巴；双击或重入不会重复发请求，短输出不会顶掉长草稿</li>
-                <li>　└ 续写合并后若正文异常变短，会恢复中断草稿并提示失败，避免二次生成覆盖正文</li>
-                <li>✅ <b>大纲、细纲、AI 建议与模块模型边界</b></li>
-                <li>　├ 大纲、细纲、单章细纲、AI 建议和正文续写均纳入运行态脚本复核</li>
-                <li>　├ 大纲/细纲不再依赖 reasoning_content 当正文，必须从 content/text 取得可见结果</li>
-                <li>　├ 宿主保留 settings:moduleModels、setHostModuleModel、clearHostModuleModel 等兼容字段和权限白名单</li>
-                <li>　└ 主模型或模块模型缺失时不再误发空请求；提示语按当前模块说明缺少哪类模型</li>
-                <li>✅ <b>MOD Hub 与插件宿主体验</b></li>
-                <li>　├ 新增右上角 MOD 聚合入口，收纳普通悬浮插件，降低多 MOD 同屏拥挤</li>
-                <li>　├ 插件卡片优先显示包自身版本号，不再把 API 1.1 当作用户可见主版本</li>
-                <li>　├ hostedView、独立弹窗、资料表、模型列表和工作流继续按权限与组件白名单渲染</li>
-                <li>　├ 插件删除、私有数据清理、资料行删除和危险动作均保留二次确认边界</li>
-                <li>　└ 多 MOD 组合时隔离 modId、私有数据、资料表和资产；删除一个插件不会清空另一个插件</li>
-                <li>✅ <b>移动端与桌面端安全区硬化</b></li>
-                <li>　├ 引入 visualViewport 与 --moyun-mobile-browser-bottom，动态计算移动浏览器底栏遮挡</li>
-                <li>　├ 底部输入区、移动端抽屉、独立弹窗、导入确认框和删除确认框统一预留安全区</li>
-                <li>　├ 桌面端与移动端悬浮入口使用 pointer 事件和边界限制，拖动后保存位置</li>
-                <li>　└ Edge 桌面、手机视口、短屏和底部地址栏模拟被列为运行态复查路径</li>
-                <li>✅ <b>存储迁移、发布门禁与可查报告</b></li>
-                <li>　├ 旧 localStorage v3 迁移、损坏 v3 不白屏、v6 优先级均有脚本夹具覆盖</li>
-                <li>　├ 页面关闭前加入轻量 localStorage 兜底备份，降低 IndexedDB 异步保存被中断导致的丢稿风险</li>
-                <li>　├ 新增可见污染扫描、发布白名单校验、文件一致性和报告新鲜度检查</li>
-                <li>　└ 发布报告使用更精确的运行 ID，避免误读旧报告当作本轮结果</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.5（MOD增强版）</span>
-                <span class="text-xs" style="color:var(--tx2)">插件管理页重做 + API 1.1 事件总线 + 共创开发规范</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>🔴 <b>【重要入口调整】MOD 不再放在“预设”里导入</b></li>
-                <li>　├ 原因：MOD 已经不只是几条提示词规则，而是包含权限、资产、设置、事件、工作流和开发者预览的完整插件</li>
-                <li>　├ 调整：插件导入、新建、启停、导出、删除全部统一到“设置 → MOD 共创管理”</li>
-                <li>　├ 预设页回归文风、普通预设、提示词流水线和环境氛围增强，不再混入插件后台</li>
-                <li>　└ 以后排查 MOD 冲突，请优先到设置页单独关闭对应插件，而不是去预设页找入口</li>
-                <li>✅ <b>完整 MOD 共创管理页上线</b></li>
-                <li>　├ 参考角色卡工坊的插件管理体验，新增已安装、已启用、事件处理器数量和当前 API 版本统计卡</li>
-                <li>　├ 每个插件卡片保留启停、展开、导出、删除，展开后可查看清单、作者、版本、权限和功能声明</li>
-                <li>　├ 支持查看小说模块、资产包、结构化资料池、AI 工具、声明式工作流、宿主视图和规则内容</li>
-                <li>　└ 支持运行时设置、私有数据清理、资产安装、事件处理器测试和开发者预览，管理页正式变成插件后台</li>
-                <li>✅ <b>MOD API 1.1：事件总线 eventHandlers</b></li>
-                <li>　├ 新增 appReady、bookCreated、bookLoaded、chapterInserted、chapterSaved、chapterDeleted 等书籍/章节事件</li>
-                <li>　├ 新增 generationStarted、generationFinished、generationStopped，可在正文生成开始、完成、停止时自动响应</li>
-                <li>　├ 事件触发后只允许调用 toast、UI动作、工作流、AI工具、私有数据写入等宿主白名单能力</li>
-                <li>　└ 仍然不执行外部 JS、不注入任意 HTML/CSS，MOD 继续保持“声明式 JSON 插件”的安全边界</li>
-                <li>✅ <b>插件运行时能力增强</b></li>
-                <li>　├ settingsSchema 可生成插件自己的设置表单，设置值写入插件私有数据，不污染主程序字段</li>
-                <li>　├ dataSchemas 可做伏笔池、时间线、任务线、道具库等结构化资料，由宿主管理和保存</li>
-                <li>　├ aiTools 与 workflows 由宿主代发请求、顺序执行、记录结果，适合做整理工具和自动化小流程</li>
-                <li>　└ 资产包仍然保持手动安装和追加策略，不会导入后直接覆盖用户自己的文风、预设或流水线</li>
-                <li>✅ <b>MOD 开发者测试链补齐</b></li>
-                <li>　├ 事件处理器面板可以手动点“测试”，直接查看最近运行状态、触发事件、错误信息和运行时间</li>
-                <li>　├ 开发者预览会展示归一化后的权限、模块、资产、UI插槽、动作白名单、测试用例和事件处理器</li>
-                <li>　├ 新增事件总线示例 MOD 包，可测试应用加载、章节保存、生成完成、toast、私有数据写入和工作流触发</li>
-                <li>　└ 新增《墨韵MOD共创管理文档》，告诉大家怎么设计、编写、导入、测试和发布 MOD</li>
-                <li>✅ <b>给普通用户的变化</b></li>
-                <li>　├ 以后导入 MOD：去“设置 → MOD 共创管理”</li>
-                <li>　├ 以后关闭 MOD：展开插件卡片或点卡片左侧启停勾选</li>
-                <li>　├ 以后检查 MOD：看权限、资产、事件处理器和开发者预览，不需要理解全部接口字段</li>
-                <li>　└ 长破限、平台风格、题材偏置、扩展提示词组，后续都建议优先做成 MOD 共创包分发</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.5（稳定增强版）</span>
-                <span class="text-xs" style="color:var(--tx2)">上下文省 token + 提示词流水线 + 安全编辑</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>正文生成稳定增强</b></li>
-                <li>　├ 新增上下文省 token 设置，可控制最近正文、章节摘要、长期总结、细纲和最终校验是否注入</li>
-                <li>　├ 新增单章正文、单章摘要、世界观、角色信息、大纲/细纲注入长度上限</li>
-                <li>　└ 正文生成末尾追加最终执行校验，减少模型只看细纲、忽略文风/角色/禁令/MOD 规则的问题</li>
-                <li>✅ <b>提示词流水线重构</b></li>
-                <li>　├ 流水线改为按 key 读取内容，用户调整顺序也不会导致角色、大纲、场景词语义错位</li>
-                <li>　├ 支持预设、文风、世界观、角色、大纲、场景词、MOD、后置规则上下移动</li>
-                <li>　└ 新增每层触发说明，方便判断哪些层吃 token、哪些层适合临时关闭排查</li>
-                <li>✅ <b>大纲/细纲安全编辑增强</b></li>
-                <li>　├ 大纲 AI 修改强调只改用户要求部分，降低大面积重写全书规划的风险</li>
-                <li>　├ 细纲生成合并更保守，AI 返回不完整时尽量保留旧章节内容</li>
-                <li>　└ 单章细纲新增 AI 补写/修改，只处理当前章节卡片，不覆盖其他章节</li>
-                <li>✅ <b>角色系统增强</b></li>
-                <li>　├ 角色生成改为更完整 JSON，预览表单可在导入前检查和调整</li>
-                <li>　├ 新增单角色一键完善、角色拖拽排序和关系绑定优化</li>
-                <li>　└ 长篇角色资料维护更方便，排序不影响角色 id 关系指向</li>
-                <li>✅ <b>MOD 宿主与内置预设增强</b></li>
-                <li>　├ MOD 接口补充权限、UI 插槽、设置表单、动作白名单、开发者预览和测试用例展示</li>
-                <li>　├ 防数字化、防报告腔、防清单腔等沉浸规则写入主程序可编辑预设</li>
-                <li>　├ 长破限、平台风格、题材偏置和扩展提示词包仍建议优先做成 MOD</li>
-                <li>　└ “导入整本小说”和“起点式弹幕”本版暂不开工，后续单独设计</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.4（MOD版）</span>
-                <span class="text-xs" style="color:var(--tx2)">共创插件系统 + 声明式 MOD 样例</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>MOD 共创插件系统上线</b></li>
-                <li>　├ 原“MOD规则包”升级为声明式插件宿主，可导入、导出、启用、关闭</li>
-                <li>　├ 新增插件清单、权限、功能声明、设置 Schema、UI 插槽、文本钩子和规则注入</li>
-                <li>　└ 主程序只读取 JSON 声明，不执行外部 JS，方便共创者安全提交插件</li>
-                <li>✅ <b>插件界面宿主</b></li>
-                <li>　├ 支持设置页、侧栏工具、悬浮窗、新建书动作、主工具栏、章节动作</li>
-                <li>　├ UI 按钮仅支持白名单动作，如打开设置、追加剧情走向、复制内容和提示消息</li>
-                <li>　└ 新增开发者预览，可查看权限、功能、UI、钩子和规则统计</li>
-                <li>✅ <b>声明式 MOD 样例与宿主兼容</b></li>
-                <li>　├ 提供完整样例包，用于测试悬浮窗、设置页、侧栏工具和章节按钮</li>
-                <li>　├ 宿主可按声明把规则挂入正文、总结、建议、书评、后置词等多个位置</li>
-                <li>　└ 样例包只用于验证宿主能力，不在关于页混写单个 MOD 的功能卖点</li>
-                <li>✅ <b>兼容旧规则包</b></li>
-                <li>　├ 旧 novel_mod_pack 仍可导入，主程序会自动转成新结构</li>
-                <li>　└ 新版导出统一使用 moyun_mod_pack 格式</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.4</span>
-                <span class="text-xs" style="color:var(--tx2)">稳定性补丁 + 生图修复 + 存稿保护</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>🔴 <b>【生图故障修复】修复新版本封面/立绘/正文生图异常</b></li>
-                <li>　├ 根因：v2.2.3 后续改动把「封面/立绘关键词提取」也接入完整 NSFW/破限消息链，导致提词结果被正文破限、校准对话、NSFW模块污染</li>
-                <li>　├ 修复：imagetext 模块恢复为纯净提词请求，只输出英文绘图 tags，不再注入小说正文破限上下文</li>
-                <li>　├ 影响范围：封面生图、角色立绘、一键开书封面/立绘、正文自动插图的 tag 稳定性</li>
-                <li>　└ 对比 v2.2.3：保留旧版增强能力，但不再让画图提词任务继承正文破限提示</li>
-                <li>✅ <b>正文插图容错增强</b></li>
-                <li>　├ 新增正文插图「重生」与「改词」入口，可直接对失败图片重新发起生图</li>
-                <li>　├ 图片失败不再只表现为无声消失，失败提示更明确，方便判断密钥/线路/tag问题</li>
-                <li>　├ 缓存记录补充 tag 信息，便于后续导出、重生、改词复用</li>
-                <li>　└ 正文图片加载逻辑改为显式设置 NAI URL，减少空 src 或缓存未命中导致的不触发问题</li>
-                <li>✅ <b>正文 [IMG] 标签规范化</b></li>
-                <li>　├ 新增章节图片标签清洗逻辑，自动处理模型输出多个 [IMG:]、缺少闭合 ]、混入摘要/书评等情况</li>
-                <li>　├ 按「每章图片」设置裁剪或提示数量异常，避免一章输出过多图拖慢加载</li>
-                <li>　└ 强化自动插图提示词：要求每张图独占一行、禁止把图片 tag 放入摘要或书评区</li>
-                <li>✅ <b>存稿与数据安全增强</b></li>
-                <li>　├ 新增紧急轻量备份：关闭页面前同步写入 localStorage，降低 IndexedDB 异步保存被浏览器中断导致的丢稿风险</li>
-                <li>　├ 新增关键节点立即保存能力，导出/中断/一键开书等场景更稳</li>
-                <li>　├ 导出前强制同步当前书数据，避免导出文件不是最新内容</li>
-                <li>　└ 增强紧急备份恢复逻辑，优先保护当前书正文、章节、角色、细纲、总结与封面</li>
-                <li>✅ <b>版本管理修复</b></li>
-                <li>　├ 修复章节版本切换时主版本快照与历史版本覆盖关系不清的问题</li>
-                <li>　├ 存版本提示计数更准确，历史版本切换更稳定</li>
-                <li>　└ AI编辑章节前自动保存版本，减少误改后无法回退的风险</li>
-                <li>✅ <b>大纲/细纲编辑安全增强</b></li>
-                <li>　├ 细纲 AI 修改接入 Diff 预览，避免直接覆盖已有细纲</li>
-                <li>　├ 大纲/细纲修订可先审阅差异，再决定全部接受或拒绝</li>
-                <li>　└ 对长期连载项目更友好，降低误覆盖设定和章节规划的风险</li>
-                <li>✅ <b>对比 v2.2.3 的总体变化</b></li>
-                <li>　├ v2.2.3 重点是破限重构、预设体系、生图指令和数据隔离</li>
-                <li>　├ v2.2.4 重点是把这些能力稳定落地：修生图、保数据、补容错、加回滚</li>
-                <li>　└ 建议所有 v2.2.3 用户升级，尤其是开启 NSFW 后使用封面/立绘/正文插图的用户</li>
-              </ul>
-            </div>
-          </details>
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.3</span>
-                <span class="text-xs" style="color:var(--tx2)">破限重构 + 生图增强 + 数据隔离</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-			    <li>✅ <b>重要，角色及封面生图及一键开书，建议使用用量的模型，花费会更小些，角色及封面生图建议用便宜的模型，每次只有一两千token，另外现在一键开书的生图不稳定，刷新一下就好了</b></li>
-                <li>✅ <b>破限系统重构（小说版）</b></li>
-                <li>　├ 破限+NSFW增强内置到NSFW开关，开启即生效，关闭完全干净</li>
-                <li>　├ 8条多轮伪造对话注入（破限校准4条+NSFW测试4条）</li>
-                <li>　├ 所有提示词已从旧交互口吻改写为小说续写口吻</li>
-                <li>　└ 移除独立的「破限（核心）」和「NSFW增强」预设，避免重复注入</li>
-                <li>✅ <b>预设体系更新</b></li>
-                <li>　├ 新增「防跑偏」预设：防止AI跳过场景、偏离走向、自行编造转折</li>
-                <li>　├ 新增「防重复」预设：禁止定式修辞/重复结构/相似描述</li>
-                <li>　├ 更新「防神化」预设：R-LOGIC逻辑约束，防止角色行为崩坏</li>
-                <li>　├ 更新「人格内核」预设：三维驱动（精神40%+肉体40%+物质20%）</li>
-                <li>　├ 更新「禁止规则」预设：禁止对比句型和特定词汇</li>
-                <li>　└ 保留墨韵原有的防全知/沉浸叙事/保持悬念等预设</li>
-                <li>✅ <b>DeepSeek校准增强（2条→4条）</b></li>
-                <li>　├ 增加执行锁定消息，强制思考层使用分析句式</li>
-                <li>　└ 禁止第一人称沉浸句，要求思考过程至少800字</li>
-                <li>✅ <b>自动生图指令升级</b></li>
-                <li>　├ 8维度Tag生成优先级指南（人物→姿势→动作→交互→衣物→镜头→位置→时间）</li>
-                <li>　├ Tag权重调整规范：增强{Tag}和减弱[Tag]</li>
-                <li>　├ 核心一致性规范：上下文一致性+固定外观一致性</li>
-                <li>　└ POV视角限制：主角参与场景禁止出现主角形象</li>
-                <li>✅ <b>数据隔离增强</b></li>
-                <li>　├ 性格标签预设改为每本书独立存储</li>
-                <li>　├ 对话风格模板改为每本书独立存储</li>
-                <li>　└ 切换书籍时自动加载对应的标签和风格</li>
-                <li>✅ <b>UI改进</b></li>
-                <li>　├ 大纲/细纲/正文走向输入框显示实时字数</li>
-                <li>　├ 角色立绘和封面生图分离为「提取关键词」+「生成图片」两步</li>
-                <li>　├ 关键词可编辑后再生图</li>
-                <li>　├ 正文截断Bug修复（parseChapter精确标记提取）</li>
-                <li>　├ 导出功能稳定性修复（延迟释放URL）</li>
-                <li>　└ 一键开书完成后自动关闭弹窗</li>
-              </ul>
-            </div>
-          </details>
-
-
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2.2</span>
-                <span class="text-xs" style="color:var(--tx2)">一键开书防覆盖 + 对话风格AI生成</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>🔴 <b>【恶性BUG修复】一键开书不再覆盖旧书数据</b></li>
-                <li>　├ 根因：生成过程中直接修改了当前书的 novel.value，导致旧书设定被新书内容覆盖</li>
-                <li>　├ 修复方案：先 syncBookData() 保存旧书 → 创建新书并切换 → 再在新书上下文中修改数据</li>
-                <li>　├ 中间保存优化：每步完成后即时应用角色/设定到新书，中断也不丢失</li>
-                <li>　└ 彻底隔离新旧书的数据流，杜绝交叉污染</li>
-                <li>✅ <b>对话风格模板系统重构</b></li>
-                <li>　├ 对话风格模板改为响应式数据，支持持久化存储</li>
-                <li>　├ 新增AI生成自定义对话风格：输入描述即可生成全新风格模板</li>
-                <li>　├ 已选中的风格描述可直接在文本框中编辑修改</li>
-                <li>　├ 自定义风格支持删除（hover显示删除按钮）</li>
-                <li>　├ 一键开书时自动生成3个匹配主题的对话风格模板</li>
-                <li>　└ AI批量创角时也自动生成3个对话风格模板</li>
-                <li>✅ <b>模块模型分配增强</b></li>
-                <li>　├ 新增「正文生成」独立模型配置（章节续写、AI编辑、改标题等）</li>
-                <li>　├ 新增「封面/立绘」独立模型配置（标签提取用的文本API）</li>
-                <li>　├ 原「设定模块」职责明确为设定补全和一键开书设定</li>
-                <li>　└ 旧版数据自动补全新增的模块key，向下兼容</li>
-                <li>✅ <b>严格主题模式（开书功能）</b></li>
-                <li>　├ 当书籍主题超过500字时，自动显示「严格模式」开关</li>
-                <li>　├ 开启后AI完全遵守用户设定，禁止自由发挥和自创设定</li>
-                <li>　├ 约束注入到一键开书prompt和正文生成的系统提示词中</li>
-                <li>　└ 适合已有完整设定或IP改编的用户</li>
-                <li>✅ <b>叙事视角切换</b>：设定Tab新增第一人称/第三人称切换按钮，每本书独立保存</li>
-                <li>✅ <b>手机端细纲/大纲面板修复</b>：absolute定位加mobile top偏移，生成按钮不再被遮挡</li>
-                <li>✅ <b>PC端按钮叠加修复</b>：细纲/大纲面板打开时自动隐藏书评浮动按钮</li>
-                <li>✅ <b>悬浮窗可拖动</b>：书评团浮动按钮支持长按拖拽移动位置</li>
-                <li>✅ <b>手机端拖拽章节灵敏度修复</b>：添加25px距离阈值，轻触不再误触发拖拽</li>
-                <li>✅ <b>一键生成中断保护</b>：每步完成后自动saveData，中断时保存已生成内容</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- 【旧版本 · v2.2】 -->
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.2</span>
-                <span class="text-xs" style="color:var(--tx2)">破限重构 + 小说预设整理</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>NSFW 破限系统重构</b>：采用隐晦标签方案，降低模型拒绝输出概率</li>
-                <li>　├ 消息结构修正：系统提示 → 校准对话 → 注入对话 → 历史消息</li>
-                <li>　├ 移除冗长的"虚构空间协议"，改用 Content_License 元数据标签</li>
-                <li>　├ 修复 NSFW 双重注入导致的内容为空问题</li>
-                <li>　└ 所有 API 调用函数统一使用正确的消息结构（共修复 14 处）</li>
-                <li>✅ <b>DeepSeek 模型适配</b>：自动检测 DeepSeek 模型并注入思考层分离指令</li>
-                <li>✅ <b>预设体系扩展</b>：新增 7 个专业写作预设（默认关闭）</li>
-                <li>✅ <b>叙事视角切换</b>：支持第一人称/第三人称切换</li>
-                <li>✅ <b>文风优先级指令</b>：强制AI不模仿前文章节的文风</li>
-                <li>✅ <b>细纲约束力强化</b>：重写细纲注入系统</li>
-                <li>✅ <b>生图提示词升级</b>：8维度Tag优先级指南</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- 【旧版本 · 默认折叠 · 复制这个块添加更多版本】 -->
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.1</span>
-                <span class="text-xs" style="color:var(--tx2)">一键开书增强版</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ <b>一键开书增强版</b>：模块化选择弹窗，自由勾选要生成的内容</li>
-                <li>　├ 设定模块：书名/简介/世界观/负面提示词/NSFW模式/封面</li>
-                <li>　├ 角色模块：自定义数量+性格标签/风格/台词/关系/提示词/立绘</li>
-                <li>　├ 大纲模块：自定义总字数+大纲字数+细纲章数</li>
-                <li>　├ 预设模块：流水线/文风/预设（可选方向和数量）</li>
-                <li>　└ 实时进度显示+流式预览+中断保护+费用预估</li>
-                <li>✅ <b>角色卡折叠系统</b>：每个属性区域独立折叠/展开</li>
-                <li>✅ <b>角色全属性AI完善</b>：性格标签/关系/专属提示词一键AI生成</li>
-                <li>✅ <b>角色立绘位置优化</b>：大图显示在简介下方</li>
-                <li>✅ <b>角色删除按钮</b>：移至卡片底部，避免误触</li>
-                <li>✅ <b>封面图片独立存储</b>：每本书拥有独立封面</li>
-                <li>✅ <b>生图提示词模板可编辑</b>：在设置中自定义插图/立绘的AI提取指令</li>
-                <li>✅ <b>生图CORS兼容</b>：自动降级为img标签方式加载</li>
-                <li>✅ <b>流式中断容错</b>：HTTP/2断流时保留已接收内容</li>
-                <li>✅ <b>细纲删除确认</b>：加入二级确认弹窗</li>
-                <li>✅ <b>细纲标题清洁</b>：自动清除Markdown格式符号</li>
-                <li>✅ <b>书评随正文生成优化</b>：增强评论解析容错</li>
-                <li>✅ <b>手机端适配优化</b></li>
-                <li>　├ 底部控制栏不再被遮挡</li>
-                <li>　├ 角色折叠箭头触摸优化</li>
-                <li>　├ 书评/主题切换按钮尺寸调整</li>
-                <li>　└ 新建书籍主题框改为可拖拽多行输入</li>
-                <li>✅ <b>const→let修复</b>：解决书评随正文生成的崩溃BUG</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- 【旧版本 · 默认折叠 · 复制这个块添加更多版本】 -->
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v2.0-base</span>
-                <span class="text-xs" style="color:var(--tx2)">全面重构版</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ 提示词8层流水线系统 + 一键AI填充</li>
-                <li>✅ 角色增强系统（性格标签/对话风格/关系图）</li>
-                <li>✅ 角色立绘AI生成 + 封面图片生成</li>
-                <li>✅ 每章书评系统（生成/重写/楼中楼/点赞）</li>
-                <li>✅ 书评随正文生成（节省API调用）</li>
-                <li>✅ 细纲精准注入（防止多章串味）</li>
-                <li>✅ NSFW 8模块编辑器 + AI一键填充</li>
-                <li>✅ 完整破限系统（整合旧版能力）</li>
-                <li>✅ MOD规则包系统（导入/导出/叠加）</li>
-                <li>✅ 文风系统（6内置 + 自定义 + AI批量生成）</li>
-                <li>✅ 预设系统（模块定向 + AI批量生成）</li>
-                <li>✅ 世界观模板库（6内置 + AI批量生成）</li>
-                <li>✅ 思维链显示 + 翻译</li>
-                <li>✅ 模块模型分配（各功能独立选模型）</li>
-                <li>✅ NAI调用模式切换（Canary/增强）</li>
-                <li>✅ 5套画师预设（完整NAI参数）</li>
-                <li>✅ 图片IndexedDB缓存（刷新不变）</li>
-                <li>✅ 导出含图片（角色立绘+正文插图）</li>
-                <li>✅ 沉浸阅读模式</li>
-                <li>✅ 章节拖拽排序</li>
-                <li>✅ 分支/故事树系统</li>
-                <li>✅ 快照历史系统</li>
-                <li>✅ 深色/浅色主题</li>
-                <li>✅ AI输出字数控制</li>
-                <li>✅ 环境氛围增强</li>
-                <li>✅ 流式/非流式输出切换</li>
-                <li>✅ v3数据自动升级</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- 【旧版本 · 默认折叠 · 复制这个块添加更多版本】 -->
-          <details class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v1.3.5</span>
-                <span class="text-xs" style="color:var(--tx2)">狗头临时修复版</span>
-              </div>
-              <span class="badge-muted text-[9px] px-2">旧版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1" style="color:var(--tx3);line-height:1.6">
-                <li>- 基础写作功能</li>
-                <li>- 分支/对话树</li>
-                <li>- 书评系统</li>
-                <li>- 大纲/细纲</li>
-                <li>- 生图功能</li>
-              </ul>
-            </div>
-          </details>
-
-          <!-- 
-          ═══════════════════════════════════════
-          【如何添加新版本】
-          复制下面这个模板，粘贴到上面最新版本的前面：
-          
-          <details open class="card overflow-hidden">
-            <summary class="px-4 py-3 cursor-pointer select-none flex items-center justify-between" style="background:var(--bg-inset)">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold" style="color:var(--tx)">v版本号</span>
-                <span class="text-xs" style="color:var(--tx2)">版本名称</span>
-              </div>
-              <span class="badge-ok text-[9px] px-2">当前版本</span>
-            </summary>
-            <div class="px-4 py-3">
-              <ul class="text-xs space-y-1.5" style="color:var(--tx2);line-height:1.6">
-                <li>✅ 更新内容1</li>
-                <li>✅ 更新内容2</li>
-              </ul>
-            </div>
-          </details>
-          
-          然后把旧版本的 open 属性删掉、badge 改成 badge-muted
-          ═══════════════════════════════════════
-          -->
 
         </div>
       </div>
@@ -14171,7 +13376,7 @@ function cleanAIResponse(text) {
         variant: 'snowwingModImport',
         importEyebrow: '白鸟专属 MOD 包',
         importName: mod.name || '白鸟·雪翼成双',
-        importSub: (mod.version || manifest.version || 'v2.3.1') + ' · 作者 ' + (mod.author || '临循') + ' · 适配 ' + (manifest.compatibility || mod.compatibility || '墨韵v2.4.1以上版本'),
+        importSub: (mod.version || manifest.version || 'v2.3.1') + ' · 作者 ' + (mod.author || '临循') + ' · 适配 ' + (manifest.compatibility || mod.compatibility || 'Moyun 当前网页版本'),
         rows: [
           { label: '版本', value: mod.version || manifest.version || 'v2.3.1' },
           { label: '作者', value: mod.author || '临循' },
@@ -15193,7 +14398,7 @@ function cleanAIResponse(text) {
         '# 白鸟 Skill 诊断信息',
         '',
         '生成时间：' + new Date().toISOString(),
-        '宿主：墨韵v2.4.1',
+        '宿主：Moyun',
         '白鸟：' + (mod?.name || '白鸟·雪翼成双') + ' ' + (mod?.version || mod?.manifest?.version || ''),
         '',
         '## Skill',
@@ -31911,7 +31116,7 @@ function getWritingModelLabel() {
         }
       });
 
-      console.log('%c墨韵·造梦 v2.4.1', 'color:#44403c;font-size:20px;font-weight:bold;font-family:serif');
+      console.log('%cMoyun', 'color:#44403c;font-size:20px;font-weight:bold;font-family:serif');
       console.log('%c全部模块已加载', 'color:#16a34a;font-size:12px');
     });
 
