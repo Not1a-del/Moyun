@@ -4,25 +4,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-<title>墨韵·造梦</title>
-<link rel="icon" href="./assets/favicon/moyun.svg" type="image/svg+xml">
+<title>墨韵·造梦 v2.4.1</title>
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=0d47f0dfaaa0">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=609407337e6b">
 </head>
 
 <body class="h-screen flex overflow-hidden">
-<div id="moyun-page-loader" class="moyun-page-loader" role="status" aria-live="polite" aria-label="墨韵正在加载">
-  <div class="moyun-loader-brand">
-    <div class="moyun-loader-mark"><img src="./assets/favicon/moyun.svg" alt="墨韵图标"><span class="moyun-loader-seal" aria-hidden="true"></span></div>
-    <div class="moyun-loader-wordmark">Moyun</div>
-    <div class="moyun-loader-track" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
-  </div>
-</div>
 <div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
@@ -1009,7 +1000,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
-    </div>
+      </div>
     <div class="moyun-wb-scroll" @click="selectedRevId=''">
       <div class="moyun-outline-grid">
         <section class="moyun-wb-editor">
@@ -1465,6 +1456,7 @@
              @click="previewImage(coverImage)">
       </div>
         <h1 class="text-2xl md:text-5xl font-art mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || '墨韵·造梦' }}</h1>
+        <div v-if="!novel.title" class="text-[10px] mb-2" style="color:var(--tx4)">v2.4.1</div>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -3640,54 +3632,34 @@
           </button>
         </div>
 
-        <!-- ═══ API 连接 ═══ -->
+        <!-- ═══ API 连接中心 ═══ -->
         <div v-show="activeSettingsTab==='api'" id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" class="space-y-4">
-          <div>
-            <label class="label">API 地址</label>
-            <input v-model="settings.apiUrl" @change="saveData()" class="input-field text-xs font-mono" placeholder="https://api.example.com/v1">
-          </div>
-          <div>
-            <label class="label">API 密钥</label>
-            <input type="password" v-model="settings.apiKey" @change="saveData()" data-settings-api-key class="input-field text-xs font-mono" placeholder="sk-...">
-          </div>
-          <div class="space-y-2">
-            <button type="button" @click="fetchModels" :disabled="isLoadingModels" :aria-busy="isLoadingModels ? 'true' : 'false'" class="btn-primary w-full text-xs py-2.5"
-                    :style="isLoadingModels?'opacity:.65':''">{{ isLoadingModels ? '正在检测并刷新...' : '🔌 检测连接并刷新模型' }}</button>
-            <div v-if="modelConnectionStatus.text" role="status" aria-live="polite" aria-atomic="true" class="text-[10px] leading-relaxed px-2"
-                 :style="modelConnectionStatus.type==='error'?'color:var(--err)':modelConnectionStatus.type==='success'?'color:var(--ok)':'color:var(--tx3)'">
-              {{ modelConnectionStatus.text }}
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-bold" style="color:var(--tx)">API 配置预设</div>
+              <div class="text-[10px] mt-1" style="color:var(--tx3)">配置名称用于模块分配；密钥仅保存在本机私有存储。</div>
             </div>
+            <button type="button" @click="openConnectionProfileEditor('openai-compatible')" class="btn-primary text-xs px-3 py-2 shrink-0">＋ 新建配置</button>
           </div>
-
-          <div class="divider"></div>
-          <label class="label">模型选择</label>
-          <div class="p-3 rounded-lg mb-2 space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
-            <label class="text-[11px] font-bold" style="color:var(--tx2)">主模型 ID（可手动填写）</label>
-            <div class="flex gap-2">
-              <input v-model.trim="manualMainModel" @keyup.enter="applyManualMainModel" data-settings-main-model
-                     placeholder="例如：gpt-5.5、自定义中转模型 ID"
-                     class="input-field text-xs font-mono flex-1 min-w-0">
-              <button @click="applyManualMainModel" class="btn-primary text-xs px-3 shrink-0">使用</button>
+          <div class="flex flex-wrap gap-2">
+            <button v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" type="button" @click="openConnectionProfileEditor(tpl.id)" class="px-2.5 py-1.5 rounded-lg text-[10px]" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ tpl.name }}</button>
+            <button type="button" @click="exportConnectionScheme" class="px-2.5 py-1.5 rounded-lg text-[10px]" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">导出无密钥方案</button>
+            <label class="px-2.5 py-1.5 rounded-lg text-[10px] cursor-pointer" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">导入方案<input type="file" accept="application/json,.json" class="hidden" @change="importConnectionSchemeFile"></label>
+          </div>
+          <div v-if="connectionCenter.profiles.length===0" class="text-center py-8 text-xs" style="color:var(--tx3)">还没有 API 配置，请从上方选择预制供应商或新建自定义配置。</div>
+          <div v-for="profile in connectionCenter.profiles" :key="profile.id" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <div class="flex items-start justify-between gap-3">
+              <button type="button" class="min-w-0 text-left" @click="expandedConnectionProfileId=expandedConnectionProfileId===profile.id?'':profile.id">
+                <div class="text-xs font-bold truncate" style="color:var(--tx)">{{ profile.name || '未命名配置' }} <span v-if="connectionCenter.defaultProfileId===profile.id" class="text-[9px] ml-1" style="color:var(--ok)">默认</span></div>
+                <div class="text-[10px] truncate mt-0.5" style="color:var(--tx3)">{{ getConnectionProfileDisplay(profile) }}</div>
+              </button>
+              <div class="flex items-center gap-1 shrink-0"><span class="text-[9px]" :style="getConnectionProfileStatus(profile).ok?'color:var(--ok)':'color:var(--tx3)'">{{ getConnectionProfileStatus(profile).label }}</span><button type="button" class="moyun-icon-button" :aria-label="'编辑配置：'+profile.name" title="编辑" @click="expandedConnectionProfileId=profile.id;openConnectionProfileEditor(profile.templateId, profile)">✎</button></div>
             </div>
-            <p class="text-[10px] leading-relaxed" style="color:var(--tx3)">模型列表不可用时仍可直接填写；生成请求将使用这里保存的模型 ID。</p>
-          </div>
-          <input v-model="modelSearch" placeholder="搜索模型..." class="input-field text-xs mb-1">
-          <div role="listbox" aria-label="可用模型" class="max-h-[200px] overflow-y-auto rounded-lg" style="border:1px solid var(--bd)">
-            <button v-for="(m, modelIndex) in filteredModels" :key="m.id" type="button" role="option" data-settings-model-option
-                 :aria-selected="settings.model===m.id ? 'true' : 'false'" @click="selectMainModel(m.id)" @keydown="handleModelListKeydown($event, modelIndex)"
-                 class="w-full px-3 py-2.5 text-xs cursor-pointer flex justify-between items-center text-left"
-                 style="border-bottom:1px solid var(--bd)"
-                 :style="settings.model===m.id?'background:var(--accent-soft);font-weight:bold;color:var(--tx)':'color:var(--tx2)'">
-              <span class="text-truncate">{{ m.id }}</span>
-              <span v-if="settings.model===m.id" style="color:var(--ok)">✓</span>
-            </button>
-            <div v-if="filteredModels.length===0" class="px-3 py-6 text-center text-xs" style="color:var(--tx3)">
-              {{ availableModels.length===0 ? '请先刷新模型列表' : '无匹配模型' }}
+            <div v-if="expandedConnectionProfileId===profile.id" class="pt-2 space-y-2" style="border-top:1px solid var(--bd)">
+              <div class="text-[10px] break-all" style="color:var(--tx3)">地址：{{ profile.baseUrl || '未填写' }}</div>
+              <div class="text-[10px]" style="color:var(--tx3)">默认模型：{{ profile.defaultModel || '未填写' }}</div>
+              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
             </div>
-          </div>
-          <div class="text-[11px] mt-1" style="color:var(--tx3)">
-            当前: <b style="color:var(--tx)">{{ settings.model || '未选择' }}</b>
-            <span class="ml-2" style="color:var(--tx4)">共 {{ availableModels.length }} 个</span>
           </div>
         </div>
 
@@ -3844,24 +3816,24 @@
           </div>
 		  
           <div class="divider"></div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="label mb-0">模块模型分配</label>
-            <button @click="Object.keys(settings.moduleModels||{}).forEach(k=>settings.moduleModels[k]='');saveData();showToast('已全部重置','success')"
-                    class="text-[9px] px-2 py-0.5 rounded" style="color:var(--tx3);border:1px solid var(--bd)">一键重置</button>
-          </div>
-          <div class="text-[10px] mb-3" style="color:var(--tx4)">为各功能指定不同模型，未选择则跟随主模型</div>
+          <div class="flex items-center justify-between mb-2"><label class="label mb-0">模块 API 配置分配</label><button @click="resetModuleRoutes" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--tx3);border:1px solid var(--bd)">全部跟随默认</button></div>
+          <div class="text-[10px] mb-3" style="color:var(--tx4)">每个模块只能选择一个配置；模型使用所选配置的默认模型。</div>
           <div class="space-y-2">
-            <div v-for="mod in moduleModelConfig" :key="mod.key" class="flex items-center gap-2 py-1">
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-bold" style="color:var(--tx)">{{ mod.name }}</div>
-                <div class="text-[9px]" style="color:var(--tx4)">{{ mod.desc }}</div>
-              </div>
-              <select v-model="settings.moduleModels[mod.key]" @change="saveData()"
-                      class="select-field text-[10px] py-0.5" style="max-width:180px;height:28px">
-                <option value="">跟随主模型</option>
-                <option v-for="m in availableModels" :key="m.id" :value="m.id">{{ m.id }}</option>
-              </select>
-            </div>
+            <fieldset v-for="mod in moduleModelConfig" :key="mod.key" class="p-2 rounded-lg" style="border:1px solid var(--bd)">
+              <legend class="px-1 text-xs font-bold" style="color:var(--tx)">{{ mod.name }}</legend>
+              <div class="text-[9px] mb-2" style="color:var(--tx4)">{{ mod.desc }}</div>
+              <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
+                <input type="radio" :name="'module-route-'+mod.key" value="" :checked="getModuleRouteProfileId(mod.key)===''" @change="setModuleRouteProfile(mod.key,'')">
+                <span class="text-[10px]" style="color:var(--tx)">跟随默认配置</span>
+                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ getConnectionProfileDisplay(getConnectionProfile(connectionCenter.defaultProfileId)) }}</span>
+              </label>
+              <label v-for="profile in getAssignableConnectionProfiles()" :key="profile.id" class="flex items-center gap-2 p-2 mt-1 rounded cursor-pointer" style="border:1px solid var(--bd)">
+                <input type="radio" :name="'module-route-'+mod.key" :value="profile.id" :checked="getModuleRouteProfileId(mod.key)===profile.id" @change="setModuleRouteProfile(mod.key, profile.id)">
+                <span class="text-[10px] font-bold" style="color:var(--tx)">{{ profile.name }}</span>
+                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ profile.defaultModel }}</span>
+              </label>
+              <div v-if="getAssignableConnectionProfiles().length===0" class="text-[9px] mt-2" style="color:var(--tx3)">暂无已测试可用配置，请先在“连接中心”测试并保存。</div>
+            </fieldset>
           </div>
         </div>
 
@@ -4537,20 +4509,27 @@
 
           <!-- 项目信息卡 -->
           <div class="p-4 rounded-xl" style="background:var(--accent-soft);border:1px solid var(--bd)">
-            <div class="mb-2">
+            <div class="flex items-center justify-between mb-2">
               <span class="text-lg font-bold font-art" style="color:var(--tx)">墨韵·造梦</span>
+              <span class="badge-info text-[10px] px-2">v2.4.1</span>
             </div>
             <div class="text-xs leading-relaxed" style="color:var(--tx2)">
-			  <span class="block">作者：</span>
-			  <span class="block">STA1N　柒.　临循</span>
-			  <span class="block">狗头半仙哈特　空V</span>
-			  <span class="block italic">*排名不分先后*</span>
+              <span class="block">作者：STA1N（老大）</span>
+              <span class="block">柒.（柒皇）</span>
+              <span class="block">狗头半仙哈特（狗头）</span>
+              <span class="block">临循</span>
+              <span class="block">让吐酸泰坦怀孕被发配一人三路赛博斯坦（空V）</span>
+              <br>
+              特别感谢：启元、让吐酸泰坦怀孕被发配一人三路赛博斯坦、落某356、瓦伦泰、朧月Awkland、葱油卷香辣、FsH18、秋裳落叶、顾千城、你们这里谁是电锯大王、山鬼谣、我才是电锯大王、玉石灰、岳大帅、comethru、羽归、ÖZV、╃辰若月曦、Aliyo、HyunGaot、花鈴（过劳死ing）、君若想映衬、风逍、夏记生、♪Muke、KASI-MIO、蛤蛤、天下无敌最帅的、233<br>
 			  <br>
-			  墨韵·造梦是面向短、中长篇小说创作的写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件和运行态辅助能力。<br>它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
+			  墨韵·造梦是面向长篇小说创作的本地化写作工具，提供章节生成、续写、梗概、大纲、角色、资料管理、插件共创和运行态辅助能力。它的定位是帮助作者更稳定地经营长篇工程，而不是替代作者的判断和创作主权。<br>
 			  <br>
-			  本项目为全开源公益项目，欢迎测试，二改需要经过作者本人许可。严禁倒卖源码、打包牟利或冒名分发；<br>
+			  本项目为全开源公益项目，欢迎在墨韵圈子内交流、测试和共创。严禁倒卖源码、打包牟利或冒名分发；如果有朋友喜欢，请让他加入墨韵社群获取正式版本并参与反馈。<br>
+			  <br>
+			  v2.4.1 进一步完善了请求与生成治理、数据安全、大纲与细纲移动端闭环、暗线回收计划、统一弹窗和操作体验，并继续保留 Full Access 二次确认能力。<br>
             </div>
             <div class="flex gap-4 mt-3 text-[10px]" style="color:var(--tx3)">
+              <span>版本: v2.4.1</span>
               <span>定位: 长篇小说本地写作、长篇工程规划、插件共创与主题 UI 开放版</span>
             </div>
           </div>
@@ -5353,6 +5332,21 @@
         </div>
       </div>
 
+      <div v-if="connectionProfileEditorOpen" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)" @click.self="closeConnectionProfileEditor">
+        <div class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
+          <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" class="moyun-icon-button" @click="closeConnectionProfileEditor" aria-label="关闭 API 配置编辑">×</button></div>
+          <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="connectionProfileDraft.adapterId=getProviderTemplate(connectionProfileDraft.templateId).adapterId" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
+          <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">模型目录（可选，一行一个）<textarea v-model="connectionProfileDraft.modelCatalogText" class="textarea-field text-xs font-mono mt-1" rows="3" placeholder="gpt-4.1\ngpt-4.1-mini"></textarea></label>
+          <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
+          <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">{{ connectionProfileTestResult.detail }}</div>
+          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '测试中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" class="btn-primary flex-1 text-xs py-2">保存配置</button></div>
+        </div>
+      </div>
+
       <!-- 设置底部 -->
       <div class="px-4 py-2 sticky bottom-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <div class="text-[10px] text-center mb-1" style="color:var(--tx3)">所有更改均已自动保存</div>
@@ -5612,7 +5606,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=6faca1827f55"></script>
+<script src="./assets/js/moyun.js?v=8a7ac3c09358"></script>
 <!-- PART_1_END -->
 </body>
 </html>

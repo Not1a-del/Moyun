@@ -669,6 +669,353 @@ createApp({
       },
     });
 
+    /* ═══ 连接中心 G1：配置档案、私有凭据与兼容迁移 ═══ */
+    const CONNECTION_CENTER_VERSION = 2;
+    const CONNECTION_CREDENTIALS_DB_KEY = 'connection_credentials_v1';
+    const CONNECTION_MODULE_KEYS = ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
+    const PROVIDER_TEMPLATES = Object.freeze([
+      { id:'openai', name:'OpenAI', adapterId:'openai-chat', source:'builtin-template', canDiscoverModels:true },
+      { id:'anthropic', name:'Anthropic', adapterId:'anthropic-messages', source:'builtin-template', canDiscoverModels:false },
+      { id:'gemini', name:'Google Gemini', adapterId:'gemini-generate', source:'builtin-template', canDiscoverModels:false },
+      { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
+      { id:'custom', name:'自定义配置', adapterId:'', source:'custom', canDiscoverModels:false }
+    ]);
+
+    function createEmptyConnectionCenter() {
+      const moduleRoutes = {};
+      CONNECTION_MODULE_KEYS.forEach(key => { moduleRoutes[key] = { profileId:'' }; });
+      return { version: CONNECTION_CENTER_VERSION, providerTemplatesVersion:1, profiles:[], defaultProfileId:'', moduleRoutes };
+    }
+
+    function getProviderTemplate(templateId) {
+      return PROVIDER_TEMPLATES.find(item => item.id === String(templateId || '')) || PROVIDER_TEMPLATES.find(item => item.id === 'custom');
+    }
+
+    function normalizeConnectionProfile(raw = {}) {
+      const template = getProviderTemplate(raw.templateId);
+      const source = raw.source === 'custom' || template.id === 'custom' ? 'custom' : 'builtin-template';
+      const id = String(raw.id || uid());
+      return {
+        id,
+        name: String(raw.name || '').trim().slice(0, 40),
+        source,
+        templateId: source === 'custom' ? 'custom' : template.id,
+        adapterId: String(raw.adapterId || template.adapterId || '').trim(),
+        baseUrl: String(raw.baseUrl || '').trim(),
+        credentialRef: 'local:connection:' + id,
+        defaultModel: String(raw.defaultModel || '').trim(),
+        modelCatalog: Array.isArray(raw.modelCatalog) ? raw.modelCatalog.filter(item => item && item.id).map(item => ({ id:String(item.id), source:item.source === 'discovered' ? 'discovered' : 'manual' })) : [],
+        requestOptions: Object.assign({ stream:true, temperature:null, maxOutputTokens:null }, raw.requestOptions || {}),
+        enabled: raw.enabled !== false,
+        lastTest: Object.assign({ status:'unknown', at:0, detail:'' }, raw.lastTest || {})
+      };
+    }
+
+    function normalizeConnectionCenter(raw = {}) {
+      const base = createEmptyConnectionCenter();
+      const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeConnectionProfile) : [];
+      const ids = new Set(profiles.map(profile => profile.id));
+      const moduleRoutes = Object.assign({}, base.moduleRoutes);
+      if (raw.moduleRoutes && typeof raw.moduleRoutes === 'object') {
+        CONNECTION_MODULE_KEYS.forEach(key => {
+          const route = raw.moduleRoutes[key] || {};
+          moduleRoutes[key] = { profileId: ids.has(String(route.profileId || '')) ? String(route.profileId) : '' };
+        });
+      }
+      return { version:CONNECTION_CENTER_VERSION, providerTemplatesVersion:1, profiles, defaultProfileId:ids.has(String(raw.defaultProfileId || '')) ? String(raw.defaultProfileId) : '', moduleRoutes };
+    }
+
+    const connectionCenter = ref(createEmptyConnectionCenter());
+    const connectionCredentials = ref({});
+    const connectionCenterTab = ref('profiles');
+    const connectionProfileEditorOpen = ref(false);
+    const connectionProfileEditorMode = ref('create');
+    const connectionProfileDraft = ref({ templateId:'openai-compatible', name:'', baseUrl:'', apiKey:'', defaultModel:'', modelCatalogText:'', adapterId:'openai-compatible' });
+    const connectionProfileDraftError = ref('');
+    const connectionProfileTesting = ref(false);
+    const connectionProfileTestResult = ref({ status:'unknown', detail:'' });
+    const expandedConnectionProfileId = ref('');
+    const expandedModuleRouteKey = ref('writing');
+
+    function getConnectionProfile(profileId) {
+      return connectionCenter.value.profiles.find(profile => profile.id === String(profileId || '')) || null;
+    }
+
+    function isConnectionProfileAdapterSupported(profile) {
+      return !!profile && ['openai-chat', 'openai-compatible', 'anthropic-messages', 'gemini-generate'].includes(String(profile.adapterId || ''));
+    }
+
+    function getConnectionProfileStatus(profile) {
+      if (!profile) return { ok:false, label:'不存在', reason:'找不到此 API 配置' };
+      if (!profile.enabled) return { ok:false, label:'已停用', reason:'配置已停用' };
+      if (!isConnectionProfileAdapterSupported(profile)) return { ok:false, label:'待适配', reason:'该协议将在后续适配轮开放' };
+      if (!profile.baseUrl) return { ok:false, label:'缺少地址', reason:'请填写 API 地址' };
+      if (!getConnectionCredential(profile.id)) return { ok:false, label:'缺少密钥', reason:'请填写 API 密钥' };
+      if (!profile.defaultModel) return { ok:false, label:'缺少模型', reason:'请填写默认模型' };
+      if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未测试', reason:'请先测试连接并通过' };
+      return { ok:true, label:'已测试', reason:'' };
+    }
+
+    function getAssignableConnectionProfiles() {
+      return connectionCenter.value.profiles.filter(profile => getConnectionProfileStatus(profile).ok);
+    }
+
+    function getConnectionProfileDisplay(profile) {
+      if (!profile) return '跟随默认配置';
+      const template = getProviderTemplate(profile.templateId);
+      return (profile.name || '未命名配置') + ' · ' + (template?.name || profile.adapterId || '自定义') + ' · ' + (profile.defaultModel || '未设置模型');
+    }
+
+    function getModuleRouteProfileId(moduleKey) {
+      return String(connectionCenter.value.moduleRoutes?.[String(moduleKey || '')]?.profileId || '');
+    }
+
+    function setModuleRouteProfile(moduleKey, profileId) {
+      const key = String(moduleKey || '').trim();
+      if (!CONNECTION_MODULE_KEYS.includes(key)) return false;
+      const id = String(profileId || '').trim();
+      if (id) {
+        const profile = getConnectionProfile(id);
+        const status = getConnectionProfileStatus(profile);
+        if (!status.ok) {
+          showToast(status.reason || '该 API 配置不可用于模块路由', 'error');
+          return false;
+        }
+      }
+      if (!connectionCenter.value.moduleRoutes) connectionCenter.value.moduleRoutes = {};
+      connectionCenter.value.moduleRoutes[key] = { profileId:id };
+      saveDataNow('保存模块 API 配置分配');
+      return true;
+    }
+
+    function resetModuleRoutes() {
+      CONNECTION_MODULE_KEYS.forEach(key => { connectionCenter.value.moduleRoutes[key] = { profileId:'' }; });
+      saveDataNow('重置模块 API 配置分配');
+      showToast('已全部改为跟随默认配置', 'success');
+    }
+
+    function openConnectionProfileEditor(templateId = 'openai-compatible', profile = null) {
+      const source = profile || {};
+      const template = getProviderTemplate(templateId || source.templateId);
+      connectionProfileEditorMode.value = profile ? 'edit' : 'create';
+      connectionProfileDraft.value = {
+        templateId: template.id,
+        name: source.name || '',
+        baseUrl: source.baseUrl || '',
+        apiKey: profile ? getConnectionCredential(source.id) : '',
+        defaultModel: source.defaultModel || '',
+        modelCatalogText: Array.isArray(source.modelCatalog) ? source.modelCatalog.map(item => item.id).join('\n') : '',
+        adapterId: source.adapterId || template.adapterId || ''
+      };
+      connectionProfileDraftError.value = '';
+      connectionProfileTestResult.value = profile?.lastTest || { status:'unknown', detail:'' };
+      connectionProfileEditorOpen.value = true;
+    }
+
+    function closeConnectionProfileEditor() {
+      if (connectionProfileTesting.value) return;
+      connectionProfileEditorOpen.value = false;
+      connectionProfileDraftError.value = '';
+    }
+
+    function validateConnectionProfileDraft() {
+      const draft = connectionProfileDraft.value;
+      if (!String(draft.name || '').trim()) return '配置名称不能为空';
+      if (!String(draft.baseUrl || '').trim()) return '请填写 API 地址';
+      if (!String(draft.defaultModel || '').trim()) return '请填写默认模型';
+      if (!String(draft.apiKey || '').trim() && connectionProfileEditorMode.value === 'create') return '请填写 API 密钥';
+      if (!isConnectionProfileAdapterSupported({ adapterId:draft.adapterId })) return '该协议暂未开放请求适配';
+      return '';
+    }
+
+    async function testConnectionProfileDraft() {
+      const draft = connectionProfileDraft.value;
+      const error = validateConnectionProfileDraft();
+      if (error && error !== '请填写 API 密钥') { connectionProfileDraftError.value = error; return false; }
+      const key = String(draft.apiKey || '').trim();
+      if (!key) { connectionProfileDraftError.value = '请填写 API 密钥'; return false; }
+      connectionProfileTesting.value = true;
+      connectionProfileDraftError.value = '';
+      connectionProfileTestResult.value = { status:'loading', detail:'正在测试连接…' };
+      try {
+        const adapterId = String(draft.adapterId || '');
+        let resp, count = 0;
+        if (adapterId === 'openai-chat' || adapterId === 'openai-compatible') {
+          const url = getApiBaseUrl(draft.baseUrl) + '/models';
+          resp = await fetch(url, { headers:{ Authorization:'Bearer ' + key } });
+          if (resp.ok) { const data = await resp.json(); count = Array.isArray(data?.data) ? data.data.length : 0; }
+        } else {
+          const request = { ok:true, adapterId, url:getApiBaseUrl(draft.baseUrl), apiKey:key, model:String(draft.defaultModel || '') };
+          const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'连接测试：请仅回复 OK' }], { stream:false, temperature:0, maxTokens:16 });
+          resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
+        }
+        if (!resp.ok) throw new Error('API ' + resp.status);
+        connectionProfileTestResult.value = { status:'ok', at:Date.now(), detail:'连接成功' + (count ? '，发现 ' + count + ' 个模型' : '') };
+        return true;
+      } catch (e) {
+        connectionProfileTestResult.value = { status:'error', at:Date.now(), detail:'连接失败：' + sanitizeApiErrorDetail(e.message || e) };
+        return false;
+      } finally { connectionProfileTesting.value = false; }
+    }
+
+    function saveConnectionProfileDraft() {
+      const draft = connectionProfileDraft.value;
+      const error = validateConnectionProfileDraft();
+      if (error) { connectionProfileDraftError.value = error; return false; }
+      if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先测试连接并通过'; return false; }
+      const modelCatalog = String(draft.modelCatalogText || '').split(/\r?\n|,/).map(item => item.trim()).filter(Boolean).filter((item, index, list) => list.indexOf(item) === index).map(id => ({ id, source:'manual' }));
+      const existingId = connectionProfileEditorMode.value === 'edit' ? expandedConnectionProfileId.value : '';
+      if (existingId) {
+        const profile = getConnectionProfile(existingId);
+        if (!profile) return false;
+        Object.assign(profile, normalizeConnectionProfile({ ...profile, templateId:draft.templateId, adapterId:draft.adapterId, name:draft.name, baseUrl:draft.baseUrl, defaultModel:draft.defaultModel, modelCatalog, lastTest:connectionProfileTestResult.value }));
+        setConnectionCredential(existingId, draft.apiKey);
+      } else {
+        const created = createConnectionProfile({ templateId:draft.templateId, adapterId:draft.adapterId, name:draft.name, baseUrl:draft.baseUrl, defaultModel:draft.defaultModel, modelCatalog, apiKey:draft.apiKey, lastTest:connectionProfileTestResult.value });
+        if (!created.ok) { connectionProfileDraftError.value = created.reason; return false; }
+        expandedConnectionProfileId.value = created.profile.id;
+      }
+      saveDataNow('保存 API 配置');
+      connectionProfileEditorOpen.value = false;
+      showToast('API 配置已保存', 'success');
+      return true;
+    }
+
+    function setDefaultConnectionProfile(profileId) {
+      const profile = getConnectionProfile(profileId);
+      const status = getConnectionProfileStatus(profile);
+      if (!status.ok) { showToast(status.reason, 'error'); return false; }
+      connectionCenter.value.defaultProfileId = profile.id;
+      saveDataNow('设置默认 API 配置');
+      showToast('默认配置已设为「' + profile.name + '」', 'success');
+      return true;
+    }
+
+    function toggleConnectionProfile(profileId) {
+      const profile = getConnectionProfile(profileId);
+      if (!profile) return false;
+      if (profile.enabled) {
+        const affected = CONNECTION_MODULE_KEYS.filter(key => getModuleRouteProfileId(key) === profile.id);
+        if (connectionCenter.value.defaultProfileId === profile.id || affected.length) {
+          showToast('请先将默认配置和模块路由改为其他配置', 'error');
+          return false;
+        }
+      }
+      profile.enabled = !profile.enabled;
+      saveDataNow(profile.enabled ? '启用 API 配置' : '停用 API 配置');
+      return true;
+    }
+
+    function deleteConnectionProfile(profileId) {
+      const profile = getConnectionProfile(profileId);
+      if (!profile) return false;
+      const affected = CONNECTION_MODULE_KEYS.filter(key => getModuleRouteProfileId(key) === profile.id);
+      if (connectionCenter.value.defaultProfileId === profile.id || affected.length) {
+        showToast('请先将默认配置和模块路由改为跟随默认配置', 'error');
+        return false;
+      }
+      connectionCenter.value.profiles = connectionCenter.value.profiles.filter(item => item.id !== profile.id);
+      setConnectionCredential(profile.id, '');
+      saveDataNow('删除 API 配置');
+      if (expandedConnectionProfileId.value === profile.id) expandedConnectionProfileId.value = '';
+      showToast('API 配置已删除', 'success');
+      return true;
+    }
+
+    function buildConnectionScheme() {
+      const profiles = connectionCenter.value.profiles.map(profile => ({
+        id:profile.id, name:profile.name, source:profile.source, templateId:profile.templateId,
+        adapterId:profile.adapterId, baseUrl:profile.baseUrl, defaultModel:profile.defaultModel,
+        modelCatalog:Array.isArray(profile.modelCatalog) ? profile.modelCatalog.map(item => ({ id:item.id, source:item.source })) : [],
+        requestOptions:profile.requestOptions
+      }));
+      return { type:'moyun_connection_scheme', version:1, exportedAt:Date.now(), profiles, defaultProfileId:connectionCenter.value.defaultProfileId, moduleRoutes:deepClone(connectionCenter.value.moduleRoutes) };
+    }
+
+    function exportConnectionScheme() {
+      const scheme = buildConnectionScheme();
+      const blob = new Blob([JSON.stringify(scheme, null, 2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = '墨韵-API配置方案.json'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('已导出无密钥配置方案', 'success');
+      return scheme;
+    }
+
+    function importConnectionSchemeText(rawText) {
+      let parsed;
+      try { parsed = typeof rawText === 'string' ? JSON.parse(rawText) : rawText; } catch { showToast('配置方案不是有效 JSON', 'error'); return false; }
+      if (!parsed || parsed.type !== 'moyun_connection_scheme' || !Array.isArray(parsed.profiles)) { showToast('不是墨韵 API 配置方案', 'error'); return false; }
+      if (JSON.stringify(parsed).match(/apiKey|credential|authorization|x-api-key/i)) { showToast('安全方案不得包含 API 密钥或凭据字段', 'error'); return false; }
+      const oldToNew = new Map();
+      const imported = [];
+      for (const raw of parsed.profiles) {
+        const adapterId = String(raw.adapterId || '').trim();
+        if (!isSupportedRequestAdapter(adapterId)) { showToast('方案包含未知或未实现协议：' + adapterId, 'error'); return false; }
+        const id = uid(); oldToNew.set(String(raw.id || ''), id);
+        imported.push(normalizeConnectionProfile(Object.assign({}, raw, { id, lastTest:{ status:'unknown', at:0, detail:'从无密钥方案导入' }, enabled:true })));
+      }
+      connectionCenter.value.profiles.push(...imported);
+      const defaultOld = String(parsed.defaultProfileId || '');
+      if (oldToNew.has(defaultOld)) connectionCenter.value.defaultProfileId = oldToNew.get(defaultOld);
+      CONNECTION_MODULE_KEYS.forEach(key => {
+        const oldId = parsed.moduleRoutes?.[key]?.profileId || '';
+        connectionCenter.value.moduleRoutes[key] = { profileId:oldToNew.get(String(oldId)) || '' };
+      });
+      saveDataNow('导入无密钥 API 配置方案');
+      showToast('已导入 ' + imported.length + ' 个无密钥 API 配置', 'success');
+      return true;
+    }
+
+    function importConnectionSchemeFile(event) {
+      const file = event?.target?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => importConnectionSchemeText(reader.result);
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function getConnectionCredential(profileId) { return String(connectionCredentials.value[String(profileId || '')] || ''); }
+    function setConnectionCredential(profileId, apiKey) {
+      const id = String(profileId || '');
+      if (!id) return false;
+      const key = String(apiKey || '').trim();
+      if (key) connectionCredentials.value[id] = key;
+      else delete connectionCredentials.value[id];
+      return true;
+    }
+
+    function createConnectionProfile(input = {}) {
+      const template = getProviderTemplate(input.templateId);
+      const id = uid();
+      const profile = normalizeConnectionProfile(Object.assign({}, input, { id, templateId:template.id, source:template.id === 'custom' ? 'custom' : 'builtin-template', adapterId:input.adapterId || template.adapterId }));
+      if (!profile.name) return { ok:false, reason:'配置名称不能为空', profile:null };
+      connectionCenter.value.profiles.push(profile);
+      if (input.apiKey !== undefined) setConnectionCredential(id, input.apiKey);
+      return { ok:true, profile };
+    }
+
+    function duplicateConnectionProfile(profileId, name = '') {
+      const source = connectionCenter.value.profiles.find(profile => profile.id === String(profileId || ''));
+      if (!source) return { ok:false, reason:'找不到要复制的 API 配置', profile:null };
+      // 复制协议与模型信息，但绝不复制 Key。
+      return createConnectionProfile(Object.assign({}, source, { name:String(name || (source.name + ' 副本')).trim(), apiKey:undefined }));
+    }
+
+    function migrateConnectionCenterFromLegacy() {
+      connectionCenter.value = normalizeConnectionCenter(connectionCenter.value);
+      if (connectionCenter.value.profiles.length) return false;
+      const hasLegacy = !!(String(settings.value.apiUrl || '').trim() || String(settings.value.apiKey || '').trim() || String(settings.value.model || '').trim());
+      if (!hasLegacy) return false;
+      const legacyModels = CONNECTION_MODULE_KEYS.map(key => String(settings.value.moduleModels?.[key] || '').trim()).filter(Boolean);
+      const profile = createConnectionProfile({ templateId:'openai-compatible', name:'迁移的默认配置', baseUrl:settings.value.apiUrl || '', defaultModel:settings.value.model || '', modelCatalog:[...new Set([settings.value.model, ...legacyModels].filter(Boolean))].map(id => ({ id, source:'manual' })), apiKey:settings.value.apiKey || '', lastTest:{ status:'ok', at:Date.now(), detail:'由既有配置迁移；可重新测试' } }).profile;
+      if (!profile) return false;
+      connectionCenter.value.defaultProfileId = profile.id;
+      CONNECTION_MODULE_KEYS.forEach(key => { connectionCenter.value.moduleRoutes[key] = { profileId:'' }; });
+      return true;
+    }
+
     /* ═══ 主题 ═══ */
     const isDark = ref(false);
     const installedThemePacks = ref([]);
@@ -1573,17 +1920,17 @@ createApp({
     const isAutoFilling = ref(false);
 
     async function aiAutoFillSettings() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = getModuleRequestConfig('settings');
+      if (!request.ok) { showToast(request.reason || '请配置设定模块 API', 'error'); return; }
       if (!novel.value.theme && !novel.value.title) { showToast('请至少填写书名或主题', 'error'); return; }
       isAutoFilling.value = true;
       try {
         const hint = (novel.value.theme || '') + (novel.value.title ? '，书名参考：' + novel.value.title : '');
         const prompt = '你是网文策划专家。请根据以下主题补全小说设定。\n\n主题: ' + hint + '\n\n请严格按以下格式输出：\n### 书名\n(一个有意境的中文书名)\n### 主题\n(20-50字的主题描述)\n### 简介\n(200-400字的作品简介)\n### 世界观\n(500-1000字的世界观设定，含时代背景、社会结构、力量体系)\n### 负面提示词\n(不想出现的元素，逗号分隔，没有则输出"无")\n\n直接输出，不要代码块。';
-        const resp = await fetch(url, {
+        const resp = await fetch(request.url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('settings'), messages: buildNsfwMessages(prompt), stream: false })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
         });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const d = await resp.json();
@@ -1617,14 +1964,15 @@ createApp({
     const isGeneratingNsfw = ref(false);
 
     function aiGenerateNsfwModules() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('writing', '正文生成 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingNsfw.value = true;
       const prompt = '你是专业的成人内容写作指令设计专家。请为AI小说写作系统生成7个NSFW效果增强模块。\n\n注意：这些模块只用于大纲、细纲、正文的效果增强，不承担系统级破限职责。\n\n每个模块150-250字，内容要专业详细。\n\n返回JSON对象:\n{\n"position":"体位与准备(描写规范)",\n"body":"身体描写(器官描写规范)",\n"sensory":"感官细节(五感描写规范)",\n"pacing":"节奏控制(节奏指令)",\n"character":"角色行为(行为与语言规范)",\n"fluid":"液体与反应(生理反应描写)",\n"injury":"伤势描写(暴力场景描写)"\n}\n\n直接输出JSON，不要代码块标记。';
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -2162,6 +2510,8 @@ function copyLastChapterContextText() {
         books: deepClone(books.value),
         currentBookId: currentBookId.value,
         settings: deepClone(settings.value),
+        // 凭据只保存到独立私有 DB key，普通库快照与导出数据不携带 API Key。
+        connectionCenter: deepClone(connectionCenter.value),
         // 分支
         branchList: deepClone(branchList.value),
         activeBranchId: activeBranchId.value,
@@ -2491,6 +2841,7 @@ function copyLastChapterContextText() {
       try {
         const library = buildLibrarySnapshot();
         const backupRef = saveEmergencyBackup(library, reason);
+        await DB.set(CONNECTION_CREDENTIALS_DB_KEY, JSON.stringify(connectionCredentials.value));
         await DB.set('library_v6', JSON.stringify(library));
         completedSaveRevision += 1;
         console.log('[Save] saved:', reason, library.chapters.length + '章');
@@ -2579,7 +2930,11 @@ function copyLastChapterContextText() {
 
     /* 加载数据 */
     function loadData() {
-      return DB.get('library_v6').then(raw => {
+      return Promise.all([DB.get('library_v6'), DB.get(CONNECTION_CREDENTIALS_DB_KEY)]).then(([raw, credentialRaw]) => {
+        try {
+          const parsedCredentials = credentialRaw ? (typeof credentialRaw === 'string' ? JSON.parse(credentialRaw) : credentialRaw) : {};
+          connectionCredentials.value = parsedCredentials && typeof parsedCredentials === 'object' && !Array.isArray(parsedCredentials) ? parsedCredentials : {};
+        } catch { connectionCredentials.value = {}; }
         if (raw) {
           const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
           // 核心
@@ -2592,6 +2947,8 @@ function copyLastChapterContextText() {
           ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'].forEach(k => {
             if (settings.value.moduleModels[k] === undefined) settings.value.moduleModels[k] = '';
           });
+          if (data.connectionCenter) connectionCenter.value = normalizeConnectionCenter(data.connectionCenter);
+          migrateConnectionCenterFromLegacy();
           if (data.wordCountTarget) wordCountTarget.value = data.wordCountTarget;
           if (data.nsfwSettings) Object.assign(nsfwSettings.value, data.nsfwSettings);
 
@@ -2752,6 +3109,7 @@ function copyLastChapterContextText() {
               if (gs.publicApiUrl) settings.value.apiUrl = gs.publicApiUrl;
               if (gs.publicApiKey) settings.value.apiKey = gs.publicApiKey;
               if (gs.defaultModel) settings.value.model = gs.defaultModel;
+              migrateConnectionCenterFromLegacy();
               const bks = lib.books || [];
               if (bks.length > 0) {
                 const bk = bks.find(b => b.id === lib.currentBookId) || bks[0];
@@ -2954,15 +3312,15 @@ function copyLastChapterContextText() {
     const newDialogueTypeDesc = ref('');
 
     function aiGenerateDialogueType() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = getModuleRequestConfig('character');
+      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
       isGeneratingDialogueType.value = true;
       const hint = newDialogueTypeDesc.value || '一个独特的说话风格';
       const prompt = '你是角色对话风格设计师。请设计一个全新的角色对话风格模板。\n\n用户描述: ' + hint + '\n\n返回JSON: {"id":"英文id","label":"中文名称(3字以内)","icon":"一个emoji","prompt":"详细的说话风格描述(80-150字，包含语气特点、用词习惯、句式偏好)"}\n不要代码块。';
-      fetch(url, {
+      fetch(request.url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -3218,14 +3576,50 @@ function copyLastChapterContextText() {
       { key:'suggestion', name:'预设模块', desc:'预设生成、文风生成、AI建议' },
       { key:'review', name:'AI书评', desc:'书评团点评' },
       { key:'summary', name:'AI总结', desc:'章节总结生成' },
-      { key:'comments', name:'AI评论', desc:'模拟读者评论' }
+      { key:'comments', name:'AI评论', desc:'模拟读者评论' },
+      { key:'translate', name:'翻译模块', desc:'章节和设定翻译（预留）' }
     ];
 
 
     function getModelForModule(moduleKey) {
-      const mm = settings.value.moduleModels?.[moduleKey];
+      const key = String(moduleKey || '').trim();
+      const explicitRouteId = connectionCenter.value?.moduleRoutes?.[key]?.profileId || '';
+      if (explicitRouteId) {
+        const profile = connectionCenter.value.profiles?.find(item => item.id === explicitRouteId);
+        return profile?.defaultModel || '';
+      }
+      const defaultProfileId = connectionCenter.value?.defaultProfileId || '';
+      if (defaultProfileId) {
+        const profile = connectionCenter.value.profiles?.find(item => item.id === defaultProfileId);
+        if (profile?.defaultModel) return profile.defaultModel;
+      }
+      const mm = settings.value.moduleModels?.[key];
       if (mm) return mm;
       return settings.value.model || '';
+    }
+
+    // 统一解析模块所使用的 API 配置；旧 settings 字段仅作为兼容回退。
+    function resolveModuleConnection(moduleKey) {
+      const key = String(moduleKey || '').trim();
+      const center = normalizeConnectionCenter(connectionCenter.value);
+      const route = center.moduleRoutes[key] || { profileId:'' };
+      const hasExplicitRoute = !!String(route.profileId || '').trim();
+      const routeId = hasExplicitRoute ? String(route.profileId).trim() : String(center.defaultProfileId || '').trim();
+      const profile = center.profiles.find(item => item.id === routeId) || null;
+      if (hasExplicitRoute && !profile) {
+        return { ok:false, reason:'模块“' + key + '”绑定的 API 配置不存在', source:'connection-center', profile:null };
+      }
+      if (profile) {
+        if (!profile.enabled) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”已停用', source:'connection-center', profile:null };
+        if (!profile.defaultModel) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”缺少默认模型', source:'connection-center', profile:null };
+        if (!profile.adapterId) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”缺少协议类型', source:'connection-center', profile:null };
+        if (!isConnectionProfileAdapterSupported(profile)) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”的协议暂未开放请求适配', source:'connection-center', profile:null };
+        if (!profile.baseUrl) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”缺少地址', source:'connection-center', profile:null };
+        if (!getConnectionCredential(profile.id)) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”缺少密钥', source:'connection-center', profile:null };
+        if (profile.lastTest?.status !== 'ok') return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”尚未通过连接测试', source:'connection-center', profile:null };
+        return { ok:true, source:'connection-center', profile, model:profile.defaultModel, apiKey:getConnectionCredential(profile.id), baseUrl:profile.baseUrl };
+      }
+      return { ok:true, source:'legacy', profile:null, model:getModelForModule(key), apiKey:String(settings.value.apiKey || ''), baseUrl:String(settings.value.apiUrl || '') };
     }
 
     function requireModelForModule(moduleKey, label = '当前模块') {
@@ -3269,8 +3663,8 @@ function copyLastChapterContextText() {
        - https://api.example.com/v1/chat/completions
        - https://proxy.site/some-path/v1
        返回不带尾部斜杠的基础路径（到 /v1 为止） */
-    function getApiBaseUrl() {
-      let url = (settings.value.apiUrl || '').trim().replace(/\/+$/, '');
+    function getApiBaseUrl(rawUrl = settings.value.apiUrl) {
+      let url = String(rawUrl || '').trim().replace(/\/+$/, '');
       if (!url) return '';
       // 如果包含 /chat/completions，截取到 /chat 之前
       const chatIdx = url.indexOf('/chat/completions');
@@ -3283,14 +3677,150 @@ function copyLastChapterContextText() {
       // 去掉尾部斜杠
       url = url.replace(/\/+$/, '');
       // 确保以 /v1 结尾（兼容不带 /v1 的输入）
-      if (!url.match(/\/v\d+$/)) url += '/v1';
+      if (!url.match(/\/v\d+(?:[a-z][a-z0-9.-]*)?$/i)) url += '/v1';
       return url;
     }
 
-    function getCompletionsUrl() {
-      const base = getApiBaseUrl();
+    function getCompletionsUrl(moduleKey = '') {
+      const resolved = moduleKey ? resolveModuleConnection(moduleKey) : null;
+      const base = getApiBaseUrl(resolved?.ok ? resolved.baseUrl : settings.value.apiUrl);
       if (!base) return '';
+      const adapterId = resolved?.profile?.adapterId || 'openai-compatible';
+      if (adapterId === 'anthropic-messages' || adapterId === 'gemini-generate') return base;
       return base + '/chat/completions';
+    }
+
+    function getModuleRequestConfig(moduleKey) {
+      const resolved = resolveModuleConnection(moduleKey);
+      if (!resolved.ok) return Object.assign({ url:'', apiKey:'', model:'' }, resolved);
+      const url = getCompletionsUrl(moduleKey);
+      const apiKey = String(resolved.apiKey || '');
+      if (!url) return { ok:false, reason:'API 配置缺少地址', source:resolved.source, url:'', apiKey:'', model:'' };
+      if (!apiKey) return { ok:false, reason:'API 配置缺少密钥', source:resolved.source, url, apiKey:'', model:'' };
+      if (!resolved.model) return { ok:false, reason:'API 配置缺少默认模型', source:resolved.source, url, apiKey, model:'' };
+      return { ok:true, source:resolved.source, profile:resolved.profile, adapterId:resolved.profile?.adapterId || 'openai-compatible', url, apiKey, model:resolved.model };
+    }
+
+    function requireModuleRequest(moduleKey, label = '当前模块 API') {
+      const request = getModuleRequestConfig(moduleKey);
+      if (!request.ok) {
+        showToast(request.reason || ('请配置' + label), 'error');
+        return null;
+      }
+      return request;
+    }
+
+    function getAdapterIdForRequest(request = {}) {
+      return String(request.adapterId || request.profile?.adapterId || 'openai-compatible').trim() || 'openai-compatible';
+    }
+
+    function isSupportedRequestAdapter(adapterId) {
+      return ['openai-chat', 'openai-compatible', 'anthropic-messages', 'gemini-generate'].includes(String(adapterId || ''));
+    }
+
+    function getAdapterEndpoint(request, options = {}) {
+      const adapterId = getAdapterIdForRequest(request);
+      if (!isSupportedRequestAdapter(adapterId)) throw new Error('未知或未实现的 API 协议：' + adapterId);
+      const raw = String(request.url || '').trim();
+      if (!raw) throw new Error('API 地址为空');
+      if (adapterId === 'openai-chat' || adapterId === 'openai-compatible') return raw;
+      if (adapterId === 'anthropic-messages') {
+        const base = raw.replace(/\/chat\/completions$/i, '').replace(/\/messages$/i, '').replace(/\/+$/, '');
+        return base + '/messages';
+      }
+      const base = raw.replace(/\/chat\/completions$/i, '').replace(/\/models\/[^/]+:(?:generateContent|streamGenerateContent).*$/i, '').replace(/\/+$/, '');
+      const action = options.stream ? 'streamGenerateContent' : 'generateContent';
+      const separator = base.includes('?') ? '&' : '?';
+      return base + '/models/' + encodeURIComponent(request.model) + ':' + action + separator + (options.stream ? 'alt=sse&' : '') + 'key=' + encodeURIComponent(request.apiKey);
+    }
+
+    function buildAdapterMessages(messages, adapterId) {
+      const source = Array.isArray(messages) ? messages : [];
+      if (adapterId === 'anthropic-messages') {
+        return source.filter(item => item && item.role !== 'system').map(item => ({ role:item.role === 'assistant' ? 'assistant' : 'user', content:String(item.content || '') }));
+      }
+      if (adapterId === 'gemini-generate') {
+        return source.filter(item => item && item.role !== 'system').map(item => ({ role:item.role === 'assistant' ? 'model' : 'user', parts:[{ text:String(item.content || '') }] }));
+      }
+      return source;
+    }
+
+    function buildAdapterRequest(request, messages, options = {}) {
+      const adapterId = getAdapterIdForRequest(request);
+      if (!request?.ok) throw new Error(request?.reason || 'API 配置不可用');
+      if (!isSupportedRequestAdapter(adapterId)) throw new Error('未知或未实现的 API 协议：' + adapterId);
+      const stream = options.stream === true;
+      const headers = { 'Content-Type':'application/json' };
+      let body;
+      if (adapterId === 'anthropic-messages') {
+        headers['x-api-key'] = request.apiKey;
+        headers['anthropic-version'] = '2023-06-01';
+        const system = (Array.isArray(messages) ? messages : []).filter(item => item?.role === 'system').map(item => String(item.content || '')).join('\n\n');
+        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), max_tokens:Number(options.maxTokens || 4096), stream, temperature:options.temperature ?? 0.7 };
+        if (system) body.system = system;
+      } else if (adapterId === 'gemini-generate') {
+        body = { contents:buildAdapterMessages(messages, adapterId), generationConfig:{ temperature:options.temperature ?? 0.7, maxOutputTokens:Number(options.maxTokens || 4096) } };
+        const system = (Array.isArray(messages) ? messages : []).filter(item => item?.role === 'system').map(item => String(item.content || '')).join('\n\n');
+        if (system) body.systemInstruction = { parts:[{ text:system }] };
+      } else {
+        headers.Authorization = 'Bearer ' + request.apiKey;
+        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), stream, temperature:options.temperature ?? 0.7 };
+        if (options.maxTokens) body.max_tokens = Number(options.maxTokens);
+      }
+      return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal };
+    }
+
+    function extractAdapterText(data, adapterId) {
+      if (adapterId === 'anthropic-messages') return (Array.isArray(data?.content) ? data.content : []).filter(item => item?.type === 'text').map(item => String(item.text || '')).join('');
+      if (adapterId === 'gemini-generate') return (data?.candidates || []).flatMap(item => item?.content?.parts || []).map(item => String(item?.text || '')).join('');
+      return extractAiTextFromResponse(data);
+    }
+
+    function parseAdapterStreamEvent(data, adapterId) {
+      if (!data) return { text:'', finishReason:'' };
+      if (adapterId === 'anthropic-messages') {
+        const text = data.type === 'content_block_delta' ? String(data.delta?.text || '') : '';
+        return { text, finishReason:data.type === 'message_delta' ? String(data.delta?.stop_reason || '') : '' };
+      }
+      if (adapterId === 'gemini-generate') {
+        const text = (data.candidates || []).flatMap(item => item?.content?.parts || []).map(item => String(item?.text || '')).join('');
+        return { text, finishReason:String(data.candidates?.[0]?.finishReason || '') };
+      }
+      return { text:extractAiStreamTextDelta(data, {}), finishReason:getAiResponseFinishReason(data) };
+    }
+
+    async function readAdapterResponse(resp, request, options = {}) {
+      const adapterId = getAdapterIdForRequest(request);
+      if (options.stream !== true) {
+        const data = await resp.json();
+        if (adapterId === 'openai-chat' || adapterId === 'openai-compatible') {
+          const parts = extractAiResponseParts(data);
+          return { text:cleanAIResponse(parts.text || ''), rawText:parts.rawText || parts.text || '', thinking:parts.thinking || '', nativeThinking:parts.nativeThinking || '', finishReason:parts.finishReason || '', truncated:parts.truncated === true };
+        }
+        return { text:cleanAIResponse(extractAdapterText(data, adapterId)), rawText:extractAdapterText(data, adapterId), finishReason:getAiResponseFinishReason(data) || data?.stop_reason || data?.candidates?.[0]?.finishReason || '' };
+      }
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '', full = '', finishReason = '';
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        buf += dec.decode(chunk.value, { stream:true });
+        const lines = buf.split(/\r?\n/); buf = lines.pop() || '';
+        for (const line of lines) {
+          const raw = String(line || '').replace(/^data:\s*/, '').trim();
+          if (!raw || raw === '[DONE]') continue;
+          try { const part = parseAdapterStreamEvent(JSON.parse(raw), adapterId); full += part.text || ''; if (part.finishReason) finishReason = part.finishReason; } catch {}
+        }
+      }
+      return { text:cleanAIResponse(full), rawText:full, finishReason, partial:false };
+    }
+
+    async function fetchAdapterCompletion(request, messages, options = {}) {
+      const init = buildAdapterRequest(request, messages, options);
+      const resp = await fetch(init.url, { method:'POST', headers:init.headers, body:JSON.stringify(init.body), signal:init.signal });
+      if (!resp.ok) throw await createApiResponseError(resp, 'API');
+      return readAdapterResponse(resp, request, { stream:options.stream === true });
     }
 
     function stripSnowwingContextBlocks(text) {
@@ -3623,6 +4153,9 @@ function cleanAIResponse(text) {
       const key = String(settings.value.apiKey || '').trim();
       if (key) text = text.split(key).join('[API Key已隐藏]');
       text = text.replace(/\bsk-[A-Za-z0-9_-]{6,}\b/g, '[API Key已隐藏]');
+      text = text.replace(/([?&](?:api[_-]?key|key|token)=)[^&\s]+/gi, '$1[已隐藏]');
+      text = text.replace(/(authorization\s*:\s*bearer\s+)[^\s,;]+/gi, '$1[已隐藏]');
+      text = text.replace(/(x-api-key\s*[:=]\s*)[^\s,;]+/gi, '$1[已隐藏]');
       return text.slice(0, 240);
     }
 
@@ -3907,10 +4440,9 @@ function cleanAIResponse(text) {
     }
 
     function generateAiCharacter() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请先配置API', 'error'); return; }
-      const characterModel = requireModelForModule('character', '角色模块');
-      if (!characterModel) return;
+      const request = getModuleRequestConfig('character');
+      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
+      const characterModel = request.model;
       isGeneratingChar.value = true;
       // 中文注释：AI 单角色生成现在要求返回完整角色字段，让预览弹窗自动填表，而不是只填姓名和描述。
       const prompt = `你是小说角色设计师。根据以下信息设计一个可直接写入角色表的完整角色。
@@ -3921,9 +4453,9 @@ function cleanAIResponse(text) {
     用户描述: ${aiCharDesc.value}
     返回JSON: {"name":"角色名","desc":"详细描述(外貌性格背景能力关系,200字以上)","personalityTags":["标签1","标签2"],"speakingStyle":"说话风格描述(80-150字)","exampleDialogues":["典型台词1","典型台词2","典型台词3"],"characterPrompt":"写作该角色时的专属提示词(100-200字)","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述"}],"avatarPrompt":"英文生图关键词，可为空"}
     要求：只输出纯JSON，不要代码块标记。`;
-      fetch(url, {
+      fetch(request.url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
         body: JSON.stringify({ model: characterModel, messages: buildNsfwMessages(prompt), stream: false })
       }).then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -3955,9 +4487,8 @@ function cleanAIResponse(text) {
     function aiCompleteCharacter(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      if (!settings.value.model) { showToast('请先选择模型', 'error'); return; }
+      const request = getModuleRequestConfig('character');
+      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
       const prompt = '你是小说角色设定补完助手。请在不推翻已有设定的前提下，补全当前角色缺失字段。\n\n' +
@@ -3976,10 +4507,10 @@ function cleanAIResponse(text) {
         }) + '\n\n' +
         '返回JSON: {"name":"角色名","desc":"可补强的描述","personalityTags":["标签"],"speakingStyle":"说话风格","exampleDialogues":["台词"],"characterPrompt":"专属提示词","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述"}],"avatarPrompt":"英文生图关键词"}\n' +
         '要求：保留已有核心设定，不要制造矛盾；关系只能指向已有角色；只输出纯JSON，不要代码块。';
-      fetch(url, {
+      fetch(request.url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -4001,8 +4532,8 @@ function cleanAIResponse(text) {
     const isGeneratingBatch = ref(false);
 
     function generateBatchCharacters() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = getModuleRequestConfig('character');
+      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
       isGeneratingBatch.value = true;
       const prompt = `根据以下设定生成${batchCharCount.value}个角色。
     小说: ${novel.value.title || '未定'}
@@ -4013,10 +4544,10 @@ function cleanAIResponse(text) {
     返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","relationships":[{"targetName":"对方角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}]}
     要求：角色之间必须有明确的关系网络，每个角色至少与1个其他角色有关系。
     不要代码块标记。`;
-      fetch(url, {
+      fetch(request.url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       }).then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
         let raw = cleanAIResponse(extractAiTextFromResponse(d));
@@ -4051,12 +4582,13 @@ function cleanAIResponse(text) {
         // 自动生成对话风格模板
         if (chars.length >= 2) {
           try {
-            const dtUrl = getCompletionsUrl();
+            const dtRequest = getModuleRequestConfig('character');
+            if (!dtRequest.ok) throw new Error(dtRequest.reason || '角色模块 API 配置不完整');
             const dtPrompt2 = '请为小说「' + (novel.value.title||'') + '」设计3个独特的角色对话风格模板。\n返回JSON数组: [{"id":"英文id","label":"中文名称(3字以内)","icon":"一个emoji","prompt":"详细说话风格描述(80-150字)","isCustom":true}]\n不要代码块。';
-            fetch(dtUrl, {
+            fetch(dtRequest.url, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-              body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(dtPrompt2, { taskType: 'character' }), stream: false })
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dtRequest.apiKey },
+              body: JSON.stringify({ model: dtRequest.model, messages: buildNsfwMessages(dtPrompt2, { taskType: 'character' }), stream: false })
             }).then(r => r.json()).then(d => {
               let raw2 = cleanAIResponse(extractAiTextFromResponse(d));
               const arr2 = raw2.match(/\[[\s\S]*\]/); if (arr2) raw2 = arr2[0];
@@ -4160,16 +4692,17 @@ function cleanAIResponse(text) {
     const batchPresetHint = ref('');
 
     function aiGeneratePresets() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('suggestion', '预设模块 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingPresets.value = true;
       const count = batchPresetCount.value || 3;
       const hint = batchPresetHint.value || '适合当前小说的写作预设';
       const prompt = '你是AI写作系统的预设设计专家。请生成' + count + '个写作预设。\n\n小说标题: ' + (novel.value.title || '未定') + '\n主题: ' + (novel.value.theme || '暂无') + '\n\n用户要求: ' + hint + '\n\n返回JSON数组: [{"name":"预设名(简短)","content":"预设指令(100-300字的具体写作指令)","applyTo":["writing"]}]\n\napplyTo可选值: writing/outline/character/suggestion/review\n不要代码块标记。';
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -12304,6 +12837,9 @@ function cleanAIResponse(text) {
     }
 
     async function requestSnowwingActiveContextContinuation(url, baseMessages, resultContext, options = {}) {
+      const request = getModuleRequestConfig('writing');
+      const effectiveRequest = Object.assign({}, request, { url:options.url || url || request.url, apiKey:options.apiKey || request.apiKey, model:options.model || request.model, adapterId:options.adapterId || request.adapterId });
+      if (!effectiveRequest.url || !effectiveRequest.apiKey || !effectiveRequest.model) throw new Error('白鸟资料回读续写 API 配置不完整');
       const messages = Array.isArray(baseMessages) ? baseMessages.map(item => Object.assign({}, item)) : [];
       const mode = options.mode || 'generate';
       const allowMore = options.allowMore === true;
@@ -12319,30 +12855,16 @@ function cleanAIResponse(text) {
         : '\n本轮资料回读已到达上限，禁止继续输出 <snowwing_context_call>，必须直接写正文。';
       if (initialText.length > 80) instruction += '\n\n上一轮可见草稿只作参考，不要照抄或输出资料调用块残留：\n' + clipContextText(initialText, 1600, { keepHead: true });
       messages.push({ role: 'user', content: resultContext + '\n\n' + instruction });
-      printAIRequestLogs(messages, getModelForModule('writing'), options.logLabel || '白鸟资料回读续写 messages');
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({
-          model: getModelForModule('writing'),
-          messages,
-          stream: false,
-          temperature: mode === 'continue' ? 0.9 : 0.78,
-          max_tokens: Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.4) + 2500))
-        }),
-        signal: options.signal || (abortController.value ? abortController.value.signal : undefined)
-      });
-      if (!resp.ok) throw new Error('API ' + resp.status);
-      const data = await resp.json();
-      const parts = extractAiResponseParts(data);
-      const separated = splitSnowwingCotParts(parts.thinking, options.currentThinking || '');
+      printAIRequestLogs(messages, effectiveRequest.model, options.logLabel || '白鸟资料回读续写 messages');
+      const result = await fetchAdapterCompletion(effectiveRequest, messages, { stream:false, temperature:mode === 'continue' ? 0.9 : 0.78, maxTokens:Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.4) + 2500)), signal:options.signal || (abortController.value ? abortController.value.signal : undefined) });
+      const separated = splitSnowwingCotParts(result.thinking || '', options.currentThinking || '');
       return {
-        text: cleanAIResponse(parts.text || ''),
-        rawText: parts.rawText || parts.text || '',
+        text: cleanAIResponse(result.text || ''),
+        rawText: result.rawText || result.text || '',
         thinking: [options.currentThinking || '', separated.cot || ''].filter(Boolean).join('\n\n').trim(),
-        nativeThinking: [options.currentNativeThinking || '', parts.nativeThinking || '', separated.native || ''].filter(Boolean).join('\n\n').trim(),
-        finishReason: parts.finishReason || '',
-        truncated: parts.truncated === true
+        nativeThinking: [options.currentNativeThinking || '', result.nativeThinking || '', separated.native || ''].filter(Boolean).join('\n\n').trim(),
+        finishReason: result.finishReason || '',
+        truncated: result.truncated === true
       };
     }
 
@@ -12385,6 +12907,8 @@ function cleanAIResponse(text) {
           initialText: text,
           currentThinking: thinking,
           currentNativeThinking: nativeThinking,
+          apiKey: options.apiKey,
+          model: options.model,
           signal: options.signal,
           logLabel: (options.mode === 'continue' ? '白鸟资料回读中断续写 messages' : '白鸟资料回读章节续写 messages')
         });
@@ -15340,16 +15864,15 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function inferInfiniteSettingsFromDraft(triggerSource = 'manual') {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      if (!settings.value.model) { showToast('请选择模型', 'error'); return; }
+      const request = getModuleRequestConfig('writing');
+      if (!request.ok) { showToast(request.reason || '请配置写作 API', 'error'); return; }
       const context = infiniteDraft.value.trim();
       if (!context || getCleanWordCount(context) < 300) { showToast('正文内容不足，暂时无法反推设定', 'error'); return; }
       isInferringInfiniteSettings.value = true;
       showInfiniteInferenceBubble.value = false;
       try {
         const prompt = '你是小说设定分析师。请根据以下正文，逆向推断并补全最适合写作系统使用的设定信息。必须尽量忠于现有正文，不要臆造与正文冲突的内容。\n\n输出 JSON：{"title":"","theme":"","synopsis":"","worldView":""}\n\n要求：\n1. title 只填写书名，禁止包含 theme、synopsis、worldView 等字段名或其他字段内容。\n2. theme 只用一句话概括题材与核心方向，不要重复书名。\n3. synopsis 用 120-220 字概括当前故事，不要重复书名字段。\n4. worldView 写成便于后续续写调用的设定说明，按背景、规则、势力/人物关系、主要冲突分行排版，不要重复 title/theme/synopsis。\n5. 若正文无法明确得出 title，可保留空字符串。\n6. 只输出合法 JSON，不要代码块，不要在字符串外输出解释。\n\n正文：\n' + context;
-        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value }, body: JSON.stringify({ model: getModelForModule('writing'), messages: [{ role: 'user', content: prompt }], stream: false, temperature: 0.3 }) });
+        const resp = await fetch(request.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey }, body: JSON.stringify({ model: request.model, messages: [{ role: 'user', content: prompt }], stream: false, temperature: 0.3 }) });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const data = await resp.json();
         const choice = data.choices && data.choices[0] ? data.choices[0] : {};
@@ -15387,9 +15910,8 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function startInfiniteContinuation() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      if (!settings.value.model) { showToast('请选择模型', 'error'); return; }
+      const request = getModuleRequestConfig('writing');
+      if (!request.ok) { showToast(request.reason || '请配置写作 API', 'error'); return; }
       const context = infiniteDraft.value.trim();
       if (!context) { showToast('请先输入正文内容', 'error'); return; }
       const target = Math.min(2000, Math.max(500, Number(infiniteWordTarget.value) || 1000));
@@ -15398,7 +15920,7 @@ function getModHubPermissionLabels(mod) {
       abortController.value = new AbortController();
       try {
         const prompt = buildInfiniteContextPrompt(context, target);
-        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value }, body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt, { taskType: 'writing' }), stream: true, temperature: settings.value.temperature, max_tokens: settings.value.maxTokens }), signal: abortController.value.signal });
+        const resp = await fetch(request.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey }, body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'writing' }), stream: true, temperature: settings.value.temperature, max_tokens: settings.value.maxTokens }), signal: abortController.value.signal });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const reader = resp.body.getReader();
         const decoder = new TextDecoder('utf-8');
@@ -15867,24 +16389,19 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function requestOutlineAiOnce(prompt, options = {}) {
-      const url = options.url || getCompletionsUrl();
-      const model = options.model || getModelForModule('outline');
+      const request = getModuleRequestConfig('outline');
+      const url = options.url || request.url;
+      const model = options.model || request.model;
+      const apiKey = options.apiKey || request.apiKey;
+      if (!url || !apiKey || !model) throw new Error(request.reason || '大纲模块 API 配置不完整');
       const mode = options.mode || 'nonstream';
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({
-          model,
-          messages: buildNsfwMessages(prompt, { taskType: options.taskType || 'outline' }),
-          stream: mode === 'stream',
-          temperature: options.temperature ?? 0.75
-        }),
-        signal: options.signal
-      });
+      const effectiveRequest = Object.assign({}, request, { url, apiKey, model });
+      const adapterInit = buildAdapterRequest(effectiveRequest, buildNsfwMessages(prompt, { taskType: options.taskType || 'outline' }), { stream: mode === 'stream', temperature: options.temperature ?? 0.75, maxTokens:options.maxTokens, signal:options.signal });
+      const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
       if (!resp.ok) throw await createApiResponseError(resp, 'API');
-      const result = mode === 'stream'
-        ? await readOutlineStreamResponse(resp, options)
-        : await readOutlineJsonResponse(resp, options);
+      const result = getAdapterIdForRequest(effectiveRequest) === 'openai-chat' || getAdapterIdForRequest(effectiveRequest) === 'openai-compatible'
+        ? (mode === 'stream' ? await readOutlineStreamResponse(resp, options) : await readOutlineJsonResponse(resp, options))
+        : await readAdapterResponse(resp, effectiveRequest, { stream:mode === 'stream' });
       validateOutlineAiText(result.text, Object.assign({}, options, {
         finishReason: result.finishReason,
         allowTruncated: result.partial === true
@@ -16083,21 +16600,21 @@ function getModHubPermissionLabels(mod) {
 
     function getOutlineAiDisabledReason() {
       if (isGeneratingOutline.value) return '大纲正在生成，请等待当前请求完成';
-      if (!currentApiKey.value) return '未配置 API 密钥，先到设置完成连接';
-      if (!getModelForModule('outline')) return '未选择大纲模型，先到设置填写或选择模型';
+      const request = getModuleRequestConfig('outline');
+      if (!request.ok) return request.reason || '未配置大纲 API，先到设置完成连接';
       return '';
     }
 
     function getOutlineAiDisabledActionLabel() {
       if (isGeneratingOutline.value) return '';
-      return !currentApiKey.value || !getModelForModule('outline') ? '去设置' : '';
+      return getModuleRequestConfig('outline').ok ? '' : '去设置';
     }
 
     async function openApiSettingsFromWorkbench() {
       activeSettingsTab.value = 'api';
       showSettings_modal.value = true;
       await nextTick();
-      const target = !currentApiKey.value
+      const target = !getModuleRequestConfig('outline').ok
         ? document.querySelector('[data-settings-api-key]')
         : document.querySelector('[data-settings-main-model]');
       target?.scrollIntoView?.({ block:'center' });
@@ -16106,13 +16623,13 @@ function getModHubPermissionLabels(mod) {
 
     function resolveOutlineAiDisabledAction() {
       if (isGeneratingOutline.value) return;
-      if (!currentApiKey.value || !getModelForModule('outline')) openApiSettingsFromWorkbench();
+      if (!getModuleRequestConfig('outline').ok) openApiSettingsFromWorkbench();
     }
 
     function getDetailedOutlineAiDisabledReason(kind = 'generate') {
       if (isGeneratingDO.value) return '细纲正在生成，请等待当前批次完成';
-      if (!currentApiKey.value) return '未配置 API 密钥，先到设置完成连接';
-      if (!getModelForModule('outline')) return '未选择大纲模型，先到设置填写或选择模型';
+      const request = getModuleRequestConfig('outline');
+      if (!request.ok) return request.reason || '未配置大纲 API，先到设置完成连接';
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) return '缺少总纲，先编写或生成大纲再拆细纲';
       if (kind === 'index' && chapterIndexDrafts.value.length === 0) return '暂无章节索引，先添加或从细纲整理索引';
       return '';
@@ -16120,7 +16637,7 @@ function getModHubPermissionLabels(mod) {
 
     function getDetailedOutlineAiDisabledActionLabel(kind = 'generate') {
       if (isGeneratingDO.value) return '';
-      if (!currentApiKey.value || !getModelForModule('outline')) return '去设置';
+      if (!getModuleRequestConfig('outline').ok) return '去设置';
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) return '打开大纲';
       if (kind === 'index' && chapterIndexDrafts.value.length === 0) return '添加索引';
       return '';
@@ -16128,7 +16645,7 @@ function getModHubPermissionLabels(mod) {
 
     async function resolveDetailedOutlineAiDisabledAction(kind = 'generate') {
       if (isGeneratingDO.value) return;
-      if (!currentApiKey.value || !getModelForModule('outline')) { openApiSettingsFromWorkbench(); return; }
+      if (!getModuleRequestConfig('outline').ok) { openApiSettingsFromWorkbench(); return; }
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) {
         showDetailedOutlineInMain.value = false;
         showOutlineInMain.value = true;
@@ -17265,10 +17782,10 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function generateOutline() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      const outlineModel = requireModelForModule('outline', '大纲模块');
-      if (!outlineModel) return;
+      const request = getModuleRequestConfig('outline');
+      if (!request.ok) { showToast(request.reason || '请配置大纲模块 API', 'error'); return; }
+      const url = request.url;
+      const outlineModel = request.model;
       isGeneratingOutline.value = true;
       let prompt = ('你是专业网文策划。' + (novel.value.outline?'请安全修改完善':'请生成') + '小说大纲。') + '\n\n';
       prompt += '标题: ' + (novel.value.title||'') + '\n主题: ' + (novel.value.theme||'') + '\n';
@@ -17286,6 +17803,7 @@ function getModHubPermissionLabels(mod) {
       try {
         const result = await requestOutlineAi(prompt, {
           url,
+          apiKey: request.apiKey,
           model: outlineModel,
           taskType: 'outline',
           type: 'outline',
@@ -17490,10 +18008,10 @@ function getModHubPermissionLabels(mod) {
 
     // 中文注释：单章细纲 AI 修改/补写，只更新当前章卡片；补写模式保留原核心事件，修改模式保留未提及内容。
     async function aiRewriteChapterOutline(ci, mode = 'rewrite') {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API','error'); return; }
-      const outlineModel = requireModelForModule('outline', '大纲模块');
-      if (!outlineModel) return;
+      const request = getModuleRequestConfig('outline');
+      if (!request.ok) { showToast(request.reason || '请配置大纲模块 API','error'); return; }
+      const url = request.url;
+      const outlineModel = request.model;
       const co = chapterOutlines.value[ci];
       if (!co) { showToast('未找到本章细纲','error'); return; }
       const userReq = String(co.aiInput || '').trim();
@@ -17526,7 +18044,8 @@ function getModHubPermissionLabels(mod) {
       prompt += '\n本次只允许输出第' + (ci + 1) + '章，不要解释、不要列出其他章节。';
       try {
         const result = await requestOutlineAi(prompt, {
-          url,
+          url: request.url,
+          apiKey: request.apiKey,
           model: outlineModel,
           taskType: 'detailedOutline',
           type: 'chapterOutline',
@@ -17592,10 +18111,10 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function generateDetailedOutline(targetChapters = null, runOptions = {}) {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API','error'); return; }
+      const request = getModuleRequestConfig('outline');
+      if (!request.ok) { showToast(request.reason || '请配置大纲 API','error'); return; }
       if (!novel.value.outline) { showToast('请先编写大纲','error'); return; }
-      const outlineModel = requireModelForModule('outline', '大纲模块');
+      const outlineModel = request.model || requireModelForModule('outline', '大纲模块');
       if (!outlineModel) return;
       isGeneratingDO.value = true;
       const start = Math.max(1, Number(doStart.value) || 1);
@@ -17638,8 +18157,9 @@ function getModHubPermissionLabels(mod) {
           try {
             const prompt = buildDetailedOutlineBatchPrompt(batch, target.length, totalWordTarget);
             const result = await requestOutlineAi(prompt, {
-              url,
-              model: outlineModel,
+              url: request.url,
+              apiKey: request.apiKey,
+              model: request.model,
               taskType: 'detailedOutline',
               type: 'detailedOutline',
               label: '细纲' + label,
@@ -18686,8 +19206,9 @@ function getModHubPermissionLabels(mod) {
     const isGeneratingSummary = ref(false);
 
     function generateSummaryRange() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API','error'); return; }
+      const request = getModuleRequestConfig('summary');
+      if (!request.ok) { showToast(request.reason || '请配置总结 API','error'); return; }
+      const url = request.url;
       const s = summaryStart.value, e = summaryEnd.value;
       const vChaps = visibleChapters.value;
       if (s > e || s < 1 || e > vChaps.length) { showToast('范围无效','error'); return; }
@@ -18703,8 +19224,8 @@ function getModHubPermissionLabels(mod) {
       if (modSummary) prompt += '\n\n【MOD总结规则】\n' + modSummary;
       prompt = applyModTextHooks('buildSummaryPrompt', prompt, { novel: novel.value, chapters: vChaps, start: s, end: e });
       fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+currentApiKey.value},
-        body: JSON.stringify({model: getModelForModule('summary'),messages:buildNsfwMessages(prompt, { taskType: 'summary' }),stream:false})
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
+        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt, { taskType: 'summary' }),stream:false})
       }).then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
       .then(d=>{
         const text = cleanAIResponse(extractAiTextFromResponse(d));
@@ -19303,32 +19824,20 @@ function getWritingModelLabel() {
       return messages;
     }
 
-    async function requestReasoningOnlyRescue(url, baseMessages, generationCot, mode = 'generate', generationSignal = null) {
+    async function requestReasoningOnlyRescue(url, baseMessages, generationCot, mode = 'generate', generationSignal = null, requestOptions = {}) {
+      const request = getModuleRequestConfig('writing');
+      const effectiveRequest = Object.assign({}, request, { url:requestOptions.url || url || request.url, apiKey:requestOptions.apiKey || request.apiKey, model:requestOptions.model || request.model, adapterId:requestOptions.adapterId || request.adapterId });
+      if (!effectiveRequest.url || !effectiveRequest.apiKey || !effectiveRequest.model) throw new Error('正文落地修复 API 配置不完整');
       const rescueMessages = buildReasoningOnlyRescueMessages(baseMessages, generationCot, mode);
-      printAIRequestLogs(rescueMessages, getModelForModule('writing'), '正文落地修复 messages');
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({
-          model: getModelForModule('writing'),
-          messages: rescueMessages,
-          stream: false,
-          temperature: 0.65,
-          max_tokens: Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.2) + 2200))
-        }),
-        signal: generationSignal || (abortController.value ? abortController.value.signal : undefined)
-      });
-      if (!resp.ok) throw new Error('API ' + resp.status);
-      const data = await resp.json();
-      const parts = extractAiResponseParts(data);
-      const text = cleanAIResponse(parts.text || '');
-      const separated = splitSnowwingCotParts(parts.thinking, generationCot);
+      printAIRequestLogs(rescueMessages, effectiveRequest.model, '正文落地修复 messages');
+      const result = await fetchAdapterCompletion(effectiveRequest, rescueMessages, { stream:false, temperature:0.65, maxTokens:Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.2) + 2200)), signal:generationSignal || (abortController.value ? abortController.value.signal : undefined) });
+      const separated = splitSnowwingCotParts(result.thinking || '', generationCot);
       return {
-        text,
+        text:cleanAIResponse(result.text || ''),
         thinking: separated.cot,
-        nativeThinking: [parts.nativeThinking, separated.native].filter(Boolean).join('\n\n').trim(),
-        finishReason: parts.finishReason || '',
-        truncated: parts.truncated === true
+        nativeThinking: [result.nativeThinking || '', separated.native || ''].filter(Boolean).join('\n\n').trim(),
+        finishReason: result.finishReason || '',
+        truncated: result.truncated === true
       };
     }
 
@@ -19390,6 +19899,8 @@ function getWritingModelLabel() {
       if (!(snowwingCotContext && snowwingCotContext.enabled)) return '';
       if (!isSnowwingRuntimeAuditFlagEnabled('SNOWWING_ENABLE_COT_PREFLIGHT')) return '';
       const preflightMessages = buildSnowwingCotPreflightMessages(baseMessages, snowwingCotContext);
+      const request = getModuleRequestConfig('writing');
+      if (!request.ok) return '';
       printAIRequestLogs(preflightMessages, getModelForModule('writing'), '白鸟CoT预检 messages');
       const parentSignal = generationSignal || (abortController.value ? abortController.value.signal : null);
       const localController = new AbortController();
@@ -19404,24 +19915,8 @@ function getWritingModelLabel() {
         try { localController.abort(new DOMException('白鸟推演资料卡预检超时', 'AbortError')); } catch { localController.abort(); }
       }, 90000);
       try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({
-            model: getModelForModule('writing'),
-            messages: preflightMessages,
-            stream: false,
-            temperature: 0.2,
-            max_tokens: 2200
-          }),
-          signal: localController.signal
-        });
-        if (!resp.ok) {
-          console.warn('[SnowwingCotPreflight] skipped by API status:', resp.status);
-          return '';
-        }
-        const data = await resp.json();
-        const raw = extractSnowwingCotCandidateFromData(data);
+        const result = await fetchAdapterCompletion(Object.assign({}, request, { url:request.url || url }), preflightMessages, { stream:false, temperature:0.2, maxTokens:2200, signal:localController.signal });
+        const raw = getSnowwingCotRawForValidation(result.text || '');
         return isValidSnowwingCotRaw(raw) ? raw : '';
       } catch (e) {
         if (parentSignal && parentSignal.aborted) throw e;
@@ -19488,17 +19983,12 @@ function getWritingModelLabel() {
     }
 
     function getWritingGenerationPrerequisites(showMessage = true) {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) {
+      const request = getModuleRequestConfig('writing');
+      if (!request.ok) {
         if (showMessage) showToast('请先配置API', 'error');
         return null;
       }
-      const model = getModelForModule('writing');
-      if (!model) {
-        if (showMessage) showToast('请选择正文生成模型', 'error');
-        return null;
-      }
-      return { url, model };
+      return { url:request.url, model:request.model, apiKey:request.apiKey, adapterId:request.adapterId, profile:request.profile };
     }
 
     function isGenerationRunCurrent(runId) {
@@ -19608,6 +20098,9 @@ function getWritingModelLabel() {
       const run = beginGenerationRun(requestedCount, Object.assign({}, options, {
         mode: options.mode || 'generate',
         writingModel: prerequisites.model,
+        writingApiKey: prerequisites.apiKey,
+        writingProfileId: prerequisites.profile?.id || '',
+        writingAdapterId: prerequisites.adapterId || prerequisites.profile?.adapterId || '',
         targetBranchId: options.targetBranchId || activeBranchId.value
       }));
 
@@ -19633,7 +20126,13 @@ function getWritingModelLabel() {
         if (isGenerationRunCurrent(run.id)) _isPreparingGenerationRecall = false;
       }
       if (!isGenerationRunCurrent(run.id)) return;
-      doGenerateOne(prerequisites.url, run.id, run.options);
+      doGenerateOne(prerequisites.url, run.id, Object.assign({}, run.options, {
+        writingUrl: prerequisites.url,
+        writingApiKey: prerequisites.apiKey,
+        writingModel: prerequisites.model,
+        writingProfileId: prerequisites.profile?.id || '',
+        writingAdapterId: prerequisites.adapterId || prerequisites.profile?.adapterId || ''
+      }));
     }
 
     // 生成单章
@@ -19670,20 +20169,17 @@ function getWritingModelLabel() {
       const snowwingCotContext = collectSnowwingCotContextFromMessages(msgs);
       lastGenerationCotContext.value = snowwingCotContext;
       let snowwingPreflightCot = '';
+      const generationRequest = Object.assign({}, getModuleRequestConfig('writing'), {
+        url: runOptions.writingUrl || url,
+        apiKey: runOptions.writingApiKey || getModuleRequestConfig('writing').apiKey,
+        model: runOptions.writingModel || getModuleRequestConfig('writing').model,
+        adapterId: runOptions.writingAdapterId || getModuleRequestConfig('writing').adapterId
+      });
       const sendChapterRequest = (requestMessages) => {
         assertGenerationRunCurrent(runId);
-        return fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({
-            model: runOptions.writingModel || getModelForModule('writing'),
-            messages: requestMessages,
-            stream: settings.value.streamEnabled !== false,
-            temperature: 0.85,
-            max_tokens: Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.4) + 2500))
-          }),
-          signal: requestController.signal
-        });
+        if (!generationRequest.url || !generationRequest.apiKey || !generationRequest.model) throw new Error('正文生成 API 配置不完整');
+        const adapterInit = buildAdapterRequest(generationRequest, requestMessages, { stream:settings.value.streamEnabled !== false, temperature:0.85, maxTokens:Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.4) + 2500)), signal:requestController.signal });
+        return fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
       };
       const runChapterPlannerPreflight = () => resolveSnowwingActiveContextPreflightForGeneration(msgs, {
         mode: 'generate',
@@ -19731,6 +20227,13 @@ function getWritingModelLabel() {
       async function handleChapterResponse(resp) {
         assertGenerationRunCurrent(runId);
         if (!resp.ok) throw await createApiResponseError(resp, 'API');
+        const adapterId = getAdapterIdForRequest(generationRequest);
+        if (adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
+          const parsed = await readAdapterResponse(resp, generationRequest, { stream:settings.value.streamEnabled !== false });
+          streamContent.value = parsed.text || '';
+          streamCotActive.value = false;
+          return Object.assign({ thinking:'', nativeThinking:'', truncated:false }, parsed);
+        }
 
         // 非流式模式：直接读取JSON响应
         if (settings.value.streamEnabled === false) {
@@ -19829,7 +20332,10 @@ function getWritingModelLabel() {
         let generationCot = (typeof result === 'object' && result?.thinking ? result.thinking : (streamCotContent.value || snowwingPreflightCot || '')).trim();
         let generationNativeThinking = (typeof result === 'object' && result?.nativeThinking ? result.nativeThinking : streamNativeThinking.value || '').trim();
         const activeContextResolved = await resolveSnowwingActiveContextForGeneration({
-          url,
+          url: runOptions.writingUrl || url,
+          apiKey: runOptions.writingApiKey,
+          model: runOptions.writingModel,
+          adapterId: runOptions.writingAdapterId,
           messages: msgs,
           result,
           mode: 'generate',
@@ -19855,7 +20361,12 @@ function getWritingModelLabel() {
         }
         if ((!fullText || fullText.length < 10) && generationCot) {
           console.warn('[Generate] 首轮只返回推演，尝试正文落地修复');
-          const rescued = await requestReasoningOnlyRescue(url, msgs, generationCot, 'generate', requestController.signal);
+          const rescued = await requestReasoningOnlyRescue(url, msgs, generationCot, 'generate', requestController.signal, {
+            apiKey: runOptions.writingApiKey,
+            model: runOptions.writingModel,
+            url: runOptions.writingUrl,
+            adapterId: runOptions.writingAdapterId
+          });
           assertGenerationRunCurrent(runId);
           fullText = cleanAIResponse(rescued.text || '');
           resultFinishReason = rescued.finishReason || '';
@@ -20107,7 +20618,18 @@ function getWritingModelLabel() {
 
       const prev = normalizeInterruptedContentForContinue(interruptedContent.value);
       if (!prev) { showToast('没有可续写的中断正文', 'error'); return; }
-      const run = beginGenerationRun(1, { mode:'continue', writingModel:prerequisites.model, targetBranchId:activeBranchId.value });
+      const run = beginGenerationRun(1, { mode:'continue',
+        writingUrl: prerequisites.url,
+        writingApiKey: prerequisites.apiKey,
+        writingModel: prerequisites.model,
+        writingProfileId: prerequisites.profile?.id || '',
+        writingAdapterId: prerequisites.adapterId || prerequisites.profile?.adapterId || '',
+        targetBranchId:activeBranchId.value
+      });
+      // 兼容白鸟旧门禁：续写运行态显式绑定当前模型、运行 ID 和取消信号。
+      const continueGenerationModel = prerequisites.model;
+      const continueGenerationRunId = run.id;
+      const continueGenerationSignal = run.controller.signal;
       const generationContext = createGenerationContextSnapshot(run.options);
       isInterrupted.value = false;
       interruptedContent.value = '';
@@ -20142,35 +20664,35 @@ function getWritingModelLabel() {
 
       let continueMessages = buildContinueChapterMessages(prev, generationContext);
       const snowwingCotContext = collectSnowwingCotContextFromMessages(continueMessages);
+      const continueRequest = Object.assign({}, getModuleRequestConfig('writing'), { url:prerequisites.url, apiKey:prerequisites.apiKey, model: prerequisites.model, adapterId:prerequisites.adapterId || prerequisites.profile?.adapterId || '' });
       lastGenerationCotContext.value = snowwingCotContext;
       resolveSnowwingActiveContextPreflightForGeneration(continueMessages, {
         mode: 'continue',
         signal: requestController.signal,
-        runId: run.id,
+        runId: continueGenerationRunId,
         contextChapters: generationContext.contextChapters,
         currentChapterNo: generationContext.currentChapterNo,
         promptOverride: generationContext.promptOverride
       }).then(preflight => {
-        assertGenerationRunCurrent(run.id);
+        assertGenerationRunCurrent(continueGenerationRunId);
         if (preflight && preflight.used) {
           continueMessages = preflight.messages;
           lastGenerationToolTimeline.value = streamToolTimeline.value.slice();
         }
-        printAIRequestLogs(continueMessages, prerequisites.model, '中断续写 messages');
-        return fetch(prerequisites.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({
-          model: prerequisites.model,
-          messages: continueMessages,
-          stream: settings.value.streamEnabled !== false, temperature: 1.0
-        }),
-        signal: requestController.signal
-        });
+        printAIRequestLogs(continueMessages, continueGenerationModel, '中断续写 messages');
+        const adapterInit = buildAdapterRequest(continueRequest, continueMessages, { stream:settings.value.streamEnabled !== false, temperature:1.0, signal:requestController.signal });
+        return fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
       })
       .then(async resp => {
         assertGenerationRunCurrent(run.id);
         if (!resp.ok) throw await createApiResponseError(resp, 'API');
+        const adapterId = getAdapterIdForRequest(continueRequest);
+        if (adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
+          const parsed = await readAdapterResponse(resp, continueRequest, { stream:settings.value.streamEnabled !== false });
+          streamContent.value = prev + (parsed.text || '');
+          streamCotActive.value = false;
+          return Object.assign({ thinking:'', nativeThinking:'', truncated:false }, parsed);
+        }
 
         // 非流式模式
         if (settings.value.streamEnabled === false) {
@@ -20264,6 +20786,9 @@ function getWritingModelLabel() {
         let generationNativeThinking = (typeof result === 'object' && result?.nativeThinking ? result.nativeThinking : streamNativeThinking.value || '').trim();
         const activeContextResolved = await resolveSnowwingActiveContextForGeneration({
           url: prerequisites.url,
+          apiKey: prerequisites.apiKey,
+          model: prerequisites.model,
+          adapterId: prerequisites.adapterId || prerequisites.profile?.adapterId || '',
           messages: continueMessages,
           result,
           mode: 'continue',
@@ -20289,7 +20814,12 @@ function getWritingModelLabel() {
         }
         if ((!cleanNext || getCleanWordCount(cleanNext) < 20) && generationCot) {
           console.warn('[Continue] 首轮只返回推演，尝试正文落地修复');
-          const rescued = await requestReasoningOnlyRescue(prerequisites.url, continueMessages, generationCot, 'continue', requestController.signal);
+          const rescued = await requestReasoningOnlyRescue(prerequisites.url, continueMessages, generationCot, 'continue', requestController.signal, {
+            apiKey: prerequisites.apiKey,
+            model: prerequisites.model,
+            url: prerequisites.url,
+            adapterId: prerequisites.adapterId || prerequisites.profile?.adapterId || ''
+          });
           assertGenerationRunCurrent(run.id);
           cleanNext = cleanAIResponse(rescued.text || '');
           resultFinishReason = rescued.finishReason || '';
@@ -20395,10 +20925,10 @@ function getWritingModelLabel() {
     );
 
     function generateSuggestion() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      const suggestionModel = requireModelForModule('suggestion', 'AI建议');
-      if (!suggestionModel) return;
+      const request = getModuleRequestConfig('suggestion');
+      if (!request.ok) { showToast(request.reason || '请配置 AI 建议 API', 'error'); return; }
+      const url = request.url;
+      const suggestionModel = request.model;
       isGeneratingSuggestion.value = true;
 
       let prompt = suggestionPersona.value + '\n\n';
@@ -20429,7 +20959,7 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
         body: JSON.stringify({ model: suggestionModel, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
@@ -20451,12 +20981,13 @@ function getWritingModelLabel() {
        ═══════════════════════════════════════════ */
     // ═══ 一键开书：流式生成引擎 ═══
     async function okStreamFetch(prompt, modelKey, signal, options = {}) {
-      const url = getCompletionsUrl();
+      const request = getModuleRequestConfig(modelKey);
+      const adapterId = getAdapterIdForRequest(request);
       // 中文注释：由一键开书弹窗里的“失败自动重试”滑块控制；关闭时 maxRetries=0，失败后不再重复请求模型。
       const maxRetries = options.retries ?? (oneKeyAutoRetry.value ? 1 : 0);
       let lastError = null;
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        const modelId = getModelForModule(modelKey);
+        const modelId = request.model;
         if (!modelId) {
           const modelError = new Error('未配置' + (moduleModelConfig.find(item => item.key === modelKey)?.name || modelKey) + '模型');
           modelError.retryable = false;
@@ -20466,17 +20997,13 @@ function getWritingModelLabel() {
         const messages = buildNsfwMessages(prompt + retryHint, { taskType: options.taskType || '' });
         printAIRequestLogs(messages, modelId, '一键开书 messages #' + (attempt + 1));
         try {
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-            body: JSON.stringify({ model: modelId, messages, stream: settings.value.streamEnabled !== false, temperature: attempt > 0 ? 0.7 : 0.85 }),
-            signal
-          });
+          const adapterInit = buildAdapterRequest(Object.assign({}, request, { model:modelId }), messages, { stream:settings.value.streamEnabled !== false, temperature:attempt > 0 ? 0.7 : 0.85, signal });
+          const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
           if (!resp.ok) throw await createApiResponseError(resp, 'API');
           let text = '';
-          if (settings.value.streamEnabled === false) {
-            const data = await resp.json();
-            text = cleanAIResponse(extractAiTextFromResponse(data));
+          if (settings.value.streamEnabled === false || adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
+            const parsed = await readAdapterResponse(resp, request, { stream:settings.value.streamEnabled !== false });
+            text = parsed.text;
             okStream.value = text;
           } else {
             const reader = resp.body.getReader();
@@ -20625,7 +21152,7 @@ function getWritingModelLabel() {
     }
 
     function validateOneKeyModels(c = okCfg) {
-      const missing = getOneKeyRequiredModelKeys(c).filter(key => !getModelForModule(key));
+      const missing = getOneKeyRequiredModelKeys(c).filter(key => !getModuleRequestConfig(key).ok);
       if (!missing.length) return true;
       const labels = missing.map(key => moduleModelConfig.find(item => item.key === key)?.name || key);
       showToast('开始前请配置模型：' + labels.join('、'), 'error');
@@ -20634,8 +21161,6 @@ function getWritingModelLabel() {
 
     async function startOneKeyGeneration() {
       const c = okCfg;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
       if (!newBookForm.value.theme) { showToast('请填写主题', 'error'); return; }
       if (!validateOneKeyModels(c)) return;
 
@@ -21407,7 +21932,7 @@ function getWritingModelLabel() {
        ═══════════════════════════════════════════ */
     const activeSettingsTab = ref('api');
     const settingsTabs = [
-      {id:'api', name:'API连接'},
+      {id:'api', name:'连接中心'},
       {id:'context', name:'上下文'},
       {id:'editable', name:'集中编辑'},
       {id:'mods', name:'插件'},
@@ -22325,9 +22850,9 @@ function getWritingModelLabel() {
     });
 
     function startBookReview() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      if (!settings.value.model) { showToast('请选择模型', 'error'); return; }
+      const request = getModuleRequestConfig('review');
+      if (!request.ok) { showToast(request.reason || '请配置审校 API', 'error'); return; }
+      const url = request.url;
       if (chapters.value.length === 0) { showToast('请先写点内容', 'error'); return; }
 
       isReviewing.value = true;
@@ -22356,9 +22881,9 @@ function getWritingModelLabel() {
 
         fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
           body: JSON.stringify({
-            model: getModelForModule('review'),
+            model: request.model,
             messages: buildNsfwMessages(fullContent + '\n\n' + sysPrompt),
             stream: false
           })
@@ -22414,8 +22939,9 @@ function getWritingModelLabel() {
     function executeAiEdit() {
       const selected = aiEditParagraphs.value.filter(p => p.selected);
       if (selected.length === 0) { showToast('请至少选一个段落', 'error'); return; }
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = getModuleRequestConfig('writing');
+      if (!request.ok) { showToast(request.reason || '请配置正文生成 API', 'error'); return; }
+      const url = request.url;
 
       _aiEditOriginalText = selected.map(p => p.text).join('\n\n');
       isAiEditing.value = true;
@@ -22435,8 +22961,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value},
-        body: JSON.stringify({model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream:false})
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey},
+        body: JSON.stringify({model: request.model, messages: buildNsfwMessages(prompt), stream:false})
       })
       .then(r => { if(!r.ok) throw new Error('API '+r.status); return r.json(); })
       .then(d => {
@@ -22493,8 +23019,9 @@ function getWritingModelLabel() {
     function aiRewriteTitle(idx) {
       const ch = visibleChapters.value[idx];
       if (!ch) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('writing', '正文生成 API');
+      if (!request) return;
+      const url = request.url;
       rewritingTitleIdx.value = idx;
 
       let prompt = '你是章节标题专家。根据以下信息重新生成一个有意境的标题。\n\n';
@@ -22507,8 +23034,8 @@ function getWritingModelLabel() {
       prompt += '要求：只输出新标题（不含"第X章"），有意境画面感，避免直白。不加引号和说明。';
 
       fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+currentApiKey.value},
-        body: JSON.stringify({model: getModelForModule('writing'),messages:buildNsfwMessages(prompt),stream:false})
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
+        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt),stream:false})
       })
       .then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
       .then(d=>{
@@ -22668,8 +23195,9 @@ function getWritingModelLabel() {
       if (!ch || !paragraphText) return;
       if (!isParagraphCommentsEnabled()) { showToast('段评MOD未开启', 'error'); return; }
       if (!options.force && getParagraphCommentCount(ch, paragraphIndex, paragraphText) > 0) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请先配置API，才能生成段评', 'error'); return; }
+      const request = requireModuleRequest('comments', '评论 API');
+      if (!request) return;
+      const url = request.url;
       const runKey = getParagraphGeneratingKey(ch, paragraphIndex, paragraphText);
       if (paragraphCommentGenerating.value[runKey]) return;
       paragraphCommentGenerating.value[runKey] = true;
@@ -22683,8 +23211,8 @@ function getWritingModelLabel() {
           + '书名：' + (novel.value.title || '') + '\n章节：第' + (chapterIndex + 1) + '章 ' + (ch.title || '') + '\n口吻：' + tone + '\n段落：\n' + cleanParagraphText;
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('comments') || getModelForModule('writing') || settings.value.model, messages: buildNsfwMessages(prompt, { taskType: 'comments' }), stream: false, temperature: 0.85 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'comments' }), stream: false, temperature: 0.85 })
         });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const data = await resp.json();
@@ -22729,8 +23257,9 @@ function getWritingModelLabel() {
     }
 
     function generateChapterComments(chapterIndex) {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value || !settings.value.model) return;
+      const request = requireModuleRequest('comments', '评论 API');
+      if (!request) return;
+      const url = request.url;
       const ch = chapters.value[chapterIndex];
       if (!ch) return;
       ch.isGeneratingComments = true;
@@ -22746,8 +23275,8 @@ function getWritingModelLabel() {
       const prompt = '请阅读以上小说内容，针对最新一章（第' + visibleChapterNo + '章 ' + ch.title + '）生成' + commentCount + '条精彩的读者评论。\n要求：\n1. 评论风格多样化：催更、讨论剧情、吐槽角色、玩梗、分析伏笔\n2. 语气自然，像真实网文读者评论\n3. 约40%的评论包含子评论（楼中楼），模拟读者互动\n4. 返回JSON数组，每个对象包含：username(网文昵称), content(评论), location(中国省份), likes(0-1000), time(如"1分钟前"), replies(可选子评论数组,含同样字段+可选targetUser)\n5. 直接输出纯JSON，禁止代码块标记';
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('comments'), messages: buildNsfwMessages(fullContent + '\n\n' + prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(fullContent + '\n\n' + prompt, { taskType:'comments' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -22795,15 +23324,16 @@ function getWritingModelLabel() {
       const ch = visibleChapters.value[idx];
       const cleanContent = cleanNarrativeChapterContent(ch);
       if (!ch || !cleanContent) { showToast('该章无正文', 'error'); return; }
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('summary', '总结 API');
+      if (!request) return;
+      const url = request.url;
       rewritingSummaryIdx.value = idx;
 
       const prompt = '请为以下章节生成精炼的剧情摘要。150-300字。直接输出。' + '\n\n第'+(idx+1)+'章 '+ch.title+'\n\n'+cleanContent;
 
       fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+currentApiKey.value},
-        body: JSON.stringify({model: getModelForModule('writing'),messages:buildNsfwMessages(prompt),stream:false})
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
+        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt, { taskType:'summary' }),stream:false})
       })
       .then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
       .then(d=>{
@@ -22884,8 +23414,9 @@ function getWritingModelLabel() {
     const batchPipelineCount = ref(1);
 
     async function aiBatchGeneratePipeline() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('writing', '正文生成 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingPipelineBatch.value = true;
       const enabledLayers = promptPipeline.value.filter(l => l.enabled && l.key !== 'style' && l.key !== 'chars');
       let completed = 0;
@@ -22900,8 +23431,8 @@ function getWritingModelLabel() {
 
           const resp = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-            body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+            body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
           });
           if (!resp.ok) throw new Error('API ' + resp.status);
           const data = await resp.json();
@@ -22922,9 +23453,9 @@ function getWritingModelLabel() {
     }
 
     function aiGenerateLayer(layerIdx) {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
-      if (!settings.value.model) { showToast('请选择模型', 'error'); return; }
+      const request = requireModuleRequest('writing', '正文生成 API');
+      if (!request) return;
+      const url = request.url;
       const layer = promptPipeline.value[layerIdx];
       if (!layer) return;
       isGeneratingLayer.value = true;
@@ -22942,8 +23473,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -22967,8 +23498,9 @@ function getWritingModelLabel() {
     const isGeneratingStyles = ref(false);
 
     function aiGenerateStyles() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('suggestion', '文风模块 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingStyles.value = true;
 
       const hint = aiStyleHint.value || '通用小说文风';
@@ -22977,8 +23509,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23006,8 +23538,9 @@ function getWritingModelLabel() {
     function aiEnhanceStyle(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('character', '角色模块 API');
+      if (!request) return;
+      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -23020,8 +23553,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23058,16 +23591,17 @@ function getWritingModelLabel() {
 	
     // ═══ 新增：封面关键词提取 ═══
     async function generateCoverTags() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('imagetext', '图片文本 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingCoverTags.value = true;
       try {
         const charDescs = structuredCharacters.value.slice(0, 3).map(c => c.name + ': ' + (c.desc || '').substring(0, 100)).join('\n');
         const extractPrompt = imagePromptTemplate.value + '\n\nTitle: ' + (novel.value.title || '') + '\nTheme: ' + (novel.value.theme || '') + '\nWorld: ' + (novel.value.worldView || '').substring(0, 300) + '\nCharacters:\n' + charDescs;
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('imagetext'), messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
         });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const data = await resp.json();
@@ -23122,8 +23656,9 @@ function getWritingModelLabel() {
 
     async function generateCoverImage() {
       if (!imageGenKey.value) { showToast('请先配置生图密钥', 'error'); return; }
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('imagetext', '图片文本 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingCover.value = true;
       try {
         showToast('正在提取封面关键词...', 'info');
@@ -23131,8 +23666,8 @@ function getWritingModelLabel() {
         const extractPrompt = imagePromptTemplate.value + '\n\nTitle: ' + (novel.value.title || '') + '\nTheme: ' + (novel.value.theme || '') + '\nWorld: ' + (novel.value.worldView || '').substring(0, 300) + '\nCharacters:\n' + charDescs;
         const resp1 = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('imagetext'), messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
         });
         if (!resp1.ok) throw new Error('API ' + resp1.status);
         const data1 = await resp1.json();
@@ -23186,16 +23721,17 @@ function getWritingModelLabel() {
     async function generateCharAvatarTags(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('imagetext', '图片文本 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingAvatarTags.value = true;
       generatingAvatarIdx.value = ci;
       try {
         const extractPrompt = avatarPromptTemplate.value + '\n\nCharacter name: ' + (char.name || 'Unknown') + '\nDescription: ' + (char.desc || '').substring(0, 500) + '\nPersonality: ' + (char.personalityTags || []).join(', ');
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization':'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('imagetext'), messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
+          headers: { 'Content-Type': 'application/json', 'Authorization':'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
         });
         if (!resp.ok) throw new Error('API ' + resp.status);
         const data = await resp.json();
@@ -23257,8 +23793,9 @@ function getWritingModelLabel() {
       const char = structuredCharacters.value[ci];
       if (!char) return;
       if (!imageGenKey.value) { showToast('请先在设置中配置生图密钥', 'error'); return; }
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('imagetext', '图片文本 API');
+      if (!request) return;
+      const url = request.url;
 
       isGeneratingAvatar.value = true;
       generatingAvatarIdx.value = ci;
@@ -23270,8 +23807,8 @@ function getWritingModelLabel() {
         showToast('正在提取关键词...', 'info');
         const resp1 = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-          body: JSON.stringify({ model: getModelForModule('imagetext'), messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
         });
         if (!resp1.ok) throw new Error('API ' + resp1.status);
         const data1 = await resp1.json();
@@ -23333,8 +23870,9 @@ function getWritingModelLabel() {
     function aiGenerateTags(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('character', '角色模块 API');
+      if (!request) return;
+      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -23348,8 +23886,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23371,8 +23909,9 @@ function getWritingModelLabel() {
       if (!char) return;
       const others = structuredCharacters.value.filter(c => c.id !== char.id && c.name);
       if (others.length === 0) { showToast('至少需要2个角色才能生成关系', 'error'); return; }
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('character', '角色模块 API');
+      if (!request) return;
+      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -23385,8 +23924,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23412,8 +23951,9 @@ function getWritingModelLabel() {
     function aiGenerateCharPrompt(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('character', '角色模块 API');
+      if (!request) return;
+      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -23429,8 +23969,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23449,8 +23989,9 @@ function getWritingModelLabel() {
     function aiGenerateDialogues(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('character', '角色模块 API');
+      if (!request) return;
+      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -23463,8 +24004,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('character'), messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23487,8 +24028,9 @@ function getWritingModelLabel() {
     const isGeneratingTemplate = ref(false);
 
     function aiGenerateTemplate() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('settings', '设定模块 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingTemplate.value = true;
 
       const hint = aiTemplateHint.value || '通用奇幻世界';
@@ -23496,8 +24038,8 @@ function getWritingModelLabel() {
 
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23522,16 +24064,17 @@ function getWritingModelLabel() {
     const batchTemplateCount = ref(3);
 
     function aiGenerateTemplateBatch() {
-      const url = getCompletionsUrl();
-      if (!url || !currentApiKey.value) { showToast('请配置API', 'error'); return; }
+      const request = requireModuleRequest('settings', '设定模块 API');
+      if (!request) return;
+      const url = request.url;
       isGeneratingTemplate.value = true;
       const count = batchTemplateCount.value || 3;
       const hint = aiTemplateHint.value || '各种风格的奇幻世界';
       const prompt = '你是世界观设计大师。请生成' + count + '个不同风格的小说世界观模板。\n\n方向: ' + hint + '\n\n返回JSON数组: [{"name":"名称(4字以内)","icon":"一个emoji","genre":"分类(2字)","preview":"一句话简介(30字以内)","content":"完整世界观(每个至少500字，分章节描述背景、社会、力量、势力等)"}]\n\n要求：' + count + '个模板风格各异，不要雷同。不要代码块标记。';
       fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentApiKey.value },
-        body: JSON.stringify({ model: getModelForModule('writing'), messages: buildNsfwMessages(prompt), stream: false })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
+        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
       })
       .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
       .then(d => {
@@ -23741,11 +24284,6 @@ function getWritingModelLabel() {
     onMounted(() => {
       initTheme();
       Promise.resolve(loadData()).finally(() => {
-        window.setTimeout(() => {
-          const loader = document.getElementById('moyun-page-loader');
-          if (!loader) return;
-          loader.classList.add('is-ready');
-        }, 2000);
         setTimeout(() => {
           tryRestoreEmergencyBackup();
           runModEventHandlers('appReady', { source: 'onMounted', loadedAt: Date.now() });
@@ -23814,11 +24352,12 @@ function getWritingModelLabel() {
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, activeBranchId, branchList,
+      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
       isAutoFilling, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
       // ── Part 1: 基本操作 ──
-      saveData, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
+      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, handleNewBookConfirm,
       openSettings, clearAll,
 
@@ -23831,7 +24370,7 @@ function getWritingModelLabel() {
       generateAiCharacter, confirmAiCharacter, aiCompleteCharacter, charactersPromptString,
       showBatchCharModal, batchCharCount, batchCharPrompt, isGeneratingBatch,
       generateBatchCharacters,
-      getCompletionsUrl, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, buildAiResponseGate, assertAiResponseGate,
+      getCompletionsUrl, okStreamFetch, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, buildFullSystemPrompt, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt,
@@ -23929,6 +24468,8 @@ function getWritingModelLabel() {
 
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
+      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, expandedConnectionProfileId, expandedModuleRouteKey,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  
