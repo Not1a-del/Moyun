@@ -16,11 +16,11 @@ function debounce(fn, ms) {
 
 /* 网页版发布公告：每次发布新公告时更换 id 并修改标题、日期、正文；已读记录只保存于用户当前浏览器。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-14-connection-center-routing-fix',
+  id: 'web-2026-07-14-outline-safe-stop-and-modal-policy',
   badge: '网页更新',
-  title: '连接中心修复',
+  title: '大纲与弹窗安全优化',
   publishedAt: '2026-07-14',
-  message: '连接中心的模块模型分配已修复。\n\n为模块单独选择 API 配置后，请求会严格使用该配置的地址、模型与密钥；配置不可用时将直接显示上游错误，不会回退到默认配置。'
+  message: '大纲与细纲生成现在可以安全停止。\n\n生成中关闭工作台时，可以继续生成，或选择停止并关闭；停止后不会自动重试，未完成内容不会写入。细纲会保留已经完成的批次。\n\n同时优化了弹窗关闭策略：编辑草稿不会再因点击空白处而静默丢失，运行中的 AI 任务也不会被误关。'
 });
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -750,6 +750,7 @@ createApp({
     const connectionProfileModelDiscovery = ref({ loading:false, models:[], error:'' });
     const expandedConnectionProfileId = ref('');
     const expandedModuleRouteKey = ref('writing');
+    let connectionProfileDraftBaseline = '';
 
     function getConnectionProfile(profileId) {
       return connectionCenter.value.profiles.find(profile => profile.id === String(profileId || '')) || null;
@@ -836,6 +837,7 @@ createApp({
       connectionProfileDraftError.value = '';
       connectionProfileTestResult.value = profile?.lastTest || { status:'unknown', detail:'' };
       connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      connectionProfileDraftBaseline = JSON.stringify(connectionProfileDraft.value);
       connectionProfileEditorOpen.value = true;
     }
 
@@ -843,6 +845,16 @@ createApp({
       if (connectionProfileTesting.value) return;
       connectionProfileEditorOpen.value = false;
       connectionProfileDraftError.value = '';
+    }
+
+    function requestCloseConnectionProfileEditor() {
+      if (connectionProfileTesting.value) return false;
+      if (connectionProfileDraftBaseline && JSON.stringify(connectionProfileDraft.value) !== connectionProfileDraftBaseline) {
+        confirmDiscardDraft('放弃 API 配置修改', '当前 API 配置尚未保存，关闭后会丢失本次填写。', closeConnectionProfileEditor);
+        return false;
+      }
+      closeConnectionProfileEditor();
+      return true;
     }
 
     function updateConnectionProfileDraftTemplate() {
@@ -1843,6 +1855,11 @@ createApp({
       return cb ? await cb(actionId, selectedValue) : undefined;
     }
     function cancelConfirm() { showConfirm.value = false; _confirmCb = null; }
+    function confirmDiscardDraft(title, message, onDiscard) {
+      openConfirm({ title, message, confirmText:'放弃并关闭' }, () => {
+        if (typeof onDiscard === 'function') onDiscard();
+      });
+    }
     function getConfirmModalClass(cfg = {}) {
       if (cfg.variant === 'snowwingModImport') return 'w-full max-w-2xl p-4 md:p-5 rounded-[20px]';
       if (cfg.variant === 'snowwingModDeleteConfirm') return 'w-full max-w-xl p-4 md:p-5 rounded-[22px]';
@@ -2560,6 +2577,7 @@ function copyLastChapterContextText() {
     const okFailedSteps = ref([]);
     const okLastSummary = ref('');
     let _okAbort = null;
+    let newBookCloseBaseline = '';
 
     function getOneKeyDetailedChapterCount() {
       return Math.max(1, Math.min(50, Number(okCfg.detailedChapters) || 1));
@@ -3710,6 +3728,34 @@ function copyLastChapterContextText() {
     const isGeneratingChar = ref(false);
     const tempChar = ref({ name:'', desc:'' });
 
+    function hasTemporaryCharacterDraft() {
+      return Object.values(tempChar.value || {}).some(value => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (value && typeof value === 'object') return Object.keys(value).length > 0;
+        return String(value || '').trim().length > 0;
+      });
+    }
+
+    function requestCloseAiCharacterModal() {
+      if (isGeneratingChar.value) return false;
+      if (String(aiCharDesc.value || '').trim()) {
+        confirmDiscardDraft('放弃角色描述', '当前角色描述尚未生成，关闭后会丢失本次填写。', () => { showAiCharModal.value = false; });
+        return false;
+      }
+      showAiCharModal.value = false;
+      return true;
+    }
+
+    function requestCloseCharPreview() {
+      if (isGeneratingChar.value) return false;
+      if (hasTemporaryCharacterDraft()) {
+        confirmDiscardDraft('放弃角色预览', '当前角色尚未添加到书籍，关闭后会丢失本次生成和修改。', () => { showCharPreview.value = false; });
+        return false;
+      }
+      showCharPreview.value = false;
+      return true;
+    }
+
     /* ═══ 模块模型分配（旧版能力整合） ═══ */
     const moduleModelConfig = [
       { key:'writing', name:'正文生成', desc:'章节正文续写、AI编辑、改标题、生成摘要' },
@@ -4670,6 +4716,16 @@ function cleanAIResponse(text) {
     const batchCharCount = ref(3);
     const batchCharPrompt = ref('');
     const isGeneratingBatch = ref(false);
+
+    function requestCloseBatchCharacterModal() {
+      if (isGeneratingBatch.value) return false;
+      if (String(batchCharPrompt.value || '').trim() || Number(batchCharCount.value) !== 3) {
+        confirmDiscardDraft('放弃批量角色配置', '当前批量角色配置尚未生成，关闭后会丢失本次填写。', () => { showBatchCharModal.value = false; });
+        return false;
+      }
+      showBatchCharModal.value = false;
+      return true;
+    }
 
     function generateBatchCharacters() {
       const request = getModuleRequestConfig('character');
@@ -16357,6 +16413,15 @@ function getModHubPermissionLabels(mod) {
     const splitScreen = ref(false);
     const outlineInput = ref('');
     const isGeneratingOutline = ref(false);
+    // 总纲与细纲必须各自管理取消信号，绝不能复用正文续写的 abortController。
+    const outlineAbortController = ref(null);
+    const detailedOutlineAbortController = ref(null);
+    let outlineRunSequence = 0;
+    let detailedOutlineRunSequence = 0;
+    let activeOutlineRunId = 0;
+    let activeDetailedOutlineRunId = 0;
+    let closeOutlineAfterStop = false;
+    let closeDetailedOutlineAfterStop = false;
     const outlineRevisions = ref([]);
     const selectedRevId = ref('');
     const outlineLastRequest = ref(null);
@@ -16366,24 +16431,32 @@ function getModHubPermissionLabels(mod) {
     const storyCheckReturnMode = ref('');
 
     function openOutlineWorkbench() {
+      if (isGeneratingDO.value) { showToast('细纲正在生成，请先停止当前任务再切换工作台', 'info'); return false; }
       showOutlineInMain.value = true;
       showDetailedOutlineInMain.value = false;
       if (isMobile.value) splitScreen.value = false;
       mobileSidebarOpen.value = false;
+      return true;
+    }
+
+    function openDetailedOutlineWorkbench() {
+      if (isGeneratingOutline.value) { showToast('大纲正在生成，请先停止当前请求再切换工作台', 'info'); return false; }
+      showDetailedOutlineInMain.value = true;
+      showOutlineInMain.value = false;
+      if (isMobile.value) splitScreen.value = false;
+      mobileSidebarOpen.value = false;
+      return true;
     }
 
     function toggleOutlineWorkbench() {
-      if (showOutlineInMain.value) { showOutlineInMain.value = false; return; }
+      if (showOutlineInMain.value) { requestCloseOutlineWorkbench(); return; }
       openOutlineWorkbench();
     }
 
     function toggleDetailedOutlineWorkbench() {
       const next = !showDetailedOutlineInMain.value;
-      showDetailedOutlineInMain.value = next;
-      if (!next) return;
-      showOutlineInMain.value = false;
-      if (isMobile.value) splitScreen.value = false;
-      mobileSidebarOpen.value = false;
+      if (!next) { requestCloseDetailedOutlineWorkbench(); return; }
+      openDetailedOutlineWorkbench();
     }
 
     function toggleOutlineSplitScreen() {
@@ -16393,6 +16466,75 @@ function getModHubPermissionLabels(mod) {
         return;
       }
       splitScreen.value = !splitScreen.value;
+    }
+
+    function createOutlineAbortError(message = '大纲任务已停止') {
+      const error = new DOMException(message, 'AbortError');
+      error.moyunOutlineAbort = true;
+      return error;
+    }
+
+    function isOutlineAbortError(error, signal = null) {
+      return !!(signal?.aborted || error?.moyunOutlineAbort || error?.name === 'AbortError' || error?.code === 'ABORT_ERR');
+    }
+
+    function throwIfOutlineRequestAborted(signal, message = '大纲任务已停止') {
+      if (signal?.aborted) throw createOutlineAbortError(message);
+    }
+
+    function assertOutlineRunActive(kind, runId, controller) {
+      const activeRunId = kind === 'detailed' ? activeDetailedOutlineRunId : activeOutlineRunId;
+      if (activeRunId !== runId || controller?.signal?.aborted) throw createOutlineAbortError('大纲任务已停止或已被替代');
+    }
+
+    function stopOutlineRun({ closeAfterStop = false } = {}) {
+      const controller = outlineAbortController.value;
+      if (!controller || !isGeneratingOutline.value) return false;
+      if (closeAfterStop) closeOutlineAfterStop = true;
+      if (!controller.signal.aborted) {
+        try { controller.abort(createOutlineAbortError('用户停止大纲生成')); }
+        catch { controller.abort(); }
+      }
+      return true;
+    }
+
+    function stopDetailedOutlineRun({ closeAfterStop = false } = {}) {
+      const controller = detailedOutlineAbortController.value;
+      if (!controller || !isGeneratingDO.value) return false;
+      if (closeAfterStop) closeDetailedOutlineAfterStop = true;
+      if (!controller.signal.aborted) {
+        try { controller.abort(createOutlineAbortError('用户停止细纲生成')); }
+        catch { controller.abort(); }
+      }
+      return true;
+    }
+
+    function requestCloseOutlineWorkbench() {
+      if (!isGeneratingOutline.value) { showOutlineInMain.value = false; return; }
+      openConfirm({
+        title: '大纲正在生成',
+        message: '继续生成会保持当前工作台打开。停止并关闭会取消当前请求；未完成内容不会写入。',
+        choices: [
+          { id:'continue', label:'继续生成' },
+          { id:'stop-close', label:'停止并关闭', tone:'danger' }
+        ]
+      }, (actionId) => {
+        if (actionId === 'stop-close') stopOutlineRun({ closeAfterStop:true });
+      });
+    }
+
+    function requestCloseDetailedOutlineWorkbench() {
+      if (!isGeneratingDO.value) { showDetailedOutlineInMain.value = false; return; }
+      openConfirm({
+        title: '细纲正在生成',
+        message: '继续生成会保持当前工作台打开。停止并关闭会取消当前批次和后续批次；已经写入的章节会保留。',
+        choices: [
+          { id:'continue', label:'继续生成' },
+          { id:'stop-close', label:'停止并关闭', tone:'danger' }
+        ]
+      }, (actionId) => {
+        if (actionId === 'stop-close') stopDetailedOutlineRun({ closeAfterStop:true });
+      });
     }
 
     // Diff 修订
@@ -16557,6 +16699,7 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function requestOutlineAiOnce(prompt, options = {}) {
+      throwIfOutlineRequestAborted(options.signal);
       const request = getModuleRequestConfig('outline');
       const url = options.url || request.url;
       const model = options.model || request.model;
@@ -16566,10 +16709,12 @@ function getModHubPermissionLabels(mod) {
       const effectiveRequest = Object.assign({}, request, { url, apiKey, model });
       const adapterInit = buildAdapterRequest(effectiveRequest, buildNsfwMessages(prompt, { taskType: options.taskType || 'outline' }), { stream: mode === 'stream', temperature: options.temperature ?? 0.75, maxTokens:options.maxTokens, signal:options.signal });
       const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
+      throwIfOutlineRequestAborted(options.signal);
       if (!resp.ok) throw await createApiResponseError(resp, 'API');
       const result = getAdapterIdForRequest(effectiveRequest) === 'openai-chat' || getAdapterIdForRequest(effectiveRequest) === 'openai-compatible'
         ? (mode === 'stream' ? await readOutlineStreamResponse(resp, options) : await readOutlineJsonResponse(resp, options))
         : await readAdapterResponse(resp, effectiveRequest, { stream:mode === 'stream' });
+      throwIfOutlineRequestAborted(options.signal);
       validateOutlineAiText(result.text, Object.assign({}, options, {
         finishReason: result.finishReason,
         allowTruncated: result.partial === true
@@ -16603,6 +16748,8 @@ function getModHubPermissionLabels(mod) {
         } catch (error) {
           lastError = error;
           attempts.push({ mode, ok: false, error: error?.message || String(error) });
+          // 用户主动停止必须立即结束，绝不能自动切到另一种请求模式再发一次。
+          if (isOutlineAbortError(error, options.signal)) throw error;
           if (i >= modes.length - 1 || !isRecoverableOutlineAiError(error)) break;
         }
       }
@@ -17952,8 +18099,14 @@ function getModHubPermissionLabels(mod) {
     async function generateOutline() {
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲模块 API', 'error'); return; }
+      if (isGeneratingOutline.value || outlineAbortController.value) { showToast('大纲正在生成，请等待或先停止当前请求', 'info'); return; }
       const url = request.url;
       const outlineModel = request.model;
+      const runId = ++outlineRunSequence;
+      const controller = new AbortController();
+      activeOutlineRunId = runId;
+      outlineAbortController.value = controller;
+      closeOutlineAfterStop = false;
       isGeneratingOutline.value = true;
       let prompt = ('你是专业网文策划。' + (novel.value.outline?'请安全修改完善':'请生成') + '小说大纲。') + '\n\n';
       prompt += '标题: ' + (novel.value.title||'') + '\n主题: ' + (novel.value.theme||'') + '\n';
@@ -17977,8 +18130,10 @@ function getModHubPermissionLabels(mod) {
           type: 'outline',
           label: novel.value.outline ? '大纲修改' : '大纲生成',
           targetChars: settings.value.aiWordCount_outline || 2000,
-          preferStream: Number(settings.value.aiWordCount_outline || 0) > 2500
+          preferStream: Number(settings.value.aiWordCount_outline || 0) > 2500,
+          signal: controller.signal
         });
+        assertOutlineRunActive('outline', runId, controller);
         const raw = result.text;
         if (novel.value.outline) {
           outlineRevisions.value = createDiffRevisions(novel.value.outline, raw);
@@ -17989,9 +18144,17 @@ function getModHubPermissionLabels(mod) {
         }
         outlineInput.value = '';
       } catch (e) {
-        showToast('失败: ' + e.message, 'error');
+        if (isOutlineAbortError(e, controller.signal)) showToast('已停止大纲生成', 'info');
+        else showToast('失败: ' + e.message, 'error');
       } finally {
-        isGeneratingOutline.value = false;
+        if (activeOutlineRunId === runId) {
+          const shouldClose = closeOutlineAfterStop;
+          activeOutlineRunId = 0;
+          outlineAbortController.value = null;
+          isGeneratingOutline.value = false;
+          closeOutlineAfterStop = false;
+          if (shouldClose) showOutlineInMain.value = false;
+        }
       }
     }
 
@@ -18012,6 +18175,7 @@ function getModHubPermissionLabels(mod) {
       written: 0,
       skipped: 0,
       failed: 0,
+      cancelled: false,
       fallbackCount: 0,
       lastError: '',
       failedChapters: [],
@@ -18028,6 +18192,7 @@ function getModHubPermissionLabels(mod) {
         written: 0,
         skipped: 0,
         failed: 0,
+        cancelled: false,
         fallbackCount: 0,
         lastError: '',
         failedChapters: [],
@@ -18047,7 +18212,7 @@ function getModHubPermissionLabels(mod) {
 
     function getChapterOutlineRunStatusLabel(ci) {
       const status = getChapterOutlineRunStatus(ci);
-      return ({ pending:'待生成', running:'生成中', written:'已写入', skipped:'已保留', failed:'失败', short:'过短' })[status] || '';
+      return ({ pending:'待生成', running:'生成中', written:'已写入', skipped:'已保留', failed:'失败', cancelled:'已停止', short:'过短' })[status] || '';
     }
 
     function getChapterOutlineRunStatusStyle(ci) {
@@ -18055,6 +18220,7 @@ function getModHubPermissionLabels(mod) {
       if (status === 'running') return 'background:var(--info-soft);color:var(--info)';
       if (status === 'written') return 'background:var(--ok-soft);color:var(--ok)';
       if (status === 'failed') return 'background:var(--err-soft);color:var(--err)';
+      if (status === 'cancelled') return 'background:var(--warn-soft);color:var(--warn)';
       if (status === 'short') return 'background:var(--warn-soft);color:var(--warn)';
       if (status === 'skipped') return 'background:var(--bg-inset);color:var(--tx3)';
       return 'background:var(--bg-inset);color:var(--tx4)';
@@ -18065,6 +18231,7 @@ function getModHubPermissionLabels(mod) {
       const parts = [];
       if (r.active) parts.push('正在生成' + (r.currentRange ? r.currentRange : '细纲') + '，批次 ' + r.batchIndex + '/' + r.batchTotal);
       else if (r.batchTotal) parts.push('细纲任务完成');
+      if (r.cancelled) parts.push('已停止');
       if (r.written || r.skipped || r.failed) parts.push('写入 ' + r.written + '，保留 ' + r.skipped + '，失败 ' + r.failed);
       if (r.fallbackCount) parts.push('自动切换 ' + r.fallbackCount + ' 次');
       if (r.lastError) parts.push('最近失败：' + r.lastError);
@@ -18282,8 +18449,24 @@ function getModHubPermissionLabels(mod) {
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲 API','error'); return; }
       if (!novel.value.outline) { showToast('请先编写大纲','error'); return; }
+      if (isGeneratingDO.value || detailedOutlineAbortController.value) { showToast('细纲正在生成，请等待或先停止当前任务', 'info'); return; }
       const outlineModel = request.model || requireModelForModule('outline', '大纲模块');
       if (!outlineModel) return;
+      const runId = ++detailedOutlineRunSequence;
+      const controller = new AbortController();
+      const parentSignal = runOptions.signal || null;
+      const relayParentAbort = () => {
+        if (controller.signal.aborted) return;
+        try { controller.abort(createOutlineAbortError('上级任务已停止细纲生成')); }
+        catch { controller.abort(); }
+      };
+      if (parentSignal) {
+        if (parentSignal.aborted) relayParentAbort();
+        else parentSignal.addEventListener('abort', relayParentAbort, { once:true });
+      }
+      activeDetailedOutlineRunId = runId;
+      detailedOutlineAbortController.value = controller;
+      closeDetailedOutlineAfterStop = false;
       isGeneratingDO.value = true;
       const start = Math.max(1, Number(doStart.value) || 1);
       const end = Math.max(start, Number(doEnd.value) || start);
@@ -18309,15 +18492,24 @@ function getModHubPermissionLabels(mod) {
         detailedOutlineRun.value.active = false;
         detailedOutlineRun.value.batchTotal = 0;
         showToast('所选范围已有细纲，无需补写', 'info');
-        isGeneratingDO.value = false;
+        if (parentSignal) parentSignal.removeEventListener('abort', relayParentAbort);
+        if (activeDetailedOutlineRunId === runId) {
+          activeDetailedOutlineRunId = 0;
+          detailedOutlineAbortController.value = null;
+          isGeneratingDO.value = false;
+          closeDetailedOutlineAfterStop = false;
+        }
         return;
       }
       const batches = [];
       for (let i = 0; i < target.length; i += batchSize) batches.push(target.slice(i, i + batchSize));
       detailedOutlineRun.value.batchTotal = batches.length;
+      let currentBatch = [];
       try {
         for (let bi = 0; bi < batches.length; bi++) {
+          assertOutlineRunActive('detailed', runId, controller);
           const batch = batches[bi];
+          currentBatch = batch.slice();
           const label = formatDetailedOutlineBatchLabel(batch);
           detailedOutlineRun.value.batchIndex = bi + 1;
           detailedOutlineRun.value.currentRange = label;
@@ -18336,8 +18528,9 @@ function getModHubPermissionLabels(mod) {
               expectedChapters: batch,
               preferStream: batch.length > 3,
               targetChars: Math.max(600, Math.round(totalWordTarget * (batch.length / Math.max(1, target.length)))),
-              signal: runOptions.signal
+              signal: controller.signal
             });
+            assertOutlineRunActive('detailed', runId, controller);
             if (result.fallbackUsed) detailedOutlineRun.value.fallbackCount++;
             const parsed = parseGeneratedDetailedOutlines(result.text, batch[0]);
             let nextOutlines = parsed.filter(item => batch.includes(Number(item.chapterNo)));
@@ -18363,6 +18556,7 @@ function getModHubPermissionLabels(mod) {
             }
             saveData();
           } catch (e) {
+            if (isOutlineAbortError(e, controller.signal)) throw e;
             detailedOutlineRun.value.failed += batch.length;
             detailedOutlineRun.value.lastError = e.message || String(e);
             detailedOutlineRun.value.failedBatches.push({ chapters: batch.slice(), error: detailedOutlineRun.value.lastError });
@@ -18380,9 +18574,29 @@ function getModHubPermissionLabels(mod) {
           showToast('细纲生成完成：写入' + detailedOutlineRun.value.written + '章，保留旧细纲' + detailedOutlineRun.value.skipped + '章', 'success');
           doInput.value = '';
         }
+      } catch (e) {
+        if (isOutlineAbortError(e, controller.signal)) {
+          detailedOutlineRun.value.cancelled = true;
+          currentBatch.forEach(no => {
+            if (getChapterOutlineRunStatus(no - 1) === 'running') setChapterOutlineRunState(no, 'cancelled', '用户停止');
+          });
+          showToast('已停止细纲生成，已写入 ' + detailedOutlineRun.value.written + ' 章', 'info');
+        } else {
+          detailedOutlineRun.value.lastError = e.message || String(e);
+          showToast('细纲生成终止：' + detailedOutlineRun.value.lastError, 'error');
+          console.warn('[细纲] 任务终止:', e);
+        }
       } finally {
-        detailedOutlineRun.value.active = false;
-        isGeneratingDO.value = false;
+        if (parentSignal) parentSignal.removeEventListener('abort', relayParentAbort);
+        if (activeDetailedOutlineRunId === runId) {
+          const shouldClose = closeDetailedOutlineAfterStop;
+          activeDetailedOutlineRunId = 0;
+          detailedOutlineAbortController.value = null;
+          detailedOutlineRun.value.active = false;
+          isGeneratingDO.value = false;
+          closeDetailedOutlineAfterStop = false;
+          if (shouldClose) showDetailedOutlineInMain.value = false;
+        }
       }
     }
 
@@ -18737,6 +18951,17 @@ function getModHubPermissionLabels(mod) {
     function closeChapterRenameModal() {
       showChapterRenameModal.value = false;
       chapterRenameError.value = '';
+    }
+
+    function requestCloseChapterRenameModal() {
+      const currentTitle = getDisplayChapterTitle(visibleChapters.value[Number(chapterRenameIdx.value)], Number(chapterRenameIdx.value));
+      const draftTitle = String(chapterRenameDraft.value || '').replace(/\s+/g, ' ').trim();
+      if (draftTitle && draftTitle !== currentTitle) {
+        confirmDiscardDraft('放弃标题修改', '当前标题尚未保存，关闭后会丢失本次修改。', closeChapterRenameModal);
+        return false;
+      }
+      closeChapterRenameModal();
+      return true;
     }
 
     function confirmChapterRename() {
@@ -21977,6 +22202,23 @@ function getWritingModelLabel() {
       showToast('已中断，已保存当前进度', 'success');
     }
 
+    function getNewBookCloseSnapshot() {
+      return JSON.stringify({ form:newBookForm.value, config:{ ...okCfg } });
+    }
+
+    function requestCloseNewBookModal() {
+      if (oneKeyPhase.value === 'generating') return false;
+      if (oneKeyPhase.value === 'config' && newBookCloseBaseline && getNewBookCloseSnapshot() !== newBookCloseBaseline) {
+        confirmDiscardDraft('放弃新书配置', '当前新书配置尚未创建，关闭后会丢失本次填写和勾选。', () => {
+          showNewBook.value = false;
+          oneKeyPhase.value = 'config';
+        });
+        return false;
+      }
+      showNewBook.value = false;
+      oneKeyPhase.value = 'config';
+      return true;
+    }
 
     function openNewBookModal() {
       newBookForm.value = { theme: '', title: '', worldView: '', charCount: 3, strictTheme: false };
@@ -21987,6 +22229,7 @@ function getWritingModelLabel() {
       okSec.outline = false;
       okSec.presets = false;
       oneKeyPhase.value = 'config';
+      newBookCloseBaseline = getNewBookCloseSnapshot();
       showNewBook.value = true;
     }
 
@@ -23150,6 +23393,19 @@ function getWritingModelLabel() {
       showAiEditModal.value = true;
     }
 
+    function requestCloseAiEditModal() {
+      if (isAiEditing.value) return false;
+      const hasDraft = String(aiEditInstruction.value || '').trim()
+        || aiEditParagraphs.value.some(item => item?.selected)
+        || aiEditDiffs.value.length > 0;
+      if (hasDraft) {
+        confirmDiscardDraft('放弃 AI 编辑', '当前选段、修改指令或待确认结果尚未应用，关闭后会丢失本次编辑。', () => { showAiEditModal.value = false; });
+        return false;
+      }
+      showAiEditModal.value = false;
+      return true;
+    }
+
     function executeAiEdit() {
       const selected = aiEditParagraphs.value.filter(p => p.selected);
       if (selected.length === 0) { showToast('请至少选一个段落', 'error'); return; }
@@ -23368,7 +23624,14 @@ function getWritingModelLabel() {
     }
 
     // 中文注释：关闭界面或弹窗入口函数 `closeParagraphComments`。
-    function closeParagraphComments() { activeParagraphComment.value = null; }
+    function closeParagraphComments() {
+      if (isActiveParagraphCommentGenerating()) {
+        showToast('正在生成 AI 段评，请等待本次请求完成。', 'info');
+        return false;
+      }
+      activeParagraphComment.value = null;
+      return true;
+    }
 
     function getActiveParagraphComments() {
       const active = activeParagraphComment.value;
@@ -24579,7 +24842,7 @@ function getWritingModelLabel() {
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
       // ── Part 1: 基本操作 ──
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
-      openNewBookModal, handleNewBookConfirm,
+      openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
       openSettings, clearAll,
 
       // ── Part 2: 角色系统 ──
@@ -24588,9 +24851,9 @@ function getWritingModelLabel() {
       charCustomTag, toggleCharTag, addCustomCharTag,
       addCharacter, removeCharacter, getCharacterReferenceImpact, addDialogueLine, addRelationship,
       showAiCharModal, showCharPreview, aiCharDesc, isGeneratingChar, tempChar,
-      generateAiCharacter, confirmAiCharacter, aiCompleteCharacter, charactersPromptString,
+      generateAiCharacter, confirmAiCharacter, requestCloseAiCharacterModal, requestCloseCharPreview, aiCompleteCharacter, charactersPromptString,
       showBatchCharModal, batchCharCount, batchCharPrompt, isGeneratingBatch,
-      generateBatchCharacters,
+      generateBatchCharacters, requestCloseBatchCharacterModal,
       getCompletionsUrl, okStreamFetch, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, buildFullSystemPrompt, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
@@ -24626,11 +24889,11 @@ function getWritingModelLabel() {
       atmosphereEnabled, atmospherePrompt, narrativePerson, getPersonPresetContent,
 
       // ── Part 3: 大纲 ──
-      showOutlineInMain, splitScreen, outlineInput, isGeneratingOutline, openOutlineWorkbench, toggleOutlineWorkbench, toggleDetailedOutlineWorkbench, toggleOutlineSplitScreen,
+      showOutlineInMain, splitScreen, outlineInput, isGeneratingOutline, openOutlineWorkbench, openDetailedOutlineWorkbench, toggleOutlineWorkbench, toggleDetailedOutlineWorkbench, toggleOutlineSplitScreen,
       outlineRevisions, selectedRevId, outlineLastRequest, outlineStructureCoverage,
       acceptRev, rejectRev, acceptAllRevisions, rejectAllRevisions, getOutlineRequestModeLabel, formatOutlineRequestSummary,
       getOutlineStructureSummary, getOutlineCoverageBarStyle, getOutlineStructureItemStyle,
-      generateOutline, createDiffRevisions, getOutlineAiDisabledReason, getOutlineAiDisabledActionLabel, resolveOutlineAiDisabledAction,
+      generateOutline, createDiffRevisions, requestCloseOutlineWorkbench, requestCloseDetailedOutlineWorkbench, stopOutlineRun, stopDetailedOutlineRun, getOutlineAiDisabledReason, getOutlineAiDisabledActionLabel, resolveOutlineAiDisabledAction,
       // ── Part 3: 细纲 ──
       showDetailedOutlineInMain, chapterOutlines,
       isGeneratingDO, doInput, doStart, doEnd, outlineAiEditingIdx, outlineAiMode, detailedOutlineRun, detailedOutlineViewMode, detailedOutlineWorkbenchStats,
@@ -24652,7 +24915,7 @@ function getWritingModelLabel() {
       getChapterNativeThinking, getChapterSnowwingThinking, getChapterToolTimeline, formatToolTimelineTime, formatToolTimelineDetail,
       toggleChapter, scrollToChapter, scrollChapterToStart, scrollChapterToEnd,
       startChapterEdit, saveChapterEdit, cancelChapterEdit, getDisplayChapterTitle,
-      showChapterRenameModal, chapterRenameIdx, chapterRenameDraft, chapterRenameError, renameChapterTitle, closeChapterRenameModal, confirmChapterRename,
+      showChapterRenameModal, chapterRenameIdx, chapterRenameDraft, chapterRenameError, renameChapterTitle, closeChapterRenameModal, requestCloseChapterRenameModal, confirmChapterRename,
       copyChapter, deleteChapter, insertChapterAt,
       saveAsVersion, switchVersion, deleteCurrentVersion,
       // ── Part 3: 分支 ──
@@ -24690,7 +24953,7 @@ function getWritingModelLabel() {
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  
@@ -24722,7 +24985,7 @@ function getWritingModelLabel() {
       /* Part 9: AI编辑 */
       showAiEditModal, aiEditChapterIdx, aiEditParagraphs, aiEditInstruction,
       isAiEditing, aiEditDiffs, aiEditPhase,
-      openAiEdit, executeAiEdit, acceptAiEdit, rejectAiEdit,
+      openAiEdit, requestCloseAiEditModal, executeAiEdit, acceptAiEdit, rejectAiEdit,
       /* Part 9: AI改标题/摘要 */
       rewritingTitleIdx, rewritingSummaryIdx,
       aiRewriteTitle, aiRewriteSummary,

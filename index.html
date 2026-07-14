@@ -1008,7 +1008,7 @@
           <button @click="acceptAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--ok-soft);color:var(--ok)">全部接受</button>
           <button @click="rejectAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--err-soft);color:var(--err)">全部拒绝</button>
         </template>
-        <button v-else @click="showOutlineInMain=false" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
+        <button v-else @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
@@ -1069,7 +1069,7 @@
           <div v-if="outlineStructureCoverage.missing.length" class="moyun-wb-hint">
             待补结构：{{ outlineStructureCoverage.missing.slice(0,5).join('、') }}
           </div>
-          <button @click="showDetailedOutlineInMain=true;showOutlineInMain=false"
+          <button @click="openDetailedOutlineWorkbench()"
                   class="btn-ghost text-xs py-2 px-3 w-full">
             查看细纲工作台
           </button>
@@ -1120,7 +1120,7 @@
         <div class="moyun-wb-subtitle">分批生成、逐章检查、失败重试和正文前打磨</div>
       </div>
       <div class="moyun-wb-header-actions">
-        <button @click="showDetailedOutlineInMain=false" class="moyun-wb-icon-btn" title="关闭细纲面板" aria-label="关闭细纲面板">
+        <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭细纲面板" aria-label="关闭细纲面板">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
       </div>
@@ -2125,7 +2125,7 @@
 </div>
 
 <transition name="pop">
-  <div v-if="isMobile && activeModFloatingPanelKey && getActiveModFloatingUiEntry()" data-moyun-modal="mod-mobile-panel" role="dialog" aria-modal="true" :aria-label="getActiveModFloatingUiEntry().title || '插件面板'" class="fixed inset-0 z-[87] flex items-end" style="box-sizing:border-box;background:var(--overlay);padding-top:max(10px, env(safe-area-inset-top));padding-bottom:calc(max(10px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="activeModFloatingPanelKey=''">
+  <div v-if="isMobile && activeModFloatingPanelKey && getActiveModFloatingUiEntry()" data-moyun-modal="mod-mobile-panel" role="dialog" aria-modal="true" :aria-label="getActiveModFloatingUiEntry().title || '插件面板'" class="fixed inset-0 z-[87] flex items-end" style="box-sizing:border-box;background:var(--overlay);padding-top:max(10px, env(safe-area-inset-top));padding-bottom:calc(max(10px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full rounded-t-3xl overflow-hidden flex flex-col" :style="Object.assign(getModFloatingPanelStyle(getActiveModFloatingUiEntry()), { maxHeight:'min(74dvh, calc(100dvh - max(10px, env(safe-area-inset-top)) - max(10px, env(safe-area-inset-bottom)) - var(--moyun-mobile-browser-bottom, 0px) - 12px))', paddingBottom:'env(safe-area-inset-bottom)' })">
       <div class="px-4 py-3 flex items-start justify-between gap-3 shrink-0" style="border-bottom:1px solid var(--bd)">
         <div class="min-w-0"><div class="text-base font-bold text-truncate flex items-center gap-2" :style="getModAccentTextStyle(getActiveModFloatingUiEntry())"><span class="inline-flex items-center justify-center rounded-full text-[11px] font-bold shrink-0" :style="getModHeaderMarkStyle(getActiveModFloatingUiEntry())">{{ getModEntryIcon(getActiveModFloatingUiEntry()) }}</span><span class="truncate">{{ getActiveModFloatingUiEntry().title }}</span></div><div class="text-[11px] text-truncate" :style="getModFloatingDescStyle(getActiveModFloatingUiEntry())">{{ getActiveModFloatingUiEntry().desc }}</div></div>
@@ -2240,7 +2240,7 @@
 
 <!-- 中文注释：MOD 独立弹窗宿主。弹窗只渲染 hostedViews 的安全组件，不接收 MOD HTML/JS。 -->
 <transition name="pop">
-  <div v-if="activeModModalKey" data-moyun-region="modal" data-moyun-modal="hosted-modal" role="dialog" aria-modal="true" aria-label="插件独立弹窗" class="fixed inset-0 z-[220] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="activeModModalKey=''">
+  <div v-if="activeModModalKey" data-moyun-region="modal" data-moyun-modal="hosted-modal" role="dialog" aria-modal="true" aria-label="插件独立弹窗" class="fixed inset-0 z-[220] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div v-for="entry in getModHostedViews('modal')" v-show="activeModModalKey===getModHostedViewKey(entry)" :key="'hosted-modal-'+entry.mod.id+'-'+entry.view.id" data-moyun-modal-panel tabindex="-1" class="w-full max-h-[86vh] flex flex-col overflow-hidden rounded-t-2xl md:rounded-[18px]" :style="Object.assign(getModHostedModalStyle(entry), { maxHeight:'min(86vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))' })">
       <div class="px-5 py-3 flex justify-between items-start gap-3 shrink-0" :style="getModHostedModalHeaderStyle(entry)">
         <div class="min-w-0">
@@ -2791,7 +2791,7 @@
       </div>
       <div class="px-5 py-3 shrink-0 flex justify-between items-center gap-2" :style="Object.assign(getModHostedModalFooterStyle(entry), { paddingBottom:'calc(12px + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))' })">
         <span class="text-[10px]" :style="getModHostedFooterTextStyle(entry)">插件：{{ entry.mod.name }} · 独立弹窗</span>
-        <button @click="activeModModalKey=''" class="text-xs px-4 py-2 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, { tone:'primary', variant:'primary' })">关闭</button>
+        <button data-moyun-modal-close @click="activeModModalKey=''" class="text-xs px-4 py-2 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, { tone:'primary', variant:'primary' })">关闭</button>
       </div>
     </div>
   </div>
@@ -2807,11 +2807,11 @@
      ════════════════════════════════════════════ -->
 <!-- 中文注释：段评弹窗必须使用独立 transition；Vue 的 transition 只能拥有一个根节点，否则会导致页面白屏。 -->
 <transition name="pop">
-      <div v-if="activeParagraphComment" data-moyun-modal="paragraph-comments" role="dialog" aria-modal="true" aria-label="段落评论" class="paragraph-comment-mask" @click.self="closeParagraphComments">
+      <div v-if="activeParagraphComment" data-moyun-modal="paragraph-comments" :data-moyun-modal-locked="isActiveParagraphCommentGenerating() ? 'true' : 'false'" data-moyun-locked-message="正在生成 AI 段评，请等待本次请求完成。" role="dialog" aria-modal="true" aria-label="段落评论" class="paragraph-comment-mask">
         <div data-moyun-modal-panel tabindex="-1" class="paragraph-comment-sheet">
           <div class="paragraph-comment-head">
 <!-- 中文注释：按钮控件，触发保存、生成、导入、打开弹窗或 MOD 白名单动作。 -->
-            <button type="button" data-moyun-modal-close @click="closeParagraphComments" class="paragraph-comment-close moyun-icon-button" title="关闭" aria-label="关闭段落评论">
+            <button type="button" data-moyun-modal-close @click="closeParagraphComments" :disabled="isActiveParagraphCommentGenerating()" class="paragraph-comment-close moyun-icon-button" title="关闭" aria-label="关闭段落评论">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div class="paragraph-comment-title">{{ getActiveParagraphComments().length || 0 }}条评论</div>
@@ -2851,7 +2851,7 @@
   <div v-if="showConfirm" data-moyun-region="modal" data-moyun-modal="confirm" data-moyun-initial-focus="[data-moyun-modal-cancel]"
        :data-moyun-modal-locked="confirmCfg.locked ? 'true' : 'false'" role="dialog" aria-modal="true" :aria-label="confirmCfg.title || '请确认'"
        class="fixed inset-0 z-[240] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="cancelConfirm">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" :class="getConfirmModalClass(confirmCfg)" :style="getConfirmModalStyle(confirmCfg)">
       <div class="moyun-confirm-scroll-body">
       <template v-if="confirmCfg.variant==='snowwingModImport'">
@@ -2954,7 +2954,7 @@
   <div v-if="showChapterRenameModal" data-moyun-region="modal" data-moyun-modal="chapter-rename"
        data-moyun-initial-focus="[data-chapter-rename-input]" role="dialog" aria-modal="true" aria-labelledby="moyun-chapter-rename-title"
        class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="closeChapterRenameModal">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl"
           style="background:var(--bg-card);box-shadow:var(--sh3)" @submit.prevent="confirmChapterRename">
       <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
@@ -2962,7 +2962,7 @@
           <h3 id="moyun-chapter-rename-title" class="text-lg font-bold" style="color:var(--tx)">修改章节标题</h3>
           <p class="text-xs mt-1" style="color:var(--tx3)">第 {{ chapterRenameIdx + 1 }} 章 · 保存后同步章节历史稿与章节索引</p>
         </div>
-        <button type="button" data-moyun-modal-close @click="closeChapterRenameModal" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭章节改名" title="关闭">
+        <button type="button" data-moyun-modal-close @click="requestCloseChapterRenameModal" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭章节改名" title="关闭">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
@@ -2977,7 +2977,7 @@
         </div>
       </div>
       <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-        <button type="button" data-moyun-modal-close @click="closeChapterRenameModal" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
+        <button type="button" data-moyun-modal-close @click="requestCloseChapterRenameModal" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
         <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">保存标题</button>
       </div>
     </form>
@@ -3014,7 +3014,7 @@
   <div v-if="showImportExport" data-moyun-modal="import-export" data-moyun-initial-focus="[data-import-txt]"
        role="dialog" aria-modal="true" aria-labelledby="moyun-import-export-title"
        class="fixed inset-0 z-[230] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showImportExport=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-md p-5 md:p-6 rounded-t-2xl md:rounded-2xl space-y-4 overflow-y-auto" style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -3053,14 +3053,14 @@
        :data-moyun-modal-locked="oneKeyPhase==='generating' ? 'true' : 'false'" data-moyun-locked-message="正在创建书籍，请使用“中断”保留已生成内容。"
        role="dialog" aria-modal="true" aria-labelledby="moyun-new-book-title"
        class="fixed inset-0 z-[90] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="oneKeyPhase==='config'&&(showNewBook=false)">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
 
       <!-- 头部 -->
       <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
         <h3 id="moyun-new-book-title" class="text-lg font-bold" style="color:var(--tx)">{{ oneKeyPhase==='config' ? '✨ 新建书籍' : oneKeyPhase==='generating' ? '🚀 正在创建...' : '✅ 创建完成' }}</h3>
-        <button v-if="oneKeyPhase==='config'" type="button" data-moyun-modal-close @click="showNewBook=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭新建书籍" title="关闭">
+        <button v-if="oneKeyPhase==='config'" type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭新建书籍" title="关闭">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
@@ -3332,7 +3332,7 @@
       <!-- 底部按钮 -->
       <div class="px-5 py-4 flex justify-end gap-3 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <template v-if="oneKeyPhase==='config'">
-          <button type="button" data-moyun-modal-close @click="showNewBook=false" class="btn-ghost text-sm px-4 py-2">取消</button>
+          <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-ghost text-sm px-4 py-2">取消</button>
           <button @click="handleNewBookConfirm" class="btn-ghost text-sm px-4 py-2" title="不调用 AI，主题和书名都可以留空">仅创建空书</button>
           <button @click="startOneKeyGeneration" :disabled="!newBookForm.theme||!oneKeyGenerationReady"
                   class="btn-primary text-sm px-5 py-2" :style="(!newBookForm.theme||!oneKeyGenerationReady)?'opacity:.5':''">🚀 开始生成</button>
@@ -3355,13 +3355,14 @@
      ════════════════════════════════════════════ -->
 <transition name="pop">
   <div v-if="showAiCharModal" data-moyun-modal="ai-character" data-moyun-initial-focus="[data-ai-character-description]"
+       :data-moyun-modal-locked="isGeneratingChar ? 'true' : 'false'" data-moyun-locked-message="正在生成角色，请等待本次请求完成。"
        role="dialog" aria-modal="true" aria-labelledby="moyun-ai-character-title"
        class="fixed inset-0 z-[90] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showAiCharModal=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-y-auto rounded-t-2xl md:rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(80vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <div class="px-5 pt-4 flex justify-between items-center">
         <h3 id="moyun-ai-character-title" class="text-base font-bold" style="color:var(--tx)">AI 辅助新建角色</h3>
-        <button type="button" data-moyun-modal-close @click="showAiCharModal=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭 AI 新建角色" title="关闭"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        <button type="button" data-moyun-modal-close @click="requestCloseAiCharacterModal" :disabled="isGeneratingChar" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭 AI 新建角色" title="关闭"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
       </div>
       <div class="p-5">
         <textarea v-model="aiCharDesc" data-ai-character-description placeholder="描述你想要的角色，例如：一个冷酷的女剑客，有悲惨的身世..."
@@ -3369,7 +3370,7 @@
         <div v-if="isGeneratingChar" class="text-center py-3" style="color:var(--tx3)">AI 正在构思角色...</div>
       </div>
       <div class="px-5 pb-5 flex justify-end gap-2">
-        <button type="button" data-moyun-modal-close @click="showAiCharModal=false" class="btn-ghost text-sm px-4 py-2">取消</button>
+        <button type="button" data-moyun-modal-close @click="requestCloseAiCharacterModal" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">取消</button>
         <button @click="generateAiCharacter()" :disabled="!aiCharDesc||isGeneratingChar"
                 class="btn-primary text-sm px-5 py-2" :style="(!aiCharDesc||isGeneratingChar)?'opacity:.5':''"><span v-if="isGeneratingChar" class="loading-spinner"></span>生成角色</button>
       </div>
@@ -3380,11 +3381,12 @@
 <!-- AI角色预览弹窗 -->
 <transition name="pop">
   <div v-if="showCharPreview" data-moyun-modal="character-preview" data-moyun-initial-focus="[data-character-preview-name]"
+       :data-moyun-modal-locked="isGeneratingChar ? 'true' : 'false'" data-moyun-locked-message="正在生成角色，请等待本次请求完成。"
        role="dialog" aria-modal="true" aria-labelledby="moyun-character-preview-title"
        class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showCharPreview=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-y-auto rounded-t-2xl md:rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(80vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
-      <div class="px-5 pt-4 flex items-center justify-between gap-3"><h3 id="moyun-character-preview-title" class="text-base font-bold" style="color:var(--tx)">角色预览</h3><button type="button" data-moyun-modal-close @click="showCharPreview=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="取消角色预览" title="取消">×</button></div>
+      <div class="px-5 pt-4 flex items-center justify-between gap-3"><h3 id="moyun-character-preview-title" class="text-base font-bold" style="color:var(--tx)">角色预览</h3><button type="button" data-moyun-modal-close @click="requestCloseCharPreview" :disabled="isGeneratingChar" class="moyun-icon-button" style="color:var(--tx3)" aria-label="取消角色预览" title="取消">×</button></div>
       <!-- 中文注释：AI 新建角色预览改为完整表单，生成结果会自动填入标签、说话风格、示例台词和专属提示词，用户确认前可手动微调。 -->
       <div class="p-5 space-y-3">
         <input v-model="tempChar.name" data-character-preview-name placeholder="角色名" class="input-field text-sm font-bold">
@@ -3410,9 +3412,9 @@
         </div>
       </div>
       <div class="px-5 pb-5 flex justify-end gap-2">
-        <button type="button" data-moyun-modal-close @click="showCharPreview=false" class="btn-ghost text-sm px-4 py-2">取消</button>
+        <button type="button" data-moyun-modal-close @click="requestCloseCharPreview" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">取消</button>
         <button @click="generateAiCharacter()" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">重新生成</button>
-        <button @click="confirmAiCharacter()" class="btn-primary text-sm px-5 py-2">确认添加</button>
+        <button @click="confirmAiCharacter()" :disabled="isGeneratingChar" class="btn-primary text-sm px-5 py-2">确认添加</button>
       </div>
     </div>
   </div>
@@ -3421,13 +3423,14 @@
 <!-- AI批量角色弹窗 -->
 <transition name="pop">
   <div v-if="showBatchCharModal" data-moyun-modal="batch-character" data-moyun-initial-focus="[data-batch-character-count]"
+       :data-moyun-modal-locked="isGeneratingBatch ? 'true' : 'false'" data-moyun-locked-message="正在批量生成角色，请等待本次请求完成。"
        role="dialog" aria-modal="true" aria-labelledby="moyun-batch-character-title"
        class="fixed inset-0 z-[90] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showBatchCharModal=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-y-auto rounded-t-2xl md:rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(80vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <div class="px-5 pt-4 flex justify-between items-center">
         <h3 id="moyun-batch-character-title" class="text-base font-bold" style="color:var(--tx)">AI 批量新建角色</h3>
-        <button type="button" data-moyun-modal-close @click="showBatchCharModal=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭批量新建角色" title="关闭"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+        <button type="button" data-moyun-modal-close @click="requestCloseBatchCharacterModal" :disabled="isGeneratingBatch" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭批量新建角色" title="关闭"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
       </div>
       <div class="p-5 space-y-3">
         <div class="flex items-center gap-2">
@@ -3440,7 +3443,7 @@
         <div v-if="isGeneratingBatch" class="text-center py-2" style="color:var(--tx3)">正在批量生成...</div>
       </div>
       <div class="px-5 pb-5 flex justify-end gap-2">
-        <button type="button" data-moyun-modal-close @click="showBatchCharModal=false" class="btn-ghost text-sm px-4 py-2">取消</button>
+        <button type="button" data-moyun-modal-close @click="requestCloseBatchCharacterModal" :disabled="isGeneratingBatch" class="btn-ghost text-sm px-4 py-2">取消</button>
         <button @click="generateBatchCharacters()" :disabled="isGeneratingBatch||!isModuleRequestReady('character')"
                 class="text-sm px-5 py-2 rounded-lg font-semibold" style="background:var(--warn);color:white"
                 :style="(isGeneratingBatch||!isModuleRequestReady('character'))?'opacity:.5':''"><span v-if="isGeneratingBatch" class="loading-spinner"></span>开始生成</button>
@@ -3461,9 +3464,9 @@
      书评团弹窗
      ════════════════════════════════════════════ -->
 <transition name="pop">
-  <div v-if="showReviewModal" data-moyun-modal="book-review" role="dialog" aria-modal="true" aria-label="书评团"
+  <div v-if="showReviewModal" data-moyun-modal="book-review" :data-moyun-modal-locked="isReviewing ? 'true' : 'false'" data-moyun-locked-message="正在生成书评，请等待本次评审完成。" role="dialog" aria-modal="true" aria-label="书评团"
        class="fixed inset-0 z-[80] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showReviewModal=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-[900px] flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
          style="background:var(--bg-card);box-shadow:var(--sh3);height:min(90vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)));max-height:700px">
       <!-- 头部 -->
@@ -3476,7 +3479,7 @@
                   class="btn-primary text-xs px-4 py-1.5" :style="isReviewing?'opacity:.5':''">
             <span v-if="isReviewing" class="loading-spinner"></span>{{ isReviewing ? '评审中...' : '开始评审' }}
           </button>
-          <button type="button" data-moyun-modal-close @click="showReviewModal=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭书评团" title="关闭">
+          <button type="button" data-moyun-modal-close @click="showReviewModal=false" :disabled="isReviewing" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭书评团" title="关闭">
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
           </button>
         </div>
@@ -3641,7 +3644,7 @@
   <div v-if="showSettings_modal" data-moyun-region="settings-modal" data-moyun-modal="settings" data-moyun-initial-focus="[data-settings-tab][aria-selected='true']"
        role="dialog" aria-modal="true" aria-labelledby="moyun-settings-title"
        class="fixed inset-0 z-[80] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showSettings_modal=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full overflow-y-auto rounded-t-2xl md:rounded-2xl" :class="activeSettingsTab==='mods' ? 'max-w-5xl' : 'max-w-lg'"
          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <!-- 设置头部 -->
@@ -5362,9 +5365,9 @@
         </div>
       </div>
 
-      <div v-if="connectionProfileEditorOpen" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)" @click.self="closeConnectionProfileEditor">
-        <div class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
-          <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" class="moyun-icon-button" @click="closeConnectionProfileEditor" aria-label="关闭 API 配置编辑">×</button></div>
+      <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在测试连接，请等待测试完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
+        <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
+          <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" data-moyun-modal-close class="moyun-icon-button" @click="requestCloseConnectionProfileEditor" :disabled="connectionProfileTesting" aria-label="关闭 API 配置编辑">×</button></div>
           <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
           <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="updateConnectionProfileDraftTemplate" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
@@ -5419,14 +5422,14 @@
      AI编辑章节弹窗（选段落修改+Diff对比）
      ════════════════════════════════════════════ -->
 <transition name="pop">
-  <div v-if="showAiEditModal" data-moyun-modal="ai-edit" role="dialog" aria-modal="true" aria-label="AI 编辑章节"
+  <div v-if="showAiEditModal" data-moyun-modal="ai-edit" :data-moyun-modal-locked="isAiEditing ? 'true' : 'false'" data-moyun-locked-message="正在进行 AI 修改，请等待本次请求完成。" role="dialog" aria-modal="true" aria-label="AI 编辑章节"
        class="fixed inset-0 z-[90] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showAiEditModal=false">
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-2xl flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
          style="background:var(--bg-card);box-shadow:var(--sh3);height:min(85vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
         <h3 class="text-base font-bold" style="color:var(--tx)">AI 编辑章节</h3>
-        <button type="button" data-moyun-modal-close @click="showAiEditModal=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭 AI 编辑章节" title="关闭">
+        <button type="button" data-moyun-modal-close @click="requestCloseAiEditModal" :disabled="isAiEditing" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭 AI 编辑章节" title="关闭">
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
@@ -5464,7 +5467,7 @@
         </div>
         <div class="flex justify-end gap-2">
           <template v-if="aiEditPhase==='select'">
-            <button type="button" data-moyun-modal-close @click="showAiEditModal=false" class="btn-ghost text-xs px-4 py-2">取消</button>
+            <button type="button" data-moyun-modal-close @click="requestCloseAiEditModal" :disabled="isAiEditing" class="btn-ghost text-xs px-4 py-2">取消</button>
             <button @click="executeAiEdit" :disabled="isAiEditing||aiEditParagraphs.filter(p=>p.selected).length===0"
                     class="btn-primary text-xs px-5 py-2" :style="isAiEditing?'opacity:.5':''">
               {{ isAiEditing ? 'AI修改中...' : 'AI修改' }}
@@ -5643,7 +5646,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=0d60e0369830"></script>
+<script src="./assets/js/moyun.js?v=96f3ee7af646"></script>
 <!-- PART_1_END -->
 </body>
 </html>
