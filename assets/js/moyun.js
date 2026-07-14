@@ -747,6 +747,7 @@ createApp({
     const connectionProfileDraftError = ref('');
     const connectionProfileTesting = ref(false);
     const connectionProfileTestResult = ref({ status:'unknown', detail:'' });
+    const connectionProfileModelTestResult = ref({ status:'unknown', model:'', detail:'' });
     const connectionProfileModelDiscovery = ref({ loading:false, models:[], error:'' });
     const expandedConnectionProfileId = ref('');
     const expandedModuleRouteKey = ref('writing');
@@ -836,6 +837,7 @@ createApp({
       };
       connectionProfileDraftError.value = '';
       connectionProfileTestResult.value = profile?.lastTest || { status:'unknown', detail:'' };
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
       connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
       connectionProfileDraftBaseline = JSON.stringify(connectionProfileDraft.value);
       connectionProfileEditorOpen.value = true;
@@ -869,6 +871,12 @@ createApp({
     function invalidateConnectionProfileDraftTest() {
       if (connectionProfileTesting.value) return;
       connectionProfileTestResult.value = { status:'unknown', detail:'' };
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+    }
+
+    function invalidateConnectionProfileModelTest() {
+      if (connectionProfileTesting.value) return;
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
     }
 
     function isConnectionProfileDiscoveredModelSelected(modelId) {
@@ -880,12 +888,12 @@ createApp({
       if (!id) return;
       connectionProfileDraft.value.selectedDiscoveredModelId = id;
       connectionProfileDraft.value.defaultModel = id;
-      invalidateConnectionProfileDraftTest();
+      invalidateConnectionProfileModelTest();
     }
 
     function updateConnectionProfileDraftManualModel() {
       if (String(connectionProfileDraft.value.defaultModel || '').trim() !== String(connectionProfileDraft.value.selectedDiscoveredModelId || '')) connectionProfileDraft.value.selectedDiscoveredModelId = '';
-      invalidateConnectionProfileDraftTest();
+      invalidateConnectionProfileModelTest();
     }
 
     function buildConnectionProfileModelCatalog() {
@@ -964,6 +972,30 @@ createApp({
         return true;
       } catch (e) {
         connectionProfileTestResult.value = { status:'error', at:Date.now(), detail:'连接失败：' + sanitizeApiErrorDetail(e.message || e) };
+        return false;
+      } finally { connectionProfileTesting.value = false; }
+    }
+
+    async function testConnectionProfileModelDraft() {
+      const draft = connectionProfileDraft.value;
+      const error = validateConnectionProfileDraft();
+      if (error && error !== '请填写 API 密钥') { connectionProfileDraftError.value = error; return false; }
+      const key = String(draft.apiKey || '').trim();
+      if (!key) { connectionProfileDraftError.value = '请填写 API 密钥'; return false; }
+      connectionProfileTesting.value = true;
+      connectionProfileDraftError.value = '';
+      connectionProfileModelTestResult.value = { status:'loading', model:String(draft.defaultModel || '').trim(), detail:'正在验证模型…' };
+      try {
+        const adapterId = String(draft.adapterId || '');
+        const baseUrl = getApiBaseUrl(draft.baseUrl);
+        const request = { ok:true, adapterId, url:(adapterId === 'openai-chat' || adapterId === 'openai-compatible') ? (baseUrl + '/chat/completions') : baseUrl, apiKey:key, model:String(draft.defaultModel || '').trim() };
+        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:false, temperature:0, maxTokens:16 });
+        const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
+        if (!resp.ok) throw new Error('API ' + resp.status);
+        connectionProfileModelTestResult.value = { status:'ok', model:request.model, at:Date.now(), detail:'模型验证通过：' + request.model };
+        return true;
+      } catch (e) {
+        connectionProfileModelTestResult.value = { status:'error', model:String(draft.defaultModel || '').trim(), at:Date.now(), detail:'模型验证失败：' + sanitizeApiErrorDetail(e.message || e) };
         return false;
       } finally { connectionProfileTesting.value = false; }
     }
@@ -1124,6 +1156,31 @@ createApp({
       if (!source) return { ok:false, reason:'找不到要复制的 API 配置', profile:null };
       // 复制协议与模型信息，但绝不复制 Key。
       return createConnectionProfile(Object.assign({}, source, { name:String(name || (source.name + ' 副本')).trim(), apiKey:undefined }));
+    }
+
+    function deriveConnectionProfile(profileId) {
+      const source = getConnectionProfile(profileId);
+      const status = getConnectionProfileStatus(source);
+      if (!status.ok) { showToast(status.reason || '该 API 配置尚不能派生模型', 'error'); return false; }
+      const template = getProviderTemplate(source.templateId);
+      connectionProfileEditorMode.value = 'create';
+      connectionProfileDraft.value = {
+        templateId: template.id,
+        name:((source.name || '未命名配置') + ' · 新模型').slice(0, 40),
+        baseUrl: source.baseUrl || '',
+        apiKey: getConnectionCredential(source.id),
+        defaultModel: '',
+        selectedDiscoveredModelId: '',
+        adapterId: source.adapterId || template.adapterId || (template.id === 'custom' ? 'openai-compatible' : '')
+      };
+      connectionProfileDraftError.value = '';
+      connectionProfileTestResult.value = Object.assign({}, source.lastTest || { status:'unknown', detail:'' });
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      connectionProfileDraftBaseline = JSON.stringify(connectionProfileDraft.value);
+      connectionProfileEditorOpen.value = true;
+      showToast('已带入同线路连接，请选择一个新模型后保存', 'info');
+      return true;
     }
 
     function migrateConnectionCenterFromLegacy() {
@@ -24836,7 +24893,7 @@ function getWritingModelLabel() {
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
-      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
+      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
@@ -24952,8 +25009,8 @@ function getWritingModelLabel() {
 
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
-      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

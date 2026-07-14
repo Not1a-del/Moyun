@@ -5171,7 +5171,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
             <div v-if="expandedConnectionProfileId===profile.id" class="pt-2 space-y-2" style="border-top:1px solid var(--bd)">
               <div class="text-[10px] break-all" style="color:var(--tx3)">地址：{{ profile.baseUrl || '未填写' }}</div>
               <div class="text-[10px]" style="color:var(--tx3)">默认模型：{{ profile.defaultModel || '未填写' }}</div>
-              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
+              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="deriveConnectionProfile(profile.id)" :disabled="!getConnectionProfileStatus(profile).ok" class="px-2 py-1 rounded text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2)" title="复用当前协议、地址与本机密钥，新建独立模型配置">派生模型</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
             </div>
           </div>
         </div>
@@ -6043,7 +6043,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         </div>
       </div>
 
-      <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在测试连接，请等待测试完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
+      <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在验证，请等待完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
         <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
           <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" data-moyun-modal-close class="moyun-icon-button" @click="requestCloseConnectionProfileEditor" :disabled="connectionProfileTesting" aria-label="关闭 API 配置编辑">×</button></div>
           <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
@@ -6051,7 +6051,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
+          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel" class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
@@ -6060,8 +6060,9 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
             </div>
           </div>
           <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
-          <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">{{ connectionProfileTestResult.detail }}</div>
-          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '测试中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" class="btn-primary flex-1 text-xs py-2">保存配置</button></div>
+          <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">连接：{{ connectionProfileTestResult.detail }}</div>
+          <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
+          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
         </div>
       </div>
 
@@ -7072,6 +7073,7 @@ createApp({
     const connectionProfileDraftError = ref('');
     const connectionProfileTesting = ref(false);
     const connectionProfileTestResult = ref({ status:'unknown', detail:'' });
+    const connectionProfileModelTestResult = ref({ status:'unknown', model:'', detail:'' });
     const connectionProfileModelDiscovery = ref({ loading:false, models:[], error:'' });
     const expandedConnectionProfileId = ref('');
     const expandedModuleRouteKey = ref('writing');
@@ -7161,6 +7163,7 @@ createApp({
       };
       connectionProfileDraftError.value = '';
       connectionProfileTestResult.value = profile?.lastTest || { status:'unknown', detail:'' };
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
       connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
       connectionProfileDraftBaseline = JSON.stringify(connectionProfileDraft.value);
       connectionProfileEditorOpen.value = true;
@@ -7194,6 +7197,12 @@ createApp({
     function invalidateConnectionProfileDraftTest() {
       if (connectionProfileTesting.value) return;
       connectionProfileTestResult.value = { status:'unknown', detail:'' };
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+    }
+
+    function invalidateConnectionProfileModelTest() {
+      if (connectionProfileTesting.value) return;
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
     }
 
     function isConnectionProfileDiscoveredModelSelected(modelId) {
@@ -7205,12 +7214,12 @@ createApp({
       if (!id) return;
       connectionProfileDraft.value.selectedDiscoveredModelId = id;
       connectionProfileDraft.value.defaultModel = id;
-      invalidateConnectionProfileDraftTest();
+      invalidateConnectionProfileModelTest();
     }
 
     function updateConnectionProfileDraftManualModel() {
       if (String(connectionProfileDraft.value.defaultModel || '').trim() !== String(connectionProfileDraft.value.selectedDiscoveredModelId || '')) connectionProfileDraft.value.selectedDiscoveredModelId = '';
-      invalidateConnectionProfileDraftTest();
+      invalidateConnectionProfileModelTest();
     }
 
     function buildConnectionProfileModelCatalog() {
@@ -7289,6 +7298,30 @@ createApp({
         return true;
       } catch (e) {
         connectionProfileTestResult.value = { status:'error', at:Date.now(), detail:'连接失败：' + sanitizeApiErrorDetail(e.message || e) };
+        return false;
+      } finally { connectionProfileTesting.value = false; }
+    }
+
+    async function testConnectionProfileModelDraft() {
+      const draft = connectionProfileDraft.value;
+      const error = validateConnectionProfileDraft();
+      if (error && error !== '请填写 API 密钥') { connectionProfileDraftError.value = error; return false; }
+      const key = String(draft.apiKey || '').trim();
+      if (!key) { connectionProfileDraftError.value = '请填写 API 密钥'; return false; }
+      connectionProfileTesting.value = true;
+      connectionProfileDraftError.value = '';
+      connectionProfileModelTestResult.value = { status:'loading', model:String(draft.defaultModel || '').trim(), detail:'正在验证模型…' };
+      try {
+        const adapterId = String(draft.adapterId || '');
+        const baseUrl = getApiBaseUrl(draft.baseUrl);
+        const request = { ok:true, adapterId, url:(adapterId === 'openai-chat' || adapterId === 'openai-compatible') ? (baseUrl + '/chat/completions') : baseUrl, apiKey:key, model:String(draft.defaultModel || '').trim() };
+        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:false, temperature:0, maxTokens:16 });
+        const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
+        if (!resp.ok) throw new Error('API ' + resp.status);
+        connectionProfileModelTestResult.value = { status:'ok', model:request.model, at:Date.now(), detail:'模型验证通过：' + request.model };
+        return true;
+      } catch (e) {
+        connectionProfileModelTestResult.value = { status:'error', model:String(draft.defaultModel || '').trim(), at:Date.now(), detail:'模型验证失败：' + sanitizeApiErrorDetail(e.message || e) };
         return false;
       } finally { connectionProfileTesting.value = false; }
     }
@@ -7449,6 +7482,31 @@ createApp({
       if (!source) return { ok:false, reason:'找不到要复制的 API 配置', profile:null };
       // 复制协议与模型信息，但绝不复制 Key。
       return createConnectionProfile(Object.assign({}, source, { name:String(name || (source.name + ' 副本')).trim(), apiKey:undefined }));
+    }
+
+    function deriveConnectionProfile(profileId) {
+      const source = getConnectionProfile(profileId);
+      const status = getConnectionProfileStatus(source);
+      if (!status.ok) { showToast(status.reason || '该 API 配置尚不能派生模型', 'error'); return false; }
+      const template = getProviderTemplate(source.templateId);
+      connectionProfileEditorMode.value = 'create';
+      connectionProfileDraft.value = {
+        templateId: template.id,
+        name:((source.name || '未命名配置') + ' · 新模型').slice(0, 40),
+        baseUrl: source.baseUrl || '',
+        apiKey: getConnectionCredential(source.id),
+        defaultModel: '',
+        selectedDiscoveredModelId: '',
+        adapterId: source.adapterId || template.adapterId || (template.id === 'custom' ? 'openai-compatible' : '')
+      };
+      connectionProfileDraftError.value = '';
+      connectionProfileTestResult.value = Object.assign({}, source.lastTest || { status:'unknown', detail:'' });
+      connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      connectionProfileDraftBaseline = JSON.stringify(connectionProfileDraft.value);
+      connectionProfileEditorOpen.value = true;
+      showToast('已带入同线路连接，请选择一个新模型后保存', 'info');
+      return true;
     }
 
     function migrateConnectionCenterFromLegacy() {
@@ -31161,7 +31219,7 @@ function getWritingModelLabel() {
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
-      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
+      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
@@ -31277,8 +31335,8 @@ function getWritingModelLabel() {
 
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
-      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

@@ -3698,7 +3698,7 @@
             <div v-if="expandedConnectionProfileId===profile.id" class="pt-2 space-y-2" style="border-top:1px solid var(--bd)">
               <div class="text-[10px] break-all" style="color:var(--tx3)">地址：{{ profile.baseUrl || '未填写' }}</div>
               <div class="text-[10px]" style="color:var(--tx3)">默认模型：{{ profile.defaultModel || '未填写' }}</div>
-              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
+              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="deriveConnectionProfile(profile.id)" :disabled="!getConnectionProfileStatus(profile).ok" class="px-2 py-1 rounded text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2)" title="复用当前协议、地址与本机密钥，新建独立模型配置">派生模型</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
             </div>
           </div>
         </div>
@@ -4570,7 +4570,7 @@
         </div>
       </div>
 
-      <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在测试连接，请等待测试完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
+      <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在验证，请等待完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
         <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
           <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" data-moyun-modal-close class="moyun-icon-button" @click="requestCloseConnectionProfileEditor" :disabled="connectionProfileTesting" aria-label="关闭 API 配置编辑">×</button></div>
           <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
@@ -4578,7 +4578,7 @@
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
+          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel" class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
@@ -4587,8 +4587,9 @@
             </div>
           </div>
           <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
-          <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">{{ connectionProfileTestResult.detail }}</div>
-          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '测试中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" class="btn-primary flex-1 text-xs py-2">保存配置</button></div>
+          <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">连接：{{ connectionProfileTestResult.detail }}</div>
+          <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
+          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
         </div>
       </div>
 
@@ -4851,7 +4852,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=846987618137"></script>
+<script src="./assets/js/moyun.js?v=0810debcf534"></script>
 <!-- PART_1_END -->
 </body>
 </html>
