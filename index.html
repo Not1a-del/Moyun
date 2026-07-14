@@ -794,10 +794,10 @@
           <button @click="pipelineExpanded=!pipelineExpanded" class="text-[10px] font-bold px-2 py-0.5 rounded" style="background:var(--accent-soft);color:var(--accent)">
             {{ pipelineExpanded ? '收起' : '展开' }}
           </button>
-          <button @click="aiBatchGeneratePipeline()" :disabled="isGeneratingPipelineBatch||!currentApiKey"
+          <button @click="aiBatchGeneratePipeline()" :disabled="isGeneratingPipelineBatch||!writingGenerationReady"
                   class="text-[10px] font-bold px-3 py-0.5 rounded ml-1"
                   style="background:var(--warn-soft);color:var(--warn)"
-                  :style="(isGeneratingPipelineBatch||!currentApiKey)?'opacity:.5':''">
+                  :style="(isGeneratingPipelineBatch||!writingGenerationReady)?'opacity:.5':''">
             <span v-if="isGeneratingPipelineBatch" class="loading-spinner"></span>{{ isGeneratingPipelineBatch ? '批量中...' : '一键AI填充' }}
           </button>
         </div>
@@ -1550,7 +1550,7 @@
                   <div class="text-sm font-bold" style="color:var(--tx)">反推世界观与设定</div>
                   <div class="text-[11px]" style="color:var(--tx3)">根据当前正文自动补全主题、简介与世界观</div>
                 </div>
-                <button @click="inferInfiniteSettingsFromDraft('manual')" :disabled="isInferringInfiniteSettings||!currentApiKey||!infiniteDraft.trim()" class="btn-ghost text-xs py-2 px-3" :style="(isInferringInfiniteSettings||!currentApiKey||!infiniteDraft.trim())?'opacity:.5':''">
+                <button @click="inferInfiniteSettingsFromDraft('manual')" :disabled="isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim()" class="btn-ghost text-xs py-2 px-3" :style="(isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
                   <span v-if="isInferringInfiniteSettings" class="loading-spinner"></span>{{ isInferringInfiniteSettings ? '反推中...' : '反推设定' }}
                 </button>
                 <div v-if="showInfiniteInferenceBubble" class="absolute left-3 right-3 bottom-full mb-2 p-3 rounded-xl text-xs flex flex-col md:flex-row md:items-center justify-between gap-2" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--info);box-shadow:var(--sh3)">
@@ -1569,7 +1569,7 @@
                   <option :value="500">500</option><option :value="800">800</option><option :value="1000">1000</option><option :value="1500">1500</option><option :value="2000">2000</option>
                 </select>
               </div>
-              <button @click="startInfiniteContinuation" :disabled="isInfiniteGenerating||!currentApiKey||!infiniteDraft.trim()" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(isInfiniteGenerating||!currentApiKey||!infiniteDraft.trim())?'opacity:.5':''">
+              <button @click="startInfiniteContinuation" :disabled="isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim()" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
                 <span v-if="isInfiniteGenerating" class="loading-spinner"></span>{{ isInfiniteGenerating ? 'AI正在续写...' : 'AI续写' }}
               </button>
             </div>
@@ -1963,8 +1963,8 @@
             <div class="flex items-center gap-2 flex-wrap justify-end">
               <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
               <button @click="showRealContextModal=true" class="btn-ghost text-xs py-2 px-3" :title="lastChapterContextMessages.length ? '查看上一轮提笔续写真实上下文' : '暂无提笔续写上下文，请先生成一章'">📄 真实上下文</button>
-              <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!currentApiKey" class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!currentApiKey)?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
-              <button @click="startGeneration" :disabled="!currentApiKey&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="!currentApiKey?'opacity:.5':''">{{ isGenerating ? '停止' : '提笔续写' }}</button>
+              <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')" class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
+              <button @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
           </div>
         </div>
@@ -3334,8 +3334,8 @@
         <template v-if="oneKeyPhase==='config'">
           <button type="button" data-moyun-modal-close @click="showNewBook=false" class="btn-ghost text-sm px-4 py-2">取消</button>
           <button @click="handleNewBookConfirm" class="btn-ghost text-sm px-4 py-2" title="不调用 AI，主题和书名都可以留空">仅创建空书</button>
-          <button @click="startOneKeyGeneration" :disabled="!newBookForm.theme||!currentApiKey"
-                  class="btn-primary text-sm px-5 py-2" :style="(!newBookForm.theme||!currentApiKey)?'opacity:.5':''">🚀 开始生成</button>
+          <button @click="startOneKeyGeneration" :disabled="!newBookForm.theme||!oneKeyGenerationReady"
+                  class="btn-primary text-sm px-5 py-2" :style="(!newBookForm.theme||!oneKeyGenerationReady)?'opacity:.5':''">🚀 开始生成</button>
         </template>
         <template v-else-if="oneKeyPhase==='generating'">
           <button @click="interruptOneKey" class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--warn);color:white">⏸ 中断（保留已生成内容）</button>
@@ -3441,9 +3441,9 @@
       </div>
       <div class="px-5 pb-5 flex justify-end gap-2">
         <button type="button" data-moyun-modal-close @click="showBatchCharModal=false" class="btn-ghost text-sm px-4 py-2">取消</button>
-        <button @click="generateBatchCharacters()" :disabled="isGeneratingBatch||!currentApiKey"
+        <button @click="generateBatchCharacters()" :disabled="isGeneratingBatch||!isModuleRequestReady('character')"
                 class="text-sm px-5 py-2 rounded-lg font-semibold" style="background:var(--warn);color:white"
-                :style="(isGeneratingBatch||!currentApiKey)?'opacity:.5':''"><span v-if="isGeneratingBatch" class="loading-spinner"></span>开始生成</button>
+                :style="(isGeneratingBatch||!isModuleRequestReady('character'))?'opacity:.5':''"><span v-if="isGeneratingBatch" class="loading-spinner"></span>开始生成</button>
       </div>
     </div>
   </div>
@@ -5643,7 +5643,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=489a3e5a1d03"></script>
+<script src="./assets/js/moyun.js?v=fa7ce58ef986"></script>
 <!-- PART_1_END -->
 </body>
 </html>

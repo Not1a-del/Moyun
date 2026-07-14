@@ -1088,6 +1088,15 @@ createApp({
       return true;
     }
 
+    // 无模块 key 的宿主入口统一使用连接中心有效默认配置；显式模块分配仍由 resolveModuleConnection 优先处理。
+    function getConnectionCenterPrimaryFallback() {
+      const profile = getEffectiveDefaultConnectionProfile();
+      if (!profile) return null;
+      const apiKey = getConnectionCredential(profile.id);
+      if (!apiKey || !profile.baseUrl || !profile.defaultModel) return null;
+      return { profile, apiKey, baseUrl:profile.baseUrl, model:profile.defaultModel, adapterId:profile.adapterId || 'openai-compatible' };
+    }
+
     function createConnectionProfile(input = {}) {
       const template = getProviderTemplate(input.templateId);
       const id = uid();
@@ -2168,7 +2177,7 @@ createApp({
 
     /* ═══ DeepSeek 模型检测 ═══ */
     function isDeepSeekModel() {
-      return String(settings.value.model || '').toLowerCase().includes('deepseek');
+      return String(getModelForModule('writing') || '').toLowerCase().includes('deepseek');
     }
 
     function getDeepSeekPreludeMessages() {
@@ -2605,7 +2614,11 @@ function copyLastChapterContextText() {
       if (manualMainModel.value !== next) manualMainModel.value = next;
     });
 
-    const currentApiKey = computed(() => settings.value.apiKey || '');
+    const currentApiKey = computed(() => getConnectionCenterPrimaryFallback()?.apiKey || '');
+    function isModuleRequestReady(moduleKey) { return getModuleRequestConfig(moduleKey).ok; }
+    // 正文续写必须以连接中心的正文模块路由为准，不能再以旧 settings.apiKey 决定按钮可用性。
+    const writingGenerationReady = computed(() => isModuleRequestReady('writing'));
+    const oneKeyGenerationReady = computed(() => getOneKeyRequiredModelKeys(okCfg).every(isModuleRequestReady));
     const activeBranchId = ref('main');
     const branchList = ref([{id:'main',name:'主线',forkFromChapterId:null,forkIndex:0}]);
 
@@ -3721,13 +3734,10 @@ function copyLastChapterContextText() {
       }
       const defaultProfile = getEffectiveDefaultConnectionProfile();
       if (defaultProfile?.defaultModel) return defaultProfile.defaultModel;
-      if (Array.isArray(connectionCenter.value?.profiles) && connectionCenter.value.profiles.length) return '';
-      const mm = settings.value.moduleModels?.[key];
-      if (mm) return mm;
-      return settings.value.model || '';
+      return '';
     }
 
-    // 统一解析模块所使用的 API 配置；旧 settings 字段仅作为兼容回退。
+    // 统一解析模块所使用的 API 配置；网页版运行时只认连接中心。
     function resolveModuleConnection(moduleKey) {
       const key = String(moduleKey || '').trim();
       const center = normalizeConnectionCenter(connectionCenter.value);
@@ -3751,7 +3761,7 @@ function copyLastChapterContextText() {
         if (profile.lastTest?.status !== 'ok') return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”尚未通过连接测试', source:'connection-center', profile:null };
         return { ok:true, source:'connection-center', profile, model:profile.defaultModel, apiKey:getConnectionCredential(profile.id), baseUrl:profile.baseUrl };
       }
-      return { ok:true, source:'legacy', profile:null, model:getModelForModule(key), apiKey:String(settings.value.apiKey || ''), baseUrl:String(settings.value.apiUrl || '') };
+      return { ok:false, reason:'请先在连接中心新建并测试 API 配置', source:'connection-center', profile:null };
     }
 
     function requireModelForModule(moduleKey, label = '当前模块') {
@@ -3795,7 +3805,7 @@ function copyLastChapterContextText() {
        - https://api.example.com/v1/chat/completions
        - https://proxy.site/some-path/v1
        返回不带尾部斜杠的基础路径（到 /v1 为止） */
-    function getApiBaseUrl(rawUrl = settings.value.apiUrl) {
+    function getApiBaseUrl(rawUrl = '') {
       let url = String(rawUrl || '').trim().replace(/\/+$/, '');
       if (!url) return '';
       // 仅移除路径末尾的端点，不能把域名中的 "models" 当成路径截断。
@@ -3811,9 +3821,10 @@ function copyLastChapterContextText() {
 
     function getCompletionsUrl(moduleKey = '') {
       const resolved = moduleKey ? resolveModuleConnection(moduleKey) : null;
-      const base = getApiBaseUrl(resolved?.ok ? resolved.baseUrl : settings.value.apiUrl);
+      const fallback = moduleKey ? null : getConnectionCenterPrimaryFallback();
+      const base = getApiBaseUrl(resolved?.ok ? resolved.baseUrl : fallback?.baseUrl);
       if (!base) return '';
-      const adapterId = resolved?.profile?.adapterId || 'openai-compatible';
+      const adapterId = resolved?.profile?.adapterId || fallback?.adapterId || 'openai-compatible';
       if (adapterId === 'anthropic-messages' || adapterId === 'gemini-generate') return base;
       return base + '/chat/completions';
     }
@@ -4278,8 +4289,9 @@ function cleanAIResponse(text) {
 
     function sanitizeApiErrorDetail(value) {
       let text = String(value || '').replace(/\s+/g, ' ').trim();
-      const key = String(settings.value.apiKey || '').trim();
-      if (key) text = text.split(key).join('[API Key已隐藏]');
+      Object.values(connectionCredentials.value || {}).map(value => String(value || '').trim()).filter(Boolean).forEach(key => {
+        text = text.split(key).join('[API Key已隐藏]');
+      });
       text = text.replace(/\bsk-[A-Za-z0-9_-]{6,}\b/g, '[API Key已隐藏]');
       text = text.replace(/([?&](?:api[_-]?key|key|token)=)[^&\s]+/gi, '$1[已隐藏]');
       text = text.replace(/(authorization\s*:\s*bearer\s+)[^\s,;]+/gi, '$1[已隐藏]');
@@ -8854,13 +8866,20 @@ function cleanAIResponse(text) {
       const customApiUrl = tool.apiUrlSetting ? String(getModSettingValue(mod, tool.apiUrlSetting) || '').trim() : '';
       const customApiKey = tool.apiKeySetting ? String(getModSettingValue(mod, tool.apiKeySetting) || '').trim() : '';
       const customModel = tool.modelSetting ? String(getModSettingValue(mod, tool.modelSetting) || '').trim() : '';
+      const moduleKey = String(tool.modelKey || tool.taskType || 'writing').trim() || 'writing';
+      const moduleRequest = getModuleRequestConfig(moduleKey);
       const requiresExplicitToolKey = !!tool.apiKeySetting;
       if (requiresExplicitToolKey && !customApiKey) return fail('请先填写该工具的独立 API Key，或在配置弹窗点击“跟随主模型填写”后再运行');
-      if (!requiresExplicitToolKey && !customApiKey && !currentApiKey.value) return fail('请先配置 API Key');
-      const url = customApiUrl
+      if (!customApiUrl && !moduleRequest.ok) return fail(moduleRequest.reason || '请先配置对应模块 API');
+      const request = {
+        url: customApiUrl
         ? (customApiUrl.replace(/\/+$/, '').endsWith('/chat/completions') ? customApiUrl.replace(/\/+$/, '') : customApiUrl.replace(/\/+$/, '') + '/chat/completions')
-        : (requiresExplicitToolKey ? '' : getCompletionsUrl());
-      if (!url) return fail('请先配置 API 地址');
+        : moduleRequest.url,
+        apiKey: customApiKey || (requiresExplicitToolKey ? '' : moduleRequest.apiKey),
+        model: customModel || moduleRequest.model,
+        adapterId: customApiUrl ? 'openai-compatible' : moduleRequest.adapterId
+      };
+      if (!request.url || !request.apiKey || !request.model) return fail('请先配置对应模块的 API 地址、密钥和模型');
       const context = runtimeOptions.context || buildModHostContext({ source: 'modAiTool', modId: mod.id, toolId: tool.id });
       const inputs = getModAiToolEffectiveInputs(mod.id, tool, runtimeOptions.inputs || {}, context, runtimeOptions.inputOptions || {});
       const inputErr = validateModAiToolInputs(tool, inputs);
@@ -8873,14 +8892,9 @@ function cleanAIResponse(text) {
         const messages = tool.useNsfwMessages === false
           ? [{ role: 'user', content: prompt }]
           : buildNsfwMessages(prompt, { systemPrompt: tool.instruction || '', taskType: tool.taskType || tool.modelKey || 'writing' });
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (customApiKey || currentApiKey.value) },
-          body: JSON.stringify({ model: customModel || getModelForModule(tool.modelKey || 'writing'), messages, stream: false })
-        });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const data = await resp.json();
-        const text = extractAiTextFromResponse(data, { label: tool.title || 'AI工具', minChars: 1 });
+        const completion = await fetchAdapterCompletion(request, messages, { stream:false, temperature:0.7, maxTokens:Math.min(16000, Number(tool.maxTokens) || 4096) });
+        const text = cleanAIResponse(completion.text || '');
+        if (!text) throw new Error((tool.title || 'AI工具') + '返回为空');
         const tableWrite = appendModAiToolRowsToTable(mod, tool, text);
         const tableRowsAdded = Number(tableWrite.added) || 0;
         const tableRowsUpdated = Number(tableWrite.updated) || 0;
@@ -10009,8 +10023,8 @@ function cleanAIResponse(text) {
         apiKey,
         model,
         requiresExplicitKey,
-        baseUrl: normalizeModApiBaseUrl(apiUrl || ((hasOwnApiUrlSetting || hasFallbackApiUrlSetting) ? '' : settings.value.apiUrl) || ''),
-        key: apiKey || (requiresExplicitKey ? '' : currentApiKey.value) || ''
+        baseUrl: normalizeModApiBaseUrl(apiUrl || ''),
+        key: apiKey || ''
       };
     }
 
@@ -11833,7 +11847,7 @@ function cleanAIResponse(text) {
     }
 
     function getMainModelForModTask(task = 'writing') {
-      return getModelForModule(task || 'writing') || settings.value.model || '';
+      return getModelForModule(task || 'writing');
     }
 
     function getModApiActionConfig(mod, payload = {}) {
@@ -11843,6 +11857,8 @@ function cleanAIResponse(text) {
       const apiUrl = apiUrlSetting ? String(getModSettingValue(mod, apiUrlSetting) || '').trim() : '';
       const apiKey = apiKeySetting ? String(getModSettingValue(mod, apiKeySetting) || '').trim() : '';
       const requiresExplicitKey = !!apiKeySetting;
+      const moduleKey = String(payload.moduleKey || payload.modelTask || payload.taskType || 'writing').trim() || 'writing';
+      const moduleRequest = getModuleRequestConfig(moduleKey);
       return {
         apiUrlSetting,
         apiKeySetting,
@@ -11850,8 +11866,12 @@ function cleanAIResponse(text) {
         apiUrl,
         apiKey,
         requiresExplicitKey,
-        baseUrl: normalizeModApiBaseUrl(apiUrl || (requiresExplicitKey ? '' : settings.value.apiUrl) || ''),
-        key: apiKey || (requiresExplicitKey ? '' : currentApiKey.value) || '',
+        moduleKey,
+        moduleRequest,
+        adapterId: apiUrl ? 'openai-compatible' : moduleRequest.adapterId,
+        model: (modelSetting ? String(getModSettingValue(mod, modelSetting) || '').trim() : '') || moduleRequest.model || '',
+        baseUrl: normalizeModApiBaseUrl(apiUrl || (apiUrlSetting ? '' : moduleRequest.profile?.baseUrl) || ''),
+        key: apiKey || (requiresExplicitKey ? '' : moduleRequest.apiKey) || '',
         resultKey: payload.resultKey || payload.modelsKey || 'modModels'
       };
     }
@@ -11865,9 +11885,20 @@ function cleanAIResponse(text) {
       const apiKeySetting = payload.apiKeySetting || payload.apiKeyKey || '';
       const modelSetting = payload.modelSetting || payload.modelKey || '';
       const modelTask = payload.modelTask || payload.taskType || payload.moduleKey || 'writing';
-      const mainApiUrl = String(settings.value.apiUrl || '').trim();
-      const mainApiKey = String(settings.value.apiKey || '').trim();
-      const mainModel = getMainModelForModTask(modelTask);
+      const moduleRequest = getModuleRequestConfig(modelTask);
+      if (!moduleRequest.ok) {
+        const message = moduleRequest.reason || '请先配置对应模块 API';
+        showToast(message, 'error');
+        return { ok:false, error:message };
+      }
+      if ((apiUrlSetting || apiKeySetting) && !['openai-compatible', 'openai-chat'].includes(moduleRequest.adapterId)) {
+        const message = '该插件的独立接口字段仅支持 OpenAI 格式，当前模块配置请直接由宿主路由调用';
+        showToast(message, 'error');
+        return { ok:false, error:message };
+      }
+      const mainApiUrl = String(moduleRequest.profile?.baseUrl || '').trim();
+      const mainApiKey = String(moduleRequest.apiKey || '').trim();
+      const mainModel = String(moduleRequest.model || '').trim();
       const missing = [];
       if (apiUrlSetting && !mainApiUrl) missing.push('主接口地址');
       if (apiKeySetting && !mainApiKey) missing.push('主 API Key');
@@ -11919,12 +11950,16 @@ function cleanAIResponse(text) {
         }
       }
       const cfg = getModApiActionConfig(mod, payload);
+      if (!cfg.apiUrl && !cfg.moduleRequest.ok) return fail(cfg.moduleRequest.reason || '请先配置对应模块 API');
       if (!cfg.baseUrl || !cfg.key) return fail('请先填写接口地址和 Key');
       if (payload.requireModel && cfg.modelSetting && !String(getModSettingValue(mod, cfg.modelSetting) || '').trim()) return fail('请先选择插件模型');
-      const url = cfg.baseUrl + '/models';
+      const url = getConnectionProfileModelsUrl({ baseUrl:cfg.baseUrl, apiKey:cfg.key, adapterId:cfg.adapterId });
+      const headers = cfg.adapterId === 'anthropic-messages'
+        ? { 'x-api-key':cfg.key, 'anthropic-version':'2023-06-01' }
+        : cfg.adapterId === 'gemini-generate' ? {} : { Authorization:'Bearer ' + cfg.key };
       showToast('正在测试插件接口...', 'info');
       try {
-        const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + cfg.key } });
+        const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         showToast(payload.toast || '插件接口连接成功', 'success');
         return { ok: true, endpoint: 'models' };
@@ -11941,11 +11976,15 @@ function cleanAIResponse(text) {
       if (!mod || !isModPermissionEnabled(mod, 'ai:request')) return fail('该 MOD 缺少 ai:request 权限');
       if (!isModPermissionEnabled(mod, 'storage:own')) return fail('该 MOD 缺少 storage:own 权限');
       const cfg = getModApiActionConfig(mod, payload);
+      if (!cfg.apiUrl && !cfg.moduleRequest.ok) return fail(cfg.moduleRequest.reason || '请先配置对应模块 API');
       if (!cfg.baseUrl || !cfg.key) return fail('请先填写接口地址和 Key');
-      const url = cfg.baseUrl + '/models';
+      const url = getConnectionProfileModelsUrl({ baseUrl:cfg.baseUrl, apiKey:cfg.key, adapterId:cfg.adapterId });
+      const headers = cfg.adapterId === 'anthropic-messages'
+        ? { 'x-api-key':cfg.key, 'anthropic-version':'2023-06-01' }
+        : cfg.adapterId === 'gemini-generate' ? {} : { Authorization:'Bearer ' + cfg.key };
       showToast('正在获取插件模型列表...', 'info');
       try {
-        const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + cfg.key } });
+        const resp = await fetch(url, { headers });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         const models = Array.isArray(data.data) ? data.data.slice().sort((a,b) => String(a.id || a).localeCompare(String(b.id || b))) : [];
@@ -22162,17 +22201,21 @@ function getWritingModelLabel() {
     }
 
     async function requestAvailableModels() {
-      if (!settings.value.apiUrl || !settings.value.apiKey) {
-        modelConnectionStatus.value = { type:'error', text:'请先填写 API 地址和 Key；也可以直接手动填写模型 ID。' };
-        showToast('请先填写API地址和Key', 'error');
+      const primary = getConnectionCenterPrimaryFallback();
+      if (!primary) {
+        modelConnectionStatus.value = { type:'error', text:'请先在连接中心配置并测试默认 API；也可以直接手动填写模型 ID。' };
+        showToast('请先在连接中心配置默认 API', 'error');
         return false;
       }
       if (isLoadingModels.value) return false;
       isLoadingModels.value = true;
       modelConnectionStatus.value = { type:'loading', text:'正在检测 API 并刷新模型列表…' };
-      const url = getApiBaseUrl() + '/models';
+      const url = getConnectionProfileModelsUrl({ baseUrl:primary.baseUrl, apiKey:primary.apiKey, adapterId:primary.adapterId });
+      const headers = primary.adapterId === 'anthropic-messages'
+        ? { 'x-api-key':primary.apiKey, 'anthropic-version':'2023-06-01' }
+        : primary.adapterId === 'gemini-generate' ? {} : { Authorization:'Bearer ' + primary.apiKey };
       try {
-        const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + settings.value.apiKey } });
+        const resp = await fetch(url, { headers });
         if (!resp.ok) throw await createApiResponseError(resp, '模型列表');
         const data = await resp.json();
         if (!Array.isArray(data?.data)) throw new Error('模型列表响应格式不正确');
@@ -24529,7 +24572,7 @@ function getWritingModelLabel() {
       showImportExport, showNewBook, showSnapshots, showSettings_modal,
       newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
-      currentApiKey, activeBranchId, branchList,
+      currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
       connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
