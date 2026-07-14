@@ -4459,7 +4459,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
        data-moyun-initial-focus="[data-web-update-ack]" role="dialog" aria-modal="true" aria-labelledby="moyun-web-update-title"
        class="fixed inset-0 z-[250] flex items-center justify-center p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="dismissWebUpdateAnnouncement">
-    <section data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3)">
+    <section data-moyun-modal-panel tabindex="-1" class="relative isolate z-[1] w-full max-w-md overflow-hidden rounded-2xl" style="background:var(--bg-card);opacity:1;box-shadow:var(--sh3)">
       <div class="px-5 py-4 flex items-start justify-between gap-3" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
         <div class="min-w-0">
           <div class="text-[10px] font-bold tracking-[0.16em]" style="color:var(--accent)">{{ webUpdateAnnouncement.badge }}</div>
