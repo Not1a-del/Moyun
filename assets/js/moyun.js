@@ -670,7 +670,7 @@ createApp({
     });
 
     /* ═══ 连接中心 G1：配置档案、私有凭据与兼容迁移 ═══ */
-    const CONNECTION_CENTER_VERSION = 2;
+    const CONNECTION_CENTER_VERSION = 3;
     const CONNECTION_CREDENTIALS_DB_KEY = 'connection_credentials_v1';
     const CONNECTION_MODULE_KEYS = ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
     const PROVIDER_TEMPLATES = Object.freeze([
@@ -695,6 +695,9 @@ createApp({
       const template = getProviderTemplate(raw.templateId);
       const source = raw.source === 'custom' || template.id === 'custom' ? 'custom' : 'builtin-template';
       const id = String(raw.id || uid());
+      const rawCatalog = Array.isArray(raw.modelCatalog) ? raw.modelCatalog.filter(item => item && item.id).map(item => ({ id:String(item.id).trim(), source:item.source === 'discovered' ? 'discovered' : 'manual' })).filter(item => item.id) : [];
+      const configuredModel = String(raw.defaultModel || '').trim() || String(rawCatalog[0]?.id || '').trim();
+      const configuredModelSource = rawCatalog.find(item => item.id === configuredModel)?.source || 'manual';
       return {
         id,
         name: String(raw.name || '').trim().slice(0, 40),
@@ -703,8 +706,8 @@ createApp({
         adapterId: String(raw.adapterId || template.adapterId || '').trim(),
         baseUrl: String(raw.baseUrl || '').trim(),
         credentialRef: 'local:connection:' + id,
-        defaultModel: String(raw.defaultModel || '').trim(),
-        modelCatalog: Array.isArray(raw.modelCatalog) ? raw.modelCatalog.filter(item => item && item.id).map(item => ({ id:String(item.id), source:item.source === 'discovered' ? 'discovered' : 'manual' })) : [],
+        defaultModel: configuredModel,
+        modelCatalog: configuredModel ? [{ id:configuredModel, source:configuredModelSource }] : [],
         requestOptions: Object.assign({ stream:true, temperature:null, maxOutputTokens:null }, raw.requestOptions || {}),
         enabled: raw.enabled !== false,
         lastTest: Object.assign({ status:'unknown', at:0, detail:'' }, raw.lastTest || {})
@@ -730,7 +733,7 @@ createApp({
     const connectionCenterTab = ref('profiles');
     const connectionProfileEditorOpen = ref(false);
     const connectionProfileEditorMode = ref('create');
-    const connectionProfileDraft = ref({ templateId:'openai-compatible', name:'', baseUrl:'', apiKey:'', defaultModel:'', modelCatalogText:'', discoveredModelIds:[], adapterId:'openai-compatible' });
+    const connectionProfileDraft = ref({ templateId:'openai-compatible', name:'', baseUrl:'', apiKey:'', defaultModel:'', selectedDiscoveredModelId:'', adapterId:'openai-compatible' });
     const connectionProfileDraftError = ref('');
     const connectionProfileTesting = ref(false);
     const connectionProfileTestResult = ref({ status:'unknown', detail:'' });
@@ -817,8 +820,7 @@ createApp({
         baseUrl: source.baseUrl || '',
         apiKey: profile ? getConnectionCredential(source.id) : '',
         defaultModel: source.defaultModel || '',
-        modelCatalogText: Array.isArray(source.modelCatalog) ? source.modelCatalog.filter(item => item.source !== 'discovered').map(item => item.id).join('\n') : '',
-        discoveredModelIds: Array.isArray(source.modelCatalog) ? source.modelCatalog.filter(item => item.source === 'discovered').map(item => item.id) : [],
+        selectedDiscoveredModelId: Array.isArray(source.modelCatalog) && source.modelCatalog.some(item => item.id === source.defaultModel && item.source === 'discovered') ? source.defaultModel : '',
         adapterId: source.adapterId || template.adapterId || (template.id === 'custom' ? 'openai-compatible' : '')
       };
       connectionProfileDraftError.value = '';
@@ -847,29 +849,27 @@ createApp({
       connectionProfileTestResult.value = { status:'unknown', detail:'' };
     }
 
-    function getConnectionProfileDraftModelIds(raw = connectionProfileDraft.value.modelCatalogText) {
-      return String(raw || '').split(/\r?\n|,/).map(item => item.trim()).filter(Boolean).filter((item, index, list) => list.indexOf(item) === index);
-    }
-
     function isConnectionProfileDiscoveredModelSelected(modelId) {
-      return Array.isArray(connectionProfileDraft.value.discoveredModelIds) && connectionProfileDraft.value.discoveredModelIds.includes(String(modelId || ''));
+      return String(connectionProfileDraft.value.selectedDiscoveredModelId || '') === String(modelId || '');
     }
 
-    function setConnectionProfileDiscoveredModelSelected(modelId, selected) {
+    function selectConnectionProfileDiscoveredModel(modelId) {
       const id = String(modelId || '').trim();
       if (!id) return;
-      const current = Array.isArray(connectionProfileDraft.value.discoveredModelIds) ? connectionProfileDraft.value.discoveredModelIds : [];
-      connectionProfileDraft.value.discoveredModelIds = selected ? [...new Set([...current, id])] : current.filter(item => item !== id);
-      if (selected && !String(connectionProfileDraft.value.defaultModel || '').trim()) connectionProfileDraft.value.defaultModel = id;
+      connectionProfileDraft.value.selectedDiscoveredModelId = id;
+      connectionProfileDraft.value.defaultModel = id;
+      invalidateConnectionProfileDraftTest();
+    }
+
+    function updateConnectionProfileDraftManualModel() {
+      if (String(connectionProfileDraft.value.defaultModel || '').trim() !== String(connectionProfileDraft.value.selectedDiscoveredModelId || '')) connectionProfileDraft.value.selectedDiscoveredModelId = '';
       invalidateConnectionProfileDraftTest();
     }
 
     function buildConnectionProfileModelCatalog() {
-      const discoveredIds = Array.isArray(connectionProfileDraft.value.discoveredModelIds) ? connectionProfileDraft.value.discoveredModelIds.map(item => String(item || '').trim()).filter(Boolean) : [];
-      const selected = [...new Set(discoveredIds)];
-      const selectedSet = new Set(selected);
-      const manual = getConnectionProfileDraftModelIds().filter(id => !selectedSet.has(id));
-      return [...selected.map(id => ({ id, source:'discovered' })), ...manual.map(id => ({ id, source:'manual' }))];
+      const id = String(connectionProfileDraft.value.defaultModel || '').trim();
+      if (!id) return [];
+      return [{ id, source:String(connectionProfileDraft.value.selectedDiscoveredModelId || '') === id ? 'discovered' : 'manual' }];
     }
 
     function getConnectionProfileModelsUrl(draft) {
@@ -898,7 +898,7 @@ createApp({
         const models = [...new Set(rows.map(item => String(item?.id || item?.name || item?.model || '').replace(/^models\//, '').trim()).filter(Boolean))];
         if (!models.length) throw new Error('接口未返回可用模型');
         connectionProfileModelDiscovery.value = { loading:false, models, error:'' };
-        showToast('已获取 ' + models.length + ' 个模型，请勾选需要使用的模型', 'success');
+        showToast('已获取 ' + models.length + ' 个模型，请选择一个模型', 'success');
         return true;
       } catch (e) {
         connectionProfileModelDiscovery.value = { loading:false, models:[], error:'获取模型失败：' + sanitizeApiErrorDetail(e.message || e) };
@@ -2011,6 +2011,27 @@ createApp({
 	
     const isAutoFilling = ref(false);
 
+    function getSettingsAiDisabledReason() {
+      if (isAutoFilling.value) return '设定正在补全，请等待当前请求完成';
+      const request = getModuleRequestConfig('settings');
+      return request.ok ? '' : (request.reason || '请先配置设定模块 API');
+    }
+
+    function getSettingsAiDisabledActionLabel() {
+      return getSettingsAiDisabledReason() && !isAutoFilling.value ? '去设置' : '';
+    }
+
+    function resolveSettingsAiDisabledAction() {
+      if (!isAutoFilling.value && !getModuleRequestConfig('settings').ok) openApiSettingsFromWorkbench();
+    }
+
+    function extractSettingsAutofillField(text, key) {
+      const allKeys = '书名|主题|简介|世界观|负面提示词';
+      const re = new RegExp('(?:^|\\n)\\s*(?:#{1,6}\\s*)?' + key + '\\s*(?:[：:]\\s*)?([\\s\\S]*?)(?=\\n\\s*(?:#{1,6}\\s*)?(?:' + allKeys + ')\\s*(?:[：:]|\\n|$)|$)', 'i');
+      const match = String(text || '').match(re);
+      return match ? String(match[1] || '').trim().replace(/^[-*]\\s*/, '').trim() : '';
+    }
+
     async function aiAutoFillSettings() {
       const request = getModuleRequestConfig('settings');
       if (!request.ok) { showToast(request.reason || '请配置设定模块 API', 'error'); return; }
@@ -2019,35 +2040,25 @@ createApp({
       try {
         const hint = (novel.value.theme || '') + (novel.value.title ? '，书名参考：' + novel.value.title : '');
         const prompt = '你是网文策划专家。请根据以下主题补全小说设定。\n\n主题: ' + hint + '\n\n请严格按以下格式输出：\n### 书名\n(一个有意境的中文书名)\n### 主题\n(20-50字的主题描述)\n### 简介\n(200-400字的作品简介)\n### 世界观\n(500-1000字的世界观设定，含时代背景、社会结构、力量体系)\n### 负面提示词\n(不想出现的元素，逗号分隔，没有则输出"无")\n\n直接输出，不要代码块。';
-        const resp = await fetch(request.url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-        });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const d = await resp.json();
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'settings' }), { stream:false, temperature:0.7, maxTokens:2200 });
+        const text = cleanAIResponse(result.text || '');
         if (!text || text.length < 50) { showToast('AI返回内容不足', 'error'); return; }
-        const extract = (key) => {
-          const allKeys = '书名|主题|简介|世界观|负面提示词';
-          const re = new RegExp('#{1,6}\\s*' + key + '[^\\n]*\\n([\\s\\S]*?)(?=#{1,6}\\s*(?:' + allKeys + ')|$)', 'i');
-          const m = text.match(re);
-          return m ? m[1].trim() : '';
-        };
-        const title = extract('书名');
-        const theme = extract('主题');
-        const synopsis = extract('简介');
-        const worldView = extract('世界观');
-        const negative = extract('负面提示词');
-        if (title && !novel.value.title) novel.value.title = title;
-        if (theme) novel.value.theme = theme;
-        if (synopsis) novel.value.synopsis = synopsis;
-        if (worldView) novel.value.worldView = worldView;
-        if (negative && negative !== '无') novel.value.negativePrompt = negative;
+        const title = extractSettingsAutofillField(text, '书名');
+        const theme = extractSettingsAutofillField(text, '主题');
+        const synopsis = extractSettingsAutofillField(text, '简介');
+        const worldView = extractSettingsAutofillField(text, '世界观');
+        const negative = extractSettingsAutofillField(text, '负面提示词');
+        const updated = [];
+        if (title && !novel.value.title) { novel.value.title = title; updated.push('书名'); }
+        if (theme) { novel.value.theme = theme; updated.push('主题'); }
+        if (synopsis) { novel.value.synopsis = synopsis; updated.push('简介'); }
+        if (worldView) { novel.value.worldView = worldView; updated.push('世界观'); }
+        if (negative && negative !== '无') { novel.value.negativePrompt = negative; updated.push('负面提示词'); }
+        if (!updated.length) throw new Error('AI返回格式不匹配，未写入任何设定');
         saveData();
-        showToast('已补全：' + [title?'书名':'', theme?'主题':'', synopsis?'简介':'', worldView?'世界观':''].filter(Boolean).join('、'), 'success');
+        showToast('已补全：' + updated.join('、'), 'success');
       } catch (e) {
-        showToast('补全失败: ' + e.message, 'error');
+        showToast('补全失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
         isAutoFilling.value = false;
       }
@@ -16416,7 +16427,7 @@ function getModHubPermissionLabels(mod) {
         const expectedCount = Array.isArray(options.expectedChapters)
           ? options.expectedChapters.length
           : Math.max(1, Number(options.expectedEnd || 0) - Number(options.expectedStart || 0) + 1);
-        const headerCount = (gate.visible.match(/(?:^|\n)\s*(?:#{1,6}\s*)?第\s*[0-9０-９一二三四五六七八九十百千两〇零]+\s*章/g) || []).length;
+        const headerCount = (gate.visible.match(/(?:^|\n)\s*(?:#{1,6}\s*)?(?:(?:[-*+]\s*)|(?:\d+[.、]\s*))?第\s*[0-9０-９一二三四五六七八九十百千两〇零]+\s*章/g) || []).length;
         if (expectedCount > 1 && headerCount === 0) throw new Error(label + '没有按“第N章”拆分章节');
       }
       return gate;
@@ -18038,11 +18049,11 @@ function getModHubPermissionLabels(mod) {
     function isDetailedOutlineHeaderLine(line) {
       const text = String(line || '').trim();
       if (!text) return false;
-      return /^(?:#{1,6}\s*)?第\s*[0-9０-９一二三四五六七八九十百千两〇零]+\s*章(?:\s|[：:、.\-—]|$)/.test(text);
+      return /^(?:#{1,6}\s*)?(?:(?:[-*+]\s*)|(?:\d+[.、]\s*))?第\s*[0-9０-９一二三四五六七八九十百千两〇零]+\s*章(?:\s|[：:、.\-—]|$)/.test(text);
     }
 
     function parseDetailedOutlineHeader(header, fallbackNo) {
-      const cleanHeader = String(header || '').replace(/^#+\s*/,'').replace(/\*+/g,'').trim();
+      const cleanHeader = String(header || '').replace(/^(?:#{1,6}\s*)?(?:(?:[-*+]\s*)|(?:\d+[.、]\s*))?/,'').replace(/\*+/g,'').trim();
       const chapterNo = parseDetailedOutlineChapterNo(cleanHeader, fallbackNo);
       const title = cleanHeader
         .replace(/^第\s*[0-9０-９一二三四五六七八九十百千两〇零]+\s*章\s*/,'')
@@ -24449,7 +24460,7 @@ function getWritingModelLabel() {
       connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
-      isAutoFilling, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
+      isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt,
       // ── Part 1: 基本操作 ──
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, handleNewBookConfirm,
@@ -24563,7 +24574,7 @@ function getWritingModelLabel() {
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, setConnectionProfileDiscoveredModelSelected, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

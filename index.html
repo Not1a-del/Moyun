@@ -206,12 +206,16 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <label class="label mb-0">书名</label>
-          <button @click="aiAutoFillSettings()" :disabled="!currentApiKey || isAutoFilling"
+          <button @click="aiAutoFillSettings()" :disabled="!!getSettingsAiDisabledReason()"
                   class="text-[10px] px-3 py-1 rounded-lg font-bold"
                   style="background:var(--warn);color:white"
-                  :style="isAutoFilling?'opacity:.5':''">
+                  :style="getSettingsAiDisabledReason()?'opacity:.5':''">
             <span v-if="isAutoFilling" class="loading-spinner"></span>{{ isAutoFilling ? '补全中...' : '✨ AI一键补全' }}
           </button>
+        </div>
+        <div v-if="getSettingsAiDisabledReason()" class="moyun-action-status mb-2" role="status">
+          <span>{{ getSettingsAiDisabledReason() }}</span>
+          <button v-if="getSettingsAiDisabledActionLabel()" type="button" @click="resolveSettingsAiDisabledAction()">{{ getSettingsAiDisabledActionLabel() }}</button>
         </div>
         <input v-model="novel.title" @change="saveData()" placeholder="无题"
 
@@ -3649,8 +3653,10 @@
             </div>
             <button type="button" @click="openConnectionProfileEditor('openai-compatible')" class="btn-primary text-xs px-3 py-2 shrink-0">＋ 新建配置</button>
           </div>
+          <div class="text-[10px] leading-relaxed" style="color:var(--tx3)">
+            支持协议：OpenAI 兼容接口、OpenAI Chat Completions、Anthropic Messages、Google Gemini。可在右上角“新建配置”中选择协议并自定义配置名称。
+          </div>
           <div class="flex flex-wrap gap-2">
-            <button v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" type="button" @click="openConnectionProfileEditor(tpl.id)" class="px-2.5 py-1.5 rounded-lg text-[10px]" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ tpl.name }}</button>
             <button type="button" @click="exportConnectionScheme" class="px-2.5 py-1.5 rounded-lg text-[10px]" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">导出无密钥方案</button>
             <label class="px-2.5 py-1.5 rounded-lg text-[10px] cursor-pointer" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">导入方案<input type="file" accept="application/json,.json" class="hidden" @change="importConnectionSchemeFile"></label>
           </div>
@@ -5341,15 +5347,14 @@
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="invalidateConnectionProfileDraftTest" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
+          <label class="text-[10px]" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label>
           <div class="space-y-1">
-            <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
+            <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
             <div v-if="connectionProfileModelDiscovery.models.length" class="max-h-36 overflow-auto rounded-lg p-2 space-y-1" style="border:1px solid var(--bd);background:var(--bg-inset)">
-              <label v-for="modelId in connectionProfileModelDiscovery.models" :key="modelId" class="flex items-center gap-2 min-w-0 cursor-pointer"><input type="checkbox" :checked="isConnectionProfileDiscoveredModelSelected(modelId)" @change="setConnectionProfileDiscoveredModelSelected(modelId,$event.target.checked)"><span class="text-[10px] font-mono truncate" style="color:var(--tx)">{{ modelId }}</span></label>
+              <label v-for="modelId in connectionProfileModelDiscovery.models" :key="modelId" class="flex items-center gap-2 min-w-0 cursor-pointer"><input type="radio" name="connection-profile-model" :checked="isConnectionProfileDiscoveredModelSelected(modelId)" @change="selectConnectionProfileDiscoveredModel(modelId)"><span class="text-[10px] font-mono truncate" style="color:var(--tx)">{{ modelId }}</span></label>
             </div>
           </div>
-          <label class="text-[10px]" style="color:var(--tx3)">手填模型目录（可选，一行一个）<textarea v-model="connectionProfileDraft.modelCatalogText" class="textarea-field text-xs font-mono mt-1" rows="3" placeholder="gpt-4.1\ngpt-4.1-mini"></textarea></label>
           <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
           <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">{{ connectionProfileTestResult.detail }}</div>
           <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '测试中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" class="btn-primary flex-1 text-xs py-2">保存配置</button></div>
@@ -5615,7 +5620,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=e990bdfbbb06"></script>
+<script src="./assets/js/moyun.js?v=91599c6bc175"></script>
 <!-- PART_1_END -->
 </body>
 </html>
