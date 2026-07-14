@@ -80,6 +80,9 @@ img{max-width:100%;display:block}
 button,input,select,textarea{font:inherit;color:inherit;border:none;background:none}
 button{cursor:pointer}
 .font-art{font-family:var(--font-art)}
+.moyun-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;font-weight:700;letter-spacing:0;line-height:1.05;text-rendering:optimizeLegibility;text-shadow:0 1px 0 rgba(255,255,255,.42)}
+[data-theme="dark"] .moyun-wordmark{text-shadow:0 1px 0 rgba(255,255,255,.08)}
+.moyun-brand-mark{filter:drop-shadow(0 1px 1px rgba(28,25,23,.16))}
 
 /* ═══════════════════════════════════════════════
    滚动条
@@ -1480,6 +1483,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 @media (min-width:768px){.paragraph-comment-mask{align-items:flex-end;padding:20px}.paragraph-comment-sheet{border-radius:22px 22px 0 0;max-height:78vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-body{padding-bottom:18px}.paragraph-comment-actions{position:static}.paragraph-comment-line{margin-bottom:1.1em}}
 @media (max-width:520px){.paragraph-comment-line{font-size:16px;line-height:2.15}.paragraph-comment-bubble{padding:2px 7px;margin-left:6px;font-size:10px}.paragraph-comment-sheet{max-height:84vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-content{font-size:14px}}
 .moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Arial,"Noto Sans SC",sans-serif;font-size:clamp(29px,5vw,43px);font-weight:700;letter-spacing:0;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
+.moyun-loader-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;line-height:1.05}
 </style>
 </head>
 
@@ -1523,7 +1527,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
   </button>
-  <span class="font-sans font-semibold text-lg flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
+  <span class="moyun-wordmark text-lg flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0">Moyun</span>
   <div class="flex items-center gap-0">
     <button type="button" @click="showSnapshots=true;loadSnapshots()" class="moyun-icon-button" style="color:var(--tx2)" title="快照历史" aria-label="打开快照历史">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18z"/></svg>
@@ -1557,7 +1561,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <!-- 侧边栏顶部 -->
   <div class="px-5 py-4 flex justify-between items-center shrink-0 desktop-only"
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
-    <h1 class="font-sans font-bold text-2xl select-none flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-6 h-6 shrink-0">Moyun</h1>
+    <h1 class="moyun-wordmark text-2xl select-none flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-6 h-6 shrink-0">Moyun</h1>
     <div class="flex gap-1 items-center">
       <button @click="toggleImmersive" class="p-2 rounded-full" style="color:var(--tx3)" title="沉浸阅读">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>
@@ -1580,7 +1584,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <!-- 移动端侧边栏头部 -->
   <div class="px-4 py-3 flex justify-between items-center shrink-0 md:hidden"
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
-    <span class="font-sans font-semibold text-xl flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
+    <span class="moyun-wordmark text-xl flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0">Moyun</span>
     <div class="flex items-center gap-0">
       <button type="button" @click="showImportExport=true" class="moyun-icon-button" style="color:var(--tx3)" title="导入或导出" aria-label="打开导入导出">
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
@@ -2937,7 +2941,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <img :src="coverImage" class="w-64 md:w-80 h-auto rounded-xl cursor-pointer" style="border:1px solid var(--bd);box-shadow:var(--sh2)"
              @click="previewImage(coverImage)">
       </div>
-        <h1 class="text-2xl md:text-5xl font-sans font-bold mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
+        <h1 class="moyun-wordmark text-2xl md:text-5xl mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -6019,7 +6023,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <!-- 项目信息卡 -->
           <div class="p-4 rounded-xl" style="background:var(--accent-soft);border:1px solid var(--bd)">
             <div class="mb-2">
-              <span class="text-lg font-sans font-bold flex items-center gap-2" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="w-5 h-5 shrink-0">Moyun</span>
+              <span class="moyun-wordmark text-lg flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0">Moyun</span>
             </div>
             <div class="text-xs leading-relaxed" style="color:var(--tx2)">
 			  <span class="block">作者：</span>
