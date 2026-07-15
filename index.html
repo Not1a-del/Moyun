@@ -3005,6 +3005,12 @@
           <h4 class="text-xs font-bold" style="color:var(--tx)">{{ section.title }}</h4>
           <p style="color:var(--tx2)">{{ section.body }}</p>
         </section>
+        <section v-if="webUpdateAnnouncement.supportLink" class="pt-4 space-y-3" style="border-top:1px solid var(--bd)">
+          <h4 class="text-sm font-bold" style="color:var(--tx)">{{ webUpdateAnnouncement.supportLink.title }}</h4>
+          <p class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.body }}</p>
+          <p v-if="webUpdateAnnouncement.supportLink.thanks" class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.thanks }}</p>
+          <a :href="webUpdateAnnouncement.supportLink.href" target="_blank" rel="noopener noreferrer" class="btn-primary flex w-full items-center justify-center min-h-[44px] px-4 text-sm" aria-label="在新标签打开 Moyun 爱发电主页">{{ webUpdateAnnouncement.supportLink.label }}</a>
+        </section>
       </div>
       <div class="px-5 py-4 shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <button type="button" data-web-update-ack data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">{{ webUpdateAnnouncement.acknowledge }}</button>
@@ -4856,7 +4862,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=3a2aa34b6654"></script>
+<script src="./assets/js/moyun.js?v=1571f27158ce"></script>
 <!-- PART_1_END -->
 </body>
 </html>

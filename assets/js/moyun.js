@@ -34,6 +34,13 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
   publishedAt: '首次使用指南',
   message: MOYUN_PROJECT_INTRO.lead,
   sections: MOYUN_PROJECT_INTRO.sections,
+  supportLink: Object.freeze({
+    title: '请作者喝杯咖啡。',
+    body: '爱发电现已开启，作为愿意支持项目的用户的自愿入口。所有现有公开功能不受影响；赞助将用于测试、设计与后续开发投入。',
+    thanks: '感谢每一位使用、反馈、转发和支持 Moyun 的朋友。',
+    label: '【前往爱发电】',
+    href: 'https://www.ifdian.net/a/moyunapp'
+  }),
   acknowledge: '开始使用'
 });
 
