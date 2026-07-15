@@ -2441,7 +2441,7 @@ function sanitizeChapterContextMessage(msg) {
         '',
         '安全视图已隐藏该消息中的白鸟内置提示词正文。',
         '保留信息：role=' + (msg.role || 'unknown') + '，messages[' + msg.index + ']，原始字符数=' + content.length + '。',
-        '需要排障时可手动切换到“原始排障”，但不要把原始内容公开发送。'
+        '为保护插件提示词与上下文内容，此窗口不提供原始 messages 视图。'
       ].join('\n');
       return Object.assign({}, msg, {
         content: safeContent,
@@ -2452,7 +2452,6 @@ function sanitizeChapterContextMessage(msg) {
     }
 
 function getVisibleChapterContextMessages() {
-      if (realContextViewMode.value === 'raw') return lastChapterContextMessages.value;
       return lastChapterContextMessages.value.map(sanitizeChapterContextMessage);
     }
 
@@ -2482,18 +2481,16 @@ function writeClipboardText(text, successMessage) {
     }
 
 function copyLastChapterContextJson() {
-      const safe = realContextViewMode.value !== 'raw';
-      writeClipboardText(JSON.stringify({ meta: Object.assign({}, lastChapterContextMeta.value || {}, { viewMode: safe ? 'safe' : 'raw' }), messages: getVisibleChapterContextMessages() }, null, 2), safe ? '已复制安全上下文 JSON' : '已复制原始上下文 JSON');
+      writeClipboardText(JSON.stringify({ meta: Object.assign({}, lastChapterContextMeta.value || {}, { viewMode: 'safe' }), messages: getVisibleChapterContextMessages() }, null, 2), '已复制安全上下文 JSON');
     }
 
 function copyLastChapterContextText() {
-      const safe = realContextViewMode.value !== 'raw';
       const text = getVisibleChapterContextMessages().map(msg => {
         const namePart = msg.name ? ' name=' + msg.name : '';
         const mark = msg.redacted ? ' · 白鸟已脱敏' : '';
         return 'F' + msg.floor + ' [' + msg.role + namePart + ']' + mark + ' ' + (msg.displayChars || msg.chars) + '/' + msg.chars + '字符\n' + msg.content;
       }).join('\n\n──────────\n\n');
-      writeClipboardText(text, safe ? '已复制安全上下文文本' : '已复制原始上下文文本');
+      writeClipboardText(text, '已复制安全上下文文本');
     }
 
     /* ═══ 构建带NSFW注入的消息数组 ═══ */

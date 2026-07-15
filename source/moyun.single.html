@@ -3435,7 +3435,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
             </div>
             <div class="flex items-center gap-2 flex-wrap justify-end">
               <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
-              <button @click="showRealContextModal=true" class="btn-ghost text-xs py-2 px-3" :title="lastChapterContextMessages.length ? '查看上一轮提笔续写真实上下文' : '暂无提笔续写上下文，请先生成一章'">📄 真实上下文</button>
+              <button @click="realContextViewMode='safe';showRealContextModal=true" class="btn-ghost text-xs py-2 px-3" :title="lastChapterContextMessages.length ? '查看上一轮提笔续写安全上下文' : '暂无提笔续写上下文，请先生成一章'">📄 真实上下文</button>
               <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')" class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
               <button @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
@@ -3450,10 +3450,10 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- 真实上下文请求弹窗：默认展示安全视图，避免暴露 MOD 内置提示词 -->
 <div v-if="showRealContextModal" data-moyun-modal="real-context" role="dialog" aria-modal="true" aria-label="真实上下文请求" class="fixed inset-0 z-[120] flex items-end md:items-center justify-center p-0 md:p-4" style="box-sizing:border-box;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showRealContextModal=false">
   <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-5xl rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="background:var(--bg);border:1px solid var(--bd);max-height:min(88vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
-    <div class="px-5 py-4 flex items-start justify-between gap-4 shrink-0" style="background:var(--bg-card);border-bottom:1px solid var(--bd)">
-      <div>
+    <div class="px-5 py-4 flex flex-col md:flex-row items-stretch md:items-start justify-between gap-3 shrink-0" style="background:var(--bg-card);border-bottom:1px solid var(--bd)">
+      <div class="min-w-0">
         <h3 class="text-lg font-black" style="color:var(--tx)">真实上下文请求</h3>
-        <p class="text-xs mt-1" style="color:var(--tx3)">默认隐藏白鸟内置提示词，只保留发送顺序、角色、模型与触发提示词组摘要。</p>
+        <p class="text-xs mt-1" style="color:var(--tx3)">仅展示安全上下文：隐藏白鸟内置提示词，只保留发送顺序、角色、模型与触发提示词组摘要。</p>
         <div v-if="lastChapterContextMeta" class="flex flex-wrap gap-2 mt-2 text-[11px]" style="color:var(--tx2)">
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">模型：{{ lastChapterContextMeta.model || '未指定' }}</span>
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">消息：{{ lastChapterContextMeta.messageCount }}</span>
@@ -3461,10 +3461,9 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">时间：{{ formatContextCapturedAt(lastChapterContextMeta.capturedAt) }}</span>
         </div>
       </div>
-      <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+      <div class="flex items-center gap-2 shrink-0 flex-wrap justify-start md:justify-end">
         <div class="inline-flex p-1 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">
-          <button @click="realContextViewMode='safe'" class="text-xs py-1.5 px-3 rounded-full font-bold" :style="realContextViewMode==='safe'?'background:var(--accent);color:white':'color:var(--tx3)'">安全视图</button>
-          <button @click="realContextViewMode='raw'" class="text-xs py-1.5 px-3 rounded-full font-bold" :style="realContextViewMode==='raw'?'background:var(--err);color:white':'color:var(--tx3)'">原始排障</button>
+          <button type="button" class="text-xs py-1.5 px-3 rounded-full font-bold" style="background:var(--accent);color:white" aria-pressed="true">安全视图</button>
         </div>
         <button @click="copyLastChapterContextText" class="btn-ghost text-xs py-2 px-3" :disabled="!lastChapterContextMessages.length" :style="!lastChapterContextMessages.length?'opacity:.45':''">复制文本</button>
         <button @click="copyLastChapterContextJson" class="btn-ghost text-xs py-2 px-3" :disabled="!lastChapterContextMessages.length" :style="!lastChapterContextMessages.length?'opacity:.45':''">复制JSON</button>
@@ -3473,10 +3472,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     </div>
 
     <div class="overflow-y-auto p-4 space-y-3" style="background:var(--bg-inset)">
-      <div v-if="realContextViewMode==='raw' && lastChapterContextMessages.length" class="rounded-2xl px-4 py-3 text-xs leading-relaxed font-bold" style="background:var(--err-soft);border:1px solid rgba(239,68,68,.28);color:var(--err)">
-        原始排障会显示实际发送给模型的完整 messages，可能包含白鸟内置提示词。只在定位问题时临时查看。
-      </div>
-      <div v-else-if="lastChapterContextMessages.length" class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.20);color:var(--tx2)">
+      <div v-if="lastChapterContextMessages.length" class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.20);color:var(--tx2)">
         安全视图已将白鸟内置提示词替换为可读标签；复制内容也会默认使用脱敏版本。
       </div>
 
@@ -8777,7 +8773,7 @@ function sanitizeChapterContextMessage(msg) {
         '',
         '安全视图已隐藏该消息中的白鸟内置提示词正文。',
         '保留信息：role=' + (msg.role || 'unknown') + '，messages[' + msg.index + ']，原始字符数=' + content.length + '。',
-        '需要排障时可手动切换到“原始排障”，但不要把原始内容公开发送。'
+        '为保护插件提示词与上下文内容，此窗口不提供原始 messages 视图。'
       ].join('\n');
       return Object.assign({}, msg, {
         content: safeContent,
@@ -8788,7 +8784,6 @@ function sanitizeChapterContextMessage(msg) {
     }
 
 function getVisibleChapterContextMessages() {
-      if (realContextViewMode.value === 'raw') return lastChapterContextMessages.value;
       return lastChapterContextMessages.value.map(sanitizeChapterContextMessage);
     }
 
@@ -8818,18 +8813,16 @@ function writeClipboardText(text, successMessage) {
     }
 
 function copyLastChapterContextJson() {
-      const safe = realContextViewMode.value !== 'raw';
-      writeClipboardText(JSON.stringify({ meta: Object.assign({}, lastChapterContextMeta.value || {}, { viewMode: safe ? 'safe' : 'raw' }), messages: getVisibleChapterContextMessages() }, null, 2), safe ? '已复制安全上下文 JSON' : '已复制原始上下文 JSON');
+      writeClipboardText(JSON.stringify({ meta: Object.assign({}, lastChapterContextMeta.value || {}, { viewMode: 'safe' }), messages: getVisibleChapterContextMessages() }, null, 2), '已复制安全上下文 JSON');
     }
 
 function copyLastChapterContextText() {
-      const safe = realContextViewMode.value !== 'raw';
       const text = getVisibleChapterContextMessages().map(msg => {
         const namePart = msg.name ? ' name=' + msg.name : '';
         const mark = msg.redacted ? ' · 白鸟已脱敏' : '';
         return 'F' + msg.floor + ' [' + msg.role + namePart + ']' + mark + ' ' + (msg.displayChars || msg.chars) + '/' + msg.chars + '字符\n' + msg.content;
       }).join('\n\n──────────\n\n');
-      writeClipboardText(text, safe ? '已复制安全上下文文本' : '已复制原始上下文文本');
+      writeClipboardText(text, '已复制安全上下文文本');
     }
 
     /* ═══ 构建带NSFW注入的消息数组 ═══ */
