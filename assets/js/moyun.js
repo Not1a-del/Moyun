@@ -26,8 +26,8 @@ const MOYUN_PROJECT_INTRO = Object.freeze({
   ])
 });
 
-/* 首次欢迎说明：新浏览器首次打开时展示；更新 ID 可让既有用户重新阅读新版说明。 */
-const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
+/* 首次欢迎说明：新浏览器首次打开时展示。 */
+const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
   id: 'moyun-first-run-project-introduction-v1',
   badge: '新手说明',
   title: '欢迎来到 Moyun',
@@ -36,7 +36,21 @@ const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
   sections: MOYUN_PROJECT_INTRO.sections,
   acknowledge: '开始使用'
 });
+
+/* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
+const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
+  id: 'web-2026-07-15-1650-afdian-launch',
+  badge: '网页更新',
+  title: 'Moyun 更新',
+  publishedAt: '2026-07-15 16:50',
+  message: '修复了一些已知bug。已入驻爱发电。',
+  sections: Object.freeze([]),
+  acknowledge: '我知道了'
+});
+
+/* 兼容旧版：此前首次说明使用了更新公告的已读键。 */
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
+const MOYUN_FIRST_RUN_GUIDE_SEEN_KEY = 'moyun_first_run_guide_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
 function escapeRegExp(text) { return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 const MOYUN_THINK_TAGS = [
@@ -1884,21 +1898,38 @@ createApp({
     const confirmCfg = ref({ title: '', message: '', confirmText: '确认' });
     const projectIntro = MOYUN_PROJECT_INTRO;
     const showWebUpdateAnnouncement = ref(false);
-    const webUpdateAnnouncement = WEB_UPDATE_ANNOUNCEMENT;
+    const webUpdateAnnouncement = ref(MOYUN_FIRST_RUN_GUIDE);
     let _confirmCb = null;
 
+    function getPendingWebAnnouncement() {
+      try {
+        const legacySeen = localStorage.getItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY);
+        const guideSeen = localStorage.getItem(MOYUN_FIRST_RUN_GUIDE_SEEN_KEY);
+        // 上一版已读记录为首次说明 ID 时，迁移为已读新手说明，直接展示新的入驻公告。
+        if (guideSeen !== MOYUN_FIRST_RUN_GUIDE.id && legacySeen !== MOYUN_FIRST_RUN_GUIDE.id) return MOYUN_FIRST_RUN_GUIDE;
+        if (legacySeen !== WEB_UPDATE_ANNOUNCEMENT.id) return WEB_UPDATE_ANNOUNCEMENT;
+        return null;
+      } catch { return MOYUN_FIRST_RUN_GUIDE; }
+    }
+
     function shouldShowWebUpdateAnnouncement() {
-      if (!webUpdateAnnouncement.id || !webUpdateAnnouncement.message) return false;
-      try { return localStorage.getItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY) !== webUpdateAnnouncement.id; }
-      catch { return true; }
+      return !!getPendingWebAnnouncement();
     }
 
     function openWebUpdateAnnouncement() {
-      if (shouldShowWebUpdateAnnouncement()) showWebUpdateAnnouncement.value = true;
+      const pending = getPendingWebAnnouncement();
+      if (!pending) return false;
+      webUpdateAnnouncement.value = pending;
+      showWebUpdateAnnouncement.value = true;
+      return true;
     }
 
     function dismissWebUpdateAnnouncement() {
-      try { localStorage.setItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY, webUpdateAnnouncement.id); } catch {}
+      const active = webUpdateAnnouncement.value;
+      try {
+        if (active?.id === MOYUN_FIRST_RUN_GUIDE.id) localStorage.setItem(MOYUN_FIRST_RUN_GUIDE_SEEN_KEY, active.id);
+        else if (active?.id) localStorage.setItem(WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY, active.id);
+      } catch {}
       showWebUpdateAnnouncement.value = false;
     }
 
