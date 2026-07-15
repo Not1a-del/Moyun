@@ -4510,7 +4510,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       </div>
       <div class="rounded-xl p-3 space-y-2 text-[11px] leading-relaxed" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)">
         <p><b style="color:var(--tx2)">TXT：</b>恢复可识别的正文、主题/世界观、章节索引和暗线回收计划；角色、细纲、章节历史稿、图片与插件私有数据不会写入。</p>
-        <p><b style="color:var(--tx2)">JSON：</b>用于完整书籍备份与恢复，适合保留角色、章节历史稿、插件资料和图片。</p>
+        <p><b style="color:var(--tx2)">JSON：</b>只导出干净书稿。完整导出保留书名、世界观、章节名与正文；仅导出正文不含世界观。两种方式都不会导出 CoT、思考、工具记录、预设、文风、MOD、图片或其他配置。</p>
       </div>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" data-import-txt @click="triggerImportTxt" class="btn-primary py-3 text-xs rounded-lg">导入 TXT</button>
@@ -29117,102 +29117,63 @@ function getWritingModelLabel() {
     }
 
 
-    // JSON 导出
+    // JSON 导出：只允许导出可分享的干净书稿，绝不把 CoT、提示词资产或插件运行数据混入文件。
     function exportBookJson() {
       showImportExport.value = false;
       nextTick(() => openConfirm({
         title: '导出 JSON',
         message: '请选择导出方式。关闭弹窗或点击取消不会保存、打包或下载文件。',
         impactLines: [
-          '包含图片：导出角色立绘与正文图片缓存，文件较大',
-          '仅文字：保留完整书籍结构，不包含图片二进制数据'
+          '完整导出：书名、世界观、章节名与清洗后的正文',
+          '仅导出正文：书名、章节名与清洗后的正文，不含世界观',
+          '不会导出 CoT/原生思考、工具记录、预设、文风、MOD、图片或其他配置'
         ],
         choices: [
-          { id:'images', label:'包含图片' },
-          { id:'text', label:'仅文字', tone:'neutral' }
+          { id:'complete', label:'完整导出' },
+          { id:'content', label:'仅导出正文', tone:'neutral' }
         ]
-      }, action => performExportBookJson(action === 'images')));
+      }, action => performExportBookJson(action === 'content' ? 'content' : 'complete')));
     }
 
-    async function performExportBookJson(includeImages) {
+    // 世界观不应包含模型推演标签；只移除明确的思维链载体，保留用户写入的世界设定正文。
+    function cleanBookExportWorldView(value) {
+      const extracted = extractResponseReasoningBlocks(String(value || ''));
+      return stripThinkingTagResidue(stripSnowwingCotTagResidue(extracted.body || '')).trim();
+    }
+
+    // 每章仅保留标题与已净化正文，不继承章节 id、分支、摘要、版本、CoT、原生思考或工具时间线。
+    function buildCleanBookExportChapters() {
+      return (chapters.value || []).map((chapter, index) => ({
+        title: String(chapter?.title || ('第' + (index + 1) + '章')).trim() || ('第' + (index + 1) + '章'),
+        content: cleanNarrativeChapterContent(chapter)
+      }));
+    }
+
+    async function performExportBookJson(exportMode = 'complete') {
       syncBookData();
       await saveDataNow('导出前立即保存');
-      const book = books.value.find(b => b.id === currentBookId.value);
-      if (!book) return;
-      const data = Object.assign({}, deepClone(book), {
-        // 中文注释：JSON备份以完整书籍数据快照为准，避免新版字段未同步导致导出缺失。
-        novel: deepClone(novel.value),
-        chapters: deepClone(chapters.value),
-        characters: deepClone(structuredCharacters.value),
-        branchList: deepClone(branchList.value),
-        activeBranchId: activeBranchId.value,
-        chapterOutlines: deepClone(chapterOutlines.value),
-        chapterIndexDrafts: deepClone(chapterIndexDrafts.value),
-        foreshadowMatrix: deepClone(foreshadowMatrix.value),
-        summaries: deepClone(summaries.value),
-        coverImage: coverImage.value,
-        promptPipeline: deepClone(promptPipeline.value),
-        presets: deepClone(presets.value),
-        writingStyles: deepClone(writingStyles.value),
-        currentWritingStyleId: currentWritingStyleId.value,
-        modPacks: deepClone(modPacks.value),
-        // 中文注释：书籍 JSON 导出包含插件私有数据，方便共创插件随书转移。
-        modPrivateData: deepClone(modPrivateData.value),
-        atmosphereEnabled: atmosphereEnabled.value,
-        atmospherePrompt: atmospherePrompt.value,
-        nsfwSettings: deepClone(nsfwSettings.value),
-        dialogueTypes: deepClone(dialogueTypes.value),
-        imageProfiles: deepClone(imageProfiles.value),
-        activeProfileId: activeProfileId.value
-      });
-      data._exportVersion = 6;
-      data._exportDate = new Date().toISOString();
-
-      if (!includeImages) {
-        data.coverImage = '';
-        data.characters = (data.characters || []).map(character => Object.assign({}, character, { avatarBase64: null }));
-      }
-
-      if (includeImages) {
-        showToast('正在打包图片数据...', 'info');
-        // 收集角色立绘
-        const avatars = {};
-        for (const ch of structuredCharacters.value) {
-          if (ch.avatarBase64) avatars[ch.id] = ch.avatarBase64;
-        }
-        data._avatars = avatars;
-
-        // 收集章节图片缓存
-        // 遍历所有章节找到图片标签并查缓存
-        const imgCache = {};
-        for (const ch of chapters.value) {
-          const tags = (ch.content || '').match(/\[IMG:\s*([^\]]+)\]/gi);
-          if (!tags) continue;
-          for (const tagMatch of tags) {
-            const tag = tagMatch.replace(/\[IMG:\s*/i, '').replace(/\]$/, '').trim();
-            const cacheKey = 'img_' + (ch.id || '') + '_' + simpleHash(tag);
-            const cached = await ImageStore.get(cacheKey);
-            if (cached && cached.base64) {
-              imgCache[cacheKey] = cached.base64;
-            }
-          }
-        }
-        data._imageCache = imgCache;
-      }
-
-
       try {
+        const isContentOnly = exportMode === 'content';
+        const title = String(novel.value.title || '未命名书稿').trim() || '未命名书稿';
+        const data = {
+          _type: 'moyun_clean_book_export',
+          _exportVersion: 7,
+          _exportMode: isContentOnly ? 'content-only' : 'complete',
+          _exportDate: new Date().toISOString(),
+          novel: isContentOnly ? { title } : { title, worldView: cleanBookExportWorldView(novel.value.worldView) },
+          chapters: buildCleanBookExportChapters()
+        };
         showToast('正在打包数据...', 'info');
         const jsonStr = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
         const a = document.createElement('a');
         const objUrl = URL.createObjectURL(blob);
         a.href = objUrl;
-        a.download = (novel.value.title || '小说备份') + (includeImages ? '_含图片' : '') + '.json';
+        a.download = title + (isContentOnly ? '_正文' : '_完整书稿') + '.json';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(objUrl); }, 5000);
-        showToast('JSON已导出' + (includeImages ? '（含图片）' : ''), 'success');
+        showToast('JSON已导出：' + (isContentOnly ? '仅正文' : '完整书稿'), 'success');
       } catch (e) {
         showToast('导出失败: ' + (e.message || '数据过大'), 'error');
       }

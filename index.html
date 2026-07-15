@@ -3037,7 +3037,7 @@
       </div>
       <div class="rounded-xl p-3 space-y-2 text-[11px] leading-relaxed" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)">
         <p><b style="color:var(--tx2)">TXT：</b>恢复可识别的正文、主题/世界观、章节索引和暗线回收计划；角色、细纲、章节历史稿、图片与插件私有数据不会写入。</p>
-        <p><b style="color:var(--tx2)">JSON：</b>用于完整书籍备份与恢复，适合保留角色、章节历史稿、插件资料和图片。</p>
+        <p><b style="color:var(--tx2)">JSON：</b>只导出干净书稿。完整导出保留书名、世界观、章节名与正文；仅导出正文不含世界观。两种方式都不会导出 CoT、思考、工具记录、预设、文风、MOD、图片或其他配置。</p>
       </div>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" data-import-txt @click="triggerImportTxt" class="btn-primary py-3 text-xs rounded-lg">导入 TXT</button>
@@ -4862,7 +4862,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=1571f27158ce"></script>
+<script src="./assets/js/moyun.js?v=d74cb9a61112"></script>
 <!-- PART_1_END -->
 </body>
 </html>
