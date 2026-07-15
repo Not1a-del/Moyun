@@ -68,6 +68,13 @@ Moyun/
 
 本仓库已通过 GitHub Pages 从 `main` 分支根目录部署。更新和自定义域名的操作见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
+## 开发与 MOD 文档
+
+- [网页版完整开发与 MOD 共创接口指南](docs/ONLINE_VERSION_COMPLETE_DEVELOPER_GUIDE.md)：唯一网页源、构建与发布、连接中心与协议、数据安全、公告维护、MOD API 1.1、主题和 Skill 信任边界、测试与排错。
+- [部署与更新](docs/DEPLOYMENT.md)：GitHub Pages 的精简发布流程。
+
+网页版运行时只认“连接中心”的配置与模块路由；请勿把冻结离线文件作为网页发布源，也不要直接修改生成的 `index.html` 或 `assets/`。
+
 ## 第三方依赖
 
 页面通过 CDN 使用 Vue 3、Tailwind CSS、Marked、diff-match-patch 与 Google Fonts。它们各自适用独立许可证；本仓库的 `LICENSE` 仅适用于墨韵原创内容。
