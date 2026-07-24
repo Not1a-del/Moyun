@@ -521,10 +521,11 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 }
 .moyun-wb-pill strong{color:var(--tx);font-weight:800}
 .moyun-wb-icon-btn{
-  width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;min-width:36px;min-height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;
   border:1px solid var(--bd);background:var(--bg-card);color:var(--tx3);
   transition:background .15s,border-color .15s,color .15s,transform .1s;
 }
+.moyun-wb-icon-btn svg{width:18px;height:18px;flex:0 0 auto;stroke-linecap:round;stroke-linejoin:round}
 .moyun-wb-icon-btn:hover{background:var(--bg-hover);border-color:var(--bd2);color:var(--tx)}
 .moyun-wb-icon-btn:focus-visible,.moyun-entry-card:focus-visible,.moyun-check-item:focus-visible,.moyun-lf-delete-btn:focus-visible,.moyun-do-card-action:focus-visible,.moyun-darkline-send-btn:focus-visible,.moyun-darkline-tool-btn:focus-visible{
   outline:2px solid var(--accent);outline-offset:2px;

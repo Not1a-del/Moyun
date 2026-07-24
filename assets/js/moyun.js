@@ -46,12 +46,16 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-15-1650-afdian-launch',
+  id: 'web-2026-07-25-0455-creative-stability',
   badge: '网页更新',
-  title: 'Moyun 更新',
-  publishedAt: '2026-07-15 16:50',
-  message: '修复了一些已知bug。已入驻爱发电。',
-  sections: Object.freeze([]),
+  title: '创作体验与稳定性更新',
+  publishedAt: '2026-07-25 04:55',
+  message: 'Moyun 完成了一轮创作体验与稳定性更新。建议刷新页面后使用。',
+  sections: Object.freeze([
+    Object.freeze({ key:'writing', title:'创作体验', body:'进一步优化设定、资料、大纲、细纲与章节之间的操作衔接，让长篇创作过程更顺畅。' }),
+    Object.freeze({ key:'stability', title:'连接与稳定性', body:'改进模型连接、生成中断、上下文检查和移动端操作体验，减少异常状态带来的干扰。' }),
+    Object.freeze({ key:'data', title:'使用提示', body:'作品与 API 配置仍保存在当前浏览器。重要作品请继续定期导出备份。' })
+  ]),
   acknowledge: '我知道了'
 });
 
