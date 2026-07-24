@@ -15,15 +15,18 @@ Moyun 由 Not1a-del 持续维护与迭代。若项目对你有帮助，欢迎通
 
 ## 项目说明
 
-墨韵以单文件 Web 应用形式运行，提供书籍、章节、大纲、细纲、人物与创作辅助等工作区能力。它不需要自建服务器：页面数据保存在使用者自己的浏览器中，模型服务由使用者自行配置兼容接口。
+墨韵是本地优先的纯前端 Web 写作工作台，提供书籍、章节、大纲、细纲、创作设定、角色、事件与关系图等能力。它不需要项目方服务器：作品和连接凭据保存在使用者自己的浏览器中，模型服务由使用者自行配置兼容接口。
 
 ## 核心特性
 
-- 书籍、章节、大纲、细纲与人物资料的本地化管理。
+- 书籍、章节、大纲、细纲与正文的本地化管理。
+- 创作设定工作台：项目承诺、世界总览、结构化资料、事件时间线与可解释的上下文安全预览。
+- 角色工作台：速写/常规/核心三档资料、状态记录、稳定关系、AI 草案逐项审阅与关系图。
+- 细纲可按稳定 ID 钉选本章活跃角色和世界资料；正文、AI 建议、大纲与细纲共用同一上下文选择结果。
 - 支持自定义兼容 API 地址、密钥与模型名称。
-- 支持导入、导出与本地持久化；优先使用 IndexedDB，并提供轻量 localStorage 兜底。
+- 支持导入、干净书稿导出、本地快照与持久化；优先使用 IndexedDB，并提供轻量 localStorage 兜底。
 - 包含创作辅助、白鸟扩展兼容与可控的高风险扩展提示机制。
-- 单一 `index.html` 即可离线打开或部署到任意静态托管服务。
+- 构建结果可部署到 GitHub Pages 等静态托管服务；第三方 CDN 与模型调用仍需要网络。
 
 ## 快速开始
 
@@ -50,7 +53,7 @@ Moyun 由 Not1a-del 持续维护与迭代。若项目对你有帮助，欢迎通
 Moyun/
 ├── index.html              # GitHub Pages 入口（由构建器生成）
 ├── source/
-│   └── moyun.single.html   # 保留离线能力的单文件源
+│   └── moyun.single.html   # 网页版唯一业务源
 ├── assets/
 │   ├── css/moyun.css       # 生成的应用样式
 │   └── js/moyun.js         # 生成的应用逻辑
@@ -59,10 +62,12 @@ Moyun/
 ├── README.md               # 项目介绍与使用说明
 ├── LICENSE                 # CC BY-NC 4.0 完整协议
 └── docs/
-    └── DEPLOYMENT.md       # GitHub Pages 更新与部署说明
+    ├── DEPLOYMENT.md       # GitHub Pages 更新与部署说明
+    ├── ONLINE_VERSION_USER_GUIDE.md
+    └── ONLINE_VERSION_COMPLETE_DEVELOPER_GUIDE.md
 ```
 
-`source/moyun.single.html` 保留单文件离线交付能力；公开站将其拆分为真实的 CSS 与 JavaScript 资产。修改源文件后运行 `npm run build`，不要直接修改生成的 `index.html` 或 `assets/` 文件。
+`source/moyun.single.html` 是网页版唯一业务源；构建器将其中的样式和逻辑拆分为真实的 CSS 与 JavaScript 资产。它不属于已冻结的离线交付线。修改源文件后运行 `npm run build`，不要直接修改生成的 `index.html` 或 `assets/` 文件。
 
 ## 部署
 
@@ -71,9 +76,23 @@ Moyun/
 ## 开发与 MOD 文档
 
 - [网页版完整开发与 MOD 共创接口指南](docs/ONLINE_VERSION_COMPLETE_DEVELOPER_GUIDE.md)：唯一网页源、构建与发布、连接中心与协议、数据安全、公告维护、MOD API 1.1、主题和 Skill 信任边界、测试与排错。
+- [网页版用户指南](docs/ONLINE_VERSION_USER_GUIDE.md)：创作设定、角色、事件、关系图、上下文安全预览、移动端操作与备份导出。
 - [部署与更新](docs/DEPLOYMENT.md)：GitHub Pages 的精简发布流程。
 
 网页版运行时只认“连接中心”的配置与模块路由；请勿把冻结离线文件作为网页发布源，也不要直接修改生成的 `index.html` 或 `assets/`。
+
+## 维护者发布前门禁
+
+应用或接口改动完成后，至少执行：
+
+```powershell
+npm run build
+node --check assets/js/moyun.js
+node output/bug-audit/stage8-full-regression-runner.cjs
+node output/bug-audit/stage8-finalize-report.cjs
+```
+
+全量回归会串行运行静态合同、连接中心、上下文、白鸟/MOD、干净导出、生成取消、弹窗、桌面/手机/短屏与当前线上只读基线，耗时明显长于普通 smoke。只有 `output/playwright/bug-audit-final-report.json` 显示 `passed=true`，且用户明确批准上线，才可以选择性暂存本轮文件、提交并推送；不要使用 `git add .`。
 
 ## 第三方依赖
 

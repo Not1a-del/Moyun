@@ -3,7 +3,7 @@
 > 适用仓库：`Not1a-del/Moyun`（GitHub Pages 网页版）
 > 权威实现：本仓 `source/moyun.single.html`
 > MOD API：`1.1`（仅承诺主版本 `1` 兼容）
-> 文档状态：2026-07-15，根据当前 `main` 分支源码整理
+> 文档状态：2026-07-20，已按全量 Bug 审查 8/8、最终 Edge 三视口与发布门禁同步；候选尚未提交、推送或上线
 
 这是一份给网页维护者、测试者、MOD 作者和协作 AI 使用的完整手册。它描述的是**当前网页版真实运行方式**，而不是历史离线包的设计设想。任何实现、评审或发布决策与本手册冲突时，应先回到本仓 `source/moyun.single.html`、`scripts/build-static-site.cjs` 和近期提交核对，再更新本文档。
 
@@ -14,14 +14,15 @@
 3. [发布、验收与回滚](#发布验收与回滚)
 4. [网页运行架构与功能地图](#网页运行架构与功能地图)
 5. [本地数据、备份、导入导出与隐私](#本地数据备份导入导出与隐私)
-6. [连接中心、模型路由与协议适配](#连接中心模型路由与协议适配)
-7. [上下文、生成、弹窗与公告维护](#上下文生成弹窗与公告维护)
-8. [MOD API 1.1：概念、包格式与校验](#mod-api-11概念包格式与校验)
-9. [MOD 权限、规则、模块、设置与资产](#mod-权限规则模块设置与资产)
-10. [MOD UI、资料表、AI 工具、工作流与事件](#mod-ui资料表ai-工具工作流与事件)
-11. [主题与白鸟 Skill 的信任模型](#主题与白鸟-skill-的信任模型)
-12. [MOD 测试、排错、兼容与发布清单](#mod-测试排错兼容与发布清单)
-13. [附录：可导入的最小示例](#附录可导入的最小示例)
+6. [创作设定工作台内部数据合同](#创作设定工作台内部数据合同)
+7. [连接中心、模型路由与协议适配](#连接中心模型路由与协议适配)
+8. [上下文、生成、弹窗与公告维护](#上下文生成弹窗与公告维护)
+9. [MOD API 1.1：概念、包格式与校验](#mod-api-11概念包格式与校验)
+10. [MOD 权限、规则、模块、设置与资产](#mod-权限规则模块设置与资产)
+11. [MOD UI、资料表、AI 工具、工作流与事件](#mod-ui资料表ai-工具工作流与事件)
+12. [主题与白鸟 Skill 的信任模型](#主题与白鸟-skill-的信任模型)
+13. [MOD 测试、排错、兼容与发布清单](#mod-测试排错兼容与发布清单)
+14. [附录：可导入的最小示例](#附录可导入的最小示例)
 
 ---
 
@@ -50,6 +51,7 @@
 | MOD | JSON 声明式扩展包；普通 MOD 默认不执行任意脚本。 |
 | Hosted View | 由宿主用组件白名单渲染的安全 MOD 视图，不是 HTML 插件页面。 |
 | Full Access | 主题或 Skill 的高风险能力；可能执行 CSS/HTML/JS 或访问宿主页上下文，须明确确认。 |
+| 创作设定工作台 / Story Bible | 宿主内建的项目承诺、世界资料、事件、角色与上下文选择系统。它是宿主内部合同，不是普通 MOD API。 |
 
 ### 不变量
 
@@ -186,7 +188,7 @@ Moyun 是 Vue 3 的单页应用，主体使用 `createApp({ setup() { ... }})`�
 | 区域 | 主要职责 | 维护注意点 |
 | --- | --- | --- |
 | 书架 | 新建、切换、管理书籍与分支 | 书级数据必须隔离，不能把上一书 MOD 私有资料带入下一书。 |
-| 设定、角色 | 世界观、人物资料、创作材料 | 内容可能进入用户配置的 AI 上下文。 |
+| 创作设定、角色 | 项目承诺、世界总览、结构化资料、事件、三档角色、状态与关系 | 只有统一上下文包选中的资料进入已接入生成路径；事件当前只用于作者管理与关系图查看。 |
 | 大纲、目录、总结、查找 | 规划、章节浏览与检索 | 大纲和细纲生成/解析要按当前重构格式做成功门禁。 |
 | 预设 | 文风、提示词流水线等创作偏好 | 白鸟等 MOD 的隔离/注入规则不得被宿主预设误覆盖。 |
 | 全局设置 / 连接中心 | Profile、模型、模块路由、测试和无密钥方案 | 网页运行时只认连接中心。 |
@@ -218,7 +220,9 @@ Moyun 是 Vue 3 的单页应用，主体使用 `createApp({ setup() { ... }})`�
 
 ### 导入、导出与密钥
 
-- **书籍 JSON**：导出当前书的创作、MOD 和图片相关数据；不包含 `connectionCenter`、`connectionCredentials`、全局设置和 `imageGenKey`。
+- **完整书稿 JSON**：只导出书名、世界观总览和正文；章节仅含章节名与正文。
+- **仅正文 JSON**：只导出书名、章节名与正文，不包含世界观。
+- 两种干净导出都不包含角色、`storyBible` 结构化条目、AI 草案、预设、文风、流水线、MOD、CoT、图片、连接中心、凭据、全局设置或其它私有运行数据。需要恢复完整项目状态时应使用本机快照/浏览器备份，不要把干净书稿导出误当项目备份。
 - **TXT**：只包含文本内容。
 - **连接方案**：只导出配置名、协议、地址、模型和模块路由；导入时会拒绝包含 `apiKey`、`credential`、`authorization`、`x-api-key` 等敏感字段的方案文件。
 - **普通快照**：主要用于本地恢复，不能当成对外分享的脱敏备份。当前历史设置中仍可能存在 `apiKey` 字段，生图 Key 也可能位于本地快照。因此不要上传、提交或转发未审计的浏览器导出/快照。
@@ -229,6 +233,185 @@ Moyun 是 Vue 3 的单页应用，主体使用 `createApp({ setup() { ... }})`�
 2. 使用公共电脑、共用浏览器档案或不可信扩展时，站点本地数据仍有被本机其他软件读取/导出的风险。
 3. 调用模型时，浏览器会把该功能构建出的上下文发送给用户选定的上游服务。MOD 的 AI 工具同样由宿主代发，不是本地离线推理。
 4. 导入第三方 MOD、主题和 Skill 前，要核验作者、包 ID、版本、权限与高风险说明；对未知来源保持禁用。
+
+---
+
+## 创作设定工作台内部数据合同
+
+### 边界与兼容原则
+
+本节描述 A-D 重构后的**宿主内部持久化合同**，供宿主维护、迁移和测试使用。它不属于 MOD API 1.1 的公开承诺，普通 MOD 不应直接假设、替换或批量改写 `storyBible`、角色关系和事件数组。MOD 应继续使用后文的白名单资料表、上下文工具、事件和 Hosted View 接口；需要新增宿主能力时，先扩展白名单 API，再由 MOD 声明调用。
+
+当前合同遵守以下不变量：
+
+- `storyBible` 只在作者首次打开创作设定工作台时惰性创建。未打开过工作台的旧书继续保持没有该字段，不因普通正文编辑被强制迁移。
+- `STORY_BIBLE_SCHEMA_VERSION` 当前为 `3`。加载时会规范已知字段、补齐缺失/重复稳定 ID、清理悬空引用，同时保留对象上的未知未来字段。
+- `novel.worldView` 仍是可编辑的兼容世界总览，不会被结构化资料自动覆盖。
+- 世界资料、事件、角色、状态记录和关系事实都只有一份权威存储。时间线和关系图是派生视图，不建立第二份副本。
+- 角色、资料、事件、关系、章节与细纲之间的关联使用稳定 ID；不得用可改名的标题或数组下标充当持久引用。
+- 删除、切书、导入、快照恢复与清空都必须走现有引用修复和短期 UI 状态清理链路。
+
+### `storyBible` v3 根结构
+
+以下示例只列出当前宿主理解的字段；规范器允许保留额外未知字段：
+
+```js
+{
+  schemaVersion: 3,
+  createdAt: 0,
+  updatedAt: 0,
+  project: {
+    premise: '',          // 核心前提
+    coreConflict: '',     // 核心冲突
+    themeQuestion: '',    // 主题问题
+    toneNotes: '',        // 基调说明
+    narrativeRules: ''    // 不可违背的叙事规则
+  },
+  world: {
+    entries: [],          // 结构化世界资料
+    events: []            // D.1 事件事实
+  },
+  context: {
+    pinnedEntryIds: [],
+    pinnedCharacterIds: [],
+    selectedOutlineId: '',
+    itemModes: [],
+    outlinePacks: []
+  }
+}
+```
+
+`project` 是全书级作者承诺。`world` 保存可关联事实；`context` 只保存作者的选择策略，不复制资料正文。旧书的 `worldView` 位于 `novel`，不迁入 `storyBible.world`。
+
+### 世界资料条目
+
+`storyBible.world.entries[]` 的稳定 ID 默认以 `wb_` 开头。当前字段：
+
+| 字段 | 合同 |
+| --- | --- |
+| `id` | 全书唯一稳定 ID；缺失或重复时修复。 |
+| `type` | `location`、`faction`、`rule`、`culture`、`item`、`term`、`custom`。 |
+| `name` / `aliases` | 名称与去重别名；名称可改，引用仍按 ID。 |
+| `importance` | `core`、`normal`、`minor`。 |
+| `summary` / `details` | 摘要和完整资料正文。 |
+| `tags` / `fields` | 标签与可扩展结构化字段。 |
+| `links` | 指向其它世界条目 ID；不得自指。 |
+| `characterIds` | 关联角色 ID。`type=faction` 的该字段同时是关系图阵营筛选的唯一来源。 |
+| `outlineIds` | 关联稳定细纲 ID。 |
+| `status` | `active`、`draft`、`archived`；只有有效启用资料可成为正常上下文候选。 |
+| `contextPolicy` | `always`、`auto`、`pinned`、`never`。 |
+| `createdAt` / `updatedAt` | 毫秒时间戳。 |
+
+条目删除必须清理其它条目的 `links`、事件 `entryIds`、全书/细纲钉选与逐项模式记录。禁止把删除引用改绑到同名条目。
+
+### 事件事实与时间线
+
+`storyBible.world.events[]` 是事件唯一权威存储，稳定 ID 默认以 `event_` 开头：
+
+```js
+{
+  id: 'event_...',
+  title: '',
+  timeText: '',            // 作者可自由填写的世界内时间
+  sortOrder: null,         // 可为负数、小数或 null
+  scope: 'story',          // world | story
+  cause: '',
+  result: '',
+  characterIds: [],
+  entryIds: [],
+  chapterIds: [],
+  legacyImpact: '',        // 遗留影响
+  readerVisible: false,
+  createdAt: 0,
+  updatedAt: 0
+}
+```
+
+时间线排序是派生显示，不重排底层数组。跳转角色、资料和当前分支章节都按稳定 ID。事件删除需要确认；角色、条目或章节删除时只精确清理对应 ID，不删除事件本身。`readerVisible` 是作者管理字段，当前不会让事件自动进入任何 AI 请求。D.2 关系图按关系两端共同出现于 `characterIds` 的事件派生“相关事件”，不复制事件。
+
+### 角色、状态与关系合同
+
+角色继续保存在书级 `characters` / 运行态 `structuredCharacters`，不搬入 `storyBible`。A-D 新增或规范的宿主字段如下：
+
+```js
+{
+  id: 'id_...',
+  profileLevel: 'regular', // sketch | regular | core
+  storyRole: '',
+  profile: {
+    publicGoal: '', realNeed: '', fear: '',
+    innerConflict: '', secret: '', currentState: ''
+  },
+  stateLog: [{
+    id: 'char_state_...', state: '', reason: '',
+    chapterId: '', outlineId: '', createdAt: 0
+  }],
+  chapterLinks: { chapterIds: [], outlineIds: [] },
+  contextPolicy: 'auto',
+  relationships: [{
+    id: 'char_rel_...', targetId: '', type: '',
+    attitude: '', changeReason: ''
+  }]
+}
+```
+
+- 三档模板只控制栏目密度；升降档不得换角色 ID、复制角色或删除已填字段。
+- `characterPrompt` 继续作为兼容底层字段，UI 名称为“写作约束”。
+- 状态日志按 `char_state_` 稳定 ID 保存一次变更，可关联章节和细纲；当前状态仍以 `profile.currentState` 为准。
+- 每条 `relationships[]` 是“来源角色 → `targetId`”的一条独立有向事实，稳定 ID 前缀为 `char_rel_`。双向关系必须保存为两条事实。
+- 角色删除可清理或显式改绑外部关系；世界资料、事件、钉选、状态/章节引用会同步修复，不能留下悬空 ID。
+- 角色 AI 新建、批量、一键完善、标签和关系生成先写入临时草案。只有作者逐项接受的字段才原子写入；已有内容默认不覆盖，关系歧义必须人工选择稳定目标。
+
+### 上下文选择与安全预览
+
+`storyBible.context` 保存全书选择；每个 `outlinePacks[]` 保存一个稳定细纲 ID 的局部选择：
+
+```js
+{
+  outlineId: '...',
+  pinnedEntryIds: [],
+  pinnedCharacterIds: [],
+  itemModes: [{ kind: 'entry', id: 'wb_...', mode: 'details' }],
+  updatedAt: 0
+}
+```
+
+`itemModes` 的 `kind` 只接受 `entry` / `character`，`mode` 接受 `summary`、`details`、`ignore`；`auto` 不落冗余覆盖记录。候选来源包括全书钉选、本章钉选、稳定关联、一跳关联和名称命中，再受资料状态、`contextPolicy`、逐项模式及世界/角色字符预算约束。
+
+安全预览和真实请求共用 `buildStoryBibleContextPreview()` 的选择结果。预览会显示来源、请求模式、纳入/排除/降级/强制溢出状态和字符占用；真实请求才通过 `formatStoryBibleContextPackage()` 取得 `worldText` 与 `characterText`。不要另写一套“看起来相同”的选择器，否则 UI 预览会与真实上游请求漂移。
+
+当前已接入的消费者：
+
+| 消费者 | 目标解析 |
+| --- | --- |
+| 正文续写 | 按当前目标章解析章节 ID 与对应稳定细纲 ID。 |
+| AI 建议 | 按下一章解析；白鸟预设锁定时明确抑制宿主 Story Bible 包。 |
+| 全书大纲 | 使用全书作者种子、总纲与全局选择，不读取 UI 最后浏览的局部细纲。 |
+| 单章细纲修改/补写 | 按目标章号解析稳定细纲 ID。 |
+| 批量细纲 | 每章独立计算局部包，只把各章共同事实提升为公共文本。 |
+
+事件当前不进入上述上下文包。`never`、逐项 `ignore`、预算排除和白鸟锁定是硬边界；不得从旧 `worldView`、旧角色字符串、MOD 私有数据或另一个章节的局部包把已排除内容串回请求。
+
+### 关系图派生规则
+
+关系图不持久化节点、视觉边或坐标。它每次从角色及关系事实派生：
+
+- 角色筛选按角色稳定 ID；阵营筛选复用 `type=faction` 条目的 `characterIds`；类型和当前态筛选按原始文本精确匹配。
+- 同一对角色的全部有向事实合并成一条视觉边，详情仍逐条显示来源、目标、类型、当前态和变化原因。
+- 状态颜色只按只读语义归类为“亲近/信任、合作/同盟、紧张/试探、敌对/冲突、疏离/冷淡、未说明/其它”；未知文本使用中性色，不写回枚举。
+- 同一视觉边包含不同当前态时显示“多重状态”，但不得修改原事实。
+- 节点、关系记录与相关事件跳转分别使用角色 ID、关系 ID 与事件 ID；不要把 ID 直接拼入 CSS selector。
+- 桌面允许在图谱中选择和跳转；手机使用全屏只读图谱，只从底部关系列表进入编辑。图谱遮罩不能关闭。
+
+### 生命周期与测试门禁
+
+修改上述合同至少覆盖：无 `storyBible` 旧书、损坏/重复 ID、未知未来字段、刷新、切书、导入、快照恢复、删除引用对象、桌面与手机。A-D 最终候选的权威证据位于：
+
+- `output/2026-07-18_创作设定工作台A-D完全重构总报告.md`
+- `output/playwright/phase-d2-final-regression-report.json`
+- `output/playwright/phase-d2-relationship-graph-edge-report.json`
+
+干净书稿 JSON 不包含本节结构。需要恢复完整工程状态时使用本机快照/浏览器备份，并按隐私要求保存。
 
 ---
 
@@ -281,7 +464,7 @@ fetchAdapterCompletion(request, messages, options)
 1. **显式绑定**：只使用该 Profile。配置不存在、停用、未测试、缺 Key、缺模型、协议不支持或上游返回错误时，直接显示对应错误；不回退默认配置、更不尝试别的 Key。
 2. **跟随默认**：先使用 `defaultProfileId` 指向且有效的 Profile；若它无效，则取列表中第一个连接测试成功的有效 Profile。
 3. **没有有效默认**：提示用户先新建并测试 API 配置；不发送猜测性的请求。
-4. **模块模型分配 UI**：展示并选择连接中心配置名，不使用遗留 `settings.moduleModels` 当作真正路由。MOD 的 `setHostModuleModel` / `clearHostModuleModel` 目前只会写旧兼容字段，**不能**作为网页版 API 路由配置方法。
+4. **模块模型分配 UI 与 MOD 动作**：展示并选择连接中心配置名，不使用遗留 `settings.moduleModels` 当作真正路由。MOD 的 `setHostModuleModel` 应传 `moduleKey + profileId`，只绑定已存在且已测试可用的连接中心 Profile；`clearHostModuleModel` 清空显式绑定并恢复“跟随默认配置”。兼容旧包的 `modelId` 只在恰好匹配一个可用 Profile 时生效，零匹配或多匹配都会失败，绝不猜测配置。
 
 ### 四类请求负载
 
@@ -572,7 +755,7 @@ saveRunLog, confirmBeforeRun, requiredSettings, contextPolicy, writePolicy
 
 `activeContextTools[]` 支持 `memory`、`foreshadow`、`keyword`、`worldview`、`webSearch`。常用字段为 `id/title/desc/enabled/enabledSetting/weightSetting/maxCallsSetting/resultLimitSetting/maxCharsSetting/weight/priority/maxCalls/resultLimit/maxChars`，范围依次受宿主限制（权重 0.1–9，调用 0–8，结果 1–20，字符 300–12,000）。需要 `context:activeRead` 与 `data:table`；`webSearch` 还需 `web:search`。作者应明确检索的外发范围，默认克制调用次数。
 
-> 已知限制：当前 `exportModPack()` 导出普通 MOD 时没有输出 `activeContextTools`。作者在更新包、导出再导入或交付前应自行保留源 JSON，并在修复前把该字段视为不可依赖的导出往返能力。
+`exportModPack()` 会输出规范化后的顶层 `activeContextTools`，并保留 Skill 自己声明的工具归属；不会把 Skill 派生工具重复平铺到顶层。导出再导入后应按规范化语义比较字段、权限和设置引用。
 
 可监听事件：`appReady`、`bookCreated`、`bookLoaded`、`chapterInserted`、`chapterSaved`、`chapterDeleted`、`generationStarted`、`generationFinished`、`generationStopped`。事件处理器字段：
 
@@ -627,9 +810,20 @@ Skill 的 `runtime/script/html` 只是风险能力声明，普通导入、启用
 | 工作流/事件 | 确认、取消、停止/继续、重复点击、日志上限、`runOnce`、失败不写错数据。 |
 | UI | 所有 slot、焦点、Esc/X/背景、桌面与 390px 窄屏、无横向溢出。 |
 | 主题/Skill | 安全变量、Full Access 二次确认、`?safeTheme=1` 恢复、未知包默认不执行。 |
-| 往返 | 导出再导入、升级同 ID、保留源 JSON；特别核对 `activeContextTools` 已知导出限制。 |
+| 往返 | 导出再导入、升级同 ID、保留源 JSON；特别核对顶层与 Skill 内 `activeContextTools` 的归属、权限和设置引用。 |
 
 仓内 `output/*.cjs` 保留有连接中心、模型切换、无回退、弹窗安全、章节导航、公告、桌面/手机 smoke 等 Playwright 回归脚本。它们不是 npm 脚本也不是 CI；使用前查看脚本的前置条件、浏览器路径和测试数据，避免把测试 Key/作品带进仓库。
+
+发布候选的固定总门禁为：
+
+```powershell
+npm run build
+node --check assets/js/moyun.js
+node output/bug-audit/stage8-full-regression-runner.cjs
+node output/bug-audit/stage8-finalize-report.cjs
+```
+
+总回归会为旧的直接 `require('playwright')` 脚本自动定位 npm 缓存依赖，并把历史 `before` 诊断与当前 `after/success` 合同分开。当前线上冒烟属于只读信息项；本地候选门禁必须独立全部通过，推送后再以新提交 SHA、JS 指纹和公告内容执行线上验收。
 
 ### 常见问题
 
@@ -641,7 +835,7 @@ Skill 的 `runtime/script/html` 只是风险能力声明，普通导入、启用
 | Hosted View 空白 | slot、组件 type、权限、引用的 table/tool/workflow ID、`visibleWhen` 和控制台错误。 |
 | 导入失败 | `_type`、API 主版本、重复/空 ID、未知权限/动作/事件、数据结构是否数组或对象。 |
 | 页面被主题弄坏 | 用 `?safeTheme=1` 恢复，禁用主题；不要盲目清除全部站点数据。 |
-| 导出后少了主动上下文工具 | 当前已知 `activeContextTools` 不被普通 MOD 导出；以源 JSON 为准。 |
+| 导出后少了主动上下文工具 | 检查导入是否通过规范化与权限确认；标准导出会保留顶层 `activeContextTools`，Skill 工具仍留在对应 `skillPacks[]`。 |
 
 ### 作者发布清单
 
@@ -649,11 +843,11 @@ Skill 的 `runtime/script/html` 只是风险能力声明，普通导入、启用
 - [ ] `manifest.id` 稳定、唯一、无空格，`name/description/author/version` 齐全。
 - [ ] 权限遵循最小化原则，高风险主题/Skill 有醒目说明。
 - [ ] 所有规则、工具、资料表、工作流、视图和事件引用均真实存在。
-- [ ] 不依赖遗留 `settings:moduleModels` 配置网页 API 路由。
+- [ ] 不依赖遗留 `settings:moduleModels` 配置网页 API 路由；MOD 动作使用连接中心 `profileId`，并测试失败时路由不变。
 - [ ] AI 工具说明发送给上游的资料范围，且使用正确连接中心模块。
 - [ ] 不含 Key、Token、用户正文、浏览器导出、私有运行记录或不可信远程脚本。
 - [ ] 已做桌面和手机实测，测试了取消、失败、关闭、重导入和停用。
-- [ ] 保留完整源 JSON 与变更说明；在已知导出限制修复前不以导出文件作为唯一源。
+- [ ] 保留完整源 JSON 与变更说明；导出再导入后核对主动上下文工具、Skill 归属和权限。
 
 ---
 

@@ -691,6 +691,1537 @@ createApp({
     const currentBookId = ref('');
     const mainScroll = ref(null);
 
+    /* ═══ 创作设定工作台 Story Bible：基础数据 ═══
+       中文注释：设定资料只在作者打开对应工作台时惰性创建。旧书即使继续编辑正文，
+       也不会被强行写入空结构；worldView 继续作为兼容世界总览，并由统一上下文包与结构化资料共同参与已接入的创作请求。 */
+    const STORY_BIBLE_SCHEMA_VERSION = 3;
+    const STORY_BIBLE_CONTEXT_MODES = ['auto', 'summary', 'details', 'ignore'];
+    const STORY_BIBLE_ENTRY_TYPES = [
+      { id: 'location', label: '地点' },
+      { id: 'faction', label: '势力' },
+      { id: 'rule', label: '规则 / 力量 / 技术' },
+      { id: 'culture', label: '文化 / 物种' },
+      { id: 'item', label: '物件' },
+      { id: 'term', label: '术语' },
+      { id: 'custom', label: '自定义' }
+    ];
+    const STORY_BIBLE_EVENT_SCOPES = [
+      { id:'world', label:'世界历史' },
+      { id:'story', label:'故事主线' }
+    ];
+    const storyBible = ref(null);
+
+    function createStoryBibleEntry(type = 'location') {
+      const allowedType = STORY_BIBLE_ENTRY_TYPES.some(item => item.id === type) ? type : 'custom';
+      const now = Date.now();
+      return {
+        id: 'wb_' + uid(), type: allowedType, name: '', aliases: [], importance: 'normal',
+        summary: '', details: '', tags: [], links: [], characterIds: [], outlineIds: [],
+        status: 'active', contextPolicy: 'auto', fields: {}, createdAt: now, updatedAt: now
+      };
+    }
+
+    function normalizeStoryBibleTextList(value) {
+      const rows = Array.isArray(value) ? value : [];
+      return [...new Set(rows.map(item => String(item || '').trim()).filter(Boolean))];
+    }
+
+    function normalizeStoryBibleIdList(value, excludedId = '') {
+      return normalizeStoryBibleTextList(value).filter(item => item !== excludedId);
+    }
+
+    function normalizeStoryBibleItemModes(value) {
+      const rows = Array.isArray(value) ? value : [];
+      const seen = new Set();
+      const normalized = [];
+      rows.forEach(raw => {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+        const source = deepClone(raw);
+        const kind = raw.kind === 'character' ? 'character' : raw.kind === 'entry' ? 'entry' : '';
+        const id = String(raw.id || '').trim();
+        const mode = STORY_BIBLE_CONTEXT_MODES.includes(raw.mode) ? raw.mode : 'auto';
+        const key = kind + ':' + id;
+        if (!kind || !id || mode === 'auto' || seen.has(key)) return;
+        seen.add(key);
+        normalized.push(Object.assign({}, source, { kind, id, mode }));
+      });
+      return normalized;
+    }
+
+    function normalizeStoryBibleOutlinePacks(value) {
+      const rows = Array.isArray(value) ? value : [];
+      const seen = new Set();
+      const normalized = [];
+      rows.forEach(raw => {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+        const source = deepClone(raw);
+        const outlineId = String(raw.outlineId || '').trim();
+        if (!outlineId || seen.has(outlineId)) return;
+        seen.add(outlineId);
+        normalized.push(Object.assign({}, source, {
+          outlineId,
+          pinnedEntryIds: normalizeStoryBibleIdList(raw.pinnedEntryIds),
+          pinnedCharacterIds: normalizeStoryBibleIdList(raw.pinnedCharacterIds),
+          itemModes: normalizeStoryBibleItemModes(raw.itemModes),
+          updatedAt: Number(raw.updatedAt) || 0
+        }));
+      });
+      return normalized;
+    }
+
+    function normalizeStoryBibleEntry(raw, reservedIds = new Set()) {
+      const base = createStoryBibleEntry();
+      const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? deepClone(raw) : {};
+      const next = Object.assign({}, base, source);
+      let id = String(next.id || '').trim();
+      if (!id || reservedIds.has(id)) id = base.id;
+      reservedIds.add(id);
+      next.id = id;
+      next.type = STORY_BIBLE_ENTRY_TYPES.some(item => item.id === next.type) ? next.type : 'custom';
+      next.name = String(next.name || '');
+      next.aliases = normalizeStoryBibleTextList(next.aliases);
+      next.importance = ['core', 'normal', 'minor'].includes(next.importance) ? next.importance : 'normal';
+      next.summary = String(next.summary || '');
+      next.details = String(next.details || '');
+      next.tags = normalizeStoryBibleTextList(next.tags);
+      next.links = normalizeStoryBibleIdList(next.links, next.id);
+      next.characterIds = normalizeStoryBibleIdList(next.characterIds);
+      next.outlineIds = normalizeStoryBibleIdList(next.outlineIds);
+      next.status = ['active', 'draft', 'archived'].includes(next.status) ? next.status : 'active';
+      next.contextPolicy = ['always', 'auto', 'pinned', 'never'].includes(next.contextPolicy) ? next.contextPolicy : 'auto';
+      next.fields = next.fields && typeof next.fields === 'object' && !Array.isArray(next.fields) ? next.fields : {};
+      next.createdAt = Number(next.createdAt) || base.createdAt;
+      next.updatedAt = Number(next.updatedAt) || 0;
+      return next;
+    }
+
+    function createStoryBibleEvent(scope = 'story') {
+      const now = Date.now();
+      return {
+        id:'event_' + uid(),
+        title:'',
+        timeText:'',
+        sortOrder:null,
+        scope:['world', 'story'].includes(scope) ? scope : 'story',
+        cause:'',
+        result:'',
+        characterIds:[],
+        entryIds:[],
+        chapterIds:[],
+        legacyImpact:'',
+        readerVisible:false,
+        createdAt:now,
+        updatedAt:now
+      };
+    }
+
+    function normalizeStoryBibleEventSortOrder(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function normalizeStoryBibleEvent(raw, reservedIds = new Set()) {
+      const base = createStoryBibleEvent();
+      const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? deepClone(raw) : {};
+      const next = Object.assign({}, base, source);
+      let id = String(next.id || '').trim();
+      if (!id || reservedIds.has(id)) id = base.id;
+      reservedIds.add(id);
+      next.id = id;
+      next.title = String(next.title || '');
+      next.timeText = String(next.timeText || '');
+      next.sortOrder = normalizeStoryBibleEventSortOrder(next.sortOrder);
+      next.scope = ['world', 'story'].includes(next.scope) ? next.scope : 'story';
+      next.cause = String(next.cause || '');
+      next.result = String(next.result || '');
+      next.characterIds = normalizeStoryBibleIdList(next.characterIds);
+      next.entryIds = normalizeStoryBibleIdList(next.entryIds);
+      next.chapterIds = normalizeStoryBibleIdList(next.chapterIds);
+      next.legacyImpact = String(next.legacyImpact || '');
+      next.readerVisible = next.readerVisible === true;
+      next.createdAt = Number(next.createdAt) || base.createdAt;
+      next.updatedAt = Number(next.updatedAt) || 0;
+      return next;
+    }
+
+    function normalizeStoryBibleEvents(value) {
+      const reservedIds = new Set();
+      return (Array.isArray(value) ? value : [])
+        .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        .map(item => normalizeStoryBibleEvent(item, reservedIds));
+    }
+
+    function createDefaultStoryBible() {
+      return {
+        schemaVersion: STORY_BIBLE_SCHEMA_VERSION,
+        createdAt: Date.now(),
+        updatedAt: 0,
+        project: {
+          premise: '',
+          coreConflict: '',
+          themeQuestion: '',
+          toneNotes: '',
+          narrativeRules: ''
+        },
+        world: { entries: [], events: [] },
+        context: {
+          pinnedEntryIds: [],
+          pinnedCharacterIds: [],
+          selectedOutlineId: '',
+          itemModes: [],
+          outlinePacks: []
+        }
+      };
+    }
+
+    function normalizeStoryBible(raw) {
+      const base = createDefaultStoryBible();
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return base;
+      const next = deepClone(raw);
+      next.schemaVersion = STORY_BIBLE_SCHEMA_VERSION;
+      next.createdAt = Number(next.createdAt) || base.createdAt;
+      next.updatedAt = Number(next.updatedAt) || 0;
+      const rawProject = next.project && typeof next.project === 'object' && !Array.isArray(next.project) ? next.project : {};
+      next.project = Object.assign({}, base.project, rawProject);
+      Object.keys(base.project).forEach(key => { next.project[key] = String(next.project[key] || ''); });
+      const rawWorld = next.world && typeof next.world === 'object' && !Array.isArray(next.world) ? next.world : {};
+      const reservedEntryIds = new Set();
+      next.world = Object.assign({}, rawWorld, {
+        entries: Array.isArray(rawWorld.entries) ? rawWorld.entries.map(item => normalizeStoryBibleEntry(item, reservedEntryIds)) : [],
+        events: normalizeStoryBibleEvents(rawWorld.events)
+      });
+      const rawContext = next.context && typeof next.context === 'object' && !Array.isArray(next.context) ? next.context : {};
+      next.context = Object.assign({}, rawContext, {
+        pinnedEntryIds: normalizeStoryBibleIdList(rawContext.pinnedEntryIds),
+        pinnedCharacterIds: normalizeStoryBibleIdList(rawContext.pinnedCharacterIds),
+        selectedOutlineId: String(rawContext.selectedOutlineId || ''),
+        itemModes: normalizeStoryBibleItemModes(rawContext.itemModes),
+        outlinePacks: normalizeStoryBibleOutlinePacks(rawContext.outlinePacks)
+      });
+      return next;
+    }
+
+    function storyBibleSafeExcerpt(text, maxChars = 180) {
+      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      const limit = Math.max(40, Number(maxChars) || 180);
+      return clean.length > limit ? clean.substring(0, limit) + '…' : clean;
+    }
+
+    function getStoryBibleStoredItemMode(rows, kind, id) {
+      const found = (Array.isArray(rows) ? rows : []).find(item => item?.kind === kind && item?.id === id);
+      return STORY_BIBLE_CONTEXT_MODES.includes(found?.mode) ? found.mode : 'auto';
+    }
+
+    /* Phase B.3 纯白名单预览计算：只读取作者资料字段，不调用真实请求、预设、MOD 或白鸟链。 */
+    function buildStoryBibleContextPreview(input = {}) {
+      const bible = input.bible && typeof input.bible === 'object' ? input.bible : {};
+      const context = bible.context && typeof bible.context === 'object' ? bible.context : {};
+      const entries = (Array.isArray(input.entries) ? input.entries : []).filter(item => item && typeof item === 'object');
+      const characters = (Array.isArray(input.characters) ? input.characters : []).filter(item => item && typeof item === 'object');
+      const outlines = (Array.isArray(input.outlines) ? input.outlines : []).filter(item => item && typeof item === 'object');
+      const inputChapters = (Array.isArray(input.chapters) ? input.chapters : []).filter(item => item && typeof item === 'object');
+      const selectedOutlineId = String(Object.prototype.hasOwnProperty.call(input, 'selectedOutlineId') ? (input.selectedOutlineId || '') : (context.selectedOutlineId || ''));
+      const selectedChapterId = String(input.selectedChapterId || '');
+      const includeRequestText = input.includeRequestText === true;
+      const targetOutline = outlines.find(item => String(item.id || '') === selectedOutlineId) || null;
+      const outlinePack = (Array.isArray(context.outlinePacks) ? context.outlinePacks : []).find(item => item?.outlineId === selectedOutlineId) || null;
+      const globalEntryPins = normalizeStoryBibleIdList(context.pinnedEntryIds);
+      const globalCharacterPins = normalizeStoryBibleIdList(context.pinnedCharacterIds);
+      const outlineEntryPins = normalizeStoryBibleIdList(outlinePack?.pinnedEntryIds);
+      const outlineCharacterPins = normalizeStoryBibleIdList(outlinePack?.pinnedCharacterIds);
+      const pinnedEntryIds = new Set([...globalEntryPins, ...outlineEntryPins]);
+      const pinnedCharacterIds = new Set([...globalCharacterPins, ...outlineCharacterPins]);
+      const nameMatchText = targetOutline
+        ? [targetOutline.title, targetOutline.content].filter(Boolean).join('\n').toLowerCase()
+        : String(input.nameMatchText || '').toLowerCase();
+      const nameMatchSource = targetOutline ? '细纲名称命中' : String(input.nameMatchSource || '全书名称命中');
+      const limitEnabled = input.limitEnabled !== false;
+      const compactMode = input.compactMode === true;
+      const worldBudget = limitEnabled ? Math.max(0, compactMode ? Math.min(Number(input.worldBudget) || 2500, 2500) : (Number(input.worldBudget) || 4000)) : null;
+      const characterBudget = limitEnabled ? Math.max(0, compactMode ? Math.min(Number(input.characterBudget) || 3500, 3500) : (Number(input.characterBudget) || 6000)) : null;
+      const entryById = new Map(entries.map(item => [String(item.id || ''), item]));
+      const characterById = new Map(characters.map(item => [String(item.id || ''), item]));
+      const chapterById = new Map(inputChapters.map(item => [String(item.id || ''), item]));
+      const outlineById = new Map(outlines.map(item => [String(item.id || ''), item]));
+      const dialogueTypeById = new Map((Array.isArray(input.dialogueTypes) ? input.dialogueTypes : []).filter(item => item && typeof item === 'object').map(item => [String(item.id || ''), item]));
+      const entryCandidates = new Map();
+      const characterCandidates = new Map();
+
+      function addCandidate(target, id, source, priority, protectedItem = false) {
+        if (!id) return;
+        const current = target.get(id) || { id, sources: [], priority: 999, protected: false };
+        if (source && !current.sources.includes(source)) current.sources.push(source);
+        current.priority = Math.min(current.priority, priority);
+        current.protected = current.protected || protectedItem;
+        target.set(id, current);
+      }
+
+      entries.forEach(entry => {
+        const id = String(entry.id || '');
+        const policy = ['always', 'auto', 'pinned', 'never'].includes(entry.contextPolicy) ? entry.contextPolicy : 'auto';
+        if (!id || entry.status !== 'active' || policy === 'never') return;
+        if (policy === 'always') addCandidate(entryCandidates, id, '全局规则', 10, true);
+        if (policy === 'pinned') addCandidate(entryCandidates, id, '条目策略钉选', 20, true);
+        if (globalEntryPins.includes(id)) addCandidate(entryCandidates, id, '全书手动钉选', 21, true);
+        if (outlineEntryPins.includes(id)) addCandidate(entryCandidates, id, '本细纲手动钉选', 22, true);
+        if (selectedOutlineId && normalizeStoryBibleIdList(entry.outlineIds).includes(selectedOutlineId)) addCandidate(entryCandidates, id, '细纲直接关联', 30);
+        if (normalizeStoryBibleIdList(entry.characterIds).some(characterId => pinnedCharacterIds.has(characterId))) addCandidate(entryCandidates, id, '钉选角色关联', 35);
+        if (nameMatchText) {
+          const names = [entry.name, ...(Array.isArray(entry.aliases) ? entry.aliases : [])].map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
+          if (names.some(name => nameMatchText.includes(name))) addCandidate(entryCandidates, id, nameMatchSource, 60);
+        }
+      });
+
+      const directEntryIds = new Set(entryCandidates.keys());
+      entries.forEach(entry => {
+        const id = String(entry.id || '');
+        const policy = ['always', 'auto', 'pinned', 'never'].includes(entry.contextPolicy) ? entry.contextPolicy : 'auto';
+        if (!id || entry.status !== 'active' || policy !== 'auto' || directEntryIds.has(id)) return;
+        const ownLinks = normalizeStoryBibleIdList(entry.links, id);
+        const linked = ownLinks.some(linkedId => directEntryIds.has(linkedId)) || [...directEntryIds].some(directId => normalizeStoryBibleIdList(entryById.get(directId)?.links, directId).includes(id));
+        if (linked) addCandidate(entryCandidates, id, '一跳关联', 50);
+      });
+
+      characters.forEach(character => {
+        const id = String(character.id || '');
+        const policy = ['always', 'auto', 'pinned', 'never'].includes(character.contextPolicy) ? character.contextPolicy : 'auto';
+        if (!id || policy === 'never') return;
+        if (policy === 'always') addCandidate(characterCandidates, id, '全局角色', 10, true);
+        if (policy === 'pinned') addCandidate(characterCandidates, id, '角色策略钉选', 20, true);
+        if (globalCharacterPins.includes(id)) addCandidate(characterCandidates, id, '全书手动钉选', 21, true);
+        if (outlineCharacterPins.includes(id)) addCandidate(characterCandidates, id, '本细纲手动钉选', 22, true);
+        const chapterLinks = character.chapterLinks && typeof character.chapterLinks === 'object' && !Array.isArray(character.chapterLinks) ? character.chapterLinks : {};
+        if (selectedChapterId && normalizeStoryBibleIdList(chapterLinks.chapterIds).includes(selectedChapterId)) addCandidate(characterCandidates, id, '章节直接关联', 30);
+        if (selectedOutlineId && normalizeStoryBibleIdList(chapterLinks.outlineIds).includes(selectedOutlineId)) addCandidate(characterCandidates, id, '细纲直接关联', 31);
+        if (nameMatchText && String(character.name || '').trim() && nameMatchText.includes(String(character.name || '').trim().toLowerCase())) addCandidate(characterCandidates, id, nameMatchSource, 50);
+      });
+      entryCandidates.forEach(candidate => {
+        const entry = entryById.get(candidate.id);
+        normalizeStoryBibleIdList(entry?.characterIds).forEach(characterId => {
+          const character = characterById.get(characterId);
+          const policy = ['always', 'auto', 'pinned', 'never'].includes(character?.contextPolicy) ? character.contextPolicy : 'auto';
+          if (character && policy !== 'never') addCandidate(characterCandidates, characterId, '资料条目关联', 40);
+        });
+      });
+
+      function readMode(kind, id) {
+        const local = getStoryBibleStoredItemMode(outlinePack?.itemModes, kind, id);
+        return local !== 'auto' ? local : getStoryBibleStoredItemMode(context.itemModes, kind, id);
+      }
+
+      const worldItems = [];
+      const narrativeRules = String(bible.project?.narrativeRules || '').trim();
+      if (narrativeRules) {
+        worldItems.push({ id: 'project:narrativeRules', kind: 'fixed', name: '叙事约束', typeLabel: '项目规则', sources: ['项目总览'], priority: 0, protected: true, requestedMode: 'summary', summaryText: '叙事约束：' + narrativeRules, detailsText: '叙事约束：' + narrativeRules });
+      }
+      const worldView = String(input.worldView || '').trim();
+      if (worldView) {
+        const worldViewBodyLimit = worldBudget === null ? null : Math.max(0, worldBudget - '世界总览：'.length);
+        const clippedWorldView = limitEnabled && worldViewBodyLimit !== null && worldView.length > worldViewBodyLimit ? worldView.substring(0, worldViewBodyLimit) : worldView;
+        worldItems.push({ id: 'legacy:worldView', kind: 'fixed', name: '世界总览（兼容）', typeLabel: '兼容字段', sources: ['现有 worldView'], priority: 1, protected: true, requestedMode: 'summary', summaryText: '世界总览：' + clippedWorldView, detailsText: '世界总览：' + clippedWorldView, originalChars: worldView.length, sourceTruncated: clippedWorldView.length < worldView.length });
+      }
+      [...entryCandidates.values()].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)).forEach(candidate => {
+        const entry = entryById.get(candidate.id);
+        if (!entry) return;
+        const typeLabel = STORY_BIBLE_ENTRY_TYPES.find(item => item.id === entry.type)?.label || '自定义';
+        const name = String(entry.name || '').trim() || '未命名条目';
+        const summaryBody = String(entry.summary || '').trim() || storyBibleSafeExcerpt(entry.details, 240) || '仅记录名称，尚未填写摘要。';
+        const detailBody = [String(entry.summary || '').trim() ? '摘要：' + String(entry.summary || '').trim() : '', String(entry.details || '').trim() ? '详情：' + String(entry.details || '').trim() : ''].filter(Boolean).join('\n');
+        worldItems.push({
+          id: candidate.id, kind: 'entry', name, typeLabel, sources: candidate.sources, priority: candidate.priority,
+          protected: candidate.protected, requestedMode: readMode('entry', candidate.id),
+          summaryText: typeLabel + '：' + name + '\n' + summaryBody,
+          detailsText: typeLabel + '：' + name + (detailBody ? '\n' + detailBody : '\n' + summaryBody)
+        });
+      });
+
+      const characterItems = [...characterCandidates.values()].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)).map(candidate => {
+        const character = characterById.get(candidate.id);
+        if (!character) return null;
+        const name = String(character.name || '').trim() || '未命名角色';
+        const profile = character.profile && typeof character.profile === 'object' && !Array.isArray(character.profile) ? character.profile : {};
+        const tags = Array.isArray(character.personalityTags) ? character.personalityTags.map(value => String(value || '').trim()).filter(Boolean) : [];
+        const summaryParts = [character.storyRole ? '身份：' + character.storyRole : '', character.desc ? '简介：' + character.desc : '', profile.currentState ? '当前状态：' + profile.currentState : '', tags.length ? '标签：' + tags.join('、') : ''].filter(Boolean);
+        const detailParts = [...summaryParts, profile.publicGoal ? '公开目标：' + profile.publicGoal : '', profile.realNeed ? '真实需求：' + profile.realNeed : '', profile.fear ? '恐惧：' + profile.fear : '', profile.innerConflict ? '内在冲突：' + profile.innerConflict : '', profile.secret ? '秘密：' + profile.secret : '', character.speakingStyle ? '说话风格：' + character.speakingStyle : ''].filter(Boolean);
+        const stateHistory = (Array.isArray(character.stateLog) ? character.stateLog : [])
+          .filter(row => row && typeof row === 'object' && !Array.isArray(row))
+          .slice(-8).reverse().map(row => {
+          const links = [];
+          const chapter = chapterById.get(row.chapterId);
+          const outline = outlineById.get(row.outlineId);
+          if (chapter) links.push('章节：' + (String(chapter.title || '').trim() || '未命名章节'));
+          if (outline) links.push('细纲：' + (String(outline.title || '').trim() || '未命名细纲'));
+          return [row.state ? '状态：' + row.state : '', row.reason ? '原因：' + row.reason : '', ...links].filter(Boolean).join('；');
+        }).filter(Boolean);
+        if (stateHistory.length) detailParts.push('状态变更（最近优先）：' + stateHistory.join('｜'));
+        const relationships = (Array.isArray(character.relationships) ? character.relationships : []).map(relationship => {
+          const targetId = String(relationship?.targetId || '').trim();
+          const target = characterById.get(targetId);
+          if (!target) return '';
+          const changeReason = String(relationship?.changeReason || '').trim();
+          return '与' + (String(target.name || '').trim() || '未命名角色') + '：' + (String(relationship?.type || '').trim() || '未知') + '（' + (String(relationship?.attitude || '').trim() || '未描述') + (changeReason ? '；变化原因：' + changeReason : '') + '）';
+        }).filter(Boolean);
+        if (relationships.length) detailParts.push('关系：' + relationships.join('；'));
+        const safeSummaryText = '角色：' + name + (summaryParts.length ? '\n' + summaryParts.join('\n') : '\n尚未填写角色摘要。');
+        const safeDetailsText = '角色：' + name + (detailParts.length ? '\n' + detailParts.join('\n') : '\n尚未填写角色详情。');
+        const requestDetailParts = [...detailParts];
+        const exampleDialogues = Array.isArray(character.exampleDialogues) ? character.exampleDialogues.map(value => String(value || '').trim()).filter(Boolean) : [];
+        if (exampleDialogues.length) requestDetailParts.push('典型台词：' + exampleDialogues.map(value => '“' + value + '”').join(' '));
+        const dialogueTypeId = String(character.dialogueType || '').trim();
+        const dialogueTypePrompt = String(dialogueTypeById.get(dialogueTypeId)?.prompt || character.dialogueTypePrompt || '').trim();
+        if (dialogueTypeId) requestDetailParts.push('对话类型：' + (dialogueTypePrompt || dialogueTypeId));
+        if (String(character.characterPrompt || '').trim()) requestDetailParts.push('写作约束：' + String(character.characterPrompt || '').trim());
+        return {
+          id: candidate.id, kind: 'character', name, typeLabel: '角色', sources: candidate.sources, priority: candidate.priority,
+          protected: candidate.protected, requestedMode: readMode('character', candidate.id),
+          summaryText: safeSummaryText,
+          detailsText: safeDetailsText,
+          requestSummaryText: safeSummaryText,
+          requestDetailsText: '角色：' + name + (requestDetailParts.length ? '\n' + requestDetailParts.join('\n') : '\n尚未填写角色详情。')
+        };
+      }).filter(Boolean);
+
+      function allocate(items, budget) {
+        let used = 0;
+        const rows = [...items].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id)).map(item => {
+          const row = Object.assign({}, item);
+          delete row.requestSummaryText;
+          delete row.requestDetailsText;
+          const requestedMode = STORY_BIBLE_CONTEXT_MODES.includes(item.requestedMode) ? item.requestedMode : 'auto';
+          if (requestedMode === 'ignore') return Object.assign(row, { effectiveMode: 'ignore', status: 'ignored', charCount: 0, safeExcerpt: '' });
+          let effectiveMode = requestedMode === 'details' ? 'details' : 'summary';
+          let safeText = effectiveMode === 'details' ? String(item.detailsText || '') : String(item.summaryText || '');
+          let requestText = effectiveMode === 'details' ? String(item.requestDetailsText ?? item.detailsText ?? '') : String(item.requestSummaryText ?? item.summaryText ?? '');
+          let downgraded = false;
+          if (budget !== null && used + requestText.length > budget && effectiveMode === 'details') {
+            effectiveMode = 'summary';
+            safeText = String(item.summaryText || '');
+            requestText = String(item.requestSummaryText ?? item.summaryText ?? '');
+            downgraded = true;
+          }
+          if (budget !== null && used + requestText.length > budget && !item.protected) {
+            return Object.assign(row, { effectiveMode, status: 'excluded-budget', charCount: 0, safeExcerpt: storyBibleSafeExcerpt(safeText, effectiveMode === 'details' ? 480 : 180), downgraded });
+          }
+          used += requestText.length;
+          const overflow = budget !== null && used > budget;
+          const result = Object.assign(row, {
+            effectiveMode,
+            status: overflow ? 'overflow' : downgraded ? 'downgraded' : 'included',
+            charCount: requestText.length,
+            safeExcerpt: storyBibleSafeExcerpt(safeText, effectiveMode === 'details' ? 480 : 180),
+            downgraded
+          });
+          if (includeRequestText) result.requestText = requestText;
+          return result;
+        });
+        return { items: rows, used, budget, overflow: budget !== null && used > budget };
+      }
+
+      const world = allocate(worldItems, worldBudget);
+      const character = allocate(characterItems, characterBudget);
+      const allItems = [...world.items, ...character.items];
+      const characterModeRows = [...(Array.isArray(context.itemModes) ? context.itemModes : []), ...(Array.isArray(outlinePack?.itemModes) ? outlinePack.itemModes : [])];
+      const hasCharacterControls = globalCharacterPins.length > 0
+        || outlineCharacterPins.length > 0
+        || characterModeRows.some(item => item?.kind === 'character' && STORY_BIBLE_CONTEXT_MODES.includes(item?.mode) && item.mode !== 'auto')
+        || characters.some(item => ['always', 'pinned', 'never'].includes(item?.contextPolicy));
+      const characterIntent = characterCandidates.size > 0 || hasCharacterControls ? 'structured' : 'legacy';
+      return {
+        selectedOutlineId,
+        selectedChapterId,
+        targetOutline: targetOutline ? { id: String(targetOutline.id || ''), title: String(targetOutline.title || '未命名细纲') } : null,
+        world,
+        character,
+        characterIntent,
+        candidateCharacterIds: [...characterCandidates.keys()],
+        includedCount: allItems.filter(item => ['included', 'downgraded', 'overflow'].includes(item.status)).length,
+        excludedCount: allItems.filter(item => ['ignored', 'excluded-budget'].includes(item.status)).length,
+        itemCount: allItems.length,
+        limitEnabled,
+        compactMode
+      };
+    }
+
+    /* Phase B.4.1：把同源预算结果格式化为正文可用文本；安全预览默认不会携带 requestText。 */
+    function formatStoryBibleContextPackage(preview) {
+      const source = preview && typeof preview === 'object' ? preview : {};
+      const includedStatuses = new Set(['included', 'downgraded', 'overflow']);
+      function formatSection(section) {
+        return (Array.isArray(section?.items) ? section.items : [])
+          .filter(item => includedStatuses.has(item?.status) && String(item?.requestText || '').trim())
+          .map(item => String(item.requestText || '').trim())
+          .filter(Boolean)
+          .join('\n\n');
+      }
+      return {
+        selectedOutlineId: String(source.selectedOutlineId || ''),
+        selectedChapterId: String(source.selectedChapterId || ''),
+        targetOutline: source.targetOutline ? { id: String(source.targetOutline.id || ''), title: String(source.targetOutline.title || '') } : null,
+        worldText: formatSection(source.world),
+        characterText: formatSection(source.character),
+        characterIntent: source.characterIntent === 'structured' ? 'structured' : 'legacy',
+        candidateCharacterIds: Array.isArray(source.candidateCharacterIds) ? source.candidateCharacterIds.map(id => String(id || '')).filter(Boolean) : [],
+        worldUsed: Number(source.world?.used) || 0,
+        characterUsed: Number(source.character?.used) || 0
+      };
+    }
+
+    function resolveStoryBibleOutlineIdForChapterNo(currentChapterNo) {
+      const chapterNo = Math.max(1, Number(currentChapterNo) || 1);
+      return String(chapterOutlines.value[chapterNo - 1]?.id || '');
+    }
+
+    function resolveStoryBibleChapterIdForChapterNo(currentChapterNo) {
+      const chapterNo = Math.max(1, Number(currentChapterNo) || 1);
+      return String(visibleChapters.value[chapterNo - 1]?.id || '');
+    }
+
+    /* Phase B.4.2：只供正文续写调用；不触发网络请求，也不读取连接、预设、MOD 或白鸟数据。 */
+    function buildStoryBibleWritingContextPackage(options = {}) {
+      if (!storyBible.value) return null;
+      const selectedOutlineId = Object.prototype.hasOwnProperty.call(options, 'selectedOutlineId')
+        ? String(options.selectedOutlineId || '')
+        : resolveStoryBibleOutlineIdForChapterNo(options.currentChapterNo);
+      const selectedChapterId = Object.prototype.hasOwnProperty.call(options, 'selectedChapterId')
+        ? String(options.selectedChapterId || '')
+        : (typeof resolveStoryBibleChapterIdForChapterNo === 'function' ? resolveStoryBibleChapterIdForChapterNo(options.currentChapterNo) : '');
+      const packageChapters = typeof visibleChapters !== 'undefined' && Array.isArray(visibleChapters.value) ? visibleChapters.value : [];
+      const preview = buildStoryBibleContextPreview({
+        bible: storyBible.value,
+        entries: storyBibleEntries.value,
+        characters: structuredCharacters.value,
+        chapters: packageChapters,
+        outlines: chapterOutlines.value,
+        dialogueTypes: dialogueTypes.value,
+        selectedOutlineId,
+        selectedChapterId,
+        worldView: novel.value.worldView,
+        worldBudget: settings.value.contextMaxWorldChars,
+        characterBudget: settings.value.contextMaxCharacterChars,
+        compactMode: settings.value.contextCompactMode,
+        limitEnabled: settings.value.contextUseContextLimit !== false,
+        includeRequestText: true
+      });
+      return formatStoryBibleContextPackage(preview);
+    }
+
+    /* Phase B.4.3：AI 建议按下一章稳定细纲 ID 取包；白鸟锁定时显式阻止旧角色串回流。 */
+    function buildStoryBibleSuggestionContextPackage(options = {}) {
+      const currentChapterNo = Math.max(1, Number(options.currentChapterNo) || (visibleChapters.value.length + 1));
+      if (isSnowwingPresetLocked()) {
+        return {
+          suppressed: true,
+          selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(currentChapterNo),
+          worldText: '',
+          characterText: '',
+          characterIntent: 'structured'
+        };
+      }
+      const contextPackage = buildStoryBibleWritingContextPackage(Object.assign({}, options, { currentChapterNo }));
+      return contextPackage ? Object.assign({ suppressed: false }, contextPackage) : null;
+    }
+
+    /* Phase B.4.4：全书大纲只匹配全书级作者种子和当前总纲，不读取 UI 当前细纲或局部上下文包。 */
+    function buildStoryBibleOutlineNameMatchText(options = {}) {
+      const project = storyBible.value?.project && typeof storyBible.value.project === 'object' ? storyBible.value.project : {};
+      const currentOutline = Object.prototype.hasOwnProperty.call(options, 'outlineText') ? String(options.outlineText || '') : String(novel.value.outline || '');
+      const currentInput = Object.prototype.hasOwnProperty.call(options, 'outlineInputText') ? String(options.outlineInputText || '') : String(outlineInput.value || '');
+      return [
+        novel.value.title,
+        novel.value.theme,
+        novel.value.synopsis,
+        project.premise,
+        project.coreConflict,
+        project.themeQuestion,
+        project.toneNotes,
+        project.narrativeRules,
+        currentInput,
+        currentOutline
+      ].map(value => String(value || '').trim()).filter(Boolean).join('\n');
+    }
+
+    function buildStoryBibleOutlineContextPackage(options = {}) {
+      if (isSnowwingPresetLocked()) {
+        return { suppressed: true, legacyCompatible: false, selectedOutlineId: '', worldText: '', characterText: '', characterIntent: 'structured' };
+      }
+      if (!storyBible.value) return null;
+      const nameMatchText = Object.prototype.hasOwnProperty.call(options, 'nameMatchText')
+        ? String(options.nameMatchText || '')
+        : buildStoryBibleOutlineNameMatchText(options);
+      const preview = buildStoryBibleContextPreview({
+        bible: storyBible.value,
+        entries: storyBibleEntries.value,
+        characters: structuredCharacters.value,
+        outlines: chapterOutlines.value,
+        dialogueTypes: dialogueTypes.value,
+        selectedOutlineId: '',
+        nameMatchText,
+        nameMatchSource: '全书名称命中',
+        worldView: novel.value.worldView,
+        worldBudget: settings.value.contextMaxWorldChars,
+        characterBudget: settings.value.contextMaxCharacterChars,
+        compactMode: settings.value.contextCompactMode,
+        limitEnabled: settings.value.contextUseContextLimit !== false,
+        includeRequestText: true
+      });
+      const hasStructuredWorld = (Array.isArray(preview.world?.items) ? preview.world.items : []).some(item => item?.id !== 'legacy:worldView');
+      const legacyCompatible = !hasStructuredWorld && preview.characterIntent === 'legacy';
+      return Object.assign({ suppressed: false, legacyCompatible }, formatStoryBibleContextPackage(preview));
+    }
+
+    /* Phase B.4.5：单章细纲按目标章稳定 ID 取包；不读取工作台最后浏览的细纲。 */
+    function buildStoryBibleDetailedOutlinePreview(options = {}) {
+      const currentChapterNo = Math.max(1, Number(options.currentChapterNo) || 1);
+      const selectedOutlineId = Object.prototype.hasOwnProperty.call(options, 'selectedOutlineId')
+        ? String(options.selectedOutlineId || '')
+        : resolveStoryBibleOutlineIdForChapterNo(currentChapterNo);
+      const packageChapters = typeof visibleChapters !== 'undefined' && Array.isArray(visibleChapters.value) ? visibleChapters.value : [];
+      return buildStoryBibleContextPreview({
+        bible: storyBible.value,
+        entries: storyBibleEntries.value,
+        characters: structuredCharacters.value,
+        chapters: packageChapters,
+        outlines: chapterOutlines.value,
+        dialogueTypes: dialogueTypes.value,
+        selectedOutlineId,
+        selectedChapterId: typeof resolveStoryBibleChapterIdForChapterNo === 'function' ? resolveStoryBibleChapterIdForChapterNo(currentChapterNo) : '',
+        worldView: novel.value.worldView,
+        worldBudget: settings.value.contextMaxWorldChars,
+        characterBudget: settings.value.contextMaxCharacterChars,
+        compactMode: settings.value.contextCompactMode,
+        limitEnabled: settings.value.contextUseContextLimit !== false,
+        includeRequestText: true
+      });
+    }
+
+    function isStoryBibleDetailedOutlinePreviewLegacyCompatible(preview) {
+      const worldItems = Array.isArray(preview?.world?.items) ? preview.world.items : [];
+      const hasStructuredWorld = worldItems.some(item => item?.id !== 'legacy:worldView');
+      return !hasStructuredWorld && preview?.characterIntent === 'legacy';
+    }
+
+    function buildStoryBibleDetailedOutlineContextPackage(options = {}) {
+      const currentChapterNo = Math.max(1, Number(options.currentChapterNo) || 1);
+      if (isSnowwingPresetLocked()) {
+        return {
+          suppressed: true,
+          legacyCompatible: false,
+          selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(currentChapterNo),
+          worldText: '',
+          characterText: '',
+          characterIntent: 'structured'
+        };
+      }
+      if (!storyBible.value) return null;
+      const preview = buildStoryBibleDetailedOutlinePreview(Object.assign({}, options, { currentChapterNo }));
+      return Object.assign({
+        suppressed: false,
+        legacyCompatible: isStoryBibleDetailedOutlinePreviewLegacyCompatible(preview)
+      }, formatStoryBibleContextPackage(preview));
+    }
+
+    function getStoryBibleIncludedRequestItems(preview, sectionKey) {
+      const includedStatuses = new Set(['included', 'downgraded', 'overflow']);
+      return (Array.isArray(preview?.[sectionKey]?.items) ? preview[sectionKey].items : [])
+        .filter(item => includedStatuses.has(item?.status) && String(item?.requestText || '').trim())
+        .map(item => ({
+          key: [item.kind, item.id, item.effectiveMode, String(item.requestText || '').trim()].join('\u0000'),
+          text: String(item.requestText || '').trim()
+        }));
+    }
+
+    function buildStoryBibleDetailedOutlineBatchContext(chapterNos = []) {
+      const targets = Array.from(new Set((Array.isArray(chapterNos) ? chapterNos : []).map(value => Math.max(1, Number(value) || 1))));
+      if (isSnowwingPresetLocked()) {
+        return { suppressed: true, legacyCompatible: false, commonWorldText: '', commonCharacterText: '', chapters: targets.map(chapterNo => ({ chapterNo, selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(chapterNo), worldText: '', characterText: '' })) };
+      }
+      if (!storyBible.value) return null;
+      const rows = targets.map(chapterNo => {
+        const preview = buildStoryBibleDetailedOutlinePreview({ currentChapterNo: chapterNo });
+        return {
+          chapterNo,
+          selectedOutlineId: String(preview.selectedOutlineId || ''),
+          preview,
+          legacyCompatible: isStoryBibleDetailedOutlinePreviewLegacyCompatible(preview),
+          characterIntent: preview.characterIntent === 'structured' ? 'structured' : 'legacy',
+          worldItems: getStoryBibleIncludedRequestItems(preview, 'world'),
+          characterItems: getStoryBibleIncludedRequestItems(preview, 'character')
+        };
+      });
+      const globalPreview = buildStoryBibleDetailedOutlinePreview({ selectedOutlineId: '' });
+      const globalItems = {
+        worldItems: getStoryBibleIncludedRequestItems(globalPreview, 'world'),
+        characterItems: getStoryBibleIncludedRequestItems(globalPreview, 'character')
+      };
+      if (rows.length && rows.every(row => row.legacyCompatible)) {
+        return { suppressed: false, legacyCompatible: true, commonWorldText: '', commonCharacterText: '', chapters: rows.map(row => ({ chapterNo: row.chapterNo, selectedOutlineId: row.selectedOutlineId, worldText: '', characterText: '' })) };
+      }
+
+      function splitCommon(sectionKey) {
+        if (!rows.length) return { common: [], specific: new Map() };
+        const commonKeys = new Set(globalItems[sectionKey].map(item => item.key));
+        rows.forEach(row => {
+          const rowKeys = new Set(row[sectionKey].map(item => item.key));
+          [...commonKeys].forEach(key => { if (!rowKeys.has(key)) commonKeys.delete(key); });
+        });
+        const common = globalItems[sectionKey].filter(item => commonKeys.has(item.key));
+        const specific = new Map(rows.map(row => [row.chapterNo, row[sectionKey].filter(item => !commonKeys.has(item.key))]));
+        return { common, specific };
+      }
+
+      const world = splitCommon('worldItems');
+      const character = splitCommon('characterItems');
+      const allLegacyCharacters = rows.length > 0 && rows.every(row => row.characterIntent === 'legacy');
+      const commonCharacterText = [character.common.map(item => item.text).join('\n\n'), allLegacyCharacters ? String(charactersPromptString.value || '').trim() : ''].filter(Boolean).join('\n\n');
+      return {
+        suppressed: false,
+        legacyCompatible: false,
+        commonWorldText: world.common.map(item => item.text).join('\n\n'),
+        commonCharacterText,
+        chapters: rows.map(row => {
+          const worldText = (world.specific.get(row.chapterNo) || []).map(item => item.text).join('\n\n');
+          const structuredCharacterText = (character.specific.get(row.chapterNo) || []).map(item => item.text).join('\n\n');
+          const legacyCharacterText = !allLegacyCharacters && row.characterIntent === 'legacy' ? String(charactersPromptString.value || '').trim() : '';
+          return {
+            chapterNo: row.chapterNo,
+            selectedOutlineId: row.selectedOutlineId,
+            worldText,
+            characterText: [structuredCharacterText, legacyCharacterText].filter(Boolean).join('\n\n')
+          };
+        })
+      };
+    }
+
+    function formatStoryBibleDetailedOutlineBatchContext(context) {
+      if (!context || context.suppressed || context.legacyCompatible) return '';
+      const sections = [];
+      if (context.commonWorldText || context.commonCharacterText) {
+        const common = ['【全批次共同上下文｜适用于本次全部目标章】'];
+        if (context.commonWorldText) common.push('共同故事设定：\n' + context.commonWorldText);
+        if (context.commonCharacterText) common.push('共同角色资料：\n' + context.commonCharacterText);
+        sections.push(common.join('\n'));
+      }
+      (Array.isArray(context.chapters) ? context.chapters : []).forEach(row => {
+        const chapterNo = Math.max(1, Number(row.chapterNo) || 1);
+        const outlineId = String(row.selectedOutlineId || '') || '未建立';
+        const chapter = ['【第' + chapterNo + '章专属上下文｜细纲ID:' + outlineId + '｜只可用于第' + chapterNo + '章】'];
+        if (row.worldText) chapter.push('本章故事设定：\n' + row.worldText);
+        if (row.characterText) chapter.push('本章角色资料：\n' + row.characterText);
+        if (!row.worldText && !row.characterText) chapter.push('本章无额外专属资料；仅使用上方全批次共同上下文。');
+        chapter.push('本章边界：以上内容只适用于第' + chapterNo + '章，不得推断到其他章。');
+        sections.push(chapter.join('\n'));
+      });
+      if (!sections.length) return '';
+      sections.push('【章节隔离要求】每个“第N章专属上下文”只能用于对应章节；不得把某章专属人物、地点、规则或状态套用到其他章。');
+      return sections.join('\n\n');
+    }
+
+    function ensureStoryBible() {
+      if (!storyBible.value) storyBible.value = createDefaultStoryBible();
+      return storyBible.value;
+    }
+
+    function touchStoryBible() {
+      const bible = ensureStoryBible();
+      bible.updatedAt = Date.now();
+      saveData();
+    }
+
+    const storyBibleFoundationStats = computed(() => {
+      const bible = storyBible.value;
+      const project = bible?.project || {};
+      const fields = [project.premise, project.coreConflict, project.themeQuestion, project.toneNotes, project.narrativeRules];
+      return {
+        projectFilled: fields.filter(value => String(value || '').trim()).length,
+        projectTotal: fields.length,
+        worldChars: String(novel.value.worldView || '').length,
+        entries: Array.isArray(bible?.world?.entries) ? bible.world.entries.length : 0,
+        events: Array.isArray(bible?.world?.events) ? bible.world.events.length : 0
+      };
+    });
+
+    const storyBibleEntryTypeOptions = STORY_BIBLE_ENTRY_TYPES;
+    const storyBibleEntrySearch = ref('');
+    const storyBibleEntryFilter = ref('all');
+    const selectedStoryBibleEntryId = ref('');
+    const storyBibleEntries = computed(() => Array.isArray(storyBible.value?.world?.entries) ? storyBible.value.world.entries : []);
+    const filteredStoryBibleEntries = computed(() => {
+      const query = String(storyBibleEntrySearch.value || '').trim().toLowerCase();
+      return storyBibleEntries.value.filter(entry => {
+        if (!entry || typeof entry !== 'object') return false;
+        if (storyBibleEntryFilter.value !== 'all' && entry.type !== storyBibleEntryFilter.value) return false;
+        if (!query) return true;
+        return [entry.name, entry.summary, ...(entry.aliases || []), ...(entry.tags || [])].join(' ').toLowerCase().includes(query);
+      });
+    });
+    const selectedStoryBibleEntry = computed(() => storyBibleEntries.value.find(entry => entry?.id === selectedStoryBibleEntryId.value) || null);
+    const storyBibleEventSearch = ref('');
+    const storyBibleEventScopeFilter = ref('all');
+    const storyBibleEventVisibilityFilter = ref('all');
+    const storyBibleEventSortDirection = ref('asc');
+    const selectedStoryBibleEventId = ref('');
+    const storyBibleEventReturnTargetId = ref('');
+    const storyBibleEvents = computed(() => Array.isArray(storyBible.value?.world?.events) ? storyBible.value.world.events : []);
+    const filteredStoryBibleEvents = computed(() => {
+      const query = String(storyBibleEventSearch.value || '').trim().toLowerCase();
+      const direction = storyBibleEventSortDirection.value === 'desc' ? -1 : 1;
+      return storyBibleEvents.value.map((event, index) => ({ event, index })).filter(row => {
+        const event = row.event;
+        if (!event || typeof event !== 'object') return false;
+        if (storyBibleEventScopeFilter.value !== 'all' && event.scope !== storyBibleEventScopeFilter.value) return false;
+        if (storyBibleEventVisibilityFilter.value === 'public' && event.readerVisible !== true) return false;
+        if (storyBibleEventVisibilityFilter.value === 'private' && event.readerVisible === true) return false;
+        if (!query) return true;
+        return [event.title, event.timeText, event.cause, event.result, event.legacyImpact]
+          .join(' ').toLowerCase().includes(query);
+      }).sort((left, right) => {
+        const leftOrder = normalizeStoryBibleEventSortOrder(left.event.sortOrder);
+        const rightOrder = normalizeStoryBibleEventSortOrder(right.event.sortOrder);
+        const leftHasOrder = leftOrder !== null;
+        const rightHasOrder = rightOrder !== null;
+        if (leftHasOrder !== rightHasOrder) return leftHasOrder ? -1 : 1;
+        if (leftHasOrder && leftOrder !== rightOrder) return (leftOrder - rightOrder) * direction;
+        const createdDiff = (Number(left.event.createdAt) || 0) - (Number(right.event.createdAt) || 0);
+        if (createdDiff) return createdDiff * direction;
+        return left.index - right.index;
+      }).map(row => row.event);
+    });
+    const selectedStoryBibleEvent = computed(() => storyBibleEvents.value.find(event => event?.id === selectedStoryBibleEventId.value) || null);
+    const storyBibleEventStats = computed(() => ({
+      total:storyBibleEvents.value.length,
+      world:storyBibleEvents.value.filter(event => event?.scope === 'world').length,
+      story:storyBibleEvents.value.filter(event => event?.scope === 'story').length,
+      public:storyBibleEvents.value.filter(event => event?.readerVisible === true).length
+    }));
+
+    function getStoryBibleEntryTypeLabel(type) {
+      return STORY_BIBLE_ENTRY_TYPES.find(item => item.id === type)?.label || '自定义';
+    }
+
+    function selectStoryBibleEntry(entryId) {
+      const entry = storyBibleEntries.value.find(item => item?.id === entryId);
+      if (!entry) return false;
+      selectedStoryBibleEntryId.value = entry.id;
+      return true;
+    }
+
+    function getStoryBibleEventScopeLabel(scope) {
+      return STORY_BIBLE_EVENT_SCOPES.find(item => item.id === scope)?.label || '故事主线';
+    }
+
+    function getStoryBibleEventOrderLabel(event) {
+      const order = normalizeStoryBibleEventSortOrder(event?.sortOrder);
+      return order === null ? '未排序' : ('顺序 ' + order);
+    }
+
+    function getStoryBibleEventAssociationCount(event) {
+      return normalizeStoryBibleIdList(event?.characterIds).length
+        + normalizeStoryBibleIdList(event?.entryIds).length
+        + normalizeStoryBibleIdList(event?.chapterIds).length;
+    }
+
+    function getStoryBibleEventLinkedCharacters(event = selectedStoryBibleEvent.value) {
+      const byId = new Map(structuredCharacters.value.filter(Boolean).map(character => [character.id, character]));
+      return normalizeStoryBibleIdList(event?.characterIds).map(id => byId.get(id)).filter(Boolean);
+    }
+
+    function getStoryBibleEventLinkedEntries(event = selectedStoryBibleEvent.value) {
+      const byId = new Map(storyBibleEntries.value.filter(Boolean).map(entry => [entry.id, entry]));
+      return normalizeStoryBibleIdList(event?.entryIds).map(id => byId.get(id)).filter(Boolean);
+    }
+
+    function getStoryBibleEventLinkedChapters(event = selectedStoryBibleEvent.value) {
+      const byId = new Map(chapters.value.filter(Boolean).map(chapter => [chapter.id, chapter]));
+      return normalizeStoryBibleIdList(event?.chapterIds).map(id => byId.get(id)).filter(Boolean);
+    }
+
+    function selectStoryBibleEvent(eventId) {
+      const event = storyBibleEvents.value.find(item => item?.id === eventId);
+      if (!event) return false;
+      selectedStoryBibleEventId.value = event.id;
+      return true;
+    }
+
+    function addStoryBibleEvent(scope = 'story') {
+      const bible = ensureStoryBible();
+      if (!bible.world || typeof bible.world !== 'object') bible.world = { entries:[], events:[] };
+      if (!Array.isArray(bible.world.events)) bible.world.events = [];
+      const event = createStoryBibleEvent(scope);
+      bible.world.events.push(event);
+      selectedStoryBibleEventId.value = event.id;
+      storyBibleEventScopeFilter.value = 'all';
+      storyBibleEventVisibilityFilter.value = 'all';
+      setStoryBibleWorkbenchSection('events');
+      touchStoryBible();
+      nextTick(() => requestAnimationFrame(() => document.querySelector('[data-story-event-title]')?.focus?.()));
+      return event;
+    }
+
+    function touchSelectedStoryBibleEvent() {
+      const event = selectedStoryBibleEvent.value;
+      if (!event) return false;
+      event.sortOrder = normalizeStoryBibleEventSortOrder(event.sortOrder);
+      event.characterIds = normalizeStoryBibleIdList(event.characterIds);
+      event.entryIds = normalizeStoryBibleIdList(event.entryIds);
+      event.chapterIds = normalizeStoryBibleIdList(event.chapterIds);
+      event.updatedAt = Date.now();
+      repairStoryBibleReferences();
+      touchStoryBible();
+      return true;
+    }
+
+    function isStoryBibleEventAssociationLinked(kind, id) {
+      const event = selectedStoryBibleEvent.value;
+      const key = kind === 'character' ? 'characterIds' : kind === 'entry' ? 'entryIds' : kind === 'chapter' ? 'chapterIds' : '';
+      return !!(event && key && normalizeStoryBibleIdList(event[key]).includes(String(id || '')));
+    }
+
+    function toggleStoryBibleEventAssociation(kind, id) {
+      const event = selectedStoryBibleEvent.value;
+      const key = kind === 'character' ? 'characterIds' : kind === 'entry' ? 'entryIds' : kind === 'chapter' ? 'chapterIds' : '';
+      const targetId = String(id || '');
+      if (!event || !key || !targetId) return false;
+      const rows = normalizeStoryBibleIdList(event[key]);
+      const index = rows.indexOf(targetId);
+      if (index >= 0) rows.splice(index, 1);
+      else rows.push(targetId);
+      event[key] = rows;
+      touchSelectedStoryBibleEvent();
+      return index < 0;
+    }
+
+    function formatStoryBibleEventTime(value) {
+      const timestamp = Number(value) || 0;
+      if (!timestamp) return '尚未保存';
+      try { return new Intl.DateTimeFormat('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(new Date(timestamp)); }
+      catch { return new Date(timestamp).toLocaleString(); }
+    }
+
+    function requestDeleteStoryBibleEvent(eventId) {
+      const event = storyBibleEvents.value.find(item => item?.id === eventId);
+      if (!event) return false;
+      openConfirm({
+        title:'删除事件',
+        message:'确定删除事件「' + (event.title || '未命名事件') + '」？该操作不会删除关联角色、资料或章节。',
+        confirmText:'删除事件',
+        impactLines:[
+          '参与角色：' + normalizeStoryBibleIdList(event.characterIds).length + ' 个',
+          '关联资料：' + normalizeStoryBibleIdList(event.entryIds).length + ' 项',
+          '关联章节：' + normalizeStoryBibleIdList(event.chapterIds).length + ' 章'
+        ]
+      }, () => {
+        const events = storyBibleEvents.value;
+        const index = events.findIndex(item => item?.id === eventId);
+        if (index < 0) return;
+        events.splice(index, 1);
+        selectedStoryBibleEventId.value = events[Math.min(index, events.length - 1)]?.id || '';
+        if (storyBibleEventReturnTargetId.value === eventId) storyBibleEventReturnTargetId.value = '';
+        touchStoryBible();
+        showToast('已删除事件；关联对象保持不变', 'success');
+      });
+      return true;
+    }
+
+    async function flushStoryBibleEventNavigation() {
+      try { document.activeElement?.blur?.(); } catch {}
+      await nextTick();
+      const saved = await saveDataNow('Phase D.1 事件跳转');
+      if (saved === false) {
+        showToast('保存失败，已取消跳转以保护事件内容', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    async function openStoryBibleEventCharacter(characterId) {
+      const eventId = String(selectedStoryBibleEventId.value || '');
+      const character = structuredCharacters.value.find(item => item?.id === characterId);
+      if (!eventId || !character || !await flushStoryBibleEventNavigation()) return false;
+      detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+      if (!openCharacterWorkbench(character.id)) return false;
+      storyBibleEventReturnTargetId.value = eventId;
+      return true;
+    }
+
+    async function openStoryBibleEventEntry(entryId) {
+      const eventId = String(selectedStoryBibleEventId.value || '');
+      const entry = storyBibleEntries.value.find(item => item?.id === entryId);
+      if (!eventId || !entry || !await flushStoryBibleEventNavigation()) return false;
+      detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+      storyBibleEventReturnTargetId.value = eventId;
+      setStoryBibleWorkbenchSection('entries');
+      selectStoryBibleEntry(entry.id);
+      return true;
+    }
+
+    async function openStoryBibleEventChapter(chapterId) {
+      const index = visibleChapters.value.findIndex(chapter => chapter?.id === chapterId);
+      if (index < 0) {
+        showToast('该章节不在当前分支，请切换到对应分支后重试', 'warning');
+        return false;
+      }
+      if (!await flushStoryBibleEventNavigation()) return false;
+      showStoryBibleWorkbench.value = false;
+      showCharacterWorkbench.value = false;
+      storyBibleEventReturnTargetId.value = '';
+      mobileSidebarOpen.value = false;
+      scrollToChapter(index);
+      showToast('已定位到关联章节：' + getCharacterChapterLabel(chapterId), 'success');
+      return true;
+    }
+
+    function returnToStoryBibleEvent() {
+      const eventId = String(storyBibleEventReturnTargetId.value || '');
+      if (!eventId || !storyBibleEvents.value.some(event => event?.id === eventId)) {
+        storyBibleEventReturnTargetId.value = '';
+        showToast('原事件已不存在', 'warning');
+        return false;
+      }
+      if (!openStoryBibleWorkbench('events')) return false;
+      selectStoryBibleEvent(eventId);
+      storyBibleEventReturnTargetId.value = '';
+      nextTick(() => requestAnimationFrame(() => {
+        const target = Array.from(document.querySelectorAll('[data-story-event-id]'))
+          .find(node => node.dataset.storyEventId === eventId);
+        target?.focus?.();
+      }));
+      return true;
+    }
+
+    function resetStoryBibleEventUiState() {
+      selectedStoryBibleEventId.value = '';
+      storyBibleEventReturnTargetId.value = '';
+      storyBibleEventSearch.value = '';
+      storyBibleEventScopeFilter.value = 'all';
+      storyBibleEventVisibilityFilter.value = 'all';
+      storyBibleEventSortDirection.value = 'asc';
+    }
+
+    function setStoryBibleWorkbenchSection(section) {
+      storyBibleWorkbenchSection.value = ['project', 'world', 'events', 'entries', 'context'].includes(section) ? section : 'project';
+      if (['events', 'entries', 'context'].includes(storyBibleWorkbenchSection.value)) {
+        ensureStoryBibleOutlineIds();
+        repairStoryBibleReferences();
+      }
+      if (storyBibleWorkbenchSection.value === 'events' && !selectedStoryBibleEventId.value) {
+        selectedStoryBibleEventId.value = filteredStoryBibleEvents.value[0]?.id || storyBibleEvents.value[0]?.id || '';
+      }
+      if (storyBibleWorkbenchSection.value === 'entries' && !selectedStoryBibleEntryId.value) {
+        selectedStoryBibleEntryId.value = storyBibleEntries.value[0]?.id || '';
+      }
+      if (storyBibleWorkbenchSection.value === 'context' && storyBible.value?.context?.selectedOutlineId) {
+        ensureStoryBibleOutlinePack(storyBible.value.context.selectedOutlineId);
+      }
+    }
+
+    function addStoryBibleEntry(type = 'location') {
+      const bible = ensureStoryBible();
+      if (!Array.isArray(bible.world?.entries)) bible.world.entries = [];
+      const entry = createStoryBibleEntry(type);
+      bible.world.entries.push(entry);
+      selectedStoryBibleEntryId.value = entry.id;
+      setStoryBibleWorkbenchSection('entries');
+      touchStoryBible();
+      return entry;
+    }
+
+    function touchSelectedStoryBibleEntry() {
+      const entry = selectedStoryBibleEntry.value;
+      if (!entry) return;
+      entry.updatedAt = Date.now();
+      touchStoryBible();
+    }
+
+    function setStoryBibleEntryStringList(entry, field, text) {
+      if (!entry || !['aliases', 'tags'].includes(field)) return;
+      entry[field] = normalizeStoryBibleTextList(String(text || '').split(/[、,，\n]/));
+      touchSelectedStoryBibleEntry();
+    }
+
+    function ensureStoryBibleOutlineIds() {
+      const seen = new Set();
+      let changed = false;
+      (Array.isArray(chapterOutlines.value) ? chapterOutlines.value : []).forEach(outline => {
+        if (!outline || typeof outline !== 'object') return;
+        let id = String(outline.id || '').trim();
+        if (!id || seen.has(id)) {
+          do { id = 'outline_' + uid(); } while (seen.has(id));
+          outline.id = id;
+          changed = true;
+        }
+        seen.add(id);
+      });
+      return changed;
+    }
+
+    function createStoryBibleOutlinePack(outlineId) {
+      return { outlineId: String(outlineId || ''), pinnedEntryIds: [], pinnedCharacterIds: [], itemModes: [], updatedAt: 0 };
+    }
+
+    function ensureStoryBibleOutlinePack(outlineId) {
+      const bible = ensureStoryBible();
+      const id = String(outlineId || '').trim();
+      if (!id) return null;
+      if (!Array.isArray(bible.context.outlinePacks)) bible.context.outlinePacks = [];
+      let pack = bible.context.outlinePacks.find(item => item?.outlineId === id);
+      if (!pack) {
+        pack = createStoryBibleOutlinePack(id);
+        bible.context.outlinePacks.push(pack);
+      }
+      return pack;
+    }
+
+    function repairStoryBibleReferences() {
+      const bible = storyBible.value;
+      if (!bible) return;
+      ensureStoryBibleOutlineIds();
+      if (!bible.world || typeof bible.world !== 'object') bible.world = { entries: [], events: [] };
+      if (!Array.isArray(bible.world.entries)) bible.world.entries = [];
+      if (!Array.isArray(bible.world.events)) bible.world.events = [];
+      if (!bible.context || typeof bible.context !== 'object') bible.context = createDefaultStoryBible().context;
+      const entryIds = new Set(bible.world.entries.map(entry => entry?.id).filter(Boolean));
+      const characterIds = new Set((structuredCharacters.value || []).map(character => character?.id).filter(Boolean));
+      const chapterIds = new Set((chapters.value || []).map(chapter => chapter?.id).filter(Boolean));
+      const outlineIds = new Set((chapterOutlines.value || []).map(outline => outline?.id).filter(Boolean));
+      bible.world.entries.forEach(entry => {
+        if (!entry || typeof entry !== 'object') return;
+        entry.links = normalizeStoryBibleIdList(entry.links, entry.id).filter(id => entryIds.has(id));
+        entry.characterIds = normalizeStoryBibleIdList(entry.characterIds).filter(id => characterIds.has(id));
+        entry.outlineIds = normalizeStoryBibleIdList(entry.outlineIds).filter(id => outlineIds.has(id));
+      });
+      bible.world.events.forEach(event => {
+        if (!event || typeof event !== 'object') return;
+        event.characterIds = normalizeStoryBibleIdList(event.characterIds).filter(id => characterIds.has(id));
+        event.entryIds = normalizeStoryBibleIdList(event.entryIds).filter(id => entryIds.has(id));
+        event.chapterIds = normalizeStoryBibleIdList(event.chapterIds).filter(id => chapterIds.has(id));
+      });
+      bible.context.pinnedEntryIds = normalizeStoryBibleIdList(bible.context.pinnedEntryIds).filter(id => entryIds.has(id));
+      bible.context.pinnedCharacterIds = normalizeStoryBibleIdList(bible.context.pinnedCharacterIds).filter(id => characterIds.has(id));
+      bible.context.selectedOutlineId = outlineIds.has(String(bible.context.selectedOutlineId || '')) ? String(bible.context.selectedOutlineId || '') : '';
+      bible.context.itemModes = normalizeStoryBibleItemModes(bible.context.itemModes).filter(item => item.kind === 'entry' ? entryIds.has(item.id) : characterIds.has(item.id));
+      bible.context.outlinePacks = normalizeStoryBibleOutlinePacks(bible.context.outlinePacks)
+        .filter(pack => outlineIds.has(pack.outlineId))
+        .map(pack => Object.assign({}, pack, {
+          outlineId: pack.outlineId,
+          pinnedEntryIds: pack.pinnedEntryIds.filter(id => entryIds.has(id)),
+          pinnedCharacterIds: pack.pinnedCharacterIds.filter(id => characterIds.has(id)),
+          itemModes: pack.itemModes.filter(item => item.kind === 'entry' ? entryIds.has(item.id) : characterIds.has(item.id)),
+          updatedAt: pack.updatedAt
+        }));
+    }
+
+    const activeStoryBibleOutlinePack = computed(() => {
+      const outlineId = String(storyBible.value?.context?.selectedOutlineId || '');
+      if (!outlineId) return null;
+      return (storyBible.value?.context?.outlinePacks || []).find(item => item?.outlineId === outlineId) || null;
+    });
+
+    function setStoryBibleContextTargetOutline(outlineId) {
+      const bible = ensureStoryBible();
+      ensureStoryBibleOutlineIds();
+      const id = String(outlineId || '');
+      bible.context.selectedOutlineId = chapterOutlines.value.some(item => item?.id === id) ? id : '';
+      if (bible.context.selectedOutlineId) ensureStoryBibleOutlinePack(bible.context.selectedOutlineId);
+      repairStoryBibleReferences();
+      touchStoryBible();
+    }
+
+    function touchStoryBibleContext() {
+      const pack = activeStoryBibleOutlinePack.value;
+      if (pack) pack.updatedAt = Date.now();
+      repairStoryBibleReferences();
+      touchStoryBible();
+    }
+
+    function getStoryBibleContextItemMode(kind, id) {
+      const localMode = getStoryBibleStoredItemMode(activeStoryBibleOutlinePack.value?.itemModes, kind, id);
+      return localMode !== 'auto' ? localMode : getStoryBibleStoredItemMode(storyBible.value?.context?.itemModes, kind, id);
+    }
+
+    function setStoryBibleContextItemMode(kind, id, mode) {
+      if (!['entry', 'character'].includes(kind) || !id) return;
+      const bible = ensureStoryBible();
+      const normalizedMode = STORY_BIBLE_CONTEXT_MODES.includes(mode) ? mode : 'auto';
+      const pack = bible.context.selectedOutlineId ? ensureStoryBibleOutlinePack(bible.context.selectedOutlineId) : null;
+      const rows = pack ? pack.itemModes : bible.context.itemModes;
+      const index = rows.findIndex(item => item?.kind === kind && item?.id === id);
+      if (index >= 0) rows.splice(index, 1);
+      if (normalizedMode !== 'auto') rows.push({ kind, id, mode: normalizedMode });
+      touchStoryBibleContext();
+    }
+
+    const storyBibleContextPreview = computed(() => {
+      const selectedOutlineId = String(storyBible.value?.context?.selectedOutlineId || '');
+      return buildStoryBibleContextPreview({
+        bible: storyBible.value,
+        entries: storyBibleEntries.value,
+        characters: structuredCharacters.value,
+        chapters: visibleChapters.value,
+        outlines: chapterOutlines.value,
+        dialogueTypes: dialogueTypes.value,
+        selectedOutlineId,
+        selectedChapterId: selectedOutlineId ? resolveStoryBibleChapterIdForChapterNo(chapterOutlines.value.findIndex(item => item?.id === selectedOutlineId) + 1) : '',
+        nameMatchText: selectedOutlineId ? '' : buildStoryBibleOutlineNameMatchText(),
+        nameMatchSource: '全书名称命中',
+        worldView: novel.value.worldView,
+        worldBudget: settings.value.contextMaxWorldChars,
+        characterBudget: settings.value.contextMaxCharacterChars,
+        compactMode: settings.value.contextCompactMode,
+        limitEnabled: settings.value.contextUseContextLimit !== false
+      });
+    });
+
+    function getStoryBibleContextStatusLabel(status) {
+      return ({ included: '已纳入', downgraded: '已降为摘要', overflow: '强制保留·超预算', ignored: '已忽略', 'excluded-budget': '预算外候选' })[status] || '候选';
+    }
+
+    /* Phase C.3：细纲卡只编辑既有 outlinePacks；下面状态全部是短生命周期 UI，不进入书稿。 */
+    const showDetailedOutlinePinPicker = ref(false);
+    const activeDetailedOutlinePinId = ref('');
+    const detailedOutlinePinKind = ref('character');
+    const detailedOutlinePinSearch = ref('');
+    const detailedOutlineReturnTarget = ref({ outlineId:'', kind:'', id:'' });
+    let pendingC3Navigation = null;
+
+    function getDetailedOutlineById(outlineId) {
+      const id = String(outlineId || '');
+      return chapterOutlines.value.find(outline => outline && String(outline.id || '') === id) || null;
+    }
+
+    function getDetailedOutlineLabel(outlineId) {
+      const outline = getDetailedOutlineById(outlineId);
+      if (!outline) return '对应细纲';
+      const index = chapterOutlines.value.findIndex(item => item === outline);
+      const title = String(outline.title || '').trim();
+      return '第' + (index + 1) + '章' + (title && title !== ('第' + (index + 1) + '章') ? ' · ' + title : '');
+    }
+
+    function getDetailedOutlinePackReadOnly(outlineId) {
+      const id = String(outlineId || '');
+      if (!id) return null;
+      return (storyBible.value?.context?.outlinePacks || []).find(pack => pack && String(pack.outlineId || '') === id) || null;
+    }
+
+    function getDetailedOutlinePinnedItems(outlineId) {
+      const pack = getDetailedOutlinePackReadOnly(outlineId);
+      if (!pack) return [];
+      const characters = normalizeStoryBibleIdList(pack.pinnedCharacterIds).map(id => {
+        const character = structuredCharacters.value.find(item => item && item.id === id);
+        if (!character || character.contextPolicy === 'never') return null;
+        return { kind:'character', id, name:String(character.name || '未命名角色') };
+      }).filter(Boolean);
+      const entries = normalizeStoryBibleIdList(pack.pinnedEntryIds).map(id => {
+        const entry = storyBibleEntries.value.find(item => item && item.id === id);
+        if (!entry || entry.status !== 'active' || entry.contextPolicy === 'never') return null;
+        return { kind:'entry', id, name:String(entry.name || '未命名条目') };
+      }).filter(Boolean);
+      return [...characters, ...entries];
+    }
+
+    function getDetailedOutlinePinStats(outlineId) {
+      const rows = getDetailedOutlinePinnedItems(outlineId);
+      return {
+        characters: rows.filter(item => item.kind === 'character').length,
+        entries: rows.filter(item => item.kind === 'entry').length,
+        total: rows.length
+      };
+    }
+
+    function isDetailedOutlinePinned(kind, outlineId, itemId) {
+      const pack = getDetailedOutlinePackReadOnly(outlineId);
+      if (!pack || !['character', 'entry'].includes(kind)) return false;
+      const rows = kind === 'character' ? pack.pinnedCharacterIds : pack.pinnedEntryIds;
+      return normalizeStoryBibleIdList(rows).includes(String(itemId || ''));
+    }
+
+    const filteredDetailedOutlinePinCandidates = computed(() => {
+      const query = String(detailedOutlinePinSearch.value || '').trim().toLowerCase();
+      if (detailedOutlinePinKind.value === 'entry') {
+        return storyBibleEntries.value.filter(entry => entry && entry.status === 'active' && entry.contextPolicy !== 'never').map(entry => ({
+          kind:'entry',
+          id:entry.id,
+          name:String(entry.name || '未命名条目'),
+          meta:[getStoryBibleEntryTypeLabel(entry.type), ...(entry.tags || []), entry.summary].filter(Boolean).join(' · ').slice(0, 180)
+        })).filter(item => !query || (item.name + ' ' + item.meta).toLowerCase().includes(query));
+      }
+      return structuredCharacters.value.filter(character => character && character.contextPolicy !== 'never').map(character => ({
+        kind:'character',
+        id:character.id,
+        name:String(character.name || '未命名角色'),
+        meta:[character.storyRole, character.desc].filter(Boolean).join(' · ').slice(0, 180) || '角色档案'
+      })).filter(item => !query || (item.name + ' ' + item.meta).toLowerCase().includes(query));
+    });
+
+    function toggleDetailedOutlinePin(kind, outlineId, itemId) {
+      const id = String(outlineId || '');
+      const targetId = String(itemId || '');
+      if (!['character', 'entry'].includes(kind) || !id || !targetId || !getDetailedOutlineById(id)) {
+        showToast('钉选目标已不存在，请刷新后重试', 'error');
+        return false;
+      }
+      const eligible = kind === 'character'
+        ? structuredCharacters.value.some(item => item && item.id === targetId && item.contextPolicy !== 'never')
+        : storyBibleEntries.value.some(item => item && item.id === targetId && item.status === 'active' && item.contextPolicy !== 'never');
+      if (!eligible) {
+        showToast(kind === 'character' ? '该人物已设为不进入上下文' : '该资料未启用或已设为不进入上下文', 'warning');
+        return false;
+      }
+      const bible = ensureStoryBible();
+      if (String(bible.context.selectedOutlineId || '') !== id) bible.context.selectedOutlineId = id;
+      const pack = ensureStoryBibleOutlinePack(id);
+      const key = kind === 'character' ? 'pinnedCharacterIds' : 'pinnedEntryIds';
+      const rows = normalizeStoryBibleIdList(pack[key]);
+      const index = rows.indexOf(targetId);
+      if (index >= 0) rows.splice(index, 1);
+      else rows.push(targetId);
+      pack[key] = rows;
+      pack.updatedAt = Date.now();
+      repairStoryBibleReferences();
+      touchStoryBible();
+      return index < 0;
+    }
+
+    function openDetailedOutlinePinPicker(outline) {
+      const changed = ensureStoryBibleOutlineIds();
+      if (changed) {
+        repairStoryBibleReferences();
+        saveData();
+      }
+      const id = String(outline?.id || '');
+      if (!id || !getDetailedOutlineById(id)) {
+        showToast('未找到本章细纲，请刷新后重试', 'error');
+        return false;
+      }
+      ensureStoryBible();
+      setStoryBibleContextTargetOutline(id);
+      activeDetailedOutlinePinId.value = id;
+      detailedOutlinePinKind.value = 'character';
+      detailedOutlinePinSearch.value = '';
+      showDetailedOutlinePinPicker.value = true;
+      return true;
+    }
+
+    function closeDetailedOutlinePinPicker() {
+      showDetailedOutlinePinPicker.value = false;
+      detailedOutlinePinSearch.value = '';
+    }
+
+    function resetC3WorkbenchUiState() {
+      showDetailedOutlinePinPicker.value = false;
+      activeDetailedOutlinePinId.value = '';
+      detailedOutlinePinKind.value = 'character';
+      detailedOutlinePinSearch.value = '';
+      detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+      pendingC3Navigation = null;
+    }
+
+    function getStoryBibleEntryLinkedOutlines(entry) {
+      const ids = new Set(normalizeStoryBibleIdList(entry?.outlineIds));
+      return chapterOutlines.value.filter(outline => outline && ids.has(outline.id));
+    }
+
+    function getSelectedCharacterLinkedOutlines() {
+      const ids = new Set(normalizeStoryBibleIdList(selectedWorkbenchCharacter.value?.chapterLinks?.outlineIds));
+      return chapterOutlines.value.filter(outline => outline && ids.has(outline.id));
+    }
+
+    function hasCharacterStateNavigationDraft() {
+      return Object.values(characterStateDraft.value || {}).some(value => String(value || '').trim());
+    }
+
+    function hasDetailedOutlineNavigationDraft() {
+      return String(doInput.value || '').trim() || chapterOutlines.value.some(outline => String(outline?.aiInput || '').trim());
+    }
+
+    function discardDetailedOutlineNavigationDraft() {
+      doInput.value = '';
+      chapterOutlines.value.forEach(outline => { if (outline) outline.aiInput = ''; });
+    }
+
+    async function executeC3Navigation(destination) {
+      if (!destination || !destination.type) return false;
+      try { document.activeElement?.blur?.(); } catch {}
+      await nextTick();
+      const saved = await saveDataNow('Phase C.3 工作台跳转');
+      if (saved === false) {
+        showToast('保存失败，已取消跳转以保护当前内容', 'error');
+        return false;
+      }
+      closeDetailedOutlinePinPicker();
+      if (destination.type === 'outline') {
+        const outline = getDetailedOutlineById(destination.outlineId);
+        if (!outline) { showToast('目标细纲已不存在', 'warning'); return false; }
+        showCharacterWorkbench.value = false;
+        showStoryBibleWorkbench.value = false;
+        if (!openDetailedOutlineWorkbench()) return false;
+        detailedOutlineViewMode.value = 'all';
+        outline.isExpanded = true;
+        mobileSidebarOpen.value = false;
+        await nextTick();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const target = Array.from(document.querySelectorAll('[data-story-target="detail-outline"]')).find(node => node.dataset.targetId === String(outline.id || ''));
+        const located = flashAndFocusStoryTarget(target, 'content');
+        if (located) {
+          detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+          showToast('已定位到 ' + getDetailedOutlineLabel(outline.id), 'success');
+        } else showToast('已打开细纲，但目标卡片暂时无法定位', 'warning');
+        return located;
+      }
+      if (destination.type === 'character') {
+        const character = structuredCharacters.value.find(item => item && item.id === destination.itemId);
+        if (!character) { showToast('人物档案已不存在', 'warning'); return false; }
+        if (!openCharacterWorkbench(character.id)) return false;
+        detailedOutlineReturnTarget.value = { outlineId:String(destination.returnOutlineId || ''), kind:'character', id:character.id };
+        return true;
+      }
+      if (destination.type === 'entry') {
+        const entry = storyBibleEntries.value.find(item => item && item.id === destination.itemId);
+        if (!entry) { showToast('资料档案已不存在', 'warning'); return false; }
+        if (!openStoryBibleWorkbench('entries')) return false;
+        selectStoryBibleEntry(entry.id);
+        detailedOutlineReturnTarget.value = { outlineId:String(destination.returnOutlineId || ''), kind:'entry', id:entry.id };
+        return true;
+      }
+      return false;
+    }
+
+    function runPendingC3Navigation() {
+      const destination = pendingC3Navigation;
+      pendingC3Navigation = null;
+      if (destination) executeC3Navigation(destination);
+    }
+
+    function requestC3WorkbenchNavigation(destination) {
+      if (!destination || !destination.type) return false;
+      if (isGeneratingCharacterDraft.value || characterDraftReview.value?.status === 'applying') {
+        showToast(isGeneratingCharacterDraft.value ? '角色草案正在生成，请先停止任务再跳转' : '角色草案正在应用，请等待保存完成', 'info');
+        return false;
+      }
+      if (characterDraftReview.value?.status === 'review' && characterDraftCounts.value.total > 0) {
+        openConfirm({
+          title:'存在未应用的角色 AI 草案',
+          message:'继续审阅会保留当前草案；放弃后前往会清除候选，但不会改变现有角色数据。',
+          choices:[
+            { id:'continue', label:'继续审阅' },
+            { id:'discard-go', label:'放弃草案并前往', tone:'danger' }
+          ]
+        }, actionId => {
+          if (actionId === 'discard-go') {
+            clearCharacterDraftReview({ abort:false, hide:true });
+            executeC3Navigation(destination);
+          }
+        });
+        return false;
+      }
+      if (isGeneratingDO.value) {
+        openConfirm({
+          title:'细纲正在生成',
+          message:'继续生成会留在当前工作台；停止并前往会取消当前批次与后续批次，已经写入的章节会保留。',
+          choices:[
+            { id:'continue', label:'继续生成' },
+            { id:'stop-go', label:'停止并前往', tone:'danger' }
+          ]
+        }, actionId => {
+          if (actionId !== 'stop-go') return;
+          pendingC3Navigation = destination;
+          if (!stopDetailedOutlineRun()) {
+            pendingC3Navigation = null;
+            showToast('当前细纲任务无法停止，请等待本批次结束', 'warning');
+          }
+        });
+        return false;
+      }
+      if (outlineAiEditingIdx.value >= 0) {
+        showToast('本章细纲 AI 正在处理，请等待完成后再跳转', 'info');
+        return false;
+      }
+      if (showDetailedOutlineInMain.value && destination.type !== 'outline' && hasDetailedOutlineNavigationDraft()) {
+        openConfirm({
+          title:'存在未使用的细纲 AI 要求',
+          message:'这些临时要求尚未提交给 AI。继续编辑会留在当前细纲；放弃后前往会清空本章和批量细纲要求。',
+          choices:[
+            { id:'continue', label:'继续编辑' },
+            { id:'discard-go', label:'放弃要求并前往', tone:'danger' }
+          ]
+        }, actionId => {
+          if (actionId === 'discard-go') {
+            discardDetailedOutlineNavigationDraft();
+            executeC3Navigation(destination);
+          }
+        });
+        return false;
+      }
+      if (showCharacterWorkbench.value && destination.type === 'outline' && hasCharacterStateNavigationDraft()) {
+        const canRecord = !!String(selectedWorkbenchCharacter.value?.profile?.currentState || '').trim();
+        const choices = [{ id:'continue', label:'继续编辑' }];
+        if (canRecord) choices.push({ id:'record-go', label:'记录状态并前往' });
+        choices.push({ id:'discard-go', label:'放弃草稿并前往', tone:'danger' });
+        openConfirm({
+          title:'状态记录尚未提交',
+          message:'请选择继续编辑、记录当前状态后前往，或明确放弃这条状态记录草稿。',
+          choices
+        }, actionId => {
+          if (actionId === 'record-go') {
+            addSelectedCharacterStateLog();
+            executeC3Navigation(destination);
+          } else if (actionId === 'discard-go') {
+            resetCharacterStateDraft();
+            executeC3Navigation(destination);
+          }
+        });
+        return false;
+      }
+      executeC3Navigation(destination);
+      return true;
+    }
+
+    function requestOpenDetailedOutline(outlineId, source = '') {
+      const id = String(outlineId || '');
+      if (!getDetailedOutlineById(id)) { showToast('目标细纲已不存在', 'warning'); return false; }
+      return requestC3WorkbenchNavigation({ type:'outline', outlineId:id, source });
+    }
+
+    function openDetailedOutlinePinnedItem(kind, itemId) {
+      const returnOutlineId = String(activeDetailedOutlinePinId.value || '');
+      if (!returnOutlineId) return false;
+      return requestC3WorkbenchNavigation({ type:kind === 'character' ? 'character' : 'entry', itemId:String(itemId || ''), returnOutlineId });
+    }
+
+    function returnToDetailedOutlineFromWorkbench() {
+      const outlineId = String(detailedOutlineReturnTarget.value?.outlineId || '');
+      if (!outlineId) return false;
+      return requestOpenDetailedOutline(outlineId, 'return');
+    }
+
+    function requestDeleteStoryBibleEntry(entryId) {
+      const entry = storyBibleEntries.value.find(item => item?.id === entryId);
+      if (!entry) return;
+      const linkedFrom = storyBibleEntries.value.filter(item => item?.id !== entryId && Array.isArray(item.links) && item.links.includes(entryId));
+      const eventLinks = storyBibleEvents.value.reduce((count, event) => count + normalizeStoryBibleIdList(event?.entryIds).filter(id => id === entryId).length, 0);
+      const impactLines = [
+        '将删除“' + (entry.name || '未命名条目') + '”。',
+        linkedFrom.length ? ('会解除 ' + linkedFrom.length + ' 个其他条目对它的关联。') : '它未被其他资料条目关联。',
+        '事件引用：' + eventLinks + ' 处（删除后清理，不删除事件）。',
+        '不会改动世界总览、角色、章节或细纲原文。'
+      ];
+      openConfirm({
+        title: '删除资料条目', message: '该操作仅删除当前结构化资料，且不可从本书恢复。', impactLines,
+        choices: [{ id: 'delete', label: '删除并解除关联', tone: 'danger' }]
+      }, action => {
+        if (action !== 'delete') return;
+        const entries = storyBibleEntries.value;
+        const index = entries.findIndex(item => item?.id === entryId);
+        if (index < 0) return;
+        entries.splice(index, 1);
+        if (detailedOutlineReturnTarget.value.kind === 'entry' && detailedOutlineReturnTarget.value.id === entryId) detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+        repairStoryBibleReferences();
+        selectedStoryBibleEntryId.value = entries[Math.min(index, entries.length - 1)]?.id || '';
+        touchStoryBible();
+        showToast('已删除资料条目并解除关联', 'success');
+      });
+    }
+
     /* ═══ 设置 ═══ */
     const settings = ref({
       apiUrl: '', apiKey: '', model: '',
@@ -762,15 +2293,14 @@ createApp({
     function normalizeConnectionCenter(raw = {}) {
       const base = createEmptyConnectionCenter();
       const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeConnectionProfile) : [];
-      const ids = new Set(profiles.map(profile => profile.id));
       const moduleRoutes = Object.assign({}, base.moduleRoutes);
       if (raw.moduleRoutes && typeof raw.moduleRoutes === 'object') {
         CONNECTION_MODULE_KEYS.forEach(key => {
           const route = raw.moduleRoutes[key] || {};
-          moduleRoutes[key] = { profileId: ids.has(String(route.profileId || '')) ? String(route.profileId) : '' };
+          moduleRoutes[key] = { profileId:String(route.profileId || '').trim() };
         });
       }
-      return { version:CONNECTION_CENTER_VERSION, providerTemplatesVersion:1, profiles, defaultProfileId:ids.has(String(raw.defaultProfileId || '')) ? String(raw.defaultProfileId) : '', moduleRoutes };
+      return { version:CONNECTION_CENTER_VERSION, providerTemplatesVersion:1, profiles, defaultProfileId:String(raw.defaultProfileId || '').trim(), moduleRoutes };
     }
 
     const connectionCenter = ref(createEmptyConnectionCenter());
@@ -795,8 +2325,10 @@ createApp({
     function getEffectiveDefaultConnectionProfile(center = connectionCenter.value) {
       const profiles = Array.isArray(center?.profiles) ? center.profiles : [];
       const preferredId = String(center?.defaultProfileId || '').trim();
-      const preferred = profiles.find(profile => profile.id === preferredId) || null;
-      if (getConnectionProfileStatus(preferred).ok) return preferred;
+      if (preferredId) {
+        const preferred = profiles.find(profile => profile.id === preferredId) || null;
+        return getConnectionProfileStatus(preferred).ok ? preferred : null;
+      }
       return profiles.find(profile => getConnectionProfileStatus(profile).ok) || null;
     }
 
@@ -1559,7 +3091,7 @@ createApp({
     function getMoyunFocusableElements(root) {
       if (!(root instanceof HTMLElement)) return [];
       return Array.from(root.querySelectorAll(MOYUN_MODAL_FOCUSABLE_SELECTOR)).filter(element => {
-        if (!(element instanceof HTMLElement) || element.closest('[inert]')) return false;
+        if (!(element instanceof Element) || typeof element.focus !== 'function' || element.closest('[inert]')) return false;
         const style = window.getComputedStyle(element);
         return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
       });
@@ -1571,7 +3103,7 @@ createApp({
       if (preferInitial && root.dataset.moyunInitialFocus) {
         try {
           const preferred = root.querySelector(root.dataset.moyunInitialFocus);
-          if (preferred instanceof HTMLElement && !preferred.hasAttribute('disabled')) return preferred;
+          if (preferred instanceof Element && typeof preferred.focus === 'function' && !preferred.hasAttribute('disabled')) return preferred;
         } catch {}
       }
       return getMoyunFocusableElements(root)[0]
@@ -1580,7 +3112,7 @@ createApp({
     }
 
     function focusMoyunElement(element, options = {}) {
-      if (!(element instanceof HTMLElement) || !element.isConnected) return false;
+      if (!(element instanceof Element) || typeof element.focus !== 'function' || !element.isConnected) return false;
       try { element.focus({ preventScroll: options.preventScroll !== false }); }
       catch { try { element.focus(); } catch { return false; } }
       if (options.select && typeof element.select === 'function') {
@@ -1685,7 +3217,7 @@ createApp({
       const roots = Array.from(document.querySelectorAll(MOYUN_MODAL_SELECTOR)).filter(isMoyunModalVisible);
       const removed = oldEntries.filter(entry => !roots.includes(entry.root));
       const addedRoots = roots.filter(root => !oldEntries.some(entry => entry.root === root));
-      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const activeElement = document.activeElement instanceof Element ? document.activeElement : null;
       const activeContainer = oldEntries.slice().reverse().find(entry => activeElement && entry.root.contains(activeElement));
       const replacementSource = removed.includes(oldTop) && addedRoots.length ? oldTop : null;
 
@@ -1726,7 +3258,7 @@ createApp({
       }
 
       const topChanged = oldTop?.root !== top?.root;
-      const topNeedsFocus = !!(top && (!(document.activeElement instanceof HTMLElement) || !top.root.contains(document.activeElement)));
+      const topNeedsFocus = !!(top && (!(document.activeElement instanceof Element) || !top.root.contains(document.activeElement)));
       if (topChanged || topNeedsFocus) {
         nextTick(() => requestAnimationFrame(() => {
           const currentTop = getTopMoyunModalEntry();
@@ -1737,7 +3269,7 @@ createApp({
           if (oldTop && removed.includes(oldTop)) {
             const restoreTarget = oldTop.opener?.isConnected ? oldTop.opener : oldTop.fallbackOpener;
             if (currentTop) {
-              if (!(restoreTarget instanceof HTMLElement) || !currentTop.root.contains(restoreTarget) || !focusMoyunElement(restoreTarget)) {
+              if (!(restoreTarget instanceof Element) || !currentTop.root.contains(restoreTarget) || !focusMoyunElement(restoreTarget)) {
                 focusMoyunModalEntry(currentTop, false);
               }
             } else {
@@ -1758,7 +3290,7 @@ createApp({
     function handleMoyunModalFocusIn(event) {
       const top = getTopMoyunModalEntry();
       const target = event.target;
-      if (!top || !(target instanceof HTMLElement) || top.root.contains(target) || target.hasAttribute('data-moyun-modal-support')) return;
+      if (!top || !(target instanceof Element) || top.root.contains(target) || target.hasAttribute('data-moyun-modal-support')) return;
       event.stopPropagation();
       requestAnimationFrame(() => focusMoyunModalEntry(getTopMoyunModalEntry(), true));
     }
@@ -1890,6 +3422,326 @@ createApp({
       const w = 100 / sidebarTabs.length;
       return { left: (idx * w) + '%', width: w + '%' };
     });
+
+    /* ═══ Phase A：设定 / 角色展开工作台状态 ═══ */
+    const showStoryBibleWorkbench = ref(false);
+    const storyBibleWorkbenchSection = ref('project');
+    const showCharacterWorkbench = ref(false);
+    const characterWorkbenchSearch = ref('');
+    const characterWorkbenchFilter = ref('all');
+    const selectedWorkbenchCharacterId = ref('');
+    const characterStateDraft = ref({ reason:'', chapterId:'', outlineId:'' });
+
+    function closeStoryBibleWorkbench() {
+      if (!showStoryBibleWorkbench.value) return;
+      repairStoryBibleReferences();
+      saveDataNow('关闭设定工作台');
+      showStoryBibleWorkbench.value = false;
+      storyBibleEventReturnTargetId.value = '';
+      detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+    }
+
+    function openStoryBibleWorkbench(section = 'project') {
+      if (isGeneratingOutline.value || isGeneratingDO.value) {
+        showToast('大纲或细纲正在生成，请先停止当前任务再切换工作台', 'info');
+        return false;
+      }
+      ensureStoryBible();
+      setStoryBibleWorkbenchSection(section);
+      showStoryBibleWorkbench.value = true;
+      showCharacterWorkbench.value = false;
+      showOutlineInMain.value = false;
+      showDetailedOutlineInMain.value = false;
+      mobileSidebarOpen.value = false;
+      return true;
+    }
+
+    function normalizeCharacterStateLog(rows) {
+      const seenIds = new Set();
+      return (Array.isArray(rows) ? rows : []).filter(row => row && typeof row === 'object' && !Array.isArray(row)).map(row => {
+        const next = Object.assign({}, row);
+        let id = String(next.id || '').trim();
+        if (!id || seenIds.has(id)) {
+          do { id = 'char_state_' + uid(); } while (seenIds.has(id));
+        }
+        seenIds.add(id);
+        next.id = id;
+        next.state = String(next.state || '');
+        next.reason = String(next.reason || '');
+        next.chapterId = String(next.chapterId || '');
+        next.outlineId = String(next.outlineId || '');
+        next.createdAt = Number(next.createdAt) || 0;
+        return next;
+      });
+    }
+
+    function normalizeCharacterRelationships(rows, reservedIds = new Set()) {
+      const usedIds = reservedIds instanceof Set ? reservedIds : new Set();
+      return (Array.isArray(rows) ? rows : [])
+        .filter(relationship => relationship && typeof relationship === 'object' && !Array.isArray(relationship))
+        .map(relationship => {
+          const next = Object.assign({}, relationship);
+          let id = String(next.id || '').trim();
+          if (!id || usedIds.has(id)) {
+            do { id = 'char_rel_' + uid(); } while (usedIds.has(id));
+          }
+          usedIds.add(id);
+          next.id = id;
+          next.targetId = String(next.targetId || '');
+          next.type = String(next.type || '');
+          next.attitude = String(next.attitude || '');
+          next.changeReason = String(next.changeReason || '');
+          return next;
+        });
+    }
+
+    function createCharacterRelationshipRecord(fields = {}) {
+      return normalizeCharacterRelationships([Object.assign({
+        id:'', targetId:'', type:'', attitude:'', changeReason:''
+      }, fields)])[0];
+    }
+
+    function normalizeCharacterProfile(character, reservedRelationshipIds = null) {
+      if (!character || typeof character !== 'object' || Array.isArray(character)) return null;
+      if (!character.id) character.id = uid();
+      character.name = String(character.name || '');
+      character.desc = String(character.desc || '');
+      character.personalityTags = Array.isArray(character.personalityTags)
+        ? character.personalityTags.map(value => String(value || '').trim()).filter(Boolean)
+        : [];
+      character.speakingStyle = String(character.speakingStyle || '');
+      character.exampleDialogues = Array.isArray(character.exampleDialogues)
+        ? character.exampleDialogues.map(value => String(value || ''))
+        : [];
+      character.characterPrompt = String(character.characterPrompt || '');
+      character.storyRole = String(character.storyRole || '');
+      character.dialogueType = String(character.dialogueType || '');
+      if (!['sketch', 'regular', 'core'].includes(character.profileLevel)) character.profileLevel = 'regular';
+      const rawProfile = character.profile && typeof character.profile === 'object' && !Array.isArray(character.profile) ? character.profile : {};
+      character.profile = Object.assign({}, rawProfile);
+      ['publicGoal', 'realNeed', 'fear', 'innerConflict', 'secret', 'currentState'].forEach(key => {
+        character.profile[key] = String(character.profile[key] || '');
+      });
+      character.stateLog = normalizeCharacterStateLog(character.stateLog);
+      const rawLinks = character.chapterLinks && typeof character.chapterLinks === 'object' && !Array.isArray(character.chapterLinks)
+        ? character.chapterLinks
+        : {};
+      character.chapterLinks = Object.assign({}, rawLinks, {
+        chapterIds: normalizeStoryBibleIdList(rawLinks.chapterIds),
+        outlineIds: normalizeStoryBibleIdList(rawLinks.outlineIds)
+      });
+      character.relationships = normalizeCharacterRelationships(
+        character.relationships,
+        reservedRelationshipIds instanceof Set ? reservedRelationshipIds : new Set()
+      );
+      if (!['always', 'auto', 'pinned', 'never'].includes(character.contextPolicy)) character.contextPolicy = 'auto';
+      return character;
+    }
+
+    const selectedWorkbenchCharacter = computed(() => {
+      return structuredCharacters.value.find(item => item && item.id === selectedWorkbenchCharacterId.value) || null;
+    });
+
+    const filteredWorkbenchCharacters = computed(() => {
+      const query = String(characterWorkbenchSearch.value || '').trim().toLowerCase();
+      return structuredCharacters.value.filter(character => {
+        if (!character || typeof character !== 'object') return false;
+        // 中文注释：computed 只能读取，不能在渲染期间补字段，否则会触发 Vue 递归更新。
+        const profileLevel = ['sketch', 'regular', 'core'].includes(character.profileLevel) ? character.profileLevel : 'regular';
+        const profile = character.profile && typeof character.profile === 'object' && !Array.isArray(character.profile) ? character.profile : {};
+        if (characterWorkbenchFilter.value === 'core' && profileLevel !== 'core') return false;
+        if (characterWorkbenchFilter.value === 'pov' && !/主视角|POV|视角/.test(String(character.storyRole || ''))) return false;
+        if (characterWorkbenchFilter.value === 'unfinished' && (character.desc || '').trim() && (profile.publicGoal || '').trim() && (character.speakingStyle || '').trim()) return false;
+        if (!query) return true;
+        return [character.name, character.desc, character.storyRole, ...(character.personalityTags || [])]
+          .join(' ').toLowerCase().includes(query);
+      });
+    });
+
+    const characterWorkbenchStats = computed(() => {
+      const characters = structuredCharacters.value.filter(Boolean);
+      return {
+        total: characters.length,
+        core: characters.filter(character => character.profileLevel === 'core').length,
+        relations: characters.reduce((count, character) => count + (Array.isArray(character.relationships) ? character.relationships.filter(rel => rel?.targetId).length : 0), 0),
+        ready: characters.filter(character => String(character.name || '').trim() && String(character.desc || '').trim()).length
+      };
+    });
+
+    const selectedCharacterWorkbenchStats = computed(() => {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character) return { stateLog:0, relations:0, chapters:0, outlines:0, invalid:0 };
+      const chapterIds = normalizeStoryBibleIdList(character.chapterLinks?.chapterIds);
+      const outlineIds = normalizeStoryBibleIdList(character.chapterLinks?.outlineIds);
+      const validCharacterIds = new Set(structuredCharacters.value.map(item => item?.id).filter(Boolean));
+      const validChapterIds = new Set(chapters.value.map(item => item?.id).filter(Boolean));
+      const validOutlineIds = new Set(chapterOutlines.value.map(item => item?.id).filter(Boolean));
+      const relationships = Array.isArray(character.relationships) ? character.relationships : [];
+      const stateLog = Array.isArray(character.stateLog) ? character.stateLog : [];
+      return {
+        stateLog: stateLog.length,
+        relations: relationships.filter(item => item?.targetId).length,
+        chapters: chapterIds.length,
+        outlines: outlineIds.length,
+        invalid: relationships.filter(item => item?.targetId && !validCharacterIds.has(item.targetId)).length
+          + chapterIds.filter(id => !validChapterIds.has(id)).length
+          + outlineIds.filter(id => !validOutlineIds.has(id)).length
+          + stateLog.reduce((count, row) => count + (row?.chapterId && !validChapterIds.has(row.chapterId) ? 1 : 0) + (row?.outlineId && !validOutlineIds.has(row.outlineId) ? 1 : 0), 0)
+      };
+    });
+
+    function resetCharacterStateDraft() {
+      characterStateDraft.value = { reason:'', chapterId:'', outlineId:'' };
+    }
+
+    function selectWorkbenchCharacter(characterId) {
+      const character = structuredCharacters.value.find(item => item && item.id === characterId);
+      if (!character) return false;
+      normalizeCharacterProfile(character);
+      if (selectedWorkbenchCharacterId.value !== character.id) resetCharacterStateDraft();
+      selectedWorkbenchCharacterId.value = character.id;
+      return true;
+    }
+
+    function openCharacterWorkbench(characterId = '') {
+      if (isGeneratingOutline.value || isGeneratingDO.value) {
+        showToast('大纲或细纲正在生成，请先停止当前任务再切换工作台', 'info');
+        return false;
+      }
+      const targetId = characterId || selectedWorkbenchCharacterId.value || structuredCharacters.value[0]?.id || '';
+      if (targetId) selectWorkbenchCharacter(targetId);
+      showCharacterWorkbench.value = true;
+      showStoryBibleWorkbench.value = false;
+      showOutlineInMain.value = false;
+      showDetailedOutlineInMain.value = false;
+      mobileSidebarOpen.value = false;
+      return true;
+    }
+
+    function closeCharacterWorkbench() {
+      if (!showCharacterWorkbench.value) return;
+      saveDataNow('关闭角色工作台');
+      showCharacterWorkbench.value = false;
+      storyBibleEventReturnTargetId.value = '';
+      detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+    }
+
+    function addCharacterFromWorkbench() {
+      const beforeLength = structuredCharacters.value.length;
+      addCharacter();
+      const nextCharacter = structuredCharacters.value[beforeLength];
+      if (nextCharacter) {
+        normalizeCharacterProfile(nextCharacter);
+        selectedWorkbenchCharacterId.value = nextCharacter.id;
+      }
+      return nextCharacter || null;
+    }
+
+    function touchSelectedCharacterWorkbench() {
+      if (selectedWorkbenchCharacter.value) normalizeCharacterProfile(selectedWorkbenchCharacter.value);
+      saveData();
+    }
+
+    function setSelectedCharacterProfileLevel(level) {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character || !['sketch', 'regular', 'core'].includes(level)) return;
+      character.profileLevel = level;
+      touchSelectedCharacterWorkbench();
+    }
+
+    function setSelectedCharacterTags(value) {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character) return;
+      character.personalityTags = [...new Set(String(value || '').split(/[、,，\n]/).map(item => item.trim()).filter(Boolean))];
+      touchSelectedCharacterWorkbench();
+    }
+
+    function addSelectedCharacterStateLog() {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character) return;
+      normalizeCharacterProfile(character);
+      const state = String(character.profile.currentState || '').trim();
+      if (!state) { showToast('请先填写当前状态', 'info'); return; }
+      const draft = characterStateDraft.value || {};
+      character.stateLog.push({
+        id: 'char_state_' + uid(),
+        state,
+        reason: String(draft.reason || '').trim(),
+        chapterId: String(draft.chapterId || ''),
+        outlineId: String(draft.outlineId || ''),
+        createdAt: Date.now()
+      });
+      normalizeCharacterProfile(character);
+      resetCharacterStateDraft();
+      saveData();
+      showToast('已记录当前状态', 'success');
+    }
+
+    function removeSelectedCharacterStateLog(index) {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character || !Array.isArray(character.stateLog) || !character.stateLog[index]) return;
+      character.stateLog.splice(index, 1);
+      saveData();
+    }
+
+    function formatCharacterStateLogTime(value) {
+      const timestamp = Number(value) || 0;
+      if (!timestamp) return '未记录时间';
+      try { return new Intl.DateTimeFormat('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(new Date(timestamp)); }
+      catch { return new Date(timestamp).toLocaleString(); }
+    }
+
+    function getCharacterChapterLabel(chapterId) {
+      const index = visibleChapters.value.findIndex(chapter => chapter?.id === chapterId);
+      const chapter = index >= 0 ? visibleChapters.value[index] : chapters.value.find(item => item?.id === chapterId);
+      if (!chapter) return '已删除章节';
+      return String(chapter.title || '').trim() || ('第' + ((index >= 0 ? index : chapters.value.indexOf(chapter)) + 1) + '章');
+    }
+
+    function getCharacterOutlineLabel(outlineId) {
+      const index = chapterOutlines.value.findIndex(outline => outline?.id === outlineId);
+      const outline = index >= 0 ? chapterOutlines.value[index] : null;
+      return outline ? (String(outline.title || '').trim() || ('第' + (index + 1) + '章细纲')) : '已删除细纲';
+    }
+
+    function isSelectedCharacterAssociationLinked(kind, id) {
+      const character = selectedWorkbenchCharacter.value;
+      const field = kind === 'chapter' ? 'chapterIds' : kind === 'outline' ? 'outlineIds' : '';
+      return !!field && normalizeStoryBibleIdList(character?.chapterLinks?.[field]).includes(String(id || ''));
+    }
+
+    function toggleSelectedCharacterAssociation(kind, id) {
+      const character = selectedWorkbenchCharacter.value;
+      const field = kind === 'chapter' ? 'chapterIds' : kind === 'outline' ? 'outlineIds' : '';
+      const normalizedId = String(id || '');
+      if (!character || !field || !normalizedId) return;
+      normalizeCharacterProfile(character);
+      const rows = normalizeStoryBibleIdList(character.chapterLinks[field]);
+      const index = rows.indexOf(normalizedId);
+      if (index >= 0) rows.splice(index, 1);
+      else rows.push(normalizedId);
+      character.chapterLinks[field] = rows;
+      saveData();
+    }
+
+    function addSelectedCharacterRelationship() {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character) return;
+      if (!Array.isArray(character.relationships)) character.relationships = [];
+      character.relationships.push(createCharacterRelationshipRecord());
+      saveData();
+    }
+
+    function removeSelectedCharacterRelationship(index) {
+      const character = selectedWorkbenchCharacter.value;
+      if (!character || !Array.isArray(character.relationships)) return;
+      character.relationships.splice(index, 1);
+      saveData();
+    }
+
+    function getCharacterNameById(characterId) {
+      return structuredCharacters.value.find(character => character && character.id === characterId)?.name || '未命名角色';
+    }
 
     /* Toast 通知 */
     const toast = ref({ show: false, message: '', type: 'info' });
@@ -2197,14 +4049,18 @@ createApp({
     }
 
     async function aiAutoFillSettings() {
+      if (isAutoFilling.value) { showToast('设定正在补全，请等待当前请求完成', 'info'); return; }
       const request = getModuleRequestConfig('settings');
       if (!request.ok) { showToast(request.reason || '请配置设定模块 API', 'error'); return; }
       if (!novel.value.theme && !novel.value.title) { showToast('请至少填写书名或主题', 'error'); return; }
+      const run = beginBookScopedAiRun('settings-autofill');
+      if (!run) return;
       isAutoFilling.value = true;
       try {
         const hint = (novel.value.theme || '') + (novel.value.title ? '，书名参考：' + novel.value.title : '');
         const prompt = '你是网文策划专家。请根据以下主题补全小说设定。\n\n主题: ' + hint + '\n\n请严格按以下格式输出：\n### 书名\n(一个有意境的中文书名)\n### 主题\n(20-50字的主题描述)\n### 简介\n(200-400字的作品简介)\n### 世界观\n(500-1000字的世界观设定，含时代背景、社会结构、力量体系)\n### 负面提示词\n(不想出现的元素，逗号分隔，没有则输出"无")\n\n直接输出，不要代码块。';
-        const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'settings' }), { stream:false, temperature:0.7, maxTokens:2200 });
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'settings' }), { stream:false, temperature:0.7, maxTokens:2200, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run)) return;
         const text = cleanAIResponse(result.text || '');
         if (!text || text.length < 50) { showToast('AI返回内容不足', 'error'); return; }
         const title = extractSettingsAutofillField(text, '书名');
@@ -2222,8 +4078,10 @@ createApp({
         saveData();
         showToast('已补全：' + updated.join('、'), 'success');
       } catch (e) {
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
         showToast('补全失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isAutoFilling.value = false;
       }
     }
@@ -2231,27 +4089,25 @@ createApp({
     const isGeneratingNsfw = ref(false);
 
     function aiGenerateNsfwModules() {
+      if (isGeneratingNsfw.value) { showToast('NSFW 模块正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('writing', '正文生成 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('settings-nsfw-modules');
+      if (!run) return;
       isGeneratingNsfw.value = true;
       const prompt = '你是专业的成人内容写作指令设计专家。请为AI小说写作系统生成7个NSFW效果增强模块。\n\n注意：这些模块只用于大纲、细纲、正文的效果增强，不承担系统级破限职责。\n\n每个模块150-250字，内容要专业详细。\n\n返回JSON对象:\n{\n"position":"体位与准备(描写规范)",\n"body":"身体描写(器官描写规范)",\n"sensory":"感官细节(五感描写规范)",\n"pacing":"节奏控制(节奏指令)",\n"character":"角色行为(行为与语言规范)",\n"fluid":"液体与反应(生理反应描写)",\n"injury":"伤势描写(暴力场景描写)"\n}\n\n直接输出JSON，不要代码块标记。';
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const raw = getAdapterCompletionText(result);
         const obj = JSON.parse(raw);
         const keys = ['position','body','sensory','pacing','character','fluid','injury'];
         keys.forEach(k => { if (obj[k]) nsfwSettings.value[k] = obj[k]; });
         saveData();
         showToast('NSFW效果增强模块已填充', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingNsfw.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingNsfw.value = false; });
     }
 
     function getNsfwPrompt(taskType = '') {
@@ -2342,20 +4198,17 @@ createApp({
         console.table(messages.map((m, index) => ({
           index,
           role: m.role,
-          chars: String(m.content || '').length,
-          preview: String(m.content || '').slice(0, 120).replace(/\n/g, ' ')
+          chars: String(m.content || '').length
         })));
-        const sysMsg = messages.find(m => m.role === 'system');
-        if (sysMsg) console.log('首个 system 内容:', sysMsg.content);
-        console.log('完整 messages:', messages);
+        console.log('请求正文已隐藏；如需排障请使用页面“安全视图”，不会输出原始 messages。');
         console.groupEnd();
       } catch (e) {
         console.warn('AI 请求日志输出失败:', e);
       }
     }
  
-function captureChapterContextMessages(messages, modelName, label = '章节生成 messages') {
-      const list = (Array.isArray(messages) ? messages : []).map((m, index) => {
+function mapChapterContextMessages(messages) {
+      return (Array.isArray(messages) ? messages : []).map((m, index) => {
         const content = String(m?.content || '');
         return {
           index,
@@ -2366,6 +4219,24 @@ function captureChapterContextMessages(messages, modelName, label = '章节生�
           chars: content.length
         };
       });
+    }
+
+function setSafeChapterContextMessages(messages, modelName, label = '当前章节上下文', source = 'current-build') {
+      const list = mapChapterContextMessages(messages);
+      safeChapterContextMessages.value = list.map(sanitizeChapterContextMessage);
+      safeChapterContextMeta.value = {
+        label,
+        source,
+        model: modelName || '',
+        capturedAt: Date.now(),
+        messageCount: list.length,
+        totalChars: list.reduce((sum, msg) => sum + msg.chars, 0)
+      };
+      return safeChapterContextMeta.value;
+    }
+
+function captureChapterContextMessages(messages, modelName, label = '章节生成 messages') {
+      const list = mapChapterContextMessages(messages);
       lastChapterContextMessages.value = list;
       lastChapterContextMeta.value = {
         label,
@@ -2374,6 +4245,7 @@ function captureChapterContextMessages(messages, modelName, label = '章节生�
         messageCount: list.length,
         totalChars: list.reduce((sum, msg) => sum + msg.chars, 0)
       };
+      setSafeChapterContextMessages(messages, modelName, label, 'actual-request');
     }
 
 function formatContextCapturedAt(ts) {
@@ -2390,7 +4262,7 @@ function getRealContextRoleStyle(role) {
 
 function isSnowwingContextContent(content) {
       const text = String(content || '');
-      return /白鸟·雪翼成双|snowwing|雪翼成双|破限增强|NFSW特化|伏笔池|伏笔分析|白鸟模型|白鸟记忆|白鸟推演|白鸟过河滩|<白鸟|getvar::|setvar::|cot_/i.test(text);
+      return /白鸟·雪翼成双|snowwing|雪翼成双|破限增强|NFSW特化|伏笔池|伏笔分析|白鸟模型|白鸟记忆|白鸟推演|白鸟过河滩|<白鸟|getvar::|setvar::|cot_|【MOD模块：|\b(?:MOD|Skill|Hosted View|prompt:write|activeContextTools|data:table)\b|宿主预设|流水线|文风指令|预设指令|API 配置|连接中心/i.test(text);
     }
 
 function collectSnowwingContextLabels(content) {
@@ -2429,19 +4301,22 @@ function collectSnowwingContextLabels(content) {
 
 function sanitizeChapterContextMessage(msg) {
       const content = String(msg?.content || '');
-      if (!isSnowwingContextContent(content)) {
-        return Object.assign({}, msg, { displayChars: content.length, redacted: false });
+      const containsSnowwing = isSnowwingContextContent(content);
+      const role = msg?.role || 'unknown';
+      const labels = containsSnowwing ? collectSnowwingContextLabels(content) : [];
+      if (!labels.length || (labels.length === 1 && labels[0] === '已触发提示词组')) {
+        const roleLabel = role === 'system' ? '系统提示词' : role === 'assistant' ? '校准/历史助手消息' : role === 'user' ? '用户上下文/任务消息' : '上下文消息';
+        labels.splice(0, labels.length, containsSnowwing ? '插件/宿主提示词' : roleLabel);
       }
-      const labels = collectSnowwingContextLabels(content);
       const visibleLabels = labels.slice(0, 16);
       const moreCount = Math.max(0, labels.length - visibleLabels.length);
       const safeContent = [
-        '白鸟·雪翼成双 + ' + visibleLabels.join('；'),
-        moreCount ? '另有 ' + moreCount + ' 组白鸟提示词已脱敏。' : '',
+        (containsSnowwing ? '白鸟·雪翼成双 + ' : '安全上下文 + ') + visibleLabels.join('；'),
+        moreCount ? '另有 ' + moreCount + ' 组提示词已脱敏。' : '',
         '',
-        '安全视图已隐藏该消息中的白鸟内置提示词正文。',
-        '保留信息：role=' + (msg.role || 'unknown') + '，messages[' + msg.index + ']，原始字符数=' + content.length + '。',
-        '为保护插件提示词与上下文内容，此窗口不提供原始 messages 视图。'
+        '安全视图已隐藏该消息中的系统与插件提示词正文。',
+        '保留信息：role=' + (msg.role || 'unknown') + '，messages[' + msg.index + ']，实际字符数=' + content.length + '。',
+        '为保护提示词、CoT 与密钥，此窗口不提供原始 messages 视图。'
       ].join('\n');
       return Object.assign({}, msg, {
         content: safeContent,
@@ -2452,7 +4327,29 @@ function sanitizeChapterContextMessage(msg) {
     }
 
 function getVisibleChapterContextMessages() {
+      if (safeChapterContextMessages.value.length) return safeChapterContextMessages.value;
       return lastChapterContextMessages.value.map(sanitizeChapterContextMessage);
+    }
+
+function refreshSafeChapterContextPreview() {
+      try {
+        const messages = buildChapterMessages({ printLog: false, logLabel: '当前准备发送 messages' });
+        return setSafeChapterContextMessages(messages, getModelForModule('writing'), '当前准备发送 messages', 'current-build');
+      } catch (e) {
+        console.warn('安全上下文字符数刷新失败:', e?.message || e);
+        if (lastChapterContextMessages.value.length) {
+          return setSafeChapterContextMessages(lastChapterContextMessages.value, lastChapterContextMeta.value?.model || getModelForModule('writing'), '上次实际发送 messages', 'actual-request');
+        }
+        safeChapterContextMessages.value = [];
+        safeChapterContextMeta.value = null;
+        return null;
+      }
+    }
+
+function openRealContextSafeView() {
+      realContextViewMode.value = 'safe';
+      refreshSafeChapterContextPreview();
+      showRealContextModal.value = true;
     }
 
 function writeClipboardText(text, successMessage) {
@@ -2481,14 +4378,14 @@ function writeClipboardText(text, successMessage) {
     }
 
 function copyLastChapterContextJson() {
-      writeClipboardText(JSON.stringify({ meta: Object.assign({}, lastChapterContextMeta.value || {}, { viewMode: 'safe' }), messages: getVisibleChapterContextMessages() }, null, 2), '已复制安全上下文 JSON');
+      writeClipboardText(JSON.stringify({ meta: Object.assign({}, safeChapterContextMeta.value || lastChapterContextMeta.value || {}, { viewMode: 'safe' }), messages: getVisibleChapterContextMessages() }, null, 2), '已复制安全上下文 JSON');
     }
 
 function copyLastChapterContextText() {
       const text = getVisibleChapterContextMessages().map(msg => {
         const namePart = msg.name ? ' name=' + msg.name : '';
-        const mark = msg.redacted ? ' · 白鸟已脱敏' : '';
-        return 'F' + msg.floor + ' [' + msg.role + namePart + ']' + mark + ' ' + (msg.displayChars || msg.chars) + '/' + msg.chars + '字符\n' + msg.content;
+        const mark = msg.redacted ? ' · 提示词已脱敏' : '';
+        return 'F' + msg.floor + ' [' + msg.role + namePart + ']' + mark + ' 实际' + msg.chars + '字符\n' + msg.content;
       }).join('\n\n──────────\n\n');
       writeClipboardText(text, '已复制安全上下文文本');
     }
@@ -2647,8 +4544,14 @@ function copyLastChapterContextText() {
     const realContextViewMode = ref('safe');
     const lastChapterContextMessages = ref([]);
     const lastChapterContextMeta = ref(null);
+    // 中文注释：安全视图只保存脱敏后的当前构建结果；原始提示词不会进入该响应式状态。
+    const safeChapterContextMessages = ref([]);
+    const safeChapterContextMeta = ref(null);
     const isGenerating = ref(false);
     const isGeneratingSuggestion = ref(false);
+    // 中文注释：建议请求必须绑定书籍和 run，避免切书或重复点击时迟到结果覆盖当前书的续写方向。
+    let _suggestionRunSequence = 0;
+    let _activeSuggestionRun = null;
     const showSettings_modal = ref(false);
     const showImportExport = ref(false);
     const showNewBook = ref(false);
@@ -3085,6 +4988,7 @@ function copyLastChapterContextText() {
             showToast('当前书或兜底备份已变化，已取消旧恢复操作', 'warning');
             return;
           }
+          resetCharacterDraftReviewForBookChange();
           if (backupBook.novel) novel.value = deepClone(backupBook.novel);
           if (chapterNeedsRestore && backupChapterRows.length) {
             chapters.value = mergeEmergencyBackupChapters(chapters.value, backupChapterRows, hasDeclaredChapterCount ? backupChapterCount : 0);
@@ -3098,6 +5002,10 @@ function copyLastChapterContextText() {
           if (backupBook.foreshadowMatrix) foreshadowMatrix.value = normalizeForeshadowMatrix(backupBook.foreshadowMatrix);
           if (backupBook.summaries) summaries.value = deepClone(backupBook.summaries);
           if (backupBook.coverImage !== undefined) coverImage.value = backupBook.coverImage;
+          selectedWorkbenchCharacterId.value = '';
+          resetCharacterStateDraft();
+          repairDanglingCharacterReferences();
+          repairStoryBibleReferences();
           saveDataNow('恢复紧急兜底备份');
           showToast(chapterNeedsRestore ? '已安全合并兜底备份，完整章节表已保留' : '已恢复章节索引与暗线计划，正文未改写', 'success');
         });
@@ -3136,12 +5044,18 @@ function copyLastChapterContextText() {
     /* 同步当前书籍数据到books数组 */
     function syncBookData() {
       if (!books.value.length || !currentBookId.value) return;
+      repairDanglingCharacterReferences();
       const idx = books.value.findIndex(b => b.id === currentBookId.value);
       if (idx >= 0) {
         const bk = books.value[idx];
         bk.novel = deepClone(novel.value);
         bk.chapters = deepClone(chapters.value);
         bk.characters = deepClone(structuredCharacters.value);
+        // 中文注释：未打开过工作台的旧书保持没有 storyBible 字段；已存在或已打开的书才保存结构。
+        if (storyBible.value) {
+          repairStoryBibleReferences();
+          bk.storyBible = deepClone(storyBible.value);
+        }
         bk.title = novel.value.title || '无题';
         bk.lastModified = Date.now();
         bk.wordCount = totalWordCount.value;
@@ -3416,11 +5330,58 @@ function copyLastChapterContextText() {
     }
 
     /* ═══ 书架操作 ═══ */
+    let _bookScopedAiRunSequence = 0;
+    const _bookScopedAiRuns = new Map();
+
+    function beginBookScopedAiRun(key) {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey || _bookScopedAiRuns.has(normalizedKey)) return null;
+      const run = {
+        id: ++_bookScopedAiRunSequence,
+        key: normalizedKey,
+        sourceBookId: String(currentBookId.value || ''),
+        controller: new AbortController()
+      };
+      _bookScopedAiRuns.set(normalizedKey, run);
+      return run;
+    }
+
+    function isBookScopedAiRunCurrent(run) {
+      return !!(run
+        && _bookScopedAiRuns.get(run.key) === run
+        && !run.controller.signal.aborted
+        && String(currentBookId.value || '') === run.sourceBookId);
+    }
+
+    function finishBookScopedAiRun(run) {
+      if (run && _bookScopedAiRuns.get(run.key) === run) _bookScopedAiRuns.delete(run.key);
+    }
+
+    function cancelBookScopedAiRuns(reason = 'bookSwitch') {
+      const runs = Array.from(_bookScopedAiRuns.values());
+      _bookScopedAiRuns.clear();
+      runs.forEach(run => {
+        if (run.controller.signal.aborted) return;
+        try { run.controller.abort(new DOMException('AI任务已停止：' + reason, 'AbortError')); }
+        catch { run.controller.abort(); }
+      });
+      return runs.length;
+    }
+
+    function cancelAiRunsForBookChange() {
+      // 中文注释：所有会写当前书 UI/数据的异步入口都必须先失效化，再替换 currentBookId 和响应式数据引用。
+      cancelBookScopedAiRuns('bookSwitch');
+      if (typeof stopActiveGeneration === 'function') stopActiveGeneration('bookSwitch');
+      if (typeof cancelSuggestionRun === 'function') cancelSuggestionRun('bookSwitch', { resetView:true });
+      if (typeof cancelBookReviewRun === 'function') cancelBookReviewRun('bookSwitch', { resetView:true });
+    }
+
     function createNewBook(title, theme, worldView) {
       const id = uid();
       books.value.push({
         id, title: title || '新书', lastModified: Date.now(), wordCount: 0,
         novel: { title: title||'', theme: theme||'', synopsis:'', worldView: worldView||'', negativePrompt:'', isAdultMode:false, outline:'' },
+        storyBible: createDefaultStoryBible(),
         chapters: [], characters: [],
         chapterIndexDrafts: [],
         foreshadowMatrix: [],
@@ -3437,11 +5398,25 @@ function copyLastChapterContextText() {
     function loadBook(id) {
       const book = books.value.find(b => b.id === id);
       if (!book) return false;
+      if (String(id || '') !== String(currentBookId.value || '')) stopOutlineRunsForBookChange();
+      cancelAiRunsForBookChange();
+      resetCharacterDraftReviewForBookChange();
+      resetRelationshipGraphState();
+      lastChapterContextMessages.value = [];
+      lastChapterContextMeta.value = null;
+      safeChapterContextMessages.value = [];
+      safeChapterContextMeta.value = null;
+      lastGenerationCotContext.value = null;
       currentBookId.value = id;
       currentChapterIndex.value = -1;
       if (typeof lastRemovedDarklinePlan !== 'undefined') lastRemovedDarklinePlan.value = null;
       const _defaultNovel = {title:'',theme:'',synopsis:'',worldView:'',negativePrompt:'',isAdultMode:false,outline:''};
       novel.value = Object.assign(_defaultNovel, deepClone(book.novel || {}));
+      // 中文注释：旧书不在加载时写回空结构；打开工作台后才通过 ensureStoryBible 创建。
+      storyBible.value = book.storyBible ? normalizeStoryBible(book.storyBible) : null;
+      selectedStoryBibleEntryId.value = '';
+      selectedWorkbenchCharacterId.value = '';
+      resetCharacterStateDraft();
       const chs = deepClone(book.chapters || []);
       chs.forEach(c => {
         if (!c.id) c.id = uid();
@@ -3454,16 +5429,9 @@ function copyLastChapterContextText() {
       });
       chapters.value = chs;
       structuredCharacters.value = deepClone(book.characters || []);
-      // 确保角色有新字段
+      // 确保角色有兼容字段；C.1 数据由统一归一化器维护，未知未来字段原样保留。
       structuredCharacters.value.forEach(ch => {
-        if (!ch.id) ch.id = uid();
-        if (!ch.personalityTags) ch.personalityTags = [];
-        if (ch.speakingStyle === undefined) ch.speakingStyle = '';
-        if (!ch.exampleDialogues) ch.exampleDialogues = [];
-        if (ch.dialogueType === undefined) ch.dialogueType = '';
-        if (!ch.relationships) ch.relationships = [];
-        ch.relationships = (ch.relationships || []).filter(r => r && typeof r === 'object');
-        if (ch.characterPrompt === undefined) ch.characterPrompt = '';
+        normalizeCharacterProfile(ch);
         if (ch._expanded === undefined) ch._expanded = false;
         if (ch._sec_tags === undefined) ch._sec_tags = false;
         if (ch._sec_dialogueType === undefined) ch._sec_dialogueType = false;
@@ -3506,6 +5474,7 @@ function copyLastChapterContextText() {
       summaries.value = book.summaries ? deepClone(book.summaries) : [];
       // 中文注释：旧书可能保留已删除角色或对话风格的 ID；加载时清空失效 ID，但保留关系行文本供用户重新选择。
       repairDanglingCharacterReferences();
+      repairStoryBibleReferences();
 
 
       return true;
@@ -3581,19 +5550,18 @@ function copyLastChapterContextText() {
     const newDialogueTypeDesc = ref('');
 
     function aiGenerateDialogueType() {
+      if (isGeneratingDialogueType.value) { showToast('对话风格正在生成，请等待当前请求完成', 'info'); return; }
       const request = getModuleRequestConfig('character');
       if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
+      const run = beginBookScopedAiRun('dialogue-type');
+      if (!run) return;
       isGeneratingDialogueType.value = true;
       const hint = newDialogueTypeDesc.value || '一个独特的说话风格';
       const prompt = '你是角色对话风格设计师。请设计一个全新的角色对话风格模板。\n\n用户描述: ' + hint + '\n\n返回JSON: {"id":"英文id","label":"中文名称(3字以内)","icon":"一个emoji","prompt":"详细的说话风格描述(80-150字，包含语气特点、用词习惯、句式偏好)"}\n不要代码块。';
-      fetch(request.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'character' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const raw = getAdapterCompletionText(result);
         const dt = JSON.parse(raw);
         dt.id = dt.id || uid();
         dt.isCustom = true;
@@ -3602,18 +5570,57 @@ function copyLastChapterContextText() {
         saveData();
         showToast('对话风格「' + dt.label + '」已创建', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingDialogueType.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingDialogueType.value = false; });
+    }
+
+    function ensureUniqueChapterIds() {
+      const seenChapterIds = new Set();
+      let repairedChapterIds = 0;
+      (Array.isArray(chapters.value) ? chapters.value : []).forEach(chapter => {
+        if (!chapter || typeof chapter !== 'object') return;
+        let id = String(chapter.id || '').trim();
+        if (!id || seenChapterIds.has(id)) {
+          do { id = 'chapter_' + uid(); } while (seenChapterIds.has(id));
+          chapter.id = id;
+          repairedChapterIds++;
+        }
+        seenChapterIds.add(id);
+      });
+      return repairedChapterIds;
     }
 
     function repairDanglingCharacterReferences() {
+      const normalizeIdList = values => [...new Set((Array.isArray(values) ? values : []).map(value => String(value || '').trim()).filter(Boolean))];
+      const repairedChapterIds = typeof ensureUniqueChapterIds === 'function' ? ensureUniqueChapterIds() : 0;
+      if (typeof ensureStoryBibleOutlineIds === 'function') ensureStoryBibleOutlineIds();
+      const seenCharacterIds = new Set();
+      const seenRelationshipIds = new Set();
+      let repairedCharacterIds = 0;
       structuredCharacters.value.forEach(char => {
-        if (char && typeof char === 'object' && !char.id) char.id = uid();
+        if (!char || typeof char !== 'object') return;
+        if (typeof normalizeCharacterProfile === 'function') normalizeCharacterProfile(char, seenRelationshipIds);
+        let id = char.id;
+        if (!id || seenCharacterIds.has(id)) {
+          do { id = uid(); } while (seenCharacterIds.has(id));
+          char.id = id;
+          repairedCharacterIds++;
+        }
+        seenCharacterIds.add(char.id);
       });
       const validCharacterIds = new Set(structuredCharacters.value.map(char => char && char.id).filter(Boolean));
       const validDialogueTypeIds = new Set(dialogueTypes.value.map(type => type && type.id).filter(Boolean));
+      const chapterRows = typeof chapters !== 'undefined' && Array.isArray(chapters.value) ? chapters.value : [];
+      const outlineRows = typeof chapterOutlines !== 'undefined' && Array.isArray(chapterOutlines.value) ? chapterOutlines.value : [];
+      const hasChapterContext = typeof chapters !== 'undefined';
+      const hasOutlineContext = typeof chapterOutlines !== 'undefined';
+      const validChapterIds = new Set(chapterRows.map(chapter => chapter && chapter.id).filter(Boolean));
+      const validOutlineIds = new Set(outlineRows.map(outline => outline && outline.id).filter(Boolean));
       let clearedRelationships = 0;
       let clearedDialogueTypes = 0;
+      let clearedChapterLinks = 0;
+      let clearedOutlineLinks = 0;
+      let clearedStateLinks = 0;
       structuredCharacters.value.forEach(char => {
         if (!char || typeof char !== 'object') return;
         const relationships = Array.isArray(char.relationships) ? char.relationships : [];
@@ -3628,8 +5635,27 @@ function copyLastChapterContextText() {
           char.dialogueType = '';
           clearedDialogueTypes++;
         }
+        const chapterIds = normalizeIdList(char.chapterLinks?.chapterIds);
+        const outlineIds = normalizeIdList(char.chapterLinks?.outlineIds);
+        const nextChapterIds = hasChapterContext ? chapterIds.filter(id => validChapterIds.has(id)) : chapterIds;
+        const nextOutlineIds = hasOutlineContext ? outlineIds.filter(id => validOutlineIds.has(id)) : outlineIds;
+        clearedChapterLinks += chapterIds.length - nextChapterIds.length;
+        clearedOutlineLinks += outlineIds.length - nextOutlineIds.length;
+        char.chapterLinks = Object.assign({}, char.chapterLinks || {}, { chapterIds: nextChapterIds, outlineIds: nextOutlineIds });
+        const normalizedStateLog = typeof normalizeCharacterStateLog === 'function'
+          ? normalizeCharacterStateLog(char.stateLog)
+          : (Array.isArray(char.stateLog) ? char.stateLog : []);
+        char.stateLog = normalizedStateLog.map(row => {
+          const next = Object.assign({}, row);
+          if (hasChapterContext && next.chapterId && !validChapterIds.has(next.chapterId)) { next.chapterId = ''; clearedStateLinks++; }
+          if (hasOutlineContext && next.outlineId && !validOutlineIds.has(next.outlineId)) { next.outlineId = ''; clearedStateLinks++; }
+          return next;
+        });
       });
-      return { clearedRelationships, clearedDialogueTypes };
+      if (typeof selectedWorkbenchCharacterId !== 'undefined' && !validCharacterIds.has(selectedWorkbenchCharacterId.value)) {
+        selectedWorkbenchCharacterId.value = structuredCharacters.value[0]?.id || '';
+      }
+      return { repairedCharacterIds, repairedChapterIds, clearedRelationships, clearedDialogueTypes, clearedChapterLinks, clearedOutlineLinks, clearedStateLinks };
     }
 
     function getDialogueTypeReferenceImpact(dtId) {
@@ -3712,7 +5738,7 @@ function copyLastChapterContextText() {
       if (!char.relationships) {
         char.relationships = [];
       }
-      char.relationships.push({ targetId: '', type: '', attitude: '' });
+      char.relationships.push(createCharacterRelationshipRecord());
       saveData();
     }
 
@@ -3730,10 +5756,14 @@ function copyLastChapterContextText() {
         id: uid(), name: '', desc: '',
         personalityTags: [], speakingStyle: '', exampleDialogues: [],
         dialogueType: '', relationships: [], characterPrompt: '',
+        profileLevel: 'sketch', storyRole: '',
+        profile: { publicGoal:'', realNeed:'', fear:'', innerConflict:'', secret:'', currentState:'' },
+        stateLog: [], chapterLinks: { chapterIds:[], outlineIds:[] }, contextPolicy: 'auto',
         _expanded: true,
         _sec_tags: false, _sec_dialogueType: false, _sec_style: false,
         _sec_examples: false, _sec_rel: false, _sec_prompt: false, _sec_avatar: false
       };
+      normalizeCharacterProfile(character);
       structuredCharacters.value.push(character);
       const newIndex = structuredCharacters.value.length - 1;
       saveData();
@@ -3761,11 +5791,24 @@ function copyLastChapterContextText() {
           if (relationship && relationship.targetId === characterId) incoming.push({ source, relationship, relationshipIndex });
         });
       });
+      const bible = storyBible.value;
+      let storyBibleCount = 0;
+      if (bible) {
+        storyBibleCount += (bible.world?.entries || []).reduce((count, entry) => count + normalizeStoryBibleIdList(entry?.characterIds).filter(id => id === characterId).length, 0);
+        storyBibleCount += (bible.world?.events || []).reduce((count, event) => count + normalizeStoryBibleIdList(event?.characterIds).filter(id => id === characterId).length, 0);
+        storyBibleCount += normalizeStoryBibleIdList(bible.context?.pinnedCharacterIds).filter(id => id === characterId).length;
+        storyBibleCount += (bible.context?.itemModes || []).filter(item => item?.kind === 'character' && item?.id === characterId).length;
+        (bible.context?.outlinePacks || []).forEach(pack => {
+          storyBibleCount += normalizeStoryBibleIdList(pack?.pinnedCharacterIds).filter(id => id === characterId).length;
+          storyBibleCount += (pack?.itemModes || []).filter(item => item?.kind === 'character' && item?.id === characterId).length;
+        });
+      }
       return {
         incoming,
         incomingCount: incoming.length,
         sourceCount: new Set(incoming.map(item => item.source.id)).size,
-        outgoingCount: Array.isArray(character?.relationships) ? character.relationships.length : 0
+        outgoingCount: Array.isArray(character?.relationships) ? character.relationships.length : 0,
+        storyBibleCount
       };
     }
 
@@ -3786,6 +5829,7 @@ function copyLastChapterContextText() {
         impactLines: [
           '被其他角色引用：' + impact.incomingCount + ' 条（来自 ' + impact.sourceCount + ' 个角色）',
           '该角色自身关系：' + impact.outgoingCount + ' 条',
+          '设定工作台引用：' + impact.storyBibleCount + ' 处（删除后清理，不会改绑）',
           '删除后剩余角色：' + Math.max(0, structuredCharacters.value.length - 1) + ' 个'
         ],
         selectLabel: '将外部关系改绑到',
@@ -3819,7 +5863,9 @@ function copyLastChapterContextText() {
           source.relationships = nextRelationships;
         });
         structuredCharacters.value = structuredCharacters.value.filter(item => item && item.id !== character.id);
+        if (detailedOutlineReturnTarget.value.kind === 'character' && detailedOutlineReturnTarget.value.id === character.id) detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
         repairDanglingCharacterReferences();
+        repairStoryBibleReferences();
         saveData();
         const detail = action === 'reassign'
           ? ('改绑 ' + reassigned + ' 条关系' + (removedReferences ? '，清理 ' + removedReferences + ' 条自引用' : ''))
@@ -3834,6 +5880,16 @@ function copyLastChapterContextText() {
     const aiCharDesc = ref('');
     const isGeneratingChar = ref(false);
     const tempChar = ref({ name:'', desc:'' });
+
+    // Phase C.2：五条角色 AI 入口共用同一份临时草案；确认前不写入任何书籍数据。
+    const showCharacterDraftReview = ref(false);
+    const isGeneratingCharacterDraft = ref(false);
+    const characterDraftReview = ref({
+      draftId:'', sourceBookId:'', operation:'', title:'角色 AI 草案审阅', status:'idle', message:'', targets:[]
+    });
+    let characterDraftAbortController = null;
+    let characterDraftRunSequence = 0;
+    let activeCharacterDraftRunId = 0;
 
     function hasTemporaryCharacterDraft() {
       return Object.values(tempChar.value || {}).some(value => {
@@ -3893,6 +5949,9 @@ function copyLastChapterContextText() {
     // 统一解析模块所使用的 API 配置；网页版运行时只认连接中心。
     function resolveModuleConnection(moduleKey) {
       const key = String(moduleKey || '').trim();
+      if (!CONNECTION_MODULE_KEYS.includes(key)) {
+        return { ok:false, reason:'未知或未登记的模块 key：' + (key || '空'), source:'connection-center', profile:null };
+      }
       const center = normalizeConnectionCenter(connectionCenter.value);
       const route = center.moduleRoutes[key] || { profileId:'' };
       const hasExplicitRoute = !!String(route.profileId || '').trim();
@@ -3902,7 +5961,8 @@ function copyLastChapterContextText() {
         return { ok:false, reason:'模块“' + key + '”绑定的 API 配置不存在', source:'connection-center', profile:null };
       }
       if (!hasExplicitRoute && center.profiles.length && !profile) {
-        return { ok:false, reason:'请先测试至少一个 API 配置；模块将跟随首个测试成功的配置', source:'connection-center', profile:null };
+        const preferredId = String(center.defaultProfileId || '').trim();
+        return { ok:false, reason:preferredId ? '默认 API 配置不存在、已停用或尚未通过测试，请重新指定默认配置' : '请先测试至少一个 API 配置；模块将跟随首个测试成功的配置', source:'connection-center', profile:null };
       }
       if (profile) {
         if (!profile.enabled) return { ok:false, reason:'API 配置“' + (profile.name || '未命名') + '”已停用', source:'connection-center', profile:null };
@@ -3932,23 +5992,41 @@ function copyLastChapterContextText() {
     }
 
     function setHostModuleModelFromMod(mod, moduleKey, modelId, options = {}) {
+      const fail = reason => {
+        showToast(reason, 'error');
+        return { ok:false, error:reason, profileId:'' };
+      };
       if (!mod || !isModPermissionEnabled(mod, 'settings:moduleModels')) {
-        showToast('该 MOD 缺少 settings:moduleModels 权限', 'error');
-        return false;
+        return fail('该 MOD 缺少 settings:moduleModels 权限');
       }
       const config = getHostModuleModelConfig(moduleKey);
-      if (!config) {
-        showToast('宿主模块模型 key 不在白名单：' + (moduleKey || '空'), 'error');
-        return false;
-      }
-      if (!settings.value.moduleModels || typeof settings.value.moduleModels !== 'object') settings.value.moduleModels = {};
+      if (!config) return fail('宿主模块模型 key 不在白名单：' + (moduleKey || '空'));
+
       const nextModel = String(modelId || '').trim();
-      settings.value.moduleModels[config.key] = nextModel;
-      saveData();
+      const requestedProfileId = String(options.profileId || options.connectionProfileId || options.configId || '').trim();
+      let profile = null;
+      if (requestedProfileId) {
+        profile = getConnectionProfile(requestedProfileId);
+        const status = getConnectionProfileStatus(profile);
+        if (!status.ok) return fail('无法绑定 API 配置：' + (status.reason || '配置不可用'));
+        if (nextModel && profile.defaultModel !== nextModel) {
+          return fail('profileId 对应模型与 modelId 不一致，请以连接中心配置为准');
+        }
+      } else if (nextModel) {
+        const matches = getAssignableConnectionProfiles().filter(item => item.defaultModel === nextModel);
+        if (!matches.length) return fail('找不到使用模型“' + nextModel + '”的可用 API 配置，请改传 profileId');
+        if (matches.length > 1) return fail('模型“' + nextModel + '”对应多个 API 配置，请改传 profileId，不能猜测配置');
+        profile = matches[0];
+      }
+
+      const profileId = profile?.id || '';
+      if (!setModuleRouteProfile(config.key, profileId)) return fail('宿主模块 API 配置分配失败');
       const label = config.name || config.key;
-      const fallbackText = nextModel ? ('已为' + label + '指定模型：' + nextModel) : (label + '已回退主模型');
-      showToast(options.toast || fallbackText, nextModel ? 'success' : 'info');
-      return true;
+      const fallbackText = profile
+        ? ('已为' + label + '指定 API 配置：' + (profile.name || '未命名配置') + '（' + profile.defaultModel + '）')
+        : (label + '已改为跟随默认配置');
+      showToast(options.toast || fallbackText, profile ? 'success' : 'info');
+      return { ok:true, profileId, profileName:profile?.name || '', modelId:profile?.defaultModel || '' };
     }
 
     /* ──── URL 解析工具 ────
@@ -4042,21 +6120,25 @@ function copyLastChapterContextText() {
       if (!request?.ok) throw new Error(request?.reason || 'API 配置不可用');
       if (!isSupportedRequestAdapter(adapterId)) throw new Error('未知或未实现的 API 协议：' + adapterId);
       const stream = options.stream === true;
+      const temperature = options.omitTemperature === true ? undefined : (options.temperature ?? 0.7);
       const headers = { 'Content-Type':'application/json' };
       let body;
       if (adapterId === 'anthropic-messages') {
         headers['x-api-key'] = request.apiKey;
         headers['anthropic-version'] = '2023-06-01';
         const system = (Array.isArray(messages) ? messages : []).filter(item => item?.role === 'system').map(item => String(item.content || '')).join('\n\n');
-        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), max_tokens:Number(options.maxTokens || 4096), stream, temperature:options.temperature ?? 0.7 };
+        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), max_tokens:Number(options.maxTokens || 4096), stream };
+        if (temperature !== undefined) body.temperature = temperature;
         if (system) body.system = system;
       } else if (adapterId === 'gemini-generate') {
-        body = { contents:buildAdapterMessages(messages, adapterId), generationConfig:{ temperature:options.temperature ?? 0.7, maxOutputTokens:Number(options.maxTokens || 4096) } };
+        body = { contents:buildAdapterMessages(messages, adapterId), generationConfig:{ maxOutputTokens:Number(options.maxTokens || 4096) } };
+        if (temperature !== undefined) body.generationConfig.temperature = temperature;
         const system = (Array.isArray(messages) ? messages : []).filter(item => item?.role === 'system').map(item => String(item.content || '')).join('\n\n');
         if (system) body.systemInstruction = { parts:[{ text:system }] };
       } else {
         headers.Authorization = 'Bearer ' + request.apiKey;
-        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), stream, temperature:options.temperature ?? 0.7 };
+        body = { model:request.model, messages:buildAdapterMessages(messages, adapterId), stream };
+        if (temperature !== undefined) body.temperature = temperature;
         if (options.maxTokens) body.max_tokens = Number(options.maxTokens);
       }
       return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal };
@@ -4064,7 +6146,7 @@ function copyLastChapterContextText() {
 
     function extractAdapterText(data, adapterId) {
       if (adapterId === 'anthropic-messages') return (Array.isArray(data?.content) ? data.content : []).filter(item => item?.type === 'text').map(item => String(item.text || '')).join('');
-      if (adapterId === 'gemini-generate') return (data?.candidates || []).flatMap(item => item?.content?.parts || []).map(item => String(item?.text || '')).join('');
+      if (adapterId === 'gemini-generate') return (data?.candidates?.[0]?.content?.parts || []).map(item => String(item?.text || '')).join('');
       return extractAiTextFromResponse(data);
     }
 
@@ -4094,17 +6176,27 @@ function copyLastChapterContextText() {
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
       let buf = '', full = '', finishReason = '';
+      const consumeAdapterStreamLine = line => {
+        const raw = String(line || '').replace(/^data:\s*/, '').trim();
+        if (!raw || raw === '[DONE]') return;
+        try {
+          const part = parseAdapterStreamEvent(JSON.parse(raw), adapterId);
+          if (part.text) {
+            full += part.text;
+            if (typeof options.onTextDelta === 'function') options.onTextDelta(part.text, full);
+          }
+          if (part.finishReason) finishReason = part.finishReason;
+        } catch {}
+      };
       while (true) {
         const chunk = await reader.read();
         if (chunk.done) break;
         buf += dec.decode(chunk.value, { stream:true });
         const lines = buf.split(/\r?\n/); buf = lines.pop() || '';
-        for (const line of lines) {
-          const raw = String(line || '').replace(/^data:\s*/, '').trim();
-          if (!raw || raw === '[DONE]') continue;
-          try { const part = parseAdapterStreamEvent(JSON.parse(raw), adapterId); full += part.text || ''; if (part.finishReason) finishReason = part.finishReason; } catch {}
-        }
+        lines.forEach(consumeAdapterStreamLine);
       }
+      buf += dec.decode();
+      if (buf.trim()) consumeAdapterStreamLine(buf);
       return { text:cleanAIResponse(full), rawText:full, finishReason, partial:false };
     }
 
@@ -4112,7 +6204,12 @@ function copyLastChapterContextText() {
       const init = buildAdapterRequest(request, messages, options);
       const resp = await fetch(init.url, { method:'POST', headers:init.headers, body:JSON.stringify(init.body), signal:init.signal });
       if (!resp.ok) throw await createApiResponseError(resp, 'API');
-      return readAdapterResponse(resp, request, { stream:options.stream === true });
+      return readAdapterResponse(resp, request, { stream:options.stream === true, onTextDelta:options.onTextDelta });
+    }
+
+    function getAdapterCompletionText(result) {
+      const text = result?.text || result?.rawText || result?.nativeThinking || result?.thinking || '';
+      return cleanAIResponse(text);
     }
 
     function stripSnowwingContextBlocks(text) {
@@ -4442,13 +6539,13 @@ function cleanAIResponse(text) {
 
     function sanitizeApiErrorDetail(value) {
       let text = String(value || '').replace(/\s+/g, ' ').trim();
+      text = text.replace(/([?&](?:api[_-]?key|key|token)=)[^&\s]+/gi, '$1[已隐藏]');
+      text = text.replace(/(authorization\s*:\s*bearer\s+)[^\s,;]+/gi, '$1[已隐藏]');
+      text = text.replace(/(x-api-key\s*[:=]\s*)[^\s,;]+/gi, '$1[已隐藏]');
       Object.values(connectionCredentials.value || {}).map(value => String(value || '').trim()).filter(Boolean).forEach(key => {
         text = text.split(key).join('[API Key已隐藏]');
       });
       text = text.replace(/\bsk-[A-Za-z0-9_-]{6,}\b/g, '[API Key已隐藏]');
-      text = text.replace(/([?&](?:api[_-]?key|key|token)=)[^&\s]+/gi, '$1[已隐藏]');
-      text = text.replace(/(authorization\s*:\s*bearer\s+)[^\s,;]+/gi, '$1[已隐藏]');
-      text = text.replace(/(x-api-key\s*[:=]\s*)[^\s,;]+/gi, '$1[已隐藏]');
       return text.slice(0, 240);
     }
 
@@ -4683,7 +6780,12 @@ function cleanAIResponse(text) {
         const targetId = r.targetId || (r.targetName ? (structuredCharacters.value.find(c => c && c.name === r.targetName)?.id || '') : '');
         if (!targetId || targetId === selfId) return;
         if (result.some(item => item.targetId === targetId)) return;
-        result.push({ targetId, type: r.type || '', attitude: r.attitude || '' });
+        result.push(createCharacterRelationshipRecord({
+          targetId,
+          type:r.type || '',
+          attitude:r.attitude || '',
+          changeReason:r.changeReason || ''
+        }));
       });
       return result;
     }
@@ -4691,12 +6793,15 @@ function cleanAIResponse(text) {
     // 中文注释：根据归一化结果创建完整角色对象，供 AI 新建角色确认写入使用。
     function createCharacterFromPayload(payload, options = {}) {
       const data = normalizeGeneratedCharacterPayload(payload, options.expanded === true);
-      const id = uid();
+      const id = String(options.id || '').trim() || uid();
       return {
         id, name: data.name, desc: data.desc,
         personalityTags: data.personalityTags, speakingStyle: data.speakingStyle, exampleDialogues: data.exampleDialogues,
         dialogueType: data.dialogueType || '', relationships: options.matchRelationships ? normalizeGeneratedRelationships(data.relationships, id) : [],
         characterPrompt: data.characterPrompt, avatarPrompt: data.avatarPrompt || '', avatarBase64: '',
+        profileLevel: ['sketch', 'regular', 'core'].includes(options.profileLevel) ? options.profileLevel : 'sketch', storyRole:'',
+        profile: { publicGoal:'', realNeed:'', fear:'', innerConflict:'', secret:'', currentState:'' },
+        stateLog: [], chapterLinks: { chapterIds:[], outlineIds:[] }, contextPolicy:'auto',
         _expanded: data._expanded,
         _sec_tags: data._sec_tags, _sec_dialogueType: data._sec_dialogueType, _sec_style: data._sec_style,
         _sec_examples: data._sec_examples, _sec_rel: data._sec_rel, _sec_prompt: data._sec_prompt, _sec_avatar: data._sec_avatar
@@ -4732,12 +6837,488 @@ function cleanAIResponse(text) {
       return changed;
     }
 
-    function generateAiCharacter() {
+    const CHARACTER_DRAFT_FIELD_DEFS = Object.freeze([
+      { key:'name', label:'姓名', fieldType:'text' },
+      { key:'desc', label:'人物简介', fieldType:'text' },
+      { key:'personalityTags', label:'性格标签', fieldType:'list', maxLen:10 },
+      { key:'speakingStyle', label:'说话风格', fieldType:'text' },
+      { key:'exampleDialogues', label:'示例台词', fieldType:'list', maxLen:8 },
+      { key:'characterPrompt', label:'写作约束', fieldType:'text' },
+      { key:'avatarPrompt', label:'立绘关键词', fieldType:'text' }
+    ]);
+
+    function createEmptyCharacterDraftReview(overrides = {}) {
+      return Object.assign({
+        draftId:'', sourceBookId:'', operation:'', title:'角色 AI 草案审阅', status:'idle', message:'', targets:[]
+      }, overrides || {});
+    }
+
+    function normalizeCharacterDraftName(value) {
+      return String(value || '').trim().toLocaleLowerCase('zh-CN');
+    }
+
+    function getCharacterDraftFingerprint(character) {
+      if (!character || typeof character !== 'object') return '';
+      return JSON.stringify({
+        id:String(character.id || ''), name:String(character.name || ''), desc:String(character.desc || ''),
+        personalityTags:Array.isArray(character.personalityTags) ? character.personalityTags.map(String) : [],
+        speakingStyle:String(character.speakingStyle || ''),
+        exampleDialogues:Array.isArray(character.exampleDialogues) ? character.exampleDialogues.map(String) : [],
+        characterPrompt:String(character.characterPrompt || ''), avatarPrompt:String(character.avatarPrompt || ''),
+        relationships:(Array.isArray(character.relationships) ? character.relationships : []).map(rel => ({
+          targetId:String(rel?.targetId || ''), type:String(rel?.type || ''), attitude:String(rel?.attitude || ''), changeReason:String(rel?.changeReason || '')
+        }))
+      });
+    }
+
+    function parseCharacterAiJsonEnvelope(text, expectedRoot = 'object') {
+      const cleaned = cleanAIResponse(String(text || '')).trim();
+      if (!cleaned) throw new Error('AI 返回为空，未生成可审阅草案');
+      let parsed;
+      try { parsed = JSON.parse(cleaned); }
+      catch {
+        const opener = expectedRoot === 'array' ? '[' : '{';
+        const closer = expectedRoot === 'array' ? ']' : '}';
+        const start = cleaned.indexOf(opener);
+        const end = cleaned.lastIndexOf(closer);
+        if (start < 0 || end <= start) throw new Error('AI 返回不是有效 JSON');
+        try { parsed = JSON.parse(cleaned.slice(start, end + 1)); }
+        catch { throw new Error('AI 返回 JSON 不完整或格式错误'); }
+      }
+      if (expectedRoot === 'array' && !Array.isArray(parsed)) throw new Error('AI 返回根结构应为数组');
+      if (expectedRoot === 'object' && (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))) throw new Error('AI 返回根结构应为对象');
+      return parsed;
+    }
+
+    function getCharacterDraftProposedValue(raw, normalized, key) {
+      if (key === 'name') return String(raw?.name || '').trim();
+      if (key === 'desc') return String(raw?.desc || raw?.description || '').trim();
+      return normalized[key];
+    }
+
+    function formatCharacterDraftOriginal(value, fieldType) {
+      if (fieldType === 'list') return (Array.isArray(value) ? value : []).join('\n');
+      return String(value || '');
+    }
+
+    function buildCharacterDraftTargets(operation, payload, options = {}) {
+      const createMode = operation === 'create-one' || operation === 'create-batch';
+      const sourceRows = operation === 'create-batch' ? payload : [payload];
+      if (!Array.isArray(sourceRows) || !sourceRows.length) throw new Error('没有可审阅的角色候选');
+      const targets = sourceRows.map((raw, index) => {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('第 ' + (index + 1) + ' 个角色候选结构无效');
+        const targetId = createMode ? uid() : String(options.targetCharacterId || '');
+        const current = createMode ? null : structuredCharacters.value.find(character => character && character.id === targetId);
+        if (!createMode && !current) throw new Error('目标角色已不存在，草案不会写入');
+        const rawName = String(raw.name || '').trim();
+        if (createMode && !rawName) throw new Error('第 ' + (index + 1) + ' 个新角色缺少姓名');
+        return {
+          draftTargetKey:'char_draft_target_' + uid(), targetId, mode:createMode ? 'create' : 'update',
+          displayName:rawName || current?.name || '未命名角色',
+          baseFingerprint:createMode ? '' : String(options.baseFingerprints?.[targetId] || getCharacterDraftFingerprint(current)),
+          rawPayload:raw, items:[]
+        };
+      });
+
+      targets.forEach(target => {
+        const current = target.mode === 'update' ? structuredCharacters.value.find(character => character && character.id === target.targetId) : null;
+        const normalized = normalizeGeneratedCharacterPayload(target.rawPayload, true);
+        CHARACTER_DRAFT_FIELD_DEFS.forEach(def => {
+          const proposedRaw = getCharacterDraftProposedValue(target.rawPayload, normalized, def.key);
+          const currentRaw = current ? current[def.key] : (def.fieldType === 'list' ? [] : '');
+          if (def.fieldType === 'list') {
+            const proposedList = normalizeStringList(proposedRaw, def.maxLen || 12);
+            const currentList = Array.isArray(currentRaw) ? currentRaw.map(value => String(value || '').trim()).filter(Boolean) : [];
+            const additions = proposedList.filter(value => !currentList.includes(value));
+            if (!additions.length) return;
+            const classification = target.mode === 'create' ? 'add' : (currentList.length ? 'add' : 'fill');
+            target.items.push({
+              id:'char_draft_item_' + uid(), fieldKey:def.key, label:def.label, fieldType:def.fieldType,
+              classification, originalValue:formatCharacterDraftOriginal(currentList, 'list'), editValue:additions.join('\n'),
+              selected:true, defaultSelected:true, issue:''
+            });
+            return;
+          }
+          const proposed = String(proposedRaw || '').trim();
+          if (!proposed) return;
+          const currentValue = String(currentRaw || '').trim();
+          if (target.mode === 'update' && proposed === currentValue) return;
+          const classification = target.mode === 'create' ? 'add' : (currentValue ? 'replace' : 'fill');
+          const selected = classification !== 'replace';
+          target.items.push({
+            id:'char_draft_item_' + uid(), fieldKey:def.key, label:def.label, fieldType:def.fieldType,
+            classification, originalValue:currentValue, editValue:proposed,
+            selected, defaultSelected:selected, issue:''
+          });
+        });
+      });
+
+      const relationPool = [];
+      structuredCharacters.value.forEach(character => {
+        if (!character?.id) return;
+        relationPool.push({ id:character.id, name:String(character.name || ''), isDraft:false });
+      });
+      targets.forEach(target => relationPool.push({ id:target.targetId, name:target.displayName, isDraft:true }));
+
+      targets.forEach(target => {
+        const current = target.mode === 'update' ? structuredCharacters.value.find(character => character && character.id === target.targetId) : null;
+        const normalized = normalizeGeneratedCharacterPayload(target.rawPayload, true);
+        const seenRelationKeys = new Set();
+        normalized.relationships.forEach((relationship, relationIndex) => {
+          const explicitId = String(relationship.targetId || '').trim();
+          const targetName = String(relationship.targetName || '').trim();
+          let matches = explicitId ? relationPool.filter(option => option.id === explicitId) : [];
+          if (!matches.length && targetName) {
+            const normalizedName = normalizeCharacterDraftName(targetName);
+            matches = relationPool.filter(option => normalizeCharacterDraftName(option.name) === normalizedName);
+          }
+          matches = matches.filter(option => option.id !== target.targetId);
+          const resolvedId = matches.length === 1 ? matches[0].id : '';
+          const relationKey = resolvedId || ('name:' + normalizeCharacterDraftName(targetName) + ':' + relationIndex);
+          if (seenRelationKeys.has(relationKey)) return;
+          seenRelationKeys.add(relationKey);
+          const existing = resolvedId && current ? (current.relationships || []).find(item => item && item.targetId === resolvedId) : null;
+          const proposedType = String(relationship.type || '').trim();
+          const proposedAttitude = String(relationship.attitude || '').trim();
+          if (existing && String(existing.type || '') === proposedType && String(existing.attitude || '') === proposedAttitude) return;
+          let issue = '';
+          if (!targetName && !explicitId) issue = '关系候选缺少目标角色';
+          else if (!matches.length) issue = '未找到“' + (targetName || explicitId) + '”，请手动选择目标角色';
+          else if (matches.length > 1) issue = '存在多个同名角色，请手动选择稳定目标';
+          const classification = existing ? 'replace' : 'relation';
+          const selected = !issue && classification !== 'replace';
+          target.items.push({
+            id:'char_draft_item_' + uid(), fieldKey:'relationships', label:'角色关系', fieldType:'relationship',
+            classification, originalValue:existing ? ((existing.type || '关系') + ' · ' + (existing.attitude || '未描述')) : '',
+            relationTargetId:resolvedId, relationTargetName:targetName, candidateTargetIds:matches.map(option => option.id),
+            relationshipType:proposedType, relationshipAttitude:proposedAttitude,
+            selected, defaultSelected:selected, issue
+          });
+        });
+        delete target.rawPayload;
+      });
+
+      if (!targets.some(target => target.items.length)) throw new Error('AI 返回没有可应用的新字段');
+      return targets;
+    }
+
+    const characterDraftCounts = computed(() => {
+      const targets = Array.isArray(characterDraftReview.value?.targets) ? characterDraftReview.value.targets : [];
+      const items = targets.flatMap(target => Array.isArray(target.items) ? target.items : []);
+      return {
+        targets:targets.length,
+        total:items.length,
+        accepted:items.filter(item => item.selected).length,
+        blocked:items.filter(item => item.fieldType === 'relationship' && !item.relationTargetId).length,
+        safe:items.filter(item => ['add', 'fill', 'relation'].includes(item.classification) && (item.fieldType !== 'relationship' || item.relationTargetId)).length
+      };
+    });
+
+    function getCharacterDraftKindLabel(kind) {
+      return ({ add:'新增', fill:'补空', replace:'建议替换', relation:'关系候选' })[kind] || '候选';
+    }
+
+    function getCharacterDraftKindStyle(kind) {
+      if (kind === 'replace') return 'background:var(--warn-soft);color:var(--warn)';
+      if (kind === 'relation') return 'background:var(--info-soft);color:var(--info)';
+      return 'background:var(--ok-soft);color:var(--ok)';
+    }
+
+    function getCharacterDraftTargetDisplayName(target) {
+      const nameItem = target?.items?.find(item => item.fieldKey === 'name');
+      return String(nameItem?.editValue || target?.displayName || '未命名角色').trim() || '未命名角色';
+    }
+
+    function getCharacterDraftRelationOptions(target) {
+      const result = [];
+      const seen = new Set();
+      structuredCharacters.value.forEach(character => {
+        if (!character?.id || character.id === target?.targetId || seen.has(character.id)) return;
+        seen.add(character.id);
+        const detail = String(character.storyRole || character.desc || '').trim().slice(0, 18);
+        result.push({ id:character.id, label:(character.name || '未命名角色') + (detail ? ' · ' + detail : '') });
+      });
+      (characterDraftReview.value?.targets || []).forEach(candidate => {
+        if (!candidate?.targetId || candidate.targetId === target?.targetId || seen.has(candidate.targetId)) return;
+        seen.add(candidate.targetId);
+        result.push({ id:candidate.targetId, label:getCharacterDraftTargetDisplayName(candidate) + ' · 新草案' });
+      });
+      return result;
+    }
+
+    function refreshCharacterDraftRelationItem(item, target) {
+      if (!item || item.fieldType !== 'relationship') return;
+      const selectedId = String(item.relationTargetId || '');
+      if (!selectedId) {
+        item.issue = '请选择关系目标角色';
+        item.selected = false;
+        item.classification = 'relation';
+        item.originalValue = '';
+        return;
+      }
+      if (selectedId === target?.targetId) {
+        item.issue = '关系不能指向角色自身';
+        item.selected = false;
+        return;
+      }
+      const current = target?.mode === 'update' ? structuredCharacters.value.find(character => character && character.id === target.targetId) : null;
+      const existing = current?.relationships?.find(relationship => relationship && relationship.targetId === selectedId) || null;
+      item.issue = '';
+      item.classification = existing ? 'replace' : 'relation';
+      item.originalValue = existing ? ((existing.type || '关系') + ' · ' + (existing.attitude || '未描述')) : '';
+      item.defaultSelected = !existing;
+      item.selected = !existing;
+    }
+
+    function setCharacterDraftItemDecision(item, accepted) {
+      if (!item) return;
+      if (accepted && item.fieldType === 'relationship' && !item.relationTargetId) {
+        item.issue = item.issue || '请先选择关系目标角色';
+        showToast(item.issue, 'info');
+        item.selected = false;
+        return;
+      }
+      item.selected = accepted === true;
+    }
+
+    function setCharacterDraftTargetDecision(target, accepted) {
+      (target?.items || []).forEach(item => {
+        if (!accepted) item.selected = false;
+        else if (item.fieldType === 'relationship' && !item.relationTargetId) item.selected = false;
+        else item.selected = item.defaultSelected !== false;
+      });
+    }
+
+    function clearCharacterDraftReview(options = {}) {
+      if (options.abort !== false && characterDraftAbortController) {
+        try { characterDraftAbortController.abort(); } catch {}
+      }
+      characterDraftAbortController = null;
+      activeCharacterDraftRunId = 0;
+      isGeneratingCharacterDraft.value = false;
+      if (options.hide !== false) showCharacterDraftReview.value = false;
+      characterDraftReview.value = createEmptyCharacterDraftReview();
+    }
+
+    function resetCharacterDraftReviewForBookChange() {
+      characterDraftRunSequence++;
+      clearCharacterDraftReview({ abort:true, hide:true });
+      resetC3WorkbenchUiState();
+      resetStoryBibleEventUiState();
+      isGeneratingChar.value = false;
+      isGeneratingBatch.value = false;
+      isEnhancingChar.value = false;
+      enhancingCharIdx.value = -1;
+    }
+
+    function stopCharacterDraftGeneration() {
+      if (!isGeneratingCharacterDraft.value) return false;
+      const controller = characterDraftAbortController;
+      characterDraftRunSequence++;
+      activeCharacterDraftRunId = 0;
+      characterDraftAbortController = null;
+      isGeneratingCharacterDraft.value = false;
+      characterDraftReview.value.status = 'cancelled';
+      characterDraftReview.value.message = '已停止本次角色草案生成；角色数据没有发生变化。';
+      try { controller?.abort(); } catch {}
+      return true;
+    }
+
+    function requestCloseCharacterDraftReview() {
+      if (isGeneratingCharacterDraft.value || characterDraftReview.value.status === 'applying') return false;
+      if (characterDraftReview.value.status === 'review' && characterDraftCounts.value.total > 0) {
+        confirmDiscardDraft('放弃角色 AI 草案', '尚未应用的字段候选将被清除，现有角色数据不会改变。', () => clearCharacterDraftReview({ abort:false, hide:true }));
+        return false;
+      }
+      clearCharacterDraftReview({ abort:false, hide:true });
+      return true;
+    }
+
+    async function startCharacterAiDraft(options = {}) {
+      if (isGeneratingCharacterDraft.value) {
+        showToast('已有角色草案正在生成，请先停止当前任务', 'info');
+        return false;
+      }
       const request = getModuleRequestConfig('character');
-      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
-      const characterModel = request.model;
-      isGeneratingChar.value = true;
-      // 中文注释：AI 单角色生成现在要求返回完整角色字段，让预览弹窗自动填表，而不是只填姓名和描述。
+      if (!request.ok) {
+        showToast(request.reason || '请配置角色模块 API', 'error');
+        return false;
+      }
+      const sourceBookId = String(currentBookId.value || '');
+      const targetCharacterId = String(options.targetCharacterId || '');
+      const targetCharacter = targetCharacterId ? structuredCharacters.value.find(character => character && character.id === targetCharacterId) : null;
+      if (targetCharacterId && !targetCharacter) {
+        showToast('目标角色已不存在', 'error');
+        return false;
+      }
+      const baseFingerprints = targetCharacter ? { [targetCharacterId]:getCharacterDraftFingerprint(targetCharacter) } : {};
+      const controller = new AbortController();
+      const runId = ++characterDraftRunSequence;
+      activeCharacterDraftRunId = runId;
+      characterDraftAbortController = controller;
+      isGeneratingCharacterDraft.value = true;
+      characterDraftReview.value = createEmptyCharacterDraftReview({
+        draftId:'char_draft_' + uid(), sourceBookId, operation:String(options.operation || ''),
+        title:String(options.title || '角色 AI 草案审阅'), status:'generating', message:'', targets:[]
+      });
+      showCharacterDraftReview.value = true;
+      if (typeof options.onStart === 'function') options.onStart();
+      try {
+        const response = await fetchAdapterCompletion(
+          request,
+          buildNsfwMessages(String(options.prompt || ''), { taskType:'character' }),
+          { stream:false, signal:controller.signal, maxTokens:Number(options.maxTokens || 4096), temperature:0.7 }
+        );
+        if (controller.signal.aborted || activeCharacterDraftRunId !== runId || currentBookId.value !== sourceBookId) return false;
+        const parsed = typeof options.parseResponse === 'function' ? options.parseResponse(response.text) : parseCharacterAiJsonEnvelope(response.text, 'object');
+        const targets = buildCharacterDraftTargets(String(options.operation || ''), parsed, { targetCharacterId, baseFingerprints });
+        if (controller.signal.aborted || activeCharacterDraftRunId !== runId || currentBookId.value !== sourceBookId) return false;
+        characterDraftReview.value = createEmptyCharacterDraftReview({
+          draftId:characterDraftReview.value.draftId, sourceBookId, operation:String(options.operation || ''),
+          title:String(options.title || '角色 AI 草案审阅'), status:'review', message:'', targets
+        });
+        nextTick(() => requestAnimationFrame(() => focusMoyunElement(document.querySelector('[data-character-draft-apply]'), { preventScroll:true })));
+        return true;
+      } catch (error) {
+        if (activeCharacterDraftRunId !== runId) return false;
+        if (controller.signal.aborted || error?.name === 'AbortError') {
+          characterDraftReview.value.status = 'cancelled';
+          characterDraftReview.value.message = '已停止本次角色草案生成；角色数据没有发生变化。';
+        } else {
+          characterDraftReview.value.status = 'error';
+          characterDraftReview.value.message = error?.message || '未知错误';
+          showToast('角色草案生成失败: ' + characterDraftReview.value.message, 'error');
+        }
+        return false;
+      } finally {
+        if (activeCharacterDraftRunId === runId) {
+          activeCharacterDraftRunId = 0;
+          characterDraftAbortController = null;
+          isGeneratingCharacterDraft.value = false;
+        }
+      }
+    }
+
+    function getCharacterDraftSelectedItems(target, onlyFill) {
+      return (target?.items || []).filter(item => {
+        if (onlyFill) return ['add', 'fill', 'relation'].includes(item.classification)
+          && (item.fieldType !== 'relationship' || !!item.relationTargetId);
+        return item.selected === true;
+      });
+    }
+
+    async function applyCharacterAiDraft(options = {}) {
+      if (characterDraftReview.value.status !== 'review') return false;
+      if (characterDraftReview.value.sourceBookId !== currentBookId.value) {
+        showToast('当前书已切换，旧草案不能应用', 'error');
+        return false;
+      }
+      const onlyFill = options.onlyFill === true;
+      characterDraftReview.value.status = 'applying';
+      const previousCharacters = deepClone(structuredCharacters.value);
+      const previousStoryBible = deepClone(storyBible.value);
+      const previousBooks = deepClone(books.value);
+      const previousSelectedCharacterId = selectedWorkbenchCharacterId.value;
+      let commitStarted = false;
+      try {
+        const working = deepClone(structuredCharacters.value);
+        const activeTargets = (characterDraftReview.value.targets || []).map(target => ({
+          target, items:getCharacterDraftSelectedItems(target, onlyFill)
+        })).filter(entry => entry.items.length > 0);
+        if (!activeTargets.length) throw new Error(onlyFill ? '没有可仅补空应用的候选' : '请先接受至少一个候选字段');
+
+        activeTargets.forEach(({ target, items }) => {
+          if (target.mode !== 'create') return;
+          const nameItem = items.find(item => item.fieldKey === 'name');
+          if (!nameItem || !String(nameItem.editValue || '').trim()) throw new Error('新角色“' + (target.displayName || '未命名') + '”必须接受并填写姓名');
+          if (working.some(character => character && character.id === target.targetId)) throw new Error('新角色稳定 ID 冲突，请重新生成草案');
+          const created = createCharacterFromPayload({ name:String(nameItem.editValue || '').trim() }, { id:target.targetId, expanded:true, profileLevel:'sketch' });
+          normalizeCharacterProfile(created);
+          working.push(created);
+        });
+
+        activeTargets.forEach(({ target }) => {
+          if (target.mode !== 'update') return;
+          const current = structuredCharacters.value.find(character => character && character.id === target.targetId);
+          if (!current) throw new Error('目标角色“' + target.displayName + '”已不存在');
+          if (getCharacterDraftFingerprint(current) !== target.baseFingerprint) throw new Error('角色“' + target.displayName + '”在生成期间发生变化，请重新生成草案');
+        });
+
+        const validIds = new Set(working.filter(Boolean).map(character => character.id));
+        activeTargets.forEach(({ target, items }) => {
+          const character = working.find(item => item && item.id === target.targetId);
+          if (!character) throw new Error('无法定位草案目标角色：' + target.displayName);
+          const relationTargets = new Set();
+          items.forEach(item => {
+            if (item.fieldType === 'relationship') {
+              const relationTargetId = String(item.relationTargetId || '');
+              if (!relationTargetId) throw new Error('关系候选“' + (item.relationTargetName || '未知目标') + '”尚未选择角色');
+              if (relationTargetId === character.id) throw new Error('角色关系不能指向自身');
+              if (!validIds.has(relationTargetId)) throw new Error('关系目标未被创建或已不存在');
+              if (relationTargets.has(relationTargetId)) throw new Error('同一角色存在重复关系候选，请只保留一条');
+              relationTargets.add(relationTargetId);
+              if (!Array.isArray(character.relationships)) character.relationships = [];
+              const existing = character.relationships.find(relationship => relationship && relationship.targetId === relationTargetId);
+              if (existing) {
+                existing.type = String(item.relationshipType || '').trim();
+                existing.attitude = String(item.relationshipAttitude || '').trim();
+                existing.changeReason = String(existing.changeReason || '');
+              } else {
+                character.relationships.push(createCharacterRelationshipRecord({
+                  targetId:relationTargetId,
+                  type:String(item.relationshipType || '').trim(),
+                  attitude:String(item.relationshipAttitude || '').trim(),
+                  changeReason:''
+                }));
+              }
+              return;
+            }
+            if (!CHARACTER_DRAFT_FIELD_DEFS.some(def => def.key === item.fieldKey)) return;
+            if (item.fieldType === 'list') {
+              const maxLen = item.fieldKey === 'personalityTags' ? 10 : 8;
+              const additions = normalizeStringList(item.editValue, maxLen);
+              if (!additions.length) throw new Error(item.label + '候选为空');
+              const current = Array.isArray(character[item.fieldKey]) ? character[item.fieldKey] : [];
+              character[item.fieldKey] = Array.from(new Set(current.map(String).concat(additions)));
+              return;
+            }
+            const value = String(item.editValue || '').trim();
+            if (!value) throw new Error(item.label + '候选为空');
+            character[item.fieldKey] = value;
+          });
+          normalizeCharacterProfile(character);
+        });
+
+        working.forEach(character => normalizeCharacterProfile(character));
+        structuredCharacters.value = working;
+        commitStarted = true;
+        repairDanglingCharacterReferences();
+        repairStoryBibleReferences();
+        const firstTargetId = activeTargets[0]?.target?.targetId || '';
+        if (firstTargetId) selectedWorkbenchCharacterId.value = firstTargetId;
+        const persisted = await saveDataNow('应用角色 AI 草案');
+        if (!persisted) throw new Error('角色草案保存失败，已恢复应用前数据；请检查浏览器存储后重试');
+        const appliedCount = activeTargets.reduce((count, entry) => count + entry.items.length, 0);
+        clearCharacterDraftReview({ abort:false, hide:true });
+        showToast('已应用 ' + appliedCount + ' 项角色草案', 'success');
+        return true;
+      } catch (error) {
+        if (commitStarted) {
+          structuredCharacters.value = previousCharacters;
+          storyBible.value = previousStoryBible;
+          books.value = previousBooks;
+          selectedWorkbenchCharacterId.value = previousSelectedCharacterId;
+          try { saveEmergencyBackup(buildLibrarySnapshot(), '角色 AI 草案保存失败回滚'); } catch {}
+        }
+        characterDraftReview.value.status = 'review';
+        characterDraftReview.value.message = error?.message || '草案应用失败';
+        showToast('草案未应用: ' + characterDraftReview.value.message, 'error');
+        return false;
+      }
+    }
+
+    async function generateAiCharacter() {
+      if (!String(aiCharDesc.value || '').trim()) { showToast('请先描述想要的角色', 'info'); return; }
       const prompt = `你是小说角色设计师。根据以下信息设计一个可直接写入角色表的完整角色。
     小说: ${novel.value.title || '未定'}
     世界观: ${novel.value.worldView || '暂无'}
@@ -4746,42 +7327,36 @@ function cleanAIResponse(text) {
     用户描述: ${aiCharDesc.value}
     返回JSON: {"name":"角色名","desc":"详细描述(外貌性格背景能力关系,200字以上)","personalityTags":["标签1","标签2"],"speakingStyle":"说话风格描述(80-150字)","exampleDialogues":["典型台词1","典型台词2","典型台词3"],"characterPrompt":"写作该角色时的专属提示词(100-200字)","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述"}],"avatarPrompt":"英文生图关键词，可为空"}
     要求：只输出纯JSON，不要代码块标记。`;
-      fetch(request.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: characterModel, messages: buildNsfwMessages(prompt), stream: false })
-      }).then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
-        const obj = raw.match(/\{[\s\S]*\}/); if (obj) raw = obj[0];
-        const result = JSON.parse(raw);
-        tempChar.value = normalizeGeneratedCharacterPayload(result, true);
-        showAiCharModal.value = false; showCharPreview.value = true;
-      }).catch(e => showToast('生成失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingChar.value = false; });
+      isGeneratingChar.value = true;
+      try {
+        await startCharacterAiDraft({
+          operation:'create-one', title:'AI 新建角色 · 字段审阅', prompt, maxTokens:4096,
+          parseResponse:text => parseCharacterAiJsonEnvelope(text, 'object'),
+          onStart:() => { showAiCharModal.value = false; showCharPreview.value = false; }
+        });
+      } finally {
+        isGeneratingChar.value = false;
+      }
     }
 
     function confirmAiCharacter() {
-      const nextChar = createCharacterFromPayload(tempChar.value, { expanded: true, matchRelationships: true });
-      structuredCharacters.value.push(nextChar);
-      const newIndex = structuredCharacters.value.length - 1;
-      showCharPreview.value = false; saveData(); showToast('角色已添加并自动填表', 'success');
-      nextTick(() => setTimeout(() => {
-        const card = document.getElementById('character-card-' + newIndex);
-        if (!card) return;
-        card.classList.add('moyun-new-character-highlight');
-        card.scrollIntoView({ behavior:'smooth', block:'center', inline:'nearest' });
-        focusMoyunElement(card.querySelector('[data-character-name-input]'), { select:true, preventScroll:true });
-        setTimeout(() => card.classList.remove('moyun-new-character-highlight'), 1700);
-      }, 220));
+      try {
+        const targets = buildCharacterDraftTargets('create-one', tempChar.value || {}, {});
+        characterDraftReview.value = createEmptyCharacterDraftReview({
+          draftId:'char_draft_' + uid(), sourceBookId:String(currentBookId.value || ''), operation:'create-one',
+          title:'AI 新建角色 · 字段审阅', status:'review', message:'', targets
+        });
+        showCharPreview.value = false;
+        showCharacterDraftReview.value = true;
+      } catch (error) {
+        showToast('无法创建角色草案: ' + (error?.message || '候选无效'), 'error');
+      }
     }
 
     // 中文注释：一键完善已有角色，一次性补齐性格标签、说话风格、示例台词、关系、专属提示词和立绘关键词。
-    function aiCompleteCharacter(ci) {
+    async function aiCompleteCharacter(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const request = getModuleRequestConfig('character');
-      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
       const prompt = '你是小说角色设定补完助手。请在不推翻已有设定的前提下，补全当前角色缺失字段。\n\n' +
@@ -4800,22 +7375,15 @@ function cleanAIResponse(text) {
         }) + '\n\n' +
         '返回JSON: {"name":"角色名","desc":"可补强的描述","personalityTags":["标签"],"speakingStyle":"说话风格","exampleDialogues":["台词"],"characterPrompt":"专属提示词","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述"}],"avatarPrompt":"英文生图关键词"}\n' +
         '要求：保留已有核心设定，不要制造矛盾；关系只能指向已有角色；只输出纯JSON，不要代码块。';
-      fetch(request.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
-        const obj = raw.match(/\{[\s\S]*\}/); if (obj) raw = obj[0];
-        const payload = JSON.parse(raw);
-        const changed = applyCharacterPayloadToExisting(ci, payload);
-        saveData();
-        showToast(changed ? '角色已完善 ' + changed + ' 项' : '暂无可补充字段', 'success');
-      })
-      .catch(e => showToast('完善失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      try {
+        await startCharacterAiDraft({
+          operation:'complete', title:'一键完善角色 · 字段审阅', targetCharacterId:char.id, prompt, maxTokens:4096,
+          parseResponse:text => parseCharacterAiJsonEnvelope(text, 'object')
+        });
+      } finally {
+        isEnhancingChar.value = false;
+        enhancingCharIdx.value = -1;
+      }
     }
 
     // AI批量角色
@@ -4834,79 +7402,33 @@ function cleanAIResponse(text) {
       return true;
     }
 
-    function generateBatchCharacters() {
-      const request = getModuleRequestConfig('character');
-      if (!request.ok) { showToast(request.reason || '请配置角色模块 API', 'error'); return; }
+    async function generateBatchCharacters() {
+      if (isGeneratingBatch.value || activeCharacterDraftRunId || isGeneratingCharacterDraft.value) { showToast('批量角色正在生成，请等待当前任务完成', 'info'); return; }
+      const requestedCount = Math.max(1, Math.min(10, Number(batchCharCount.value) || 3));
       isGeneratingBatch.value = true;
-      const prompt = `根据以下设定生成${batchCharCount.value}个角色。
+      const prompt = `根据以下设定生成${requestedCount}个角色。
     小说: ${novel.value.title || '未定'}
     世界观: ${novel.value.worldView || '暂无'}
     大纲: ${(novel.value.outline || '暂无').substring(0, 500)}
     已有角色(避免雷同): ${charactersPromptString.value}
     ${batchCharPrompt.value ? '要求: ' + batchCharPrompt.value : ''}
-    返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","relationships":[{"targetName":"对方角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}]}
+    返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","personalityTags":["标签"],"speakingStyle":"说话风格","exampleDialogues":["典型台词"],"characterPrompt":"写作约束","relationships":[{"targetName":"已有角色或本批角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}],"avatarPrompt":"英文生图关键词，可为空"}
     要求：角色之间必须有明确的关系网络，每个角色至少与1个其他角色有关系。
     不要代码块标记。`;
-      fetch(request.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      }).then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
-        const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const chars = JSON.parse(raw);
-        // 第1步：先创建所有角色并记录name→id映射
-        const batchIdMap = {};
-        chars.forEach(c => {
-          const cid = uid();
-          batchIdMap[c.name] = cid;
-          structuredCharacters.value.push({
-            id: cid, name: c.name || '未命名', desc: c.desc || '',
-            personalityTags: [], speakingStyle: '', exampleDialogues: [],
-            dialogueType: '', relationships: [], characterPrompt: '', _expanded: false,
-            _sec_tags: false, _sec_dialogueType: false, _sec_style: false,
-            _sec_examples: false, _sec_rel: false, _sec_prompt: false, _sec_avatar: false
-          });
+      try {
+        await startCharacterAiDraft({
+          operation:'create-batch', title:'批量新建角色 · 字段审阅', prompt, maxTokens:8192,
+          parseResponse:text => {
+            const rows = parseCharacterAiJsonEnvelope(text, 'array');
+            if (!rows.length) throw new Error('AI 未返回任何角色');
+            if (rows.length > requestedCount) return rows.slice(0, requestedCount);
+            return rows;
+          },
+          onStart:() => { showBatchCharModal.value = false; }
         });
-        // 第2步：映射角色关系
-        chars.forEach(c => {
-          if (!c.relationships || !c.relationships.length) return;
-          const sc = structuredCharacters.value.find(s => s.name === c.name);
-          if (!sc) return;
-          c.relationships.forEach(r => {
-            const targetId = batchIdMap[r.targetName];
-            if (targetId) {
-              sc.relationships.push({ targetId, type: r.type || '', attitude: r.attitude || '' });
-            }
-          });
-        });
-        showBatchCharModal.value = false;
-        // 自动生成对话风格模板
-        if (chars.length >= 2) {
-          try {
-            const dtRequest = getModuleRequestConfig('character');
-            if (!dtRequest.ok) throw new Error(dtRequest.reason || '角色模块 API 配置不完整');
-            const dtPrompt2 = '请为小说「' + (novel.value.title||'') + '」设计3个独特的角色对话风格模板。\n返回JSON数组: [{"id":"英文id","label":"中文名称(3字以内)","icon":"一个emoji","prompt":"详细说话风格描述(80-150字)","isCustom":true}]\n不要代码块。';
-            fetch(dtRequest.url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + dtRequest.apiKey },
-              body: JSON.stringify({ model: dtRequest.model, messages: buildNsfwMessages(dtPrompt2, { taskType: 'character' }), stream: false })
-            }).then(r => r.json()).then(d => {
-              let raw2 = cleanAIResponse(extractAiTextFromResponse(d));
-              const arr2 = raw2.match(/\[[\s\S]*\]/); if (arr2) raw2 = arr2[0];
-              const dts = JSON.parse(raw2);
-              dts.forEach(dt => { dt.id = dt.id || uid(); dt.isCustom = true; dialogueTypes.value.push(dt); });
-              saveData();
-              showToast('已自动创建 ' + dts.length + ' 个对话风格', 'success');
-            }).catch(() => {});
-          } catch {}
-        }
-        saveData();
-        showToast('成功生成 ' + chars.length + ' 个角色', 'success');
-
-      }).catch(e => showToast('批量生成失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingBatch.value = false; });
+      } finally {
+        isGeneratingBatch.value = false;
+      }
     }
 
     /* ═══ 提示词流水线系统 ═══ */
@@ -4995,21 +7517,19 @@ function cleanAIResponse(text) {
     const batchPresetHint = ref('');
 
     function aiGeneratePresets() {
+      if (isGeneratingPresets.value) { showToast('预设正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('suggestion', '预设模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('preset-batch');
+      if (!run) return;
       isGeneratingPresets.value = true;
       const count = batchPresetCount.value || 3;
       const hint = batchPresetHint.value || '适合当前小说的写作预设';
       const prompt = '你是AI写作系统的预设设计专家。请生成' + count + '个写作预设。\n\n小说标题: ' + (novel.value.title || '未定') + '\n主题: ' + (novel.value.theme || '暂无') + '\n\n用户要求: ' + hint + '\n\n返回JSON数组: [{"name":"预设名(简短)","content":"预设指令(100-300字的具体写作指令)","applyTo":["writing"]}]\n\napplyTo可选值: writing/outline/character/suggestion/review\n不要代码块标记。';
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const items = JSON.parse(raw);
         items.forEach(p => {
@@ -5022,8 +7542,8 @@ function cleanAIResponse(text) {
         saveData();
         showToast('已生成 ' + items.length + ' 个预设', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingPresets.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingPresets.value = false; });
     }
 
     function deletePreset(idx) {
@@ -6523,6 +9043,7 @@ function cleanAIResponse(text) {
     }
 
     const SNOWWING_CURRENT_MOD_ID = 'moyun.linxun.snowwing-pair';
+    const MOD_PUBLIC_DETAILS_CLOSED_TEXT = '已关闭公开';
     const SNOWWING_LEGACY_PRIVATE_DATA_IDS = [
       SNOWWING_CURRENT_MOD_ID,
       'moyun.bainiao.snowwing-pair',
@@ -7312,6 +9833,7 @@ function cleanAIResponse(text) {
         dataSchemas: mod.dataSchemas || [],
         aiTools: mod.aiTools || [],
         workflows: mod.workflows || [],
+        activeContextTools: mod.activeContextTools || [],
         hostedViews: mod.hostedViews || [],
         skillPacks: mod.skillPacks || [],
         eventHandlers: mod.eventHandlers || [],
@@ -8174,6 +10696,7 @@ function cleanAIResponse(text) {
     }
 
     function buildSnowwingSkillDiagnosticText(mod, skillId) {
+      if (isSnowwingMod(mod)) return MOD_PUBLIC_DETAILS_CLOSED_TEXT;
       const skill = getInstalledSnowwingSkillPacks(mod).find(item => item && item.id === skillId);
       if (!skill) return '';
       const gate = getSnowwingSkillRuntimeGate(mod, skill);
@@ -8423,10 +10946,11 @@ function cleanAIResponse(text) {
     }
 
     // 中文注释：获取指定钩子的所有启用项；API 1.1 会同时读取顶层 hooks 与已启用模块 hooks，仍然必须具备 prompt:write 权限。
-    function getModHookEntries(hookName) {
+    function getModHookEntries(hookName, modFilter = null) {
       const entries = [];
       modPacks.value.forEach(mod => {
         if (!mod || mod.enabled === false) return;
+        if (typeof modFilter === 'function' && !modFilter(mod)) return;
         if (String(hookName || '').startsWith('build') && !isModPermissionEnabled(mod, 'prompt:write')) return;
         const hook = mod.hooks && mod.hooks[hookName];
         if (Array.isArray(hook)) hook.forEach(item => entries.push({ mod, item, module: null }));
@@ -8442,9 +10966,9 @@ function cleanAIResponse(text) {
     }
 
     // 中文注释：声明式文本钩子只支持 append/prepend/replace，不执行插件脚本，降低共创导入风险。
-    function applyModTextHooks(hookName, text, context = {}) {
+    function applyModTextHooks(hookName, text, context = {}, modFilter = null) {
       let result = text || '';
-      getModHookEntries(hookName).forEach(entry => {
+      getModHookEntries(hookName, modFilter).forEach(entry => {
         const item = entry.item;
         if (!item) return;
         if (typeof item === 'string') result += '\n' + item;
@@ -8547,6 +11071,7 @@ function cleanAIResponse(text) {
         if (latest && latest.status === 'success') return { skipped: true, reason: 'runOnce' };
       }
       const runKey = getModEventRunKey(mod, handler);
+      const runBookId = currentBookId.value;
       if (modEventRunning.value[runKey]) return { skipped: true, reason: 'running' };
       modEventRunning.value[runKey] = true;
       try {
@@ -8589,10 +11114,11 @@ function cleanAIResponse(text) {
         } else {
           throw new Error('未知事件处理类型：' + (handler.type || '空'));
         }
+        if (!isModExecutionValid(mod, runBookId)) return { ok:false, error:'事件结果已丢弃：书籍或 MOD 状态已变化' };
         if (handler.saveLog !== false) saveModEventRun(mod, handler, { status: 'success', payloadSnapshot: payload || {}, result: handlerResult });
         return { ok: true, result: handlerResult };
       } catch (e) {
-        if (handler.saveLog !== false) saveModEventRun(mod, handler, { status: 'failed', error: e.message || String(e), payloadSnapshot: payload || {} });
+        if (isModExecutionValid(mod, runBookId) && handler.saveLog !== false) saveModEventRun(mod, handler, { status: 'failed', error: e.message || String(e), payloadSnapshot: payload || {} });
         showToast('事件处理器运行失败: ' + (e.message || e), 'error');
         return { ok: false, error: e.message || String(e) };
       } finally {
@@ -9011,8 +11537,33 @@ function cleanAIResponse(text) {
       const parsed = parseModAiToolRows(text);
       if (!parsed.ok) throw new Error(parsed.error || 'AI 返回无法写入资料池');
       const parsedRows = parsed.rows || [];
+      if (!parsedRows.length) {
+        return {
+          ok: true,
+          mode: 'none',
+          tableId: schema.id,
+          inputRows: 0,
+          added: 0,
+          updated: 0,
+          skipped: 0,
+          changed: 0,
+          count: 0,
+          emptyResult: true,
+          noChangeReason: 'model-returned-empty-array'
+        };
+      }
       const write = writeModDataTableRows(mod, schema, parsedRows, tool.writePolicy || {}, 'ai-tool-table-write');
-      return Object.assign({ ok: true }, write);
+      return Object.assign({
+        ok: true,
+        inputRows: parsedRows.length,
+        emptyResult: false,
+        noChangeReason: write.changed ? '' : (write.skipped ? 'all-rows-skipped-by-write-policy' : 'no-writeable-rows')
+      }, write);
+    }
+
+    function isModExecutionValid(mod, bookId) {
+      if (!mod || !String(bookId || '').trim() || currentBookId.value !== bookId) return false;
+      return modPacks.value.some(item => item && item.id === mod.id && item.enabled !== false);
     }
 
     // 中文注释：第三批核心运行时：由宿主代发 AI 请求，MOD 只提供声明式工具配置和提示词模板。
@@ -9035,6 +11586,7 @@ function cleanAIResponse(text) {
       if (requiresExplicitToolKey && !customApiKey) return fail('请先填写该工具的独立 API Key，或在配置弹窗点击“跟随主模型填写”后再运行');
       if (!customApiUrl && !moduleRequest.ok) return fail(moduleRequest.reason || '请先配置对应模块 API');
       const request = {
+        ok: true,
         url: customApiUrl
         ? (customApiUrl.replace(/\/+$/, '').endsWith('/chat/completions') ? customApiUrl.replace(/\/+$/, '') : customApiUrl.replace(/\/+$/, '') + '/chat/completions')
         : moduleRequest.url,
@@ -9044,6 +11596,7 @@ function cleanAIResponse(text) {
       };
       if (!request.url || !request.apiKey || !request.model) return fail('请先配置对应模块的 API 地址、密钥和模型');
       const context = runtimeOptions.context || buildModHostContext({ source: 'modAiTool', modId: mod.id, toolId: tool.id });
+      const runBookId = currentBookId.value;
       const inputs = getModAiToolEffectiveInputs(mod.id, tool, runtimeOptions.inputs || {}, context, runtimeOptions.inputOptions || {});
       const inputErr = validateModAiToolInputs(tool, inputs);
       if (inputErr) return fail(inputErr);
@@ -9058,16 +11611,30 @@ function cleanAIResponse(text) {
         const completion = await fetchAdapterCompletion(request, messages, { stream:false, temperature:0.7, maxTokens:Math.min(16000, Number(tool.maxTokens) || 4096) });
         const text = cleanAIResponse(completion.text || '');
         if (!text) throw new Error((tool.title || 'AI工具') + '返回为空');
+        if (!isModExecutionValid(mod, runBookId)) return fail('AI工具结果已丢弃：书籍或 MOD 状态已变化');
         const tableWrite = appendModAiToolRowsToTable(mod, tool, text);
         const tableRowsAdded = Number(tableWrite.added) || 0;
         const tableRowsUpdated = Number(tableWrite.updated) || 0;
         const tableRowsChanged = Number(tableWrite.count) || 0;
         const tableRowsSkipped = Number(tableWrite.skipped) || 0;
-        if (tool.saveResult !== false) saveModAiToolResult(mod, tool, { text, outputMode: tool.outputMode || 'text', tableRowsAdded, tableRowsUpdated, tableRowsChanged, tableRowsSkipped, tableWriteMode: tableWrite.mode || '', inputSnapshot: Object.assign({}, inputs) });
+        const tableRowsInput = Number(tableWrite.inputRows) || 0;
+        const tableRowsEmpty = tableWrite.emptyResult === true;
+        const tableNoChangeReason = tableWrite.noChangeReason || '';
+        if (tool.saveResult !== false) saveModAiToolResult(mod, tool, { text, outputMode: tool.outputMode || 'text', tableRowsAdded, tableRowsUpdated, tableRowsChanged, tableRowsSkipped, tableRowsInput, tableRowsEmpty, tableNoChangeReason, tableWriteMode: tableWrite.mode || '', inputSnapshot: Object.assign({}, inputs) });
         else if (tableRowsChanged) saveDataNow('AI工具写入资料池');
         const writeText = tableRowsUpdated ? ('写入 ' + tableRowsAdded + ' 条，更新 ' + tableRowsUpdated + ' 条') : ('写入资料池 ' + tableRowsAdded + ' 条');
-        showToast(tableWrite.skipped && tableWrite.skipped === true ? 'AI工具运行完成' : (tableRowsChanged ? 'AI工具运行完成，' + writeText : 'AI工具已完成，但未找到可写入条目；资料池未变更'), (tableWrite.skipped && tableWrite.skipped === true) || tableRowsChanged ? 'success' : 'warning');
-        return { ok: true, text, outputMode: tool.outputMode || 'text', tableRowsAdded, tableRowsUpdated, tableRowsChanged, tableRowsSkipped, tableWriteMode: tableWrite.mode || '' };
+        const nonTableResult = tableWrite.skipped === true;
+        const completionMessage = nonTableResult
+          ? 'AI工具运行完成'
+          : tableRowsChanged
+            ? ('AI工具运行完成，' + writeText)
+            : tableRowsEmpty
+              ? 'AI工具运行完成：模型未发现可归档的新事实，资料池未变更'
+              : tableRowsInput
+                ? ('AI工具运行完成：模型返回 ' + tableRowsInput + ' 条，但均被写入策略跳过，资料池未变更')
+                : 'AI工具运行完成：没有可写入资料池的结果，资料池未变更';
+        showToast(completionMessage, nonTableResult || tableRowsChanged ? 'success' : 'info');
+        return { ok: true, text, outputMode: tool.outputMode || 'text', tableRowsAdded, tableRowsUpdated, tableRowsChanged, tableRowsSkipped, tableRowsInput, tableRowsEmpty, tableNoChangeReason, tableWriteMode: tableWrite.mode || '' };
       } catch (e) {
         const message = 'AI工具运行失败: ' + (e.message || e);
         showToast(message, 'error');
@@ -11238,18 +13805,22 @@ function cleanAIResponse(text) {
       return parts.join('\n');
     }
 
+    function buildModMemoryRecallPromptForModAndPosition(mod, position, context = {}) {
+      if (!mod || mod.enabled === false || !isModPermissionEnabled(mod, 'prompt:write') || !isModPermissionEnabled(mod, 'data:table')) return '';
+      const recallSettings = getModRecallSettings(mod);
+      if (!recallSettings.enabled || !getModRecallSchemas(mod, position).length) return '';
+      const recallContext = Object.assign({ position }, context || {});
+      const recall = buildModMemoryRecallResultFromSnapshot(mod, position, recallContext) || selectModMemoryRecallRows(mod, position, recallContext);
+      if (recallSettings.debug || (recall.injectedRows || []).length) saveModMemoryRecallLog(mod, recall, { position, source: 'promptBuild' }, false);
+      return formatModMemoryRecallPrompt(recall).trim();
+    }
+
     function buildModMemoryRecallPromptForPosition(position, context = {}) {
-      let result = '';
-      modPacks.value.forEach(mod => {
-        if (!mod || mod.enabled === false || !isModPermissionEnabled(mod, 'prompt:write') || !isModPermissionEnabled(mod, 'data:table')) return;
-        if (!getModRecallSchemas(mod, position).length) return;
-        const recallContext = Object.assign({ position }, context || {});
-        const recall = buildModMemoryRecallResultFromSnapshot(mod, position, recallContext) || selectModMemoryRecallRows(mod, position, recallContext);
-        if (getModRecallSettings(mod).debug || (recall.injectedRows || []).length) saveModMemoryRecallLog(mod, recall, { position, source: 'promptBuild' }, false);
-        const prompt = formatModMemoryRecallPrompt(recall);
-        if (prompt) result += (result ? '\n\n' : '') + prompt;
-      });
-      return result.trim();
+      return modPacks.value
+        .map(mod => buildModMemoryRecallPromptForModAndPosition(mod, position, context))
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
     }
 
     async function clearModMemoryIndex(mod) {
@@ -11622,30 +14193,36 @@ function cleanAIResponse(text) {
 
 
     // 中文注释：把结构化资料池压缩成提示词片段，供正文、大纲等流程读取小说工程数据。
-    function buildModDataTablePromptForPosition(position) {
+    function buildModDataTablePromptForModAndPosition(mod, position) {
       let result = '';
-      modPacks.value.forEach(mod => {
-        if (!mod || mod.enabled === false || !isModPermissionEnabled(mod, 'data:table')) return;
-        getModRuntimeDataSchemas(mod).forEach(schema => {
-          if (!schema || schema.enabled === false || schema.injectToPrompt === false) return;
-          if (['vector','hybrid'].includes(schema.recallMode)) return;
-          if (schema.enabledSetting && getModSettingValue(mod, schema.enabledSetting) === false) return;
-          if (schema.injectSetting && getModSettingValue(mod, schema.injectSetting) === false) return;
-          if ((schema.position || 'world') !== position) return;
-          const rows = getModTableRows(mod.id, schema.id).filter(row => row && row.enabled !== false).slice(0, schema.maxRowsInPrompt || 12);
-          if (!rows.length) return;
-          result += '【MOD资料池：' + (schema.title || schema.id) + '】\n';
-          rows.forEach((row, ri) => {
-            const cells = (schema.fields || []).map(field => {
-              const value = cleanNarrativeSourceText(String(row[field.key] ?? ''), { keepSummaryTail: true }).trim();
-              return value ? (field.label || field.key) + '：' + value : '';
-            }).filter(Boolean);
-            if (!cells.length) return;
-            result += (ri + 1) + '. ' + cells.join('；') + '\n';
-          });
+      if (!mod || mod.enabled === false || !isModPermissionEnabled(mod, 'data:table')) return result;
+      getModRuntimeDataSchemas(mod).forEach(schema => {
+        if (!schema || schema.enabled === false || schema.injectToPrompt === false) return;
+        if (['vector','hybrid'].includes(schema.recallMode)) return;
+        if (schema.enabledSetting && getModSettingValue(mod, schema.enabledSetting) === false) return;
+        if (schema.injectSetting && getModSettingValue(mod, schema.injectSetting) === false) return;
+        if ((schema.position || 'world') !== position) return;
+        const rows = getModTableRows(mod.id, schema.id).filter(row => row && row.enabled !== false).slice(0, schema.maxRowsInPrompt || 12);
+        if (!rows.length) return;
+        result += '【MOD资料池：' + (schema.title || schema.id) + '】\n';
+        rows.forEach((row, ri) => {
+          const cells = (schema.fields || []).map(field => {
+            const value = cleanNarrativeSourceText(String(row[field.key] ?? ''), { keepSummaryTail: true }).trim();
+            return value ? (field.label || field.key) + '：' + value : '';
+          }).filter(Boolean);
+          if (!cells.length) return;
+          result += (ri + 1) + '. ' + cells.join('；') + '\n';
         });
       });
       return result.trim();
+    }
+
+    function buildModDataTablePromptForPosition(position) {
+      return modPacks.value
+        .map(mod => buildModDataTablePromptForModAndPosition(mod, position))
+        .filter(Boolean)
+        .join('\n\n')
+        .trim();
     }
 
     // 中文注释：清空插件私有数据只清理该插件分区，不影响正文、角色、预设和其他 MOD。
@@ -12819,7 +15396,8 @@ function cleanAIResponse(text) {
         prompt: job.reason,
         activeContextTool: tool.type
       });
-      const recall = selectModMemoryRecallRows(mod, 'writing', context, {
+      // 中文注释：冻结白鸟的记忆 schema 分布在 pre/world/character/outline/scene；显式 memory 工具必须跨位置检索，不能查不存在的 writing 分区。
+      const recall = selectModMemoryRecallRows(mod, '', context, {
         enabled: true,
         vectorEnabled: false,
         topK: tool.resultLimit,
@@ -15172,15 +17750,18 @@ function getModHubPermissionLabels(mod) {
       if (action === 'setHostModuleModel') {
         const moduleKey = payload.moduleKey || payload.key || payload.module || '';
         const modelId = payload.modelId ?? payload.model ?? payload.value ?? '';
-        if (!moduleKey || !modelId) return toastFail('宿主模块模型选择缺少 moduleKey/modelId');
-        setHostModuleModelFromMod(entry.mod, moduleKey, modelId, payload);
-        return ok({ moduleKey, modelId });
+        const profileId = payload.profileId || payload.connectionProfileId || payload.configId || '';
+        if (!moduleKey || (!modelId && !profileId)) return toastFail('宿主模块 API 配置选择缺少 moduleKey/profileId');
+        const result = setHostModuleModelFromMod(entry.mod, moduleKey, modelId, payload);
+        if (!result?.ok) return fail(result?.error || '宿主模块 API 配置分配失败', { moduleKey, modelId, profileId });
+        return ok({ moduleKey, modelId:result.modelId, profileId:result.profileId, profileName:result.profileName });
       }
       if (action === 'clearHostModuleModel') {
         const moduleKey = payload.moduleKey || payload.key || payload.module || '';
         if (!moduleKey) return toastFail('清空宿主模块模型缺少 moduleKey');
-        setHostModuleModelFromMod(entry.mod, moduleKey, '', payload);
-        return ok({ moduleKey });
+        const result = setHostModuleModelFromMod(entry.mod, moduleKey, '', {});
+        if (!result?.ok) return fail(result?.error || '清空宿主模块 API 配置失败', { moduleKey });
+        return ok({ moduleKey, profileId:'' });
       }
       if (action === 'rebuildModVectorIndex') {
         showToast(payload.startToast || '正在重建记忆向量索引...', 'info');
@@ -15386,20 +17967,31 @@ function getModHubPermissionLabels(mod) {
         const tool = getModRuntimeAiTools(mod).find(item => item && item.id === step.toolId);
         if (!tool) throw new Error('找不到 AI 工具：' + step.toolId);
         const rawInputs = step.inputs || step.payload?.inputs || {};
-        const inputs = renderModWorkflowRuntimeValue(mod, rawInputs, context);
         const inputOptions = step.payload?.inputOptions || {};
-        if (inputOptions.requireMaterialText === true && !String(inputs.materialText || '').trim()) {
-          throw new Error(inputOptions.missingMaterialMessage || '缺少可用于工作流的材料');
-        }
+        const renderedInputs = renderModWorkflowRuntimeValue(mod, rawInputs, context);
         const toolContext = inputOptions.hideCurrentChapterContent === true
           ? Object.assign({}, context, {
               chapterContent: '',
               current: Object.assign({}, context.current || {}, { chapterContent: '' })
             })
           : context;
+        const inputs = getModAiToolEffectiveInputs(mod.id, tool, renderedInputs, toolContext, inputOptions);
+        if (inputOptions.requireMaterialText === true && !String(inputs.materialText || '').trim()) {
+          throw new Error(inputOptions.missingMaterialMessage || '缺少可用于工作流的材料');
+        }
         const result = await runModAiTool(mod, tool, { context: toolContext, inputs, inputOptions });
         if (!result || result.ok === false) throw new Error(result?.error || 'AI工具未真实运行');
-        return { ok: true, toolId: step.toolId, tableRowsAdded: Number(result.tableRowsAdded) || 0 };
+        return {
+          ok: true,
+          toolId: step.toolId,
+          tableRowsAdded: Number(result.tableRowsAdded) || 0,
+          tableRowsUpdated: Number(result.tableRowsUpdated) || 0,
+          tableRowsChanged: Number(result.tableRowsChanged) || 0,
+          tableRowsSkipped: Number(result.tableRowsSkipped) || 0,
+          tableRowsInput: Number(result.tableRowsInput) || 0,
+          tableRowsEmpty: result.tableRowsEmpty === true,
+          tableNoChangeReason: result.tableNoChangeReason || ''
+        };
       }
       if (step.type === 'savePrivateData') {
         if (!isModPermissionEnabled(mod, 'storage:own')) throw new Error('缺少 storage:own 权限');
@@ -15435,6 +18027,24 @@ function getModHubPermissionLabels(mod) {
       throw new Error('未知工作流步骤类型：' + (step.type || '空'));
     }
 
+    function summarizeModWorkflowTableSteps(stepResults = []) {
+      const summary = { added: 0, updated: 0, skipped: 0, emptyResults: 0, changed: 0, text: '' };
+      stepResults.forEach(step => {
+        if (!step || step.type !== 'aiTool') return;
+        summary.added += Number(step.tableRowsAdded) || 0;
+        summary.updated += Number(step.tableRowsUpdated) || 0;
+        summary.skipped += Number(step.tableRowsSkipped) || 0;
+        summary.emptyResults += step.tableRowsEmpty === true ? 1 : 0;
+      });
+      summary.changed = summary.added + summary.updated;
+      const parts = [];
+      if (summary.changed) parts.push('新增 ' + summary.added + '，更新 ' + summary.updated);
+      if (summary.emptyResults) parts.push('模型无新增事实 ' + summary.emptyResults + ' 项');
+      if (summary.skipped) parts.push('策略跳过 ' + summary.skipped + ' 项');
+      summary.text = parts.join('；');
+      return summary;
+    }
+
     // 中文注释：第四批核心运行时：按顺序执行声明式工作流，并把每步结果写入插件私有日志。
     async function runModWorkflow(mod, workflow, options = {}) {
       if (!mod || !workflow || workflow.enabled === false) return { ok: false, skipped: true, error: '工作流不可用' };
@@ -15453,6 +18063,7 @@ function getModHubPermissionLabels(mod) {
       const runKey = getModWorkflowRunKey(mod, workflow);
       if (modWorkflowRunning.value[runKey]) return { ok: false, skipped: true, error: '工作流正在运行' };
       const execute = async () => {
+        const runBookId = currentBookId.value;
         const missingSettings = getModWorkflowMissingSettings(mod, workflow);
         if (missingSettings.length) {
           const message = getModWorkflowMissingSettingsMessage(workflow, missingSettings);
@@ -15471,6 +18082,7 @@ function getModHubPermissionLabels(mod) {
         try {
           const context = buildModHostContext(Object.assign({}, options.context || {}, { source: 'modWorkflow', modId: mod.id, workflowId: workflow.id }));
           for (const step of (workflow.steps || [])) {
+            if (!isModExecutionValid(mod, runBookId)) throw new Error('工作流已停止：书籍或 MOD 状态已变化');
             try {
               const result = await runModWorkflowStep(mod, workflow, step, context);
               stepResults.push(Object.assign({ stepId: step.id, title: step.title || '', type: step.type }, result || {}));
@@ -15480,11 +18092,14 @@ function getModHubPermissionLabels(mod) {
               if (step.onError !== 'continue') throw e;
             }
           }
-          if (workflow.saveRunLog !== false) saveModWorkflowRun(mod, workflow, { status, steps: stepResults });
-          showToast('工作流运行完成：' + (workflow.title || workflow.id), status === 'success' ? 'success' : 'warning');
-          return { ok: status === 'success', status, steps: stepResults };
+          if (!isModExecutionValid(mod, runBookId)) throw new Error('工作流结果已丢弃：书籍或 MOD 状态已变化');
+          const tableSummary = summarizeModWorkflowTableSteps(stepResults);
+          if (workflow.saveRunLog !== false) saveModWorkflowRun(mod, workflow, { status, steps: stepResults, tableSummary });
+          const completionMessage = '工作流运行完成：' + (workflow.title || workflow.id) + (tableSummary.text ? '（' + tableSummary.text + '）' : '');
+          showToast(completionMessage, status === 'success' ? (tableSummary.changed ? 'success' : 'info') : 'warning');
+          return { ok: status === 'success', status, steps: stepResults, tableSummary };
         } catch (e) {
-          if (workflow.saveRunLog !== false) saveModWorkflowRun(mod, workflow, { status: 'failed', steps: stepResults, error: e.message || String(e) });
+          if (isModExecutionValid(mod, runBookId) && workflow.saveRunLog !== false) saveModWorkflowRun(mod, workflow, { status: 'failed', steps: stepResults, error: e.message || String(e) });
           showToast('工作流运行失败: ' + (e.message || e), 'error');
           return { ok: false, status: 'failed', steps: stepResults, error: e.message || String(e) };
         } finally {
@@ -15754,6 +18369,7 @@ function getModHubPermissionLabels(mod) {
 
     // 中文注释：生成开发者预览数据，帮助共创者确认导入后主程序实际识别到的插件接口。
     function formatModDeveloperPreview(mod) {
+      if (isSnowwingMod(mod)) return MOD_PUBLIC_DETAILS_CLOSED_TEXT;
       try {
         const normalized = normalizeModPack(mod || {});
         const ruleStats = {};
@@ -15972,6 +18588,33 @@ function getModHubPermissionLabels(mod) {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{4,}/g, '\n\n\n')
         .trim();
+    }
+
+    // 中文注释：白鸟锁定只屏蔽宿主预设链，白鸟自身已启用模块、资料池和召回仍需按固定位置直接进入正文请求。
+    function buildSnowwingLockedPrompt(context = {}) {
+      const mod = modPacks.value.find(item => item && item.enabled !== false && isSnowwingImportMod(item));
+      if (!mod || !isModPermissionEnabled(mod, 'prompt:write')) return '';
+      const modVars = collectModPromptVariables(mod);
+      const parts = [];
+      ['pre','style','world','character','outline','scene','writing','post'].forEach(position => {
+        let positionPrompt = '';
+        (mod.rules || []).map(normalizeModRule).forEach(rule => {
+          if (rule.enabled && rule.position === position && rule.content) positionPrompt += rule.content + '\n';
+        });
+        getModEnabledModules(mod).forEach(module => {
+          (module.rules || []).map(normalizeModRule).forEach(rule => {
+            if (rule.enabled && rule.position === position && rule.content) {
+              positionPrompt += '【MOD模块：' + (module.title || module.id || '未命名模块') + '】\n' + rule.content + '\n';
+            }
+          });
+        });
+        positionPrompt = expandModPromptMacros(positionPrompt, modVars);
+        const tablePrompt = buildModDataTablePromptForModAndPosition(mod, position);
+        const recallPrompt = buildModMemoryRecallPromptForModAndPosition(mod, position, context);
+        const combined = [positionPrompt, tablePrompt, recallPrompt].filter(Boolean).join('\n\n').trim();
+        if (combined) parts.push(combined);
+      });
+      return parts.join('\n\n').trim();
     }
 
     // 中文注释：获取所有启用的MOD规则（按位置分组），旧规则包和 API 1.1 小说模块规则会在这里统一注入。
@@ -16203,12 +18846,8 @@ function getModHubPermissionLabels(mod) {
       showInfiniteInferenceBubble.value = false;
       try {
         const prompt = '你是小说设定分析师。请根据以下正文，逆向推断并补全最适合写作系统使用的设定信息。必须尽量忠于现有正文，不要臆造与正文冲突的内容。\n\n输出 JSON：{"title":"","theme":"","synopsis":"","worldView":""}\n\n要求：\n1. title 只填写书名，禁止包含 theme、synopsis、worldView 等字段名或其他字段内容。\n2. theme 只用一句话概括题材与核心方向，不要重复书名。\n3. synopsis 用 120-220 字概括当前故事，不要重复书名字段。\n4. worldView 写成便于后续续写调用的设定说明，按背景、规则、势力/人物关系、主要冲突分行排版，不要重复 title/theme/synopsis。\n5. 若正文无法明确得出 title，可保留空字符串。\n6. 只输出合法 JSON，不要代码块，不要在字符串外输出解释。\n\n正文：\n' + context;
-        const resp = await fetch(request.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey }, body: JSON.stringify({ model: request.model, messages: [{ role: 'user', content: prompt }], stream: false, temperature: 0.3 }) });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const data = await resp.json();
-        const choice = data.choices && data.choices[0] ? data.choices[0] : {};
-        const message = choice.message || {};
-        const parsed = parseAiJsonObject(message.content || choice.text || extractNativeReasoningFromPayload(data) || '');
+        const result = await fetchAdapterCompletion(request, [{ role:'user', content:prompt }], { stream:false, temperature:0.3 });
+        const parsed = parseAiJsonObject(getAdapterCompletionText(result));
         if (!parsed.title && !parsed.theme && !parsed.synopsis && !parsed.worldView) throw new Error('AI返回内容无法解析为设定');
         if (parsed.title && (!novel.value.title || novel.value.title.indexOf('无限模式草稿-') === 0)) novel.value.title = parsed.title;
         if (parsed.theme) novel.value.theme = parsed.theme;
@@ -16216,7 +18855,7 @@ function getModHubPermissionLabels(mod) {
         if (parsed.worldView) novel.value.worldView = parsed.worldView;
         await saveDataNow('无限模式反推设定');
         showToast(triggerSource === 'auto' ? '已根据正文自动补全设定' : '已根据正文补全世界观与设定', 'success');
-      } catch (e) { showToast('反推设定失败: ' + e.message, 'error'); }
+      } catch (e) { showToast('反推设定失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); }
       finally { isInferringInfiniteSettings.value = false; }
     }
 
@@ -16251,25 +18890,18 @@ function getModHubPermissionLabels(mod) {
       abortController.value = new AbortController();
       try {
         const prompt = buildInfiniteContextPrompt(context, target);
-        const resp = await fetch(request.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey }, body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'writing' }), stream: true, temperature: settings.value.temperature, max_tokens: settings.value.maxTokens }), signal: abortController.value.signal });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let text = '';
-        const streamTextState = {};
-        while (true) {
-          const res = await reader.read();
-          if (res.done) break;
-          const chunk = decoder.decode(res.value, { stream: true });
-          chunk.split('\n').forEach(line => {
-            line = line.trim();
-            const json = parseAiStreamEventPayload(line);
-            if (!json) return;
-            const delta = extractAiStreamTextDelta(json, streamTextState);
-            if (delta) { text += delta; infiniteStream.value = text; }
-          });
-        }
-        text = cleanAIResponse(text).trim();
+        const result = await fetchAdapterCompletion(
+          request,
+          buildNsfwMessages(prompt, { taskType:'writing' }),
+          {
+            stream:true,
+            temperature:settings.value.temperature,
+            maxTokens:settings.value.maxTokens,
+            signal:abortController.value.signal,
+            onTextDelta:(delta, full) => { infiniteStream.value = full; }
+          }
+        );
+        const text = getAdapterCompletionText(result).trim();
         if (!text || text.length < 10) throw new Error('AI返回为空或过短');
         novel.value.infiniteDraft = (infiniteDraft.value.trimEnd() + '\n\n' + text).trim();
         infiniteStream.value = text;
@@ -16277,7 +18909,7 @@ function getModHubPermissionLabels(mod) {
         infiniteSaveStatus.value = '已自动保存';
         showToast('AI续写已追加，可继续编辑', 'success');
       } catch (e) {
-        if (e.name !== 'AbortError') showToast('续写失败: ' + e.message, 'error');
+        if (e.name !== 'AbortError') showToast('续写失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
         isInfiniteGenerating.value = false;
         abortController.value = null;
@@ -16422,7 +19054,11 @@ function getModHubPermissionLabels(mod) {
         let worldP = '';
         if (novel.value.title) worldP += '标题: ' + novel.value.title + '\n';
         if (novel.value.theme) worldP += '主题: ' + novel.value.theme + '\n';
-        if (novel.value.worldView) worldP += '世界观: ' + clipContextText(novel.value.worldView, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxWorldChars) || 2500, 2500) : (Number(settings.value.contextMaxWorldChars) || 4000), { keepHead: true }) + '\n';
+        if (options.storyBibleContextPackage) {
+          if (options.storyBibleContextPackage.worldText) worldP += options.storyBibleContextPackage.worldText + '\n';
+        } else if (novel.value.worldView) {
+          worldP += '世界观: ' + clipContextText(novel.value.worldView, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxWorldChars) || 2500, 2500) : (Number(settings.value.contextMaxWorldChars) || 4000), { keepHead: true }) + '\n';
+        }
         if (novel.value.synopsis) worldP += '简介: ' + novel.value.synopsis + '\n';
         const modWorld = getModRulesForPosition('world', options);
         if (modWorld) worldP += modWorld + '\n';
@@ -16430,7 +19066,10 @@ function getModHubPermissionLabels(mod) {
         return worldP.trim() ? '【世界观设定】\n' + worldP.trim() : '';
       }
       if (key === 'character' || key === 'chars') {
-        let charP = clipContextText(charactersPromptString.value, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxCharacterChars) || 3500, 3500) : (Number(settings.value.contextMaxCharacterChars) || 6000), { keepHead: true });
+        const storyBiblePackage = options.storyBibleContextPackage;
+        let charP = storyBiblePackage?.characterIntent === 'structured'
+          ? String(storyBiblePackage.characterText || '')
+          : clipContextText(charactersPromptString.value, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxCharacterChars) || 3500, 3500) : (Number(settings.value.contextMaxCharacterChars) || 6000), { keepHead: true });
         const modCharacter = getModRulesForPosition('character', options);
         if (modCharacter) charP += '\n' + modCharacter;
         if (layer.content) charP += '\n' + layer.content;
@@ -16473,14 +19112,20 @@ function getModHubPermissionLabels(mod) {
     function buildFullSystemPrompt(options = {}) {
       const parts = [];
       const presetLocked = isSnowwingPresetLocked();
+      const pipelineOptions = presetLocked ? options : Object.assign({}, options, {
+        storyBibleContextPackage: buildStoryBibleWritingContextPackage(options)
+      });
 
       // 中文注释：提示词流水线只负责正文写作方向，不承担破限职责。
       // 中文注释：破限核心由 buildNsfwMessages()/buildChapterMessages() 在 system 层最前面注入。
       if (!presetLocked) {
         promptPipeline.value.forEach(layer => {
-          const part = buildPipelineLayerPrompt(layer, options);
+          const part = buildPipelineLayerPrompt(layer, pipelineOptions);
           if (part) parts.push(part);
         });
+      } else {
+        const snowwingPrompt = buildSnowwingLockedPrompt(pipelineOptions);
+        if (snowwingPrompt) parts.push(snowwingPrompt);
       }
 
       // 环境氛围增强
@@ -16511,7 +19156,8 @@ function getModHubPermissionLabels(mod) {
         parts.push('【绝对禁止出现的内容】\n' + novel.value.negativePrompt);
       }
 
-      return applyModTextHooks('buildFullSystemPrompt', parts.join('\n\n'), { novel: novel.value, chapters: options.contextChapters || chapters.value });
+      const hookFilter = presetLocked ? (mod => isSnowwingImportMod(mod)) : null;
+      return applyModTextHooks('buildFullSystemPrompt', parts.join('\n\n'), { novel: novel.value, chapters: options.contextChapters || chapters.value }, hookFilter);
     }
 
     // 占位变量（Part 3 中定义）
@@ -16523,12 +19169,16 @@ function getModHubPermissionLabels(mod) {
     // 总纲与细纲必须各自管理取消信号，绝不能复用正文续写的 abortController。
     const outlineAbortController = ref(null);
     const detailedOutlineAbortController = ref(null);
+    const singleDetailedOutlineAbortController = ref(null);
     let outlineRunSequence = 0;
     let detailedOutlineRunSequence = 0;
+    let singleDetailedOutlineRunSequence = 0;
     let activeOutlineRunId = 0;
     let activeDetailedOutlineRunId = 0;
+    let activeSingleDetailedOutlineRunId = 0;
     let closeOutlineAfterStop = false;
     let closeDetailedOutlineAfterStop = false;
+    let closeSingleDetailedOutlineAfterStop = false;
     const outlineRevisions = ref([]);
     const selectedRevId = ref('');
     const outlineLastRequest = ref(null);
@@ -16539,6 +19189,7 @@ function getModHubPermissionLabels(mod) {
 
     function openOutlineWorkbench() {
       if (isGeneratingDO.value) { showToast('细纲正在生成，请先停止当前任务再切换工作台', 'info'); return false; }
+      if (outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) { showToast('本章细纲 AI 正在处理，请先停止当前任务再切换工作台', 'info'); return false; }
       showOutlineInMain.value = true;
       showDetailedOutlineInMain.value = false;
       if (isMobile.value) splitScreen.value = false;
@@ -16589,9 +19240,20 @@ function getModHubPermissionLabels(mod) {
       if (signal?.aborted) throw createOutlineAbortError(message);
     }
 
-    function assertOutlineRunActive(kind, runId, controller) {
+    function assertOutlineRunActive(kind, runId, controller, sourceBookId = '') {
       const activeRunId = kind === 'detailed' ? activeDetailedOutlineRunId : activeOutlineRunId;
-      if (activeRunId !== runId || controller?.signal?.aborted) throw createOutlineAbortError('大纲任务已停止或已被替代');
+      if (activeRunId !== runId || controller?.signal?.aborted || (sourceBookId && String(currentBookId.value || '') !== sourceBookId)) {
+        throw createOutlineAbortError('大纲任务已停止、已被替代或书籍已切换');
+      }
+    }
+
+    function assertSingleDetailedOutlineRunActive(runId, controller, sourceBookId, outlineId) {
+      if (activeSingleDetailedOutlineRunId !== runId || controller?.signal?.aborted || String(currentBookId.value || '') !== sourceBookId) {
+        throw createOutlineAbortError('本章细纲任务已停止、已被替代或书籍已切换');
+      }
+      const targetIndex = chapterOutlines.value.findIndex(item => String(item?.id || '') === outlineId);
+      if (targetIndex < 0) throw createOutlineAbortError('目标细纲已删除或已被替代');
+      return { targetIndex, target:chapterOutlines.value[targetIndex] };
     }
 
     function stopOutlineRun({ closeAfterStop = false } = {}) {
@@ -16616,6 +19278,23 @@ function getModHubPermissionLabels(mod) {
       return true;
     }
 
+    function stopSingleDetailedOutlineRun({ closeAfterStop = false } = {}) {
+      const controller = singleDetailedOutlineAbortController.value;
+      if (!controller || outlineAiEditingIdx.value < 0) return false;
+      if (closeAfterStop) closeSingleDetailedOutlineAfterStop = true;
+      if (!controller.signal.aborted) {
+        try { controller.abort(createOutlineAbortError('用户停止本章细纲生成')); }
+        catch { controller.abort(); }
+      }
+      return true;
+    }
+
+    function stopOutlineRunsForBookChange() {
+      stopOutlineRun();
+      stopDetailedOutlineRun();
+      stopSingleDetailedOutlineRun();
+    }
+
     function requestCloseOutlineWorkbench() {
       if (!isGeneratingOutline.value) { showOutlineInMain.value = false; return; }
       openConfirm({
@@ -16631,17 +19310,33 @@ function getModHubPermissionLabels(mod) {
     }
 
     function requestCloseDetailedOutlineWorkbench() {
-      if (!isGeneratingDO.value) { showDetailedOutlineInMain.value = false; return; }
-      openConfirm({
-        title: '细纲正在生成',
-        message: '继续生成会保持当前工作台打开。停止并关闭会取消当前批次和后续批次；已经写入的章节会保留。',
-        choices: [
-          { id:'continue', label:'继续生成' },
-          { id:'stop-close', label:'停止并关闭', tone:'danger' }
-        ]
-      }, (actionId) => {
-        if (actionId === 'stop-close') stopDetailedOutlineRun({ closeAfterStop:true });
-      });
+      if (isGeneratingDO.value) {
+        openConfirm({
+          title: '细纲正在生成',
+          message: '继续生成会保持当前工作台打开。停止并关闭会取消当前批次和后续批次；已经写入的章节会保留。',
+          choices: [
+            { id:'continue', label:'继续生成' },
+            { id:'stop-close', label:'停止并关闭', tone:'danger' }
+          ]
+        }, (actionId) => {
+          if (actionId === 'stop-close') stopDetailedOutlineRun({ closeAfterStop:true });
+        });
+        return;
+      }
+      if (outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) {
+        openConfirm({
+          title: '本章细纲正在生成',
+          message: '继续生成会保持当前工作台打开。停止并关闭会取消本章请求；未完成内容不会写入。',
+          choices: [
+            { id:'continue', label:'继续生成' },
+            { id:'stop-close', label:'停止并关闭', tone:'danger' }
+          ]
+        }, (actionId) => {
+          if (actionId === 'stop-close') stopSingleDetailedOutlineRun({ closeAfterStop:true });
+        });
+        return;
+      }
+      showDetailedOutlineInMain.value = false;
     }
 
     // Diff 修订
@@ -17022,13 +19717,14 @@ function getModHubPermissionLabels(mod) {
 
     function getOutlineAiDisabledReason() {
       if (isGeneratingOutline.value) return '大纲正在生成，请等待当前请求完成';
+      if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0) return '细纲正在生成，请等待当前任务完成';
       const request = getModuleRequestConfig('outline');
       if (!request.ok) return request.reason || '未配置大纲 API，先到设置完成连接';
       return '';
     }
 
     function getOutlineAiDisabledActionLabel() {
-      if (isGeneratingOutline.value) return '';
+      if (isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value >= 0) return '';
       return getModuleRequestConfig('outline').ok ? '' : '去设置';
     }
 
@@ -17044,12 +19740,13 @@ function getModHubPermissionLabels(mod) {
     }
 
     function resolveOutlineAiDisabledAction() {
-      if (isGeneratingOutline.value) return;
+      if (isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value >= 0) return;
       if (!getModuleRequestConfig('outline').ok) openApiSettingsFromWorkbench();
     }
 
     function getDetailedOutlineAiDisabledReason(kind = 'generate') {
       if (isGeneratingDO.value) return '细纲正在生成，请等待当前批次完成';
+      if (outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) return '本章细纲正在生成，请等待当前任务完成';
       const request = getModuleRequestConfig('outline');
       if (!request.ok) return request.reason || '未配置大纲 API，先到设置完成连接';
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) return '缺少总纲，先编写或生成大纲再拆细纲';
@@ -17058,7 +19755,7 @@ function getModHubPermissionLabels(mod) {
     }
 
     function getDetailedOutlineAiDisabledActionLabel(kind = 'generate') {
-      if (isGeneratingDO.value) return '';
+      if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) return '';
       if (!getModuleRequestConfig('outline').ok) return '去设置';
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) return '打开大纲';
       if (kind === 'index' && chapterIndexDrafts.value.length === 0) return '添加索引';
@@ -17066,7 +19763,7 @@ function getModHubPermissionLabels(mod) {
     }
 
     async function resolveDetailedOutlineAiDisabledAction(kind = 'generate') {
-      if (isGeneratingDO.value) return;
+      if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) return;
       if (!getModuleRequestConfig('outline').ok) { openApiSettingsFromWorkbench(); return; }
       if (kind === 'generate' && !String(novel.value.outline || '').trim()) {
         showDetailedOutlineInMain.value = false;
@@ -18206,18 +20903,31 @@ function getModHubPermissionLabels(mod) {
     async function generateOutline() {
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲模块 API', 'error'); return; }
+      if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) { showToast('细纲正在生成，请等待当前任务完成', 'info'); return; }
       if (isGeneratingOutline.value || outlineAbortController.value) { showToast('大纲正在生成，请等待或先停止当前请求', 'info'); return; }
       const url = request.url;
       const outlineModel = request.model;
+      const sourceBookId = String(currentBookId.value || '');
       const runId = ++outlineRunSequence;
       const controller = new AbortController();
       activeOutlineRunId = runId;
       outlineAbortController.value = controller;
       closeOutlineAfterStop = false;
       isGeneratingOutline.value = true;
+      const outlineContextPackage = buildStoryBibleOutlineContextPackage();
       let prompt = ('你是专业网文策划。' + (novel.value.outline?'请安全修改完善':'请生成') + '小说大纲。') + '\n\n';
       prompt += '标题: ' + (novel.value.title||'') + '\n主题: ' + (novel.value.theme||'') + '\n';
-      prompt += '世界观: ' + (novel.value.worldView||'') + '\n角色:\n' + charactersPromptString.value + '\n';
+      if (outlineContextPackage?.suppressed) {
+        // 白鸟锁定时不回流宿主世界观、结构化故事设定或旧角色串；后续 MOD 大纲规则保持原位。
+      } else if (!outlineContextPackage || outlineContextPackage.legacyCompatible) {
+        prompt += '世界观: ' + (novel.value.worldView||'') + '\n角色:\n' + charactersPromptString.value + '\n';
+      } else {
+        if (outlineContextPackage.worldText) prompt += '故事设定:\n' + outlineContextPackage.worldText + '\n';
+        const outlineCharacterText = outlineContextPackage.characterIntent === 'structured'
+          ? String(outlineContextPackage.characterText || '')
+          : charactersPromptString.value;
+        if (outlineCharacterText) prompt += '角色:\n' + outlineCharacterText + '\n';
+      }
       prompt += getOutlineGenerationModContext();
       const darklinePlanContext = buildForeshadowPromptContext([], { includeAll:true });
       if (darklinePlanContext) prompt += '\n' + darklinePlanContext;
@@ -18240,7 +20950,7 @@ function getModHubPermissionLabels(mod) {
           preferStream: Number(settings.value.aiWordCount_outline || 0) > 2500,
           signal: controller.signal
         });
-        assertOutlineRunActive('outline', runId, controller);
+        assertOutlineRunActive('outline', runId, controller, sourceBookId);
         const raw = result.text;
         if (novel.value.outline) {
           outlineRevisions.value = createDiffRevisions(novel.value.outline, raw);
@@ -18251,7 +20961,7 @@ function getModHubPermissionLabels(mod) {
         }
         outlineInput.value = '';
       } catch (e) {
-        if (isOutlineAbortError(e, controller.signal)) showToast('已停止大纲生成', 'info');
+        if (isOutlineAbortError(e, controller.signal)) showToast(String(currentBookId.value || '') === sourceBookId ? '已停止大纲生成' : '已取消原书大纲生成', 'info');
         else showToast('失败: ' + e.message, 'error');
       } finally {
         if (activeOutlineRunId === runId) {
@@ -18269,6 +20979,9 @@ function getModHubPermissionLabels(mod) {
     const showDetailedOutlineInMain = ref(false);
     // chapterOutlines 已在 Part 2 定义
     const isGeneratingDO = ref(false);
+    watch(isGeneratingDO, (running, wasRunning) => {
+      if (!running && wasRunning && pendingC3Navigation) nextTick(() => runPendingC3Navigation());
+    }, { flush:'post' });
     const doInput = ref('');
     const doStart = ref(1);
     const doEnd = ref(10);
@@ -18352,9 +21065,16 @@ function getModHubPermissionLabels(mod) {
     }
 
     function removeChapterOutline(idx) {
-      const title = chapterOutlines.value[idx]?.title || '第'+(idx+1)+'章';
+      const outline = chapterOutlines.value[idx];
+      const title = outline?.title || '第'+(idx+1)+'章';
       openConfirm({ title: '删除细纲', message: '确定删除「' + title + '」的细纲吗？', confirmText: '删除' }, () => {
-        chapterOutlines.value.splice(idx, 1); saveData(); showToast('已删除', 'success');
+        chapterOutlines.value.splice(idx, 1);
+        if (activeDetailedOutlinePinId.value === outline?.id) closeDetailedOutlinePinPicker();
+        if (detailedOutlineReturnTarget.value.outlineId === outline?.id) detailedOutlineReturnTarget.value = { outlineId:'', kind:'', id:'' };
+        repairDanglingCharacterReferences();
+        repairStoryBibleReferences();
+        saveData();
+        showToast('已删除，并清理对应角色与设定引用', 'success');
       });
     }
 
@@ -18452,19 +21172,39 @@ function getModHubPermissionLabels(mod) {
     async function aiRewriteChapterOutline(ci, mode = 'rewrite') {
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲模块 API','error'); return; }
+      if (isGeneratingDO.value || detailedOutlineAbortController.value) { showToast('批量细纲正在生成，请等待当前任务完成', 'info'); return; }
+      if (outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) { showToast('本章细纲 AI 正在处理，请等待当前任务完成', 'info'); return; }
       const url = request.url;
       const outlineModel = request.model;
       const co = chapterOutlines.value[ci];
       if (!co) { showToast('未找到本章细纲','error'); return; }
+      const sourceBookId = String(currentBookId.value || '');
+      const outlineId = String(co.id || (co.id = uid()));
       const userReq = String(co.aiInput || '').trim();
       const oldTitle = co.title || ('第' + (ci + 1) + '章');
       const oldContent = co.content || '';
+      const runId = ++singleDetailedOutlineRunSequence;
+      const controller = new AbortController();
+      activeSingleDetailedOutlineRunId = runId;
+      singleDetailedOutlineAbortController.value = controller;
+      closeSingleDetailedOutlineAfterStop = false;
       outlineAiEditingIdx.value = ci;
       outlineAiMode.value = mode;
+      const detailedOutlineContextPackage = buildStoryBibleDetailedOutlineContextPackage({ currentChapterNo: ci + 1 });
       let prompt = '你是资深小说细纲编辑。请只处理当前这一章细纲，不要输出其他章节。\n\n';
       prompt += '书名: ' + (novel.value.title || '') + '\n';
-      if (novel.value.worldView) prompt += '世界观: ' + novel.value.worldView + '\n';
-      if (charactersPromptString.value) prompt += '角色设定:\n' + charactersPromptString.value + '\n';
+      if (detailedOutlineContextPackage?.suppressed) {
+        // 白鸟锁定时不回流宿主世界观、故事设定或旧角色串；后续 MOD/暗线与章节参考保持原位。
+      } else if (!detailedOutlineContextPackage || detailedOutlineContextPackage.legacyCompatible) {
+        if (novel.value.worldView) prompt += '世界观: ' + novel.value.worldView + '\n';
+        if (charactersPromptString.value) prompt += '角色设定:\n' + charactersPromptString.value + '\n';
+      } else {
+        if (detailedOutlineContextPackage.worldText) prompt += '本章故事设定:\n' + detailedOutlineContextPackage.worldText + '\n';
+        const detailedOutlineCharacterText = detailedOutlineContextPackage.characterIntent === 'structured'
+          ? String(detailedOutlineContextPackage.characterText || '')
+          : charactersPromptString.value;
+        if (detailedOutlineCharacterText) prompt += '本章角色资料:\n' + detailedOutlineCharacterText + '\n';
+      }
       if (novel.value.outline) prompt += '全书大纲:\n' + novel.value.outline + '\n';
       prompt += getOutlineGenerationModContext();
       const prev = chapterOutlines.value[ci - 1];
@@ -18493,25 +21233,37 @@ function getModHubPermissionLabels(mod) {
           type: 'chapterOutline',
           label: mode === 'expand' ? '本章细纲补写' : '本章细纲修改',
           minChars: 40,
-          preferStream: false
+          preferStream: false,
+          signal: controller.signal
         });
+        const targetState = assertSingleDetailedOutlineRunActive(runId, controller, sourceBookId, outlineId);
         const raw = result.text;
         if (!raw.trim()) throw new Error('AI返回为空');
-        const parsedItems = parseGeneratedDetailedOutlines(raw, ci + 1);
-        const parsed = parsedItems.find(item => Number(item.chapterNo) === ci + 1) || parsedItems[0];
-        if (parsed?.title) co.title = parsed.title;
-        co.content = parsed?.content || raw;
-        co.isExpanded = true;
-        co.aiInput = '';
-        const q = analyzeDetailedOutlineQuality(co.content);
-        setChapterOutlineRunState(ci + 1, q.status === 'short' ? 'short' : 'written');
+        const parsedItems = parseGeneratedDetailedOutlines(raw, targetState.targetIndex + 1);
+        const parsed = parsedItems.find(item => Number(item.chapterNo) === targetState.targetIndex + 1) || parsedItems[0];
+        const target = targetState.target;
+        if (parsed?.title) target.title = parsed.title;
+        target.content = parsed?.content || raw;
+        target.isExpanded = true;
+        target.aiInput = '';
+        const q = analyzeDetailedOutlineQuality(target.content);
+        setChapterOutlineRunState(targetState.targetIndex + 1, q.status === 'short' ? 'short' : 'written');
         saveData();
         showToast((mode === 'expand' ? '本章细纲已补写' : '本章细纲已修改') + (result.fallbackUsed ? '（已自动切换请求方式）' : ''), 'success');
       } catch (e) {
-        showToast('失败: ' + e.message, 'error');
+        if (isOutlineAbortError(e, controller.signal)) {
+          showToast(String(currentBookId.value || '') === sourceBookId ? '已停止本章细纲生成' : '已取消原书本章细纲生成', 'info');
+        } else showToast('失败: ' + e.message, 'error');
       } finally {
-        outlineAiEditingIdx.value = -1;
-        outlineAiMode.value = '';
+        if (activeSingleDetailedOutlineRunId === runId) {
+          const shouldClose = closeSingleDetailedOutlineAfterStop;
+          activeSingleDetailedOutlineRunId = 0;
+          singleDetailedOutlineAbortController.value = null;
+          outlineAiEditingIdx.value = -1;
+          outlineAiMode.value = '';
+          closeSingleDetailedOutlineAfterStop = false;
+          if (shouldClose) showDetailedOutlineInMain.value = false;
+        }
       }
     }
 
@@ -18525,9 +21277,19 @@ function getModHubPermissionLabels(mod) {
 
     function buildDetailedOutlineBatchPrompt(batch, totalTargetCount, totalWordTarget = null) {
       const first = batch[0], last = batch[batch.length - 1];
+      const detailedOutlineBatchContext = buildStoryBibleDetailedOutlineBatchContext(batch);
       let prompt = '你是资深小说策划。请根据以下信息生成细纲。\n\n';
-      prompt += '标题: ' + (novel.value.title||'') + '\n世界观: ' + (novel.value.worldView||'') + '\n';
-      prompt += '角色: ' + charactersPromptString.value + '\n大纲:\n' + novel.value.outline + '\n';
+      prompt += '标题: ' + (novel.value.title||'') + '\n';
+      if (detailedOutlineBatchContext?.suppressed) {
+        // 白鸟锁定时省略宿主世界观与角色资料；后续 MOD/暗线及批次语义保持原位。
+      } else if (!detailedOutlineBatchContext || detailedOutlineBatchContext.legacyCompatible) {
+        prompt += '世界观: ' + (novel.value.worldView||'') + '\n';
+        prompt += '角色: ' + charactersPromptString.value + '\n';
+      } else {
+        const formattedBatchContext = formatStoryBibleDetailedOutlineBatchContext(detailedOutlineBatchContext);
+        if (formattedBatchContext) prompt += formattedBatchContext + '\n';
+      }
+      prompt += '大纲:\n' + novel.value.outline + '\n';
       prompt += getOutlineGenerationModContext();
       prompt += '本次必须生成章节: ' + batch.map(n => '第' + n + '章').join('、') + '\n';
       prompt += '范围提示: 第' + first + '章至第' + last + '章\n';
@@ -18556,9 +21318,11 @@ function getModHubPermissionLabels(mod) {
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲 API','error'); return; }
       if (!novel.value.outline) { showToast('请先编写大纲','error'); return; }
+      if (outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) { showToast('本章细纲 AI 正在处理，请等待当前任务完成', 'info'); return; }
       if (isGeneratingDO.value || detailedOutlineAbortController.value) { showToast('细纲正在生成，请等待或先停止当前任务', 'info'); return; }
       const outlineModel = request.model || requireModelForModule('outline', '大纲模块');
       if (!outlineModel) return;
+      const sourceBookId = String(currentBookId.value || '');
       const runId = ++detailedOutlineRunSequence;
       const controller = new AbortController();
       const parentSignal = runOptions.signal || null;
@@ -18614,7 +21378,7 @@ function getModHubPermissionLabels(mod) {
       let currentBatch = [];
       try {
         for (let bi = 0; bi < batches.length; bi++) {
-          assertOutlineRunActive('detailed', runId, controller);
+          assertOutlineRunActive('detailed', runId, controller, sourceBookId);
           const batch = batches[bi];
           currentBatch = batch.slice();
           const label = formatDetailedOutlineBatchLabel(batch);
@@ -18637,7 +21401,7 @@ function getModHubPermissionLabels(mod) {
               targetChars: Math.max(600, Math.round(totalWordTarget * (batch.length / Math.max(1, target.length)))),
               signal: controller.signal
             });
-            assertOutlineRunActive('detailed', runId, controller);
+            assertOutlineRunActive('detailed', runId, controller, sourceBookId);
             if (result.fallbackUsed) detailedOutlineRun.value.fallbackCount++;
             const parsed = parseGeneratedDetailedOutlines(result.text, batch[0]);
             let nextOutlines = parsed.filter(item => batch.includes(Number(item.chapterNo)));
@@ -18687,7 +21451,7 @@ function getModHubPermissionLabels(mod) {
           currentBatch.forEach(no => {
             if (getChapterOutlineRunStatus(no - 1) === 'running') setChapterOutlineRunState(no, 'cancelled', '用户停止');
           });
-          showToast('已停止细纲生成，已写入 ' + detailedOutlineRun.value.written + ' 章', 'info');
+          showToast(String(currentBookId.value || '') === sourceBookId ? ('已停止细纲生成，已写入 ' + detailedOutlineRun.value.written + ' 章') : '已取消原书细纲生成', 'info');
         } else {
           detailedOutlineRun.value.lastError = e.message || String(e);
           showToast('细纲生成终止：' + detailedOutlineRun.value.lastError, 'error');
@@ -19114,6 +21878,7 @@ function getModHubPermissionLabels(mod) {
       const chapterNo = idx + 1;
       const remapSharedDarklinePlan = activeBranchId.value === 'main';
       const affectedDarklineFields = foreshadowMatrix.value.reduce((sum, row) => sum + ['setupChapter','upgradeChapter','payoffChapter','resolvedChapter'].filter(field => parseChapterRefs(row?.[field]).includes(chapterNo)).length, 0);
+      const affectedEventRefs = storyBibleEvents.value.reduce((count, event) => count + normalizeStoryBibleIdList(event?.chapterIds).filter(id => id === ch.id).length, 0);
       openConfirm({
         title:'删除章节',
         message:'确定删除第' + chapterNo + '章「' + getDisplayChapterTitle(ch, idx) + '」？',
@@ -19121,6 +21886,7 @@ function getModHubPermissionLabels(mod) {
         impactLines:[
           '正文将删除；章节索引和细纲不会自动删除',
           '命中暗线章节字段：' + affectedDarklineFields + ' 处',
+          '事件时间线引用：' + affectedEventRefs + ' 处（删除后清理，不删除事件）',
           remapSharedDarklinePlan
             ? '确认后会移除对本章的暗线引用，并将后续暗线章号前移一章'
             : '当前为支线：共享暗线计划按主线章号维护，本次不会自动重排'
@@ -19129,6 +21895,8 @@ function getModHubPermissionLabels(mod) {
         const realIdx = chapters.value.indexOf(ch);
         if (realIdx >= 0) chapters.value.splice(realIdx, 1);
         const remapped = remapSharedDarklinePlan ? remapDarklineChapterReferences(no => no === chapterNo ? null : (no > chapterNo ? no - 1 : no)) : 0;
+        repairDanglingCharacterReferences();
+        repairStoryBibleReferences();
         saveData(); showToast('已删除第' + chapterNo + '章' + (remapped ? '，并重排 ' + remapped + ' 处暗线引用' : (remapSharedDarklinePlan ? '' : '；共享暗线计划保持主线章号')), 'success');
         runModEventHandlers('chapterDeleted', { source: 'deleteChapter', chapterIndex: idx, chapterId: ch?.id || '', chapterTitle: ch?.title || '' });
       });
@@ -19510,138 +22278,401 @@ function getModHubPermissionLabels(mod) {
        ═══════════════════════════════════════════ */
     const showRelGraph = ref(false);
     const relSvg = ref(null);
-    const relGraphWidth = ref(600);
-    const relGraphHeight = ref(400);
+    const relGraphPanel = ref(null);
+    const relGraphViewport = ref(null);
+    const relGraphWidth = ref(760);
+    const relGraphHeight = ref(500);
     const relGraphNodes = ref([]);
     const relGraphLines = ref([]);
-    // 中文注释：记录关系图当前悬停角色，用于高亮相关连线并隐藏无关关系文字，解决关系过多时重叠不可读。
     const hoverRelNodeId = ref('');
+    const selectedRelGraphNodeId = ref('');
+    const selectedRelGraphEdgeId = ref('');
+    const relGraphCharacterFilter = ref('');
+    const relGraphFactionFilter = ref('');
+    const relGraphTypeFilter = ref('');
+    const relGraphStatusFilter = ref('');
 
-    // 关系类型→颜色映射
-    const REL_COLORS = {
-      '恋爱': '#e91e63', '暗恋': '#f06292', '爱': '#e91e63',
-      '敌对': '#f44336', '仇恨': '#d32f2f', '敌人': '#f44336',
-      '友情': '#2196f3', '朋友': '#2196f3', '战友': '#1976d2',
-      '亲人': '#ff9800', '家人': '#ff9800', '兄弟': '#ff9800', '姐妹': '#ff9800',
-      '师徒': '#9c27b0', '师生': '#9c27b0',
-      '暧昧': '#ff4081', '对手': '#ff5722', '同盟': '#4caf50',
-      '主仆': '#795548', '保护': '#00bcd4',
-    };
+    const REL_STATUS_GROUPS = Object.freeze([
+      Object.freeze({ key:'positive', label:'亲近 / 信任', color:'#16a34a', pattern:/信任|亲近|爱|恋|友|亲密|认可|忠诚|依恋/ }),
+      Object.freeze({ key:'cooperate', label:'合作 / 同盟', color:'#0284c7', pattern:/合作|同盟|盟友|战友|并肩|依赖|保护|师徒|师生|共事/ }),
+      Object.freeze({ key:'tense', label:'紧张 / 试探', color:'#d97706', pattern:/试探|怀疑|警惕|竞争|紧张|戒备|摇摆|防备|猜忌/ }),
+      Object.freeze({ key:'hostile', label:'敌对 / 冲突', color:'#dc2626', pattern:/敌|仇|恨|冲突|对抗|决裂|追杀|厌恶|背叛/ }),
+      Object.freeze({ key:'distant', label:'疏离 / 冷淡', color:'#64748b', pattern:/疏离|冷淡|陌生|隔阂|断联|远离|回避|淡漠/ }),
+      Object.freeze({ key:'other', label:'未说明 / 其它', color:'#78716c', pattern:null })
+    ]);
 
-    function getRelColor(type) {
-      const t = (type || '').trim();
-      for (const key in REL_COLORS) {
-        if (t.includes(key)) return REL_COLORS[key];
-      }
-      return '#9e9e9e';
+    function getRelStatusMeta(attitude) {
+      const value = String(attitude || '').trim();
+      return REL_STATUS_GROUPS.find(item => item.pattern && item.pattern.test(value)) || REL_STATUS_GROUPS[REL_STATUS_GROUPS.length - 1];
     }
+
+    function getRelStatusColor(attitude) {
+      return getRelStatusMeta(attitude).color;
+    }
+
+    const relGraphStatusLegend = computed(() => REL_STATUS_GROUPS);
 
     const NODE_COLORS = ['#44403c', '#2196f3', '#e91e63', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4', '#795548', '#f44336', '#3f51b5'];
 
-    // 计算所有关系（展平）
+    function getRelGraphCharacterLabel(character) {
+      return String(character?.name || '').trim() || '未命名角色';
+    }
+
+    function makeRelGraphEdgeId(fromId, toId) {
+      return 'rel_edge_' + [String(fromId || ''), String(toId || '')].sort().map(encodeURIComponent).join('__');
+    }
+
+    // 图谱事实只展平原 relationships；不创建第二份持久化关系表。
     const allRelationships = computed(() => {
       const rels = [];
       structuredCharacters.value.forEach(ch => {
-        if (!ch.relationships) return;
-        ch.relationships.forEach(r => {
-          if (!r.targetId) return;
+        if (!ch || !ch.id || !Array.isArray(ch.relationships)) return;
+        ch.relationships.forEach((r, relationIndex) => {
+          if (!r || !r.targetId || r.targetId === ch.id) return;
           const target = structuredCharacters.value.find(c => c.id === r.targetId);
           if (!target) return;
           rels.push({
+            relationId:String(r.id || ('legacy_' + ch.id + '_' + relationIndex)),
             fromId: ch.id,
             toId: target.id,
-            from: ch.name || '?',
-            to: target.name || '?',
+            from: getRelGraphCharacterLabel(ch),
+            to: getRelGraphCharacterLabel(target),
             type: r.type || '未定义',
             attitude: r.attitude || '',
-            color: getRelColor(r.type)
+            changeReason:r.changeReason || '',
+            color:getRelStatusColor(r.attitude)
           });
         });
       });
       return rels;
     });
 
+    const relGraphFactionOptions = computed(() => {
+      const entries = Array.isArray(storyBible.value?.world?.entries) ? storyBible.value.world.entries : [];
+      return entries.filter(entry => entry && entry.id && entry.type === 'faction' && normalizeStoryBibleIdList(entry.characterIds).length);
+    });
+
+    function getRelGraphCharacterFactions(characterId) {
+      const id = String(characterId || '');
+      return relGraphFactionOptions.value.filter(entry => normalizeStoryBibleIdList(entry.characterIds).includes(id));
+    }
+
+    function buildRelGraphTextOptions(values, emptyLabel) {
+      const normalized = Array.from(new Set(values.map(value => String(value || '').trim())));
+      return normalized.sort((left, right) => left.localeCompare(right, 'zh-CN')).map(value => ({
+        value:value || '__empty__',
+        label:value || emptyLabel
+      }));
+    }
+
+    const relGraphTypeOptions = computed(() => buildRelGraphTextOptions(allRelationships.value.map(fact => fact.type === '未定义' ? '' : fact.type), '类型未定义'));
+    const relGraphStatusOptions = computed(() => buildRelGraphTextOptions(allRelationships.value.map(fact => fact.attitude), '当前态未填写'));
+
+    function filterRelationshipGraphFacts(facts, filters = {}) {
+      const factionCharacterIds = new Set(normalizeStoryBibleIdList(filters.factionCharacterIds));
+      return (Array.isArray(facts) ? facts : []).filter(fact => {
+        if (!fact || !fact.fromId || !fact.toId) return false;
+        if (filters.characterId && fact.fromId !== filters.characterId && fact.toId !== filters.characterId) return false;
+        if (filters.factionId && !factionCharacterIds.has(fact.fromId) && !factionCharacterIds.has(fact.toId)) return false;
+        const type = String(fact.type === '未定义' ? '' : fact.type || '').trim();
+        const attitude = String(fact.attitude || '').trim();
+        if (filters.type && (filters.type === '__empty__' ? !!type : type !== filters.type)) return false;
+        if (filters.status && (filters.status === '__empty__' ? !!attitude : attitude !== filters.status)) return false;
+        return true;
+      });
+    }
+
+    function groupRelationshipGraphFacts(facts) {
+      const groups = new Map();
+      (Array.isArray(facts) ? facts : []).forEach(fact => {
+        if (!fact || !fact.fromId || !fact.toId || fact.fromId === fact.toId) return;
+        const edgeId = makeRelGraphEdgeId(fact.fromId, fact.toId);
+        if (!groups.has(edgeId)) groups.set(edgeId, { id:edgeId, facts:[], endpoints:[fact.fromId, fact.toId].sort() });
+        groups.get(edgeId).facts.push(fact);
+      });
+      return Array.from(groups.values());
+    }
+
+    const filteredRelGraphFacts = computed(() => {
+      const faction = relGraphFactionOptions.value.find(entry => entry.id === relGraphFactionFilter.value);
+      return filterRelationshipGraphFacts(allRelationships.value, {
+        characterId:relGraphCharacterFilter.value,
+        factionId:relGraphFactionFilter.value,
+        factionCharacterIds:faction?.characterIds,
+        type:relGraphTypeFilter.value,
+        status:relGraphStatusFilter.value
+      });
+    });
+
+    const filteredRelGraphCharacters = computed(() => {
+      const characters = structuredCharacters.value.filter(character => character && character.id);
+      const hasFilter = !!(relGraphCharacterFilter.value || relGraphFactionFilter.value || relGraphTypeFilter.value || relGraphStatusFilter.value);
+      if (!hasFilter) return characters;
+      const visibleIds = new Set();
+      filteredRelGraphFacts.value.forEach(fact => { visibleIds.add(fact.fromId); visibleIds.add(fact.toId); });
+      if (relGraphCharacterFilter.value) visibleIds.add(relGraphCharacterFilter.value);
+      if (relGraphFactionFilter.value && !relGraphCharacterFilter.value) {
+        const faction = relGraphFactionOptions.value.find(entry => entry.id === relGraphFactionFilter.value);
+        normalizeStoryBibleIdList(faction?.characterIds).forEach(id => visibleIds.add(id));
+      }
+      return characters.filter(character => visibleIds.has(character.id));
+    });
+
+    function filterRelationshipGraphEvents(events, fromId, toId = '') {
+      const sourceId = String(fromId || '');
+      const targetId = String(toId || '');
+      if (!sourceId) return [];
+      return (Array.isArray(events) ? events : []).filter(event => {
+        const ids = normalizeStoryBibleIdList(event?.characterIds);
+        return ids.includes(sourceId) && (!targetId || ids.includes(targetId));
+      });
+    }
+
+    function getRelGraphRelatedEvents(fromId, toId = '') {
+      return filterRelationshipGraphEvents(storyBibleEvents.value, fromId, toId);
+    }
+
+    const selectedRelGraphEdge = computed(() => relGraphLines.value.find(line => line.id === selectedRelGraphEdgeId.value) || null);
+    const selectedRelGraphNode = computed(() => relGraphNodes.value.find(node => node.id === selectedRelGraphNodeId.value) || null);
+    const selectedRelGraphEvents = computed(() => {
+      const edge = selectedRelGraphEdge.value;
+      if (edge) return getRelGraphRelatedEvents(edge.fromId, edge.toId);
+      return selectedRelGraphNode.value ? getRelGraphRelatedEvents(selectedRelGraphNode.value.id) : [];
+    });
+
     function isRelLineActive(line) {
-      return !hoverRelNodeId.value || !line ? false : line.fromId === hoverRelNodeId.value || line.toId === hoverRelNodeId.value;
+      if (!line) return false;
+      if (selectedRelGraphEdgeId.value) return line.id === selectedRelGraphEdgeId.value;
+      const activeNodeId = hoverRelNodeId.value || selectedRelGraphNodeId.value;
+      return !!activeNodeId && (line.fromId === activeNodeId || line.toId === activeNodeId);
+    }
+
+    function isRelLineMuted(line) {
+      return !!(selectedRelGraphEdgeId.value || hoverRelNodeId.value || selectedRelGraphNodeId.value) && !isRelLineActive(line);
     }
 
     function isRelNodeActive(node) {
-      if (!hoverRelNodeId.value) return true;
       if (!node) return false;
-      if (node.id === hoverRelNodeId.value) return true;
+      const edge = selectedRelGraphEdge.value;
+      if (edge) return edge.fromId === node.id || edge.toId === node.id;
+      const activeNodeId = hoverRelNodeId.value || selectedRelGraphNodeId.value;
+      if (!activeNodeId) return true;
+      if (node.id === activeNodeId) return true;
       return relGraphLines.value.some(line => isRelLineActive(line) && (line.fromId === node.id || line.toId === node.id));
     }
 
     function getRelNodeRelatedText(nodeId) {
-      const list = allRelationships.value.filter(rel => rel.fromId === nodeId || rel.toId === nodeId);
+      const list = filteredRelGraphFacts.value.filter(rel => rel.fromId === nodeId || rel.toId === nodeId);
       if (!list.length) return '该角色暂无已定义关系。';
       return list.map(rel => rel.from + ' → ' + rel.to + '｜' + rel.type + (rel.attitude ? '：' + rel.attitude : '')).join('\n');
     }
 
-    function computeRelGraph() {
-      const chars = structuredCharacters.value.filter(c => c.name);
-      if (chars.length < 2) return;
+    function selectRelGraphNode(nodeId) {
+      selectedRelGraphNodeId.value = String(nodeId || '');
+      selectedRelGraphEdgeId.value = '';
+    }
 
+    function selectRelGraphEdge(edgeId) {
+      selectedRelGraphEdgeId.value = String(edgeId || '');
+      selectedRelGraphNodeId.value = '';
+    }
+
+    function handleRelGraphKeydown(event, kind, id) {
+      const key = String(event?.key || '');
+      if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return false;
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      if (kind === 'edge') selectRelGraphEdge(id);
+      else selectRelGraphNode(id);
+      return true;
+    }
+
+    function selectRelGraphFact(fact) {
+      if (!fact) return;
+      const edgeId = makeRelGraphEdgeId(fact.fromId, fact.toId);
+      selectRelGraphEdge(edgeId);
+      nextTick(() => {
+        const detail = relGraphPanel.value?.querySelector?.('.moyun-rel-detail');
+        detail?.scrollIntoView?.({ behavior:'smooth', block:'nearest', inline:'nearest' });
+      });
+    }
+
+    function resetRelationshipGraphFilters() {
+      relGraphCharacterFilter.value = '';
+      relGraphFactionFilter.value = '';
+      relGraphTypeFilter.value = '';
+      relGraphStatusFilter.value = '';
+      selectedRelGraphNodeId.value = '';
+      selectedRelGraphEdgeId.value = '';
+      nextTick(computeRelGraph);
+    }
+
+    function resetRelationshipGraphState(closeGraph = true) {
+      if (closeGraph) showRelGraph.value = false;
       hoverRelNodeId.value = '';
+      selectedRelGraphNodeId.value = '';
+      selectedRelGraphEdgeId.value = '';
+      relGraphCharacterFilter.value = '';
+      relGraphFactionFilter.value = '';
+      relGraphTypeFilter.value = '';
+      relGraphStatusFilter.value = '';
+      relGraphNodes.value = [];
+      relGraphLines.value = [];
+    }
+
+    function openRelationshipGraph() {
+      repairDanglingCharacterReferences();
+      saveData();
+      showRelGraph.value = true;
+      hoverRelNodeId.value = '';
+      selectedRelGraphNodeId.value = '';
+      selectedRelGraphEdgeId.value = '';
+      nextTick(() => {
+        computeRelGraph();
+        // 统一弹窗协调器负责初始焦点；保留触发按钮作为关闭后的恢复目标。
+      });
+      setTimeout(() => { if (showRelGraph.value) computeRelGraph(); }, 260);
+      return true;
+    }
+
+    function closeRelationshipGraph() {
+      showRelGraph.value = false;
+      hoverRelNodeId.value = '';
+      selectedRelGraphNodeId.value = '';
+      selectedRelGraphEdgeId.value = '';
+    }
+
+    function openRelGraphCharacter(characterId) {
+      const id = String(characterId || '');
+      if (!structuredCharacters.value.some(character => character?.id === id)) {
+        showToast('目标角色已不存在', 'error');
+        return false;
+      }
+      closeRelationshipGraph();
+      return openCharacterWorkbench(id);
+    }
+
+    function openRelGraphRelationship(fact) {
+      const sourceId = String(fact?.fromId || '');
+      const relationId = String(fact?.relationId || '');
+      const source = structuredCharacters.value.find(character => character?.id === sourceId);
+      const relation = source?.relationships?.find(item => item && item.id === relationId);
+      if (!source || !relation) {
+        showToast('目标关系记录已不存在，请重新打开关系图', 'error');
+        return false;
+      }
+      closeRelationshipGraph();
+      if (!openCharacterWorkbench(sourceId)) return false;
+      nextTick(() => requestAnimationFrame(() => {
+        const rows = Array.from(document.querySelectorAll('[data-character-relationship-id]'));
+        const target = rows.find(element => element?.dataset?.characterRelationshipId === relationId);
+        if (!target) {
+          showToast('已打开角色档案，请在“角色关系”中查看', 'info');
+          return;
+        }
+        target.scrollIntoView({ behavior:'smooth', block:'center', inline:'nearest' });
+        target.classList.add('moyun-new-character-highlight');
+        setTimeout(() => target.classList.remove('moyun-new-character-highlight'), 1700);
+      }));
+      return true;
+    }
+
+    function openRelGraphEvent(eventId) {
+      const id = String(eventId || '');
+      if (!storyBibleEvents.value.some(event => event?.id === id)) {
+        showToast('目标事件已不存在', 'error');
+        return false;
+      }
+      closeRelationshipGraph();
+      if (!openStoryBibleWorkbench('events')) return false;
+      selectStoryBibleEvent(id);
+      return true;
+    }
+
+    function computeRelGraph() {
+      const chars = filteredRelGraphCharacters.value;
+      hoverRelNodeId.value = '';
+      if (!chars.length) {
+        relGraphNodes.value = [];
+        relGraphLines.value = [];
+        selectedRelGraphNodeId.value = '';
+        selectedRelGraphEdgeId.value = '';
+        return;
+      }
+
       const count = chars.length;
-      const relationCount = allRelationships.value.length;
-      const w = Math.min(680, window.innerWidth - 48);
-      const h = Math.max(340, Math.min(560, count * 72 + Math.min(relationCount, 12) * 8));
+      const viewportWidth = Math.floor(relGraphViewport.value?.clientWidth || relGraphPanel.value?.clientWidth || window.innerWidth || 760);
+      const w = Math.max(320, Math.min(820, viewportWidth));
+      const h = window.innerWidth < 768 ? Math.max(340, Math.min(430, 310 + count * 10)) : Math.max(430, Math.min(560, 420 + count * 8));
       relGraphWidth.value = w;
       relGraphHeight.value = h;
 
       const cx = w / 2;
       const cy = h / 2;
-      const radius = Math.min(cx, cy) - 60;
-
-      // 环形布局
+      const verticalMargin = window.innerWidth < 768 ? 72 : 100;
+      const maxRadiusY = Math.max(64, Math.min(cx - 52, cy - verticalMargin));
+      const maxRadiusX = Math.max(maxRadiusY, Math.min(cx - 64, maxRadiusY * 1.8));
+      const innerCount = count > 10 ? Math.min(6, Math.ceil(count * 0.35)) : 0;
       const nodes = chars.map((ch, i) => {
-        const angle = (2 * Math.PI * i / count) - Math.PI / 2;
+        let x = cx;
+        let y = cy;
+        if (count > 1) {
+          const inInnerRing = innerCount > 0 && i < innerCount;
+          const ringIndex = inInnerRing ? i : i - innerCount;
+          const ringCount = inInnerRing ? innerCount : count - innerCount;
+          const radiusX = inInnerRing ? Math.max(58, maxRadiusX * 0.52) : maxRadiusX;
+          const radiusY = inInnerRing ? Math.max(58, maxRadiusY * 0.52) : maxRadiusY;
+          const angle = (2 * Math.PI * ringIndex / Math.max(1, ringCount)) - Math.PI / 2;
+          x = cx + radiusX * Math.cos(angle);
+          y = cy + radiusY * Math.sin(angle);
+        }
+        const originalIndex = Math.max(0, structuredCharacters.value.findIndex(character => character?.id === ch.id));
         return {
           id: ch.id,
-          name: (ch.name || '').substring(0, 6),
-          fullName: ch.name || '?',
-          initial: (ch.name || '?')[0],
+          name: getRelGraphCharacterLabel(ch).substring(0, 7),
+          fullName: getRelGraphCharacterLabel(ch),
+          initial: getRelGraphCharacterLabel(ch)[0],
           avatarBase64: ch.avatarBase64 || '',
-          x: Math.round(cx + radius * Math.cos(angle)),
-          y: Math.round(cy + radius * Math.sin(angle)),
-          color: NODE_COLORS[i % NODE_COLORS.length]
+          storyRole:String(ch.storyRole || ''),
+          currentState:String(ch.profile?.currentState || ''),
+          x: Math.round(x),
+          y: Math.round(y),
+          color: NODE_COLORS[originalIndex % NODE_COLORS.length]
         };
       });
 
-      // 连线
-      const lines = [];
-      chars.forEach(ch => {
-        if (!ch.relationships) return;
-        ch.relationships.forEach(r => {
-          if (!r.targetId) return;
-          const fromNode = nodes.find(n => n.id === ch.id);
-          const toNode = nodes.find(n => n.id === r.targetId);
-          if (!fromNode || !toNode) return;
-          // 避免重复线（A→B 和 B→A 只画一条）
-          const exists = lines.some(l =>
-            (l.fromId === ch.id && l.toId === r.targetId) ||
-            (l.fromId === r.targetId && l.toId === ch.id)
-          );
-          if (!exists) {
-            lines.push({
-              fromId: ch.id,
-              toId: r.targetId,
-              x1: fromNode.x,
-              y1: fromNode.y,
-              x2: toNode.x,
-              y2: toNode.y,
-              labelX: Math.round((fromNode.x + toNode.x) / 2),
-              labelY: Math.round((fromNode.y + toNode.y) / 2 - 8),
-              label: (r.type || '').substring(0, 4),
-              color: getRelColor(r.type)
-            });
-          }
-        });
+      const lines = groupRelationshipGraphFacts(filteredRelGraphFacts.value).map(group => {
+        const fromNode = nodes.find(node => node.id === group.endpoints[0]);
+        const toNode = nodes.find(node => node.id === group.endpoints[1]);
+        const exactStatuses = new Set(group.facts.map(fact => String(fact.attitude || '').trim() || '__empty__'));
+        const mixed = exactStatuses.size > 1;
+        const types = Array.from(new Set(group.facts.map(fact => String(fact.type || '').trim()).filter(Boolean)));
+        const label = types.length > 2 ? (group.facts.length + ' 条关系') : (types.join(' / ') || '未定义');
+        return {
+          id:group.id,
+          fromId:group.endpoints[0],
+          toId:group.endpoints[1],
+          fromName:fromNode.fullName,
+          toName:toNode.fullName,
+          facts:group.facts,
+          x1:fromNode.x,
+          y1:fromNode.y,
+          x2:toNode.x,
+          y2:toNode.y,
+          labelX:Math.round((fromNode.x + toNode.x) / 2),
+          labelY:Math.round((fromNode.y + toNode.y) / 2 - 8),
+          label:label.substring(0, 16),
+          color:mixed ? '#7c3aed' : getRelStatusColor(group.facts[0]?.attitude),
+          mixed,
+          ariaLabel:fromNode.fullName + ' 与 ' + toNode.fullName + '，' + group.facts.length + ' 条有向关系事实'
+        };
       });
 
       relGraphNodes.value = nodes;
       relGraphLines.value = lines;
+      if (selectedRelGraphNodeId.value && !nodes.some(node => node.id === selectedRelGraphNodeId.value)) selectedRelGraphNodeId.value = '';
+      if (selectedRelGraphEdgeId.value && !lines.some(line => line.id === selectedRelGraphEdgeId.value)) selectedRelGraphEdgeId.value = '';
+      nextTick(() => relSvg.value?.setAttribute?.('viewBox', '0 0 ' + w + ' ' + h));
     }
 
     /* ═══ 分支操作 ═══ */
@@ -19748,12 +22779,14 @@ function getModHubPermissionLabels(mod) {
     const isGeneratingSummary = ref(false);
 
     function generateSummaryRange() {
+      if (isGeneratingSummary.value) { showToast('范围总结正在生成，请等待当前请求完成', 'info'); return; }
       const request = getModuleRequestConfig('summary');
       if (!request.ok) { showToast(request.reason || '请配置总结 API','error'); return; }
-      const url = request.url;
       const s = summaryStart.value, e = summaryEnd.value;
       const vChaps = visibleChapters.value;
       if (s > e || s < 1 || e > vChaps.length) { showToast('范围无效','error'); return; }
+      const run = beginBookScopedAiRun('summary-range');
+      if (!run) return;
       isGeneratingSummary.value = true;
       let content = '';
       for (let i = s-1; i < e; i++) {
@@ -19765,18 +22798,16 @@ function getModHubPermissionLabels(mod) {
       const modSummary = getModRulesForPosition('summary');
       if (modSummary) prompt += '\n\n【MOD总结规则】\n' + modSummary;
       prompt = applyModTextHooks('buildSummaryPrompt', prompt, { novel: novel.value, chapters: vChaps, start: s, end: e });
-      fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
-        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt, { taskType: 'summary' }),stream:false})
-      }).then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
-      .then(d=>{
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'summary' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result=>{
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const text = getAdapterCompletionText(result);
         const existing = summaries.value.findIndex(sum=>sum.startChapter===s&&sum.endChapter===e);
         if (existing >= 0) { summaries.value[existing].content = text; }
         else { summaries.value.push({id:uid(),startChapter:s,endChapter:e,content:text,useForContext:false,isExpanded:false}); }
         saveData(); showToast('总结已生成', 'success');
-      }).catch(e=>showToast('失败: '+e.message,'error'))
-      .finally(()=>{isGeneratingSummary.value=false});
+      }).catch(e=>{ if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: '+sanitizeApiErrorDetail(e.message || e),'error'); })
+      .finally(()=>{finishBookScopedAiRun(run);isGeneratingSummary.value=false});
     }
 
     function deleteSummary(id) {
@@ -20534,7 +23565,11 @@ function getWritingModelLabel() {
     }
 
     function isGenerationRunCurrent(runId) {
-      return !!(_activeGenerationRun && _activeGenerationRun.id === runId && !_activeGenerationRun.stopRequested);
+      const run = _activeGenerationRun;
+      return !!(run
+        && run.id === runId
+        && !run.stopRequested
+        && String(run.sourceBookId || '') === String(currentBookId.value || ''));
     }
 
     function assertGenerationRunCurrent(runId) {
@@ -20561,6 +23596,7 @@ function getWritingModelLabel() {
       const controller = new AbortController();
       const run = {
         id: ++_generationRunSeq,
+        sourceBookId: String(options.sourceBookId || currentBookId.value || ''),
         mode: options.mode || 'generate',
         remaining: Math.max(1, Number(count) || 1),
         total: Math.max(1, Number(count) || 1),
@@ -20602,6 +23638,7 @@ function getWritingModelLabel() {
       _generationStopReason = reason;
       const controller = run.controller || abortController.value;
       const partial = String(streamContent.value || '');
+      const preservePartial = reason !== 'bookSwitch' && reason !== 'unmount';
       _activeGenerationRun = null;
       abortController.value = null;
       _isPreparingGenerationRecall = false;
@@ -20610,7 +23647,7 @@ function getWritingModelLabel() {
       if (controller && !controller.signal.aborted) {
         try { controller.abort(new DOMException('用户停止生成', 'AbortError')); } catch { controller.abort(); }
       }
-      if (partial.length > 50) {
+      if (preservePartial && partial.length > 50) {
         interruptedContent.value = partial;
         isInterrupted.value = true;
       }
@@ -20622,7 +23659,9 @@ function getWritingModelLabel() {
         reason,
         preservedLength: partial.length
       });
-      showToast(partial.length > 50 ? '已停止并保留已生成内容' : '已停止', 'success');
+      if (reason !== 'bookSwitch' && reason !== 'unmount') {
+        showToast(preservePartial && partial.length > 50 ? '已停止并保留已生成内容' : '已停止', 'success');
+      }
       _generationStopReason = '';
       return true;
     }
@@ -20638,6 +23677,7 @@ function getWritingModelLabel() {
       if (!prerequisites) return;
       const requestedCount = Math.max(1, Number(options.count ?? generateCount.value) || 1);
       const run = beginGenerationRun(requestedCount, Object.assign({}, options, {
+        sourceBookId: String(currentBookId.value || ''),
         mode: options.mode || 'generate',
         writingModel: prerequisites.model,
         writingApiKey: prerequisites.apiKey,
@@ -20706,7 +23746,8 @@ function getWritingModelLabel() {
         currentChapterNo: generationContext.currentChapterNo,
         promptOverride: generationContext.promptOverride,
         sequenceTotal: run.total,
-        sequenceIndex: run.total - run.remaining + 1
+        sequenceIndex: run.total - run.remaining + 1,
+        printLog: false
       }));
       const snowwingCotContext = collectSnowwingCotContextFromMessages(msgs);
       lastGenerationCotContext.value = snowwingCotContext;
@@ -20720,6 +23761,9 @@ function getWritingModelLabel() {
       const sendChapterRequest = (requestMessages) => {
         assertGenerationRunCurrent(runId);
         if (!generationRequest.url || !generationRequest.apiKey || !generationRequest.model) throw new Error('正文生成 API 配置不完整');
+        // 中文注释：必须在 active-context / CoT 预检完成后记录，确保“实际发送字符数”与最终 wire messages 一致。
+        captureChapterContextMessages(requestMessages, generationRequest.model, '正文实际发送 messages');
+        printAIRequestLogs(requestMessages, generationRequest.model, '正文实际发送 messages');
         const adapterInit = buildAdapterRequest(generationRequest, requestMessages, { stream:settings.value.streamEnabled !== false, temperature:0.85, maxTokens:Math.min(64000, Math.max(4096, Math.round(wordCountTarget.value * 2.4) + 2500)), signal:requestController.signal });
         return fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
       };
@@ -21161,6 +24205,7 @@ function getWritingModelLabel() {
       const prev = normalizeInterruptedContentForContinue(interruptedContent.value);
       if (!prev) { showToast('没有可续写的中断正文', 'error'); return; }
       const run = beginGenerationRun(1, { mode:'continue',
+        sourceBookId: String(currentBookId.value || ''),
         writingUrl: prerequisites.url,
         writingApiKey: prerequisites.apiKey,
         writingModel: prerequisites.model,
@@ -21221,6 +24266,7 @@ function getWritingModelLabel() {
           continueMessages = preflight.messages;
           lastGenerationToolTimeline.value = streamToolTimeline.value.slice();
         }
+        captureChapterContextMessages(continueMessages, continueGenerationModel, '中断续写实际发送 messages');
         printAIRequestLogs(continueMessages, continueGenerationModel, '中断续写 messages');
         const adapterInit = buildAdapterRequest(continueRequest, continueMessages, { stream:settings.value.streamEnabled !== false, temperature:1.0, signal:requestController.signal });
         return fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
@@ -21466,20 +24512,29 @@ function getWritingModelLabel() {
       '\n要求：紧扣前文逻辑，制造合理的冲突和悬念，约100字，直接输出建议内容。'
     );
 
-    function generateSuggestion() {
-      const request = getModuleRequestConfig('suggestion');
-      if (!request.ok) { showToast(request.reason || '请配置 AI 建议 API', 'error'); return; }
-      const url = request.url;
-      const suggestionModel = request.model;
-      isGeneratingSuggestion.value = true;
-
+    function buildSuggestionPrompt(options = {}) {
+      const vc = Array.isArray(options.contextChapters) ? options.contextChapters : visibleChapters.value;
+      const nextChapterNo = Math.max(1, Number(options.currentChapterNo) || (vc.length + 1));
+      const contextPackage = Object.prototype.hasOwnProperty.call(options, 'storyBibleContextPackage')
+        ? options.storyBibleContextPackage
+        : buildStoryBibleSuggestionContextPackage({ currentChapterNo: nextChapterNo });
       let prompt = suggestionPersona.value + '\n\n';
       prompt += '小说: ' + (novel.value.title||'') + '\n';
-      prompt += '世界观: ' + (novel.value.worldView||'').substring(0, 500) + '\n';
-      if (novel.value.outline) prompt += '大纲: ' + novel.value.outline.substring(0, 800) + '\n';
-      prompt += '角色:\n' + charactersPromptString.value + '\n\n';
+      if (!contextPackage) {
+        prompt += '世界观: ' + (novel.value.worldView||'').substring(0, 500) + '\n';
+        if (novel.value.outline) prompt += '大纲: ' + novel.value.outline.substring(0, 800) + '\n';
+        prompt += '角色:\n' + charactersPromptString.value + '\n\n';
+      } else {
+        if (!contextPackage.suppressed && contextPackage.worldText) prompt += '故事设定:\n' + contextPackage.worldText + '\n';
+        if (novel.value.outline) prompt += '大纲: ' + novel.value.outline.substring(0, 800) + '\n';
+        if (!contextPackage.suppressed) {
+          const characterText = contextPackage.characterIntent === 'structured'
+            ? String(contextPackage.characterText || '')
+            : charactersPromptString.value;
+          if (characterText) prompt += '角色:\n' + characterText + '\n\n';
+        }
+      }
 
-      const vc = visibleChapters.value;
       if (vc.length > 0) {
         prompt += '最近章节:\n';
         const recent = vc.slice(-5);
@@ -21491,31 +24546,69 @@ function getWritingModelLabel() {
         prompt += '当前还没有章节，请提供第一章的开局建议。\n';
       }
 
-      // 增加预设中的建议指令
       const presetSugg = getPresetsForModule('suggestion');
       if (presetSugg) prompt += '\n补充指令:\n' + presetSugg + '\n';
-      // 中文注释：建议模块接入 MOD suggestion 规则和 buildSuggestionPrompt 钩子，插件可扩展剧情建议策略。
       const modSuggestion = getModRulesForPosition('suggestion');
       if (modSuggestion) prompt += '\nMOD建议规则:\n' + modSuggestion + '\n';
-      prompt = applyModTextHooks('buildSuggestionPrompt', prompt, { novel: novel.value, chapters: vc });
+      return applyModTextHooks('buildSuggestionPrompt', prompt, { novel: novel.value, chapters: vc });
+    }
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: suggestionModel, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+    function isSuggestionRunCurrent(run) {
+      return !!(run
+        && _activeSuggestionRun === run
+        && run.id === _suggestionRunSequence
+        && !run.controller.signal.aborted
+        && String(run.sourceBookId || '') === String(currentBookId.value || ''));
+    }
+
+    function cancelSuggestionRun(reason = 'manualAbort', options = {}) {
+      const run = _activeSuggestionRun;
+      if (run) {
+        _activeSuggestionRun = null;
+        try { run.controller.abort(new DOMException('AI建议任务已停止：' + reason, 'AbortError')); } catch { run.controller.abort(); }
+      }
+      if (options.resetView || run) isGeneratingSuggestion.value = false;
+      return !!run;
+    }
+
+    function generateSuggestion() {
+      if (_activeSuggestionRun || isGeneratingSuggestion.value) {
+        showToast('AI建议正在生成，请先等待当前任务完成', 'info');
+        return Promise.resolve(false);
+      }
+      const request = getModuleRequestConfig('suggestion');
+      if (!request.ok) { showToast(request.reason || '请配置 AI 建议 API', 'error'); return; }
+      const sourceBookId = String(currentBookId.value || '');
+      const controller = new AbortController();
+      const run = { id: ++_suggestionRunSequence, sourceBookId, controller };
+      _activeSuggestionRun = run;
+      isGeneratingSuggestion.value = true;
+      const prompt = buildSuggestionPrompt();
+
+      return fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:controller.signal })
+      .then(result => {
+        if (!isSuggestionRunCurrent(run)) return false;
+        const text = getAdapterCompletionText(result);
         if (text) {
           nextChapterPrompt.value = text;
           showToast('AI建议已生成', 'success');
+          return true;
         } else {
           showToast('AI返回为空，请重试', 'error');
+          return false;
         }
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingSuggestion.value = false; });
+      .catch(e => {
+        if (!isSuggestionRunCurrent(run) || e?.name === 'AbortError') return false;
+        showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
+        return false;
+      })
+      .finally(() => {
+        if (isSuggestionRunCurrent(run)) {
+          _activeSuggestionRun = null;
+          isGeneratingSuggestion.value = false;
+        }
+      });
     }
 
     /* ═══════════════════════════════════════════
@@ -22144,10 +25237,11 @@ function getWritingModelLabel() {
                   const sc = structuredCharacters.value[i]; if (!sc) return;
                   ch.relationships.forEach(r => {
                     const targetId = _tempIdMap[r.targetName];
-                    if (targetId) sc.relationships.push({ targetId, type: r.type||'', attitude: r.attitude||'' });
+                    if (targetId) sc.relationships.push(createCharacterRelationshipRecord({ targetId, type:r.type||'', attitude:r.attitude||'', changeReason:r.changeReason||'' }));
                   });
                 });
               }
+              repairDanglingCharacterReferences();
             } else if (step.id === 'avatars' && R.chars.length > 0) {
               // ★ 立绘生成完毕后，同步回已创建的角色对象
               R.chars.forEach(ch => {
@@ -22212,10 +25306,11 @@ function getWritingModelLabel() {
             const sc = structuredCharacters.value[i]; if (!sc) return;
             ch.relationships.forEach(r => {
               const targetId = charIdMap[r.targetName];
-              if (targetId) sc.relationships.push({ targetId, type: r.type||'', attitude: r.attitude||'' });
+              if (targetId) sc.relationships.push(createCharacterRelationshipRecord({ targetId, type:r.type||'', attitude:r.attitude||'', changeReason:r.changeReason||'' }));
             });
           });
         }
+        repairDanglingCharacterReferences();
       }
 
       // 对话风格模板（自动生成的）
@@ -22372,6 +25467,7 @@ function getWritingModelLabel() {
         data: JSON.stringify({
           // 中文注释：快照用于恢复当前书的完整创作状态，不只保存正文、角色和基础设定。
           novel: deepClone(novel.value),
+          storyBible: storyBible.value ? deepClone(storyBible.value) : null,
           chapters: deepClone(chapters.value),
           characters: deepClone(structuredCharacters.value),
           branchList: deepClone(branchList.value),
@@ -22439,8 +25535,13 @@ function getWritingModelLabel() {
         showSnapshots.value = false;
         saveSnapshot('恢复前自动保存').then(() => {
           try {
+            resetCharacterDraftReviewForBookChange();
+            resetRelationshipGraphState();
             const data = JSON.parse(snap.data);
             if (data.novel) novel.value = data.novel;
+            storyBible.value = data.storyBible ? normalizeStoryBible(data.storyBible) : null;
+            const restoringBook = books.value.find(book => book && book.id === currentBookId.value);
+            if (restoringBook && !storyBible.value) delete restoringBook.storyBible;
             if (data.chapters) {
               data.chapters.forEach(c => {
                 if (!c.id) c.id = uid();
@@ -22470,7 +25571,10 @@ function getWritingModelLabel() {
             if (data.atmospherePrompt !== undefined) atmospherePrompt.value = data.atmospherePrompt;
             if (data.nsfwSettings) nsfwSettings.value = data.nsfwSettings;
             if (data.dialogueTypes) dialogueTypes.value = data.dialogueTypes;
+            selectedWorkbenchCharacterId.value = '';
+            resetCharacterStateDraft();
             repairDanglingCharacterReferences();
+            repairStoryBibleReferences();
             saveDataNow('恢复快照');
             showToast('已恢复', 'success');
           } catch(e) { console.error('[Snapshot] 恢复失败:', e); showToast('恢复失败', 'error'); }
@@ -22480,7 +25584,12 @@ function getWritingModelLabel() {
 
     function clearAll() {
       openConfirm({ title:'清空所有内容', message:'确定清空？不可恢复。', confirmText:'全部清空' }, () => {
+        resetCharacterDraftReviewForBookChange();
+        resetRelationshipGraphState();
         novel.value = {title:'',theme:'',synopsis:'',worldView:'',negativePrompt:'',isAdultMode:false,outline:''};
+        storyBible.value = null;
+        const clearingBook = books.value.find(book => book && book.id === currentBookId.value);
+        if (clearingBook) delete clearingBook.storyBible;
         chapters.value = []; structuredCharacters.value = [];
         currentChapterIndex.value = -1;
         chapterIndexDrafts.value = []; foreshadowMatrix.value = []; lastRemovedDarklinePlan.value = null;
@@ -22796,6 +25905,13 @@ function getWritingModelLabel() {
       }, action => performExportBookJson(action === 'content' ? 'content' : 'complete')));
     }
 
+    // 书名与章节名同样可能来自旧 AI 结果或损坏导入；导出前移除明确的 CoT 载体，避免标题泄漏思考内容。
+    function cleanBookExportTitle(value, fallback = '未命名') {
+      const extracted = extractResponseReasoningBlocks(String(value || ''));
+      const cleaned = stripThinkingTagResidue(stripSnowwingCotTagResidue(extracted.body || '')).replace(/\s+/g, ' ').trim();
+      return cleaned || fallback;
+    }
+
     // 世界观不应包含模型推演标签；只移除明确的思维链载体，保留用户写入的世界设定正文。
     function cleanBookExportWorldView(value) {
       const extracted = extractResponseReasoningBlocks(String(value || ''));
@@ -22805,7 +25921,7 @@ function getWritingModelLabel() {
     // 每章仅保留标题与已净化正文，不继承章节 id、分支、摘要、版本、CoT、原生思考或工具时间线。
     function buildCleanBookExportChapters() {
       return (chapters.value || []).map((chapter, index) => ({
-        title: String(chapter?.title || ('第' + (index + 1) + '章')).trim() || ('第' + (index + 1) + '章'),
+        title: cleanBookExportTitle(chapter?.title, '第' + (index + 1) + '章'),
         content: cleanNarrativeChapterContent(chapter)
       }));
     }
@@ -22815,7 +25931,7 @@ function getWritingModelLabel() {
       await saveDataNow('导出前立即保存');
       try {
         const isContentOnly = exportMode === 'content';
-        const title = String(novel.value.title || '未命名书稿').trim() || '未命名书稿';
+        const title = cleanBookExportTitle(novel.value.title, '未命名书稿');
         const data = {
           _type: 'moyun_clean_book_export',
           _exportVersion: 7,
@@ -22997,6 +26113,7 @@ function getWritingModelLabel() {
         const selected = source.books.find(b => b && b.id === source.currentBookId) || source.books[0] || {};
         return Object.assign({}, selected, {
           novel: selected.novel || source.novel || {},
+          storyBible: selected.storyBible || source.storyBible,
           chapters: selected.chapters || source.chapters || [],
           characters: selected.characters || source.characters || [],
           branchList: selected.branchList || source.branchList,
@@ -23146,6 +26263,7 @@ function getWritingModelLabel() {
           loadBook(importedBookId);
 
           if (bookData.novel) novel.value = Object.assign({ title: importTitle, theme: '', synopsis: '', worldView: '', negativePrompt: '', isAdultMode: false, outline: '' }, bookData.novel);
+          storyBible.value = bookData.storyBible ? normalizeStoryBible(bookData.storyBible) : storyBible.value;
           if (Array.isArray(bookData.chapters)) {
             chapters.value = bookData.chapters
               .filter(c => c && typeof c === 'object')
@@ -23173,7 +26291,10 @@ function getWritingModelLabel() {
           if (bookData.dialogueTypes) dialogueTypes.value = bookData.dialogueTypes;
           if (bookData.imageProfiles?.length) imageProfiles.value = bookData.imageProfiles;
           if (bookData.activeProfileId) activeProfileId.value = bookData.activeProfileId;
+          selectedWorkbenchCharacterId.value = '';
+          resetCharacterStateDraft();
           repairDanglingCharacterReferences();
+          repairStoryBibleReferences();
           if (!imageProfiles.value.some(profile => profile && profile.id === activeProfileId.value)) {
             activeProfileId.value = imageProfiles.value[0]?.id || '';
           }
@@ -23359,6 +26480,8 @@ function getWritingModelLabel() {
     const reviewKeys = ['public', 'veteran', 'writer'];
     const reviews = ref({ public: '', veteran: '', writer: '' });
     const reviewStatus = ref({ public: 'idle', veteran: 'idle', writer: 'idle' });
+    let _bookReviewRunSequence = 0;
+    let _activeBookReviewRun = null;
     const reviewPersonas = ref({
       public: {
         name: '吃瓜群众',
@@ -23374,12 +26497,54 @@ function getWritingModelLabel() {
       }
     });
 
+    function isBookReviewRunCurrent(run) {
+      return !!(run
+        && _activeBookReviewRun === run
+        && run.id === _bookReviewRunSequence
+        && !run.controller.signal.aborted
+        && String(run.sourceBookId || '') === String(currentBookId.value || ''));
+    }
+
+    function cancelBookReviewRun(reason = 'manualAbort', options = {}) {
+      const run = _activeBookReviewRun;
+      if (run) {
+        _activeBookReviewRun = null;
+        try { run.controller.abort(new DOMException('书评任务已停止：' + reason, 'AbortError')); } catch { run.controller.abort(); }
+      }
+      if (options.resetView) {
+        reviews.value = { public:'', veteran:'', writer:'' };
+        reviewStatus.value = { public:'idle', veteran:'idle', writer:'idle' };
+        showReviewModal.value = false;
+      }
+      if (options.resetView || run) isReviewing.value = false;
+      return !!run;
+    }
+
+    function finishBookReviewRequest(run, key) {
+      if (!isBookReviewRunCurrent(run)) return;
+      run.pending.delete(key);
+      if (run.pending.size > 0) return;
+      _activeBookReviewRun = null;
+      isReviewing.value = false;
+    }
+
     function startBookReview() {
+      if (_activeBookReviewRun || isReviewing.value) {
+        showToast('书评正在生成，请等待当前评审完成', 'info');
+        return false;
+      }
       const request = getModuleRequestConfig('review');
       if (!request.ok) { showToast(request.reason || '请配置审校 API', 'error'); return; }
-      const url = request.url;
       if (chapters.value.length === 0) { showToast('请先写点内容', 'error'); return; }
 
+      const controller = new AbortController();
+      const run = {
+        id: ++_bookReviewRunSequence,
+        sourceBookId: String(currentBookId.value || ''),
+        controller,
+        pending: new Set(reviewKeys)
+      };
+      _activeBookReviewRun = run;
       isReviewing.value = true;
       reviews.value = { public: '', veteran: '', writer: '' };
       reviewStatus.value = { public: 'loading', veteran: 'loading', writer: 'loading' };
@@ -23404,30 +26569,20 @@ function getWritingModelLabel() {
         if (modReview) sysPrompt += '\n\nMOD书评规则：\n' + modReview;
         sysPrompt = applyModTextHooks('buildReviewPrompt', sysPrompt, { novel: novel.value, chapters: vc, reviewer: key });
 
-        fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({
-            model: request.model,
-            messages: buildNsfwMessages(fullContent + '\n\n' + sysPrompt),
-            stream: false
-          })
-        })
-        .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-        .then(d => {
-          reviews.value[key] = cleanAIResponse(extractAiTextFromResponse(d));
+        fetchAdapterCompletion(request, buildNsfwMessages(fullContent + '\n\n' + sysPrompt), { stream:false, omitTemperature:true, signal:controller.signal })
+        .then(result => {
+          if (!isBookReviewRunCurrent(run)) return;
+          reviews.value[key] = getAdapterCompletionText(result);
           reviewStatus.value[key] = 'done';
         })
         .catch(e => {
-          reviews.value[key] = '点评失败: ' + e.message;
+          if (!isBookReviewRunCurrent(run) || e?.name === 'AbortError') return;
+          reviews.value[key] = '点评失败: ' + sanitizeApiErrorDetail(e.message || e);
           reviewStatus.value[key] = 'error';
         })
-        .finally(() => {
-          // 检查是否所有人格都完成了
-          const allDone = reviewKeys.every(k => reviewStatus.value[k] !== 'loading');
-          if (allDone) isReviewing.value = false;
-        });
+        .finally(() => finishBookReviewRequest(run, key));
       }
+      return true;
     }
 
 
@@ -23475,16 +26630,17 @@ function getWritingModelLabel() {
     }
 
     function executeAiEdit() {
+      if (isAiEditing.value) { showToast('AI 编辑正在生成，请等待当前请求完成', 'info'); return; }
       const selected = aiEditParagraphs.value.filter(p => p.selected);
       if (selected.length === 0) { showToast('请至少选一个段落', 'error'); return; }
       const request = getModuleRequestConfig('writing');
       if (!request.ok) { showToast(request.reason || '请配置正文生成 API', 'error'); return; }
-      const url = request.url;
-
-      _aiEditOriginalText = selected.map(p => p.text).join('\n\n');
-      isAiEditing.value = true;
 
       const ch = visibleChapters.value[aiEditChapterIdx.value];
+      const run = beginBookScopedAiRun('ai-edit:' + String(ch?.id || aiEditChapterIdx.value));
+      if (!run) return;
+      _aiEditOriginalText = selected.map(p => p.text).join('\n\n');
+      isAiEditing.value = true;
       let prompt = '你是小说编辑。请根据作者的修改建议，精修以下段落。\n\n';
       prompt += '小说: ' + (novel.value.title||'') + '\n';
       prompt += '角色:\n' + charactersPromptString.value + '\n\n';
@@ -23497,14 +26653,10 @@ function getWritingModelLabel() {
       }
       prompt += '要求: 只输出修改后的段落内容，保持原风格，不加说明。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey},
-        body: JSON.stringify({model: request.model, messages: buildNsfwMessages(prompt), stream:false})
-      })
-      .then(r => { if(!r.ok) throw new Error('API '+r.status); return r.json(); })
-      .then(d => {
-        _aiEditNewText = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || visibleChapters.value[aiEditChapterIdx.value]?.id !== ch?.id) return;
+        _aiEditNewText = getAdapterCompletionText(result);
         // 生成diff
         if (typeof diff_match_patch !== 'undefined') {
           const dmp = new diff_match_patch();
@@ -23517,8 +26669,8 @@ function getWritingModelLabel() {
         aiEditPhase.value = 'diff';
         showToast('AI修改完成，请审阅', 'success');
       })
-      .catch(e => showToast('AI编辑失败: '+e.message, 'error'))
-      .finally(() => { isAiEditing.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('AI编辑失败: '+sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isAiEditing.value = false; });
     }
 
     function acceptAiEdit() {
@@ -23557,9 +26709,11 @@ function getWritingModelLabel() {
     function aiRewriteTitle(idx) {
       const ch = visibleChapters.value[idx];
       if (!ch) return;
+      if (rewritingTitleIdx.value >= 0) { showToast('章节标题正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('writing', '正文生成 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('chapter-title:' + String(ch.id || idx));
+      if (!run) return;
       rewritingTitleIdx.value = idx;
 
       let prompt = '你是章节标题专家。根据以下信息重新生成一个有意境的标题。\n\n';
@@ -23571,18 +26725,15 @@ function getWritingModelLabel() {
       prompt += '正文前200字: ' + cleanContent.substring(0,200) + '\n\n';
       prompt += '要求：只输出新标题（不含"第X章"），有意境画面感，避免直白。不加引号和说明。';
 
-      fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
-        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt),stream:false})
-      })
-      .then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
-      .then(d=>{
-        let title = normalizeManualChapterTitle(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result=>{
+        if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
+        const title = normalizeManualChapterTitle(getAdapterCompletionText(result));
         if (title) { const old = getDisplayChapterTitle(ch, idx); applyChapterTitleChange(ch, idx, title, 'aiRewriteTitle'); saveData(); showToast(old+' → '+title, 'success'); }
         else showToast('AI返回为空', 'error');
       })
-      .catch(e=>showToast('失败: '+e.message,'error'))
-      .finally(()=>{rewritingTitleIdx.value=-1});
+      .catch(e=>{ if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: '+sanitizeApiErrorDetail(e.message || e),'error'); })
+      .finally(()=>{finishBookScopedAiRun(run);rewritingTitleIdx.value=-1});
     }
 	
 	/* ═══ 每章书评系统（旧版能力整合） ═══ */
@@ -23742,9 +26893,10 @@ function getWritingModelLabel() {
       if (!options.force && getParagraphCommentCount(ch, paragraphIndex, paragraphText) > 0) return;
       const request = requireModuleRequest('comments', '评论 API');
       if (!request) return;
-      const url = request.url;
       const runKey = getParagraphGeneratingKey(ch, paragraphIndex, paragraphText);
       if (paragraphCommentGenerating.value[runKey]) return;
+      const run = beginBookScopedAiRun('paragraph-comment:' + runKey);
+      if (!run) return;
       paragraphCommentGenerating.value[runKey] = true;
       try {
         const count = Math.max(1, Math.min(20, Number(getParagraphCommentSetting('commentsPerParagraph', 6)) || 6));
@@ -23754,22 +26906,19 @@ function getWritingModelLabel() {
           + '要求：像真实读者，短促自然，可吐槽、玩梗、分析伏笔、共情角色；不要写长篇书评，不要剧透段落之外的信息；只输出JSON数组。\n'
           + '每个对象字段：username, content, location, likes, time。\n'
           + '书名：' + (novel.value.title || '') + '\n章节：第' + (chapterIndex + 1) + '章 ' + (ch.title || '') + '\n口吻：' + tone + '\n段落：\n' + cleanParagraphText;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'comments' }), stream: false, temperature: 0.85 })
-        });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const data = await resp.json();
-        let raw = cleanAIResponse(extractAiTextFromResponse(data));
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'comments' }), { stream:false, temperature:0.85, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
+        let raw = getAdapterCompletionText(result);
         let parsed = [];
         try { const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0]; parsed = JSON.parse(raw); }
         catch { parsed = raw.split('\n').map(line => line.replace(/^\d+[\.、]\s*/, '').trim()).filter(Boolean); }
         const comments = (Array.isArray(parsed) ? parsed : []).slice(0, count).map(item => normalizeParagraphCommentPayload(item));
         setParagraphComments(ch, paragraphIndex, paragraphText, comments.length ? comments : [normalizeParagraphCommentPayload(null, '这一段值得细品。')]);
       } catch (e) {
-        showToast('段评生成失败：' + (e.message || e), 'error');
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
+        showToast('段评生成失败：' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         delete paragraphCommentGenerating.value[runKey];
       }
     }
@@ -23784,29 +26933,39 @@ function getWritingModelLabel() {
     // 中文注释：批量补齐或重生成近期章节的段评。
     async function regenerateAllParagraphComments(options = {}) {
       if (!isParagraphCommentsEnabled()) { showToast('段评MOD未开启', 'error'); return; }
+      const run = beginBookScopedAiRun('paragraph-comment-backfill');
+      if (!run) { showToast('段评批量补齐正在运行', 'info'); return; }
       const maxChapters = Math.max(1, Math.min(50, Number(options.maxChapters || getParagraphCommentSetting('maxChaptersPerBackfill', 5)) || 5));
       const maxParagraphs = Math.max(1, Math.min(80, Number(options.maxParagraphsPerChapter || getParagraphCommentSetting('maxParagraphsPerRun', 12)) || 12));
       let generated = 0;
-      for (let chapterIndex = Math.max(0, chapters.value.length - maxChapters); chapterIndex < chapters.value.length; chapterIndex++) {
-        const ch = chapters.value[chapterIndex];
-        const paras = getChapterParagraphs(ch, chapterIndex).filter(p => p.text).slice(0, maxParagraphs);
-        for (let paragraphIndex = 0; paragraphIndex < paras.length; paragraphIndex++) {
-          const para = paras[paragraphIndex];
-          if (options.force || getParagraphCommentCount(ch, paragraphIndex, para.text) === 0) {
-            await generateParagraphCommentsFor(chapterIndex, paragraphIndex, para.text, { force: !!options.force });
-            generated++;
+      try {
+        for (let chapterIndex = Math.max(0, chapters.value.length - maxChapters); chapterIndex < chapters.value.length; chapterIndex++) {
+          if (!isBookScopedAiRunCurrent(run)) return;
+          const ch = chapters.value[chapterIndex];
+          const paras = getChapterParagraphs(ch, chapterIndex).filter(p => p.text).slice(0, maxParagraphs);
+          for (let paragraphIndex = 0; paragraphIndex < paras.length; paragraphIndex++) {
+            if (!isBookScopedAiRunCurrent(run)) return;
+            const para = paras[paragraphIndex];
+            if (options.force || getParagraphCommentCount(ch, paragraphIndex, para.text) === 0) {
+              await generateParagraphCommentsFor(chapterIndex, paragraphIndex, para.text, { force: !!options.force });
+              generated++;
+            }
           }
         }
+        if (isBookScopedAiRunCurrent(run)) showToast('段评补齐完成：处理 ' + generated + ' 个段落', 'success');
+      } finally {
+        finishBookScopedAiRun(run);
       }
-      showToast('段评补齐完成：处理 ' + generated + ' 个段落', 'success');
     }
 
     function generateChapterComments(chapterIndex) {
       const request = requireModuleRequest('comments', '评论 API');
       if (!request) return;
-      const url = request.url;
       const ch = chapters.value[chapterIndex];
       if (!ch) return;
+      if (ch.isGeneratingComments) return;
+      const run = beginBookScopedAiRun('chapter-comments:' + String(ch.id || chapterIndex));
+      if (!run) return;
       ch.isGeneratingComments = true;
       let fullContent = '';
       const vc = visibleChapters.value;
@@ -23818,14 +26977,10 @@ function getWritingModelLabel() {
       });
       const commentCount = settings.value.commentCount || 8;
       const prompt = '请阅读以上小说内容，针对最新一章（第' + visibleChapterNo + '章 ' + ch.title + '）生成' + commentCount + '条精彩的读者评论。\n要求：\n1. 评论风格多样化：催更、讨论剧情、吐槽角色、玩梗、分析伏笔\n2. 语气自然，像真实网文读者评论\n3. 约40%的评论包含子评论（楼中楼），模拟读者互动\n4. 返回JSON数组，每个对象包含：username(网文昵称), content(评论), location(中国省份), likes(0-1000), time(如"1分钟前"), replies(可选子评论数组,含同样字段+可选targetUser)\n5. 直接输出纯JSON，禁止代码块标记';
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(fullContent + '\n\n' + prompt, { taskType:'comments' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(fullContent + '\n\n' + prompt, { taskType:'comments' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
+        let raw = getAdapterCompletionText(result);
         if (!raw) { ch.isGeneratingComments = false; return; }
         const locs = ["北京","上海","广东","浙江","江苏","四川","湖北","山东","河南","福建","安徽","辽宁","河北","重庆"];
         const rl = () => locs[Math.floor(Math.random() * locs.length)];
@@ -23839,8 +26994,8 @@ function getWritingModelLabel() {
         }
         saveData();
       })
-      .catch(e => console.error('书评生成失败:', e))
-      .finally(() => { ch.isGeneratingComments = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) console.error('书评生成失败:', sanitizeApiErrorDetail(e.message || e)); })
+      .finally(() => { finishBookScopedAiRun(run); ch.isGeneratingComments = false; });
     }
 
     function regenerateComments(idx) {
@@ -23869,25 +27024,24 @@ function getWritingModelLabel() {
       const ch = visibleChapters.value[idx];
       const cleanContent = cleanNarrativeChapterContent(ch);
       if (!ch || !cleanContent) { showToast('该章无正文', 'error'); return; }
+      if (rewritingSummaryIdx.value >= 0) { showToast('章节摘要正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('summary', '总结 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('chapter-summary:' + String(ch.id || idx));
+      if (!run) return;
       rewritingSummaryIdx.value = idx;
 
       const prompt = '请为以下章节生成精炼的剧情摘要。150-300字。直接输出。' + '\n\n第'+(idx+1)+'章 '+ch.title+'\n\n'+cleanContent;
 
-      fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+request.apiKey},
-        body: JSON.stringify({model: request.model,messages:buildNsfwMessages(prompt, { taskType:'summary' }),stream:false})
-      })
-      .then(r=>{if(!r.ok)throw new Error('API '+r.status);return r.json()})
-      .then(d=>{
-        const summary = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'summary' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result=>{
+        if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
+        const summary = getAdapterCompletionText(result);
         if (summary) { ch.summary = summary; saveData(); showToast('第'+(idx+1)+'章摘要已生成', 'success'); }
         else showToast('AI返回为空', 'error');
       })
-      .catch(e=>showToast('失败: '+e.message,'error'))
-      .finally(()=>{rewritingSummaryIdx.value=-1});
+      .catch(e=>{ if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: '+sanitizeApiErrorDetail(e.message || e),'error'); })
+      .finally(()=>{finishBookScopedAiRun(run);rewritingSummaryIdx.value=-1});
     }
 
 
@@ -23959,14 +27113,17 @@ function getWritingModelLabel() {
     const batchPipelineCount = ref(1);
 
     async function aiBatchGeneratePipeline() {
+      if (isGeneratingPipelineBatch.value || isGeneratingLayer.value) { showToast('流水线正在生成，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('writing', '正文生成 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('pipeline-batch');
+      if (!run) return;
       isGeneratingPipelineBatch.value = true;
       const enabledLayers = promptPipeline.value.filter(l => l.enabled && l.key !== 'style' && l.key !== 'chars');
       let completed = 0;
 
       for (const layer of enabledLayers) {
+        if (!isBookScopedAiRunCurrent(run)) break;
         try {
           showToast('正在生成: ' + layer.label + ' (' + (completed + 1) + '/' + enabledLayers.length + ')', 'info');
           const hint = layer._aiHint || '';
@@ -23974,35 +27131,34 @@ function getWritingModelLabel() {
           if (hint) prompt += '\n用户要求: ' + hint;
           prompt += '\n\n直接输出该层内容，不要解释。';
 
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-            body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-          });
-          if (!resp.ok) throw new Error('API ' + resp.status);
-          const data = await resp.json();
-          const text = cleanAIResponse(extractAiTextFromResponse(data));
+          const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal });
+          if (!isBookScopedAiRunCurrent(run)) break;
+          const text = getAdapterCompletionText(result);
           if (text) {
             layer.content = layer.content ? layer.content + '\n\n' + text : text;
           }
           completed++;
         } catch (e) {
-          showToast(layer.label + ' 生成失败: ' + e.message, 'error');
+          if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) break;
+          showToast(layer.label + ' 生成失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
         }
         // 间隔1秒避免速率限制
         await new Promise(r => setTimeout(r, 1000));
       }
-      saveData();
+      if (isBookScopedAiRunCurrent(run)) saveData();
+      finishBookScopedAiRun(run);
       isGeneratingPipelineBatch.value = false;
-      showToast('批量生成完成 (' + completed + '/' + enabledLayers.length + ')', 'success');
+      if (String(currentBookId.value || '') === run.sourceBookId) showToast('批量生成完成 (' + completed + '/' + enabledLayers.length + ')', 'success');
     }
 
     function aiGenerateLayer(layerIdx) {
+      if (isGeneratingLayer.value || isGeneratingPipelineBatch.value) { showToast('流水线正在生成，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('writing', '正文生成 API');
       if (!request) return;
-      const url = request.url;
       const layer = promptPipeline.value[layerIdx];
       if (!layer) return;
+      const run = beginBookScopedAiRun('pipeline-layer:' + String(layer.key || layerIdx));
+      if (!run) return;
       isGeneratingLayer.value = true;
       generatingLayerIdx.value = layerIdx;
 
@@ -24016,22 +27172,18 @@ function getWritingModelLabel() {
       if (hint) prompt += '用户要求: ' + hint + '\n';
       prompt += '\n直接输出该层的内容，不要解释。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || promptPipeline.value[layerIdx] !== layer) return;
+        const text = getAdapterCompletionText(result);
         if (text) {
           layer.content = layer.content ? layer.content + '\n\n' + text : text;
           saveData();
           showToast(layer.label + ' 已生成', 'success');
         }
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingLayer.value = false; generatingLayerIdx.value = -1; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingLayer.value = false; generatingLayerIdx.value = -1; });
     }
 
     /* ═══════════════════════════════════════════
@@ -24043,23 +27195,21 @@ function getWritingModelLabel() {
     const isGeneratingStyles = ref(false);
 
     function aiGenerateStyles() {
+      if (isGeneratingStyles.value) { showToast('文风正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('suggestion', '文风模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('writing-style-batch');
+      if (!run) return;
       isGeneratingStyles.value = true;
 
       const hint = aiStyleHint.value || '通用小说文风';
       const count = batchStyleCount.value || 3;
       const prompt = '请生成' + count + '个不同的小说写作文风预设。\n\n用户要求方向: ' + hint + '\n小说主题: ' + (novel.value.theme || '暂无') + '\n\n返回JSON数组: [{"name":"文风名称","prompt":"详细的文风规则描述(100字以上)"}]\n不要代码块标记。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const styles = JSON.parse(raw);
         styles.forEach(s => {
@@ -24070,8 +27220,8 @@ function getWritingModelLabel() {
         saveData();
         showToast('已生成 ' + styles.length + ' 个文风', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingStyles.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingStyles.value = false; });
     }
 
     /* ═══════════════════════════════════════════
@@ -24083,9 +27233,11 @@ function getWritingModelLabel() {
     function aiEnhanceStyle(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
+      if (isEnhancingChar.value || activeCharacterDraftRunId) { showToast('角色 AI 正在处理，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('character', '角色模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('character-style:' + String(char.id || ci));
+      if (!run) return;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -24096,22 +27248,18 @@ function getWritingModelLabel() {
         (char.dialogueType ? '对话类型: ' + getDialogueTypePrompt(char.dialogueType) + '\n' : '') +
         '\n请描述该角色的说话风格（包含语气特点、用词习惯、句式偏好、情绪表达方式等，100字左右）。直接输出描述。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'character' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
+        const text = getAdapterCompletionText(result);
         if (text) {
           char.speakingStyle = text;
           saveData();
           showToast('说话风格已生成', 'success');
         }
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
     }
 
     /* ═══ 角色立绘生成 ═══ */
@@ -24136,28 +27284,27 @@ function getWritingModelLabel() {
 	
     // ═══ 新增：封面关键词提取 ═══
     async function generateCoverTags() {
+      if (isGeneratingCoverTags.value || isGeneratingCover.value) { showToast('封面任务正在运行，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('imagetext', '图片文本 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('cover-tags');
+      if (!run) return;
       isGeneratingCoverTags.value = true;
       try {
         const charDescs = structuredCharacters.value.slice(0, 3).map(c => c.name + ': ' + (c.desc || '').substring(0, 100)).join('\n');
         const extractPrompt = imagePromptTemplate.value + '\n\nTitle: ' + (novel.value.title || '') + '\nTheme: ' + (novel.value.theme || '') + '\nWorld: ' + (novel.value.worldView || '').substring(0, 300) + '\nCharacters:\n' + charDescs;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
-        });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const data = await resp.json();
-        let tags = cleanAIResponse(extractAiTextFromResponse(data)).replace(/\n/g, ', ').trim();
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(extractPrompt, { taskType:'imagetext' }), { stream:false, temperature:0.7, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const tags = getAdapterCompletionText(result).replace(/\n/g, ', ').trim();
         if (!tags) throw new Error('未提取到标签');
         coverPromptTags.value = tags;
         saveData();
         showToast('封面关键词已提取，可编辑后再生图', 'success');
       } catch (e) {
-        showToast('提取失败: ' + e.message, 'error');
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
+        showToast('提取失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingCoverTags.value = false;
       }
     }
@@ -24166,6 +27313,9 @@ function getWritingModelLabel() {
     async function generateCoverFromTags() {
       if (!coverPromptTags.value) { showToast('请先提取或编辑封面关键词', 'error'); return; }
       if (!imageGenKey.value) { showToast('请配置生图密钥', 'error'); return; }
+      if (isGeneratingCover.value || isGeneratingCoverTags.value) { showToast('封面任务正在运行，请等待当前任务完成', 'info'); return; }
+      const run = beginBookScopedAiRun('cover-image');
+      if (!run) return;
       isGeneratingCover.value = true;
       try {
         showToast('正在生成封面...', 'info');
@@ -24182,41 +27332,41 @@ function getWritingModelLabel() {
           + '&noise_schedule=' + encodeURIComponent(prof.noise || 'karras');
         let coverBase64 = null;
         try {
-          const resp2 = await fetch(naiUrl, { cache: 'no-store' });
+          const resp2 = await fetch(naiUrl, { cache: 'no-store', signal:run.controller.signal });
           if (resp2.ok) {
             const blob = await resp2.blob();
             coverBase64 = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = fail; r.readAsDataURL(blob); });
           }
         } catch { coverBase64 = naiUrl; }
         if (!coverBase64) coverBase64 = naiUrl;
+        if (!isBookScopedAiRunCurrent(run)) return;
         coverImage.value = coverBase64;
         saveData();
         showToast('封面已生成！', 'success');
       } catch (e) {
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
         showToast('封面生成失败: ' + e.message, 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingCover.value = false;
       }
     }
 
     async function generateCoverImage() {
       if (!imageGenKey.value) { showToast('请先配置生图密钥', 'error'); return; }
+      if (isGeneratingCover.value || isGeneratingCoverTags.value) { showToast('封面任务正在运行，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('imagetext', '图片文本 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('cover-combined');
+      if (!run) return;
       isGeneratingCover.value = true;
       try {
         showToast('正在提取封面关键词...', 'info');
         const charDescs = structuredCharacters.value.slice(0, 3).map(c => c.name + ': ' + (c.desc || '').substring(0, 100)).join('\n');
         const extractPrompt = imagePromptTemplate.value + '\n\nTitle: ' + (novel.value.title || '') + '\nTheme: ' + (novel.value.theme || '') + '\nWorld: ' + (novel.value.worldView || '').substring(0, 300) + '\nCharacters:\n' + charDescs;
-        const resp1 = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
-        });
-        if (!resp1.ok) throw new Error('API ' + resp1.status);
-        const data1 = await resp1.json();
-        let tags = cleanAIResponse(extractAiTextFromResponse(data1)).replace(/\n/g, ', ').trim();
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(extractPrompt, { taskType:'imagetext' }), { stream:false, temperature:0.7, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const tags = getAdapterCompletionText(result).replace(/\n/g, ', ').trim();
         if (!tags) throw new Error('未提取到标签');
 
         showToast('正在生成封面...', 'info');
@@ -24233,7 +27383,7 @@ function getWritingModelLabel() {
           + '&noise_schedule=' + encodeURIComponent(prof.noise || 'karras');
         let coverBase64 = null;
         try {
-          const resp2 = await fetch(naiUrl, { cache: 'no-store' });
+          const resp2 = await fetch(naiUrl, { cache: 'no-store', signal:run.controller.signal });
           if (resp2.ok) {
             const blob = await resp2.blob();
             coverBase64 = await new Promise((ok, fail) => {
@@ -24248,13 +27398,16 @@ function getWritingModelLabel() {
         }
 
         if (!coverBase64) throw new Error('封面生图失败');
+        if (!isBookScopedAiRunCurrent(run)) return;
         coverImage.value = coverBase64;
 
         saveData();
         showToast('封面已生成！', 'success');
       } catch (e) {
-        showToast('封面生成失败: ' + e.message, 'error');
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
+        showToast('封面生成失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingCover.value = false;
       }
     }
@@ -24266,28 +27419,27 @@ function getWritingModelLabel() {
     async function generateCharAvatarTags(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
+      if (isGeneratingAvatarTags.value || isGeneratingAvatar.value) { showToast('角色立绘任务正在运行，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('imagetext', '图片文本 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('avatar-tags:' + String(char.id || ci));
+      if (!run) return;
       isGeneratingAvatarTags.value = true;
       generatingAvatarIdx.value = ci;
       try {
         const extractPrompt = avatarPromptTemplate.value + '\n\nCharacter name: ' + (char.name || 'Unknown') + '\nDescription: ' + (char.desc || '').substring(0, 500) + '\nPersonality: ' + (char.personalityTags || []).join(', ');
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization':'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
-        });
-        if (!resp.ok) throw new Error('API ' + resp.status);
-        const data = await resp.json();
-        let tags = cleanAIResponse(extractAiTextFromResponse(data)).replace(/\n/g, ', ').trim();
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(extractPrompt, { taskType:'imagetext' }), { stream:false, temperature:0.7, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
+        const tags = getAdapterCompletionText(result).replace(/\n/g, ', ').trim();
         if (!tags) throw new Error('未提取到标签');
         char.avatarPrompt = tags;
         saveData();
         showToast('关键词已提取，可编辑后再生图', 'success');
       } catch (e) {
-        showToast('提取失败: ' + e.message, 'error');
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
+        showToast('提取失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingAvatarTags.value = false;
         generatingAvatarIdx.value = -1;
       }
@@ -24298,6 +27450,9 @@ function getWritingModelLabel() {
       const char = structuredCharacters.value[ci];
       if (!char || !char.avatarPrompt) { showToast('请先提取或编辑生图关键词', 'error'); return; }
       if (!imageGenKey.value) { showToast('请配置生图密钥', 'error'); return; }
+      if (isGeneratingAvatar.value || isGeneratingAvatarTags.value) { showToast('角色立绘任务正在运行，请等待当前任务完成', 'info'); return; }
+      const run = beginBookScopedAiRun('avatar-image:' + String(char.id || ci));
+      if (!run) return;
       isGeneratingAvatar.value = true;
       generatingAvatarIdx.value = ci;
       try {
@@ -24315,20 +27470,23 @@ function getWritingModelLabel() {
           + '&noise_schedule=' + encodeURIComponent(prof.noise || 'karras');
         let base64 = null;
         try {
-          const imgResp = await fetch(naiUrl, { cache: 'no-store' });
+          const imgResp = await fetch(naiUrl, { cache: 'no-store', signal:run.controller.signal });
           if (imgResp.ok) {
             const blob = await imgResp.blob();
             base64 = await new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = fail; r.readAsDataURL(blob); });
           }
         } catch { base64 = naiUrl; }
         if (!base64) base64 = naiUrl;
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
         char.avatarBase64 = base64;
         await ImageStore.set('avatar_' + char.id, { base64, tag: tags, timestamp: Date.now() });
         saveData();
         showToast('立绘生成完成！', 'success');
       } catch (e) {
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
         showToast('立绘生成失败: ' + e.message, 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingAvatar.value = false;
         generatingAvatarIdx.value = -1;
       }
@@ -24338,9 +27496,11 @@ function getWritingModelLabel() {
       const char = structuredCharacters.value[ci];
       if (!char) return;
       if (!imageGenKey.value) { showToast('请先在设置中配置生图密钥', 'error'); return; }
+      if (isGeneratingAvatar.value || isGeneratingAvatarTags.value) { showToast('角色立绘任务正在运行，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('imagetext', '图片文本 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('avatar-combined:' + String(char.id || ci));
+      if (!run) return;
 
       isGeneratingAvatar.value = true;
       generatingAvatarIdx.value = ci;
@@ -24350,14 +27510,9 @@ function getWritingModelLabel() {
 
       try {
         showToast('正在提取关键词...', 'info');
-        const resp1 = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-          body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(extractPrompt, { taskType: 'imagetext' }), stream: false, temperature: 0.7 })
-        });
-        if (!resp1.ok) throw new Error('API ' + resp1.status);
-        const data1 = await resp1.json();
-        let tags = cleanAIResponse(extractAiTextFromResponse(data1)).replace(/\n/g, ', ').trim();
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(extractPrompt, { taskType:'imagetext' }), { stream:false, temperature:0.7, signal:run.controller.signal });
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
+        const tags = getAdapterCompletionText(result).replace(/\n/g, ', ').trim();
         if (!tags) throw new Error('未提取到标签');
 
         char.avatarPrompt = tags;
@@ -24379,7 +27534,7 @@ function getWritingModelLabel() {
         let base64 = null;
         // 方案1：直接fetch（需要CORS支持）
         try {
-          const resp2 = await fetch(naiUrl, { cache: 'no-store' });
+          const resp2 = await fetch(naiUrl, { cache: 'no-store', signal:run.controller.signal });
           if (resp2.ok) {
             const blob = await resp2.blob();
             base64 = await new Promise((ok, fail) => {
@@ -24398,6 +27553,7 @@ function getWritingModelLabel() {
         }
 		
         if (!base64) throw new Error('生图失败：无法获取图片');
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
 
         char.avatarBase64 = base64;
         // 也存到图片缓存
@@ -24405,19 +27561,19 @@ function getWritingModelLabel() {
         saveData();
         showToast('立绘生成完成！', 'success');
       } catch (e) {
-        showToast('立绘生成失败: ' + e.message, 'error');
+        if (e?.name === 'AbortError' || !isBookScopedAiRunCurrent(run)) return;
+        showToast('立绘生成失败: ' + sanitizeApiErrorDetail(e.message || e), 'error');
       } finally {
+        finishBookScopedAiRun(run);
         isGeneratingAvatar.value = false;
         generatingAvatarIdx.value = -1;
       }
     }
 
-    function aiGenerateTags(ci) {
+    async function aiGenerateTags(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
-      const request = requireModuleRequest('character', '角色模块 API');
-      if (!request) return;
-      const url = request.url;
+      if (isEnhancingChar.value || activeCharacterDraftRunId || isGeneratingCharacterDraft.value) { showToast('角色 AI 正在处理，请等待当前任务完成', 'info'); return; }
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -24428,35 +27584,23 @@ function getWritingModelLabel() {
         '\n从以下标签中选择最合适的，也可以创建新标签：\n' +
         personalityTagPresets.value.join('、') + '\n\n' +
         '返回JSON数组: ["标签1","标签2",...]\n不要代码块标记。';
-
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
-        const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const tags = JSON.parse(raw);
-        if (!char.personalityTags) char.personalityTags = [];
-        tags.forEach(t => { if (t && !char.personalityTags.includes(t)) char.personalityTags.push(t); });
-        char._sec_tags = true;
-        saveData();
-        showToast('已生成 ' + tags.length + ' 个性格标签', 'success');
-      })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      try {
+        await startCharacterAiDraft({
+          operation:'tags', title:'性格标签 · 字段审阅', targetCharacterId:char.id, prompt, maxTokens:2048,
+          parseResponse:text => ({ personalityTags:parseCharacterAiJsonEnvelope(text, 'array') })
+        });
+      } finally {
+        isEnhancingChar.value = false;
+        enhancingCharIdx.value = -1;
+      }
     }
 
-    function aiGenerateRelationships(ci) {
+    async function aiGenerateRelationships(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
+      if (isEnhancingChar.value || activeCharacterDraftRunId || isGeneratingCharacterDraft.value) { showToast('角色 AI 正在处理，请等待当前任务完成', 'info'); return; }
       const others = structuredCharacters.value.filter(c => c.id !== char.id && c.name);
       if (others.length === 0) { showToast('至少需要2个角色才能生成关系', 'error'); return; }
-      const request = requireModuleRequest('character', '角色模块 API');
-      if (!request) return;
-      const url = request.url;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -24466,39 +27610,25 @@ function getWritingModelLabel() {
         '其他角色:\n' + otherDescs + '\n\n' +
         '小说背景: ' + (novel.value.worldView || '暂无').substring(0, 300) + '\n\n' +
         '返回JSON数组: [{"targetName":"对方角色名","type":"关系类型(如:恋人/对手/师徒)","attitude":"态度描述(20字)"}]\n不要代码块标记。';
-
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
-        const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const rels = JSON.parse(raw);
-        if (!char.relationships) char.relationships = [];
-        rels.forEach(r => {
-          const target = others.find(o => o.name === r.targetName);
-          if (target) {
-            const exists = char.relationships.some(er => er.targetId === target.id);
-            if (!exists) char.relationships.push({ targetId: target.id, type: r.type || '', attitude: r.attitude || '' });
-          }
+      try {
+        await startCharacterAiDraft({
+          operation:'relationships', title:'角色关系 · 字段审阅', targetCharacterId:char.id, prompt, maxTokens:3072,
+          parseResponse:text => ({ relationships:parseCharacterAiJsonEnvelope(text, 'array') })
         });
-        char._sec_rel = true;
-        saveData();
-        showToast('已生成 ' + rels.length + ' 条关系', 'success');
-      })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      } finally {
+        isEnhancingChar.value = false;
+        enhancingCharIdx.value = -1;
+      }
     }
 
     function aiGenerateCharPrompt(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
+      if (isEnhancingChar.value || activeCharacterDraftRunId) { showToast('角色 AI 正在处理，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('character', '角色模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('character-prompt:' + String(char.id || ci));
+      if (!run) return;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -24512,14 +27642,10 @@ function getWritingModelLabel() {
         '- 情感表达方式\n' +
         '- 与其他角色互动时的注意点\n\n直接输出提示词内容，不要解释。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const text = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'character' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
+        const text = getAdapterCompletionText(result);
         if (text) {
           char.characterPrompt = text;
           char._sec_prompt = true;
@@ -24527,16 +27653,18 @@ function getWritingModelLabel() {
           showToast('角色提示词已生成', 'success');
         }
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
     }
 
     function aiGenerateDialogues(ci) {
       const char = structuredCharacters.value[ci];
       if (!char) return;
+      if (isEnhancingChar.value || activeCharacterDraftRunId) { showToast('角色 AI 正在处理，请等待当前任务完成', 'info'); return; }
       const request = requireModuleRequest('character', '角色模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('character-dialogues:' + String(char.id || ci));
+      if (!run) return;
       isEnhancingChar.value = true;
       enhancingCharIdx.value = ci;
 
@@ -24547,14 +27675,10 @@ function getWritingModelLabel() {
         '说话风格: ' + (char.speakingStyle || '暂无') + '\n' +
         '\n返回JSON数组: ["台词1","台词2","台词3","台词4","台词5"]\n不要代码块标记。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt, { taskType: 'character' }), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'character' }), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
+        let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const lines = JSON.parse(raw);
         if (!char.exampleDialogues) char.exampleDialogues = [];
@@ -24562,8 +27686,8 @@ function getWritingModelLabel() {
         saveData();
         showToast('已生成 ' + lines.length + ' 条台词', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isEnhancingChar.value = false; enhancingCharIdx.value = -1; });
     }
 
     /* ═══════════════════════════════════════════
@@ -24573,22 +27697,20 @@ function getWritingModelLabel() {
     const isGeneratingTemplate = ref(false);
 
     function aiGenerateTemplate() {
+      if (isGeneratingTemplate.value) { showToast('世界观模板正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('settings', '设定模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('world-template-single');
+      if (!run) return;
       isGeneratingTemplate.value = true;
 
       const hint = aiTemplateHint.value || '通用奇幻世界';
       const prompt = '你是世界观设计大师。请根据以下方向生成一个完整的小说世界观模板。\n\n方向: ' + hint + '\n\n返回JSON: {"name":"模板名称(4字以内)","icon":"一个emoji","genre":"分类标签(2字)","preview":"一句话简介(30字以内)","content":"完整世界观内容(800字以上，分为多个章节，包含背景、社会结构、力量体系、势力格局等)"}\n不要代码块标记。';
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        const raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        const raw = getAdapterCompletionText(result);
         const tpl = JSON.parse(raw);
         worldTemplates.push({
           name: tpl.name || '自定义模板',
@@ -24602,28 +27724,26 @@ function getWritingModelLabel() {
         saveData();
         showToast('模板「' + tpl.name + '」已生成', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingTemplate.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingTemplate.value = false; });
     }
 
     const batchTemplateCount = ref(3);
 
     function aiGenerateTemplateBatch() {
+      if (isGeneratingTemplate.value) { showToast('世界观模板正在生成，请等待当前请求完成', 'info'); return; }
       const request = requireModuleRequest('settings', '设定模块 API');
       if (!request) return;
-      const url = request.url;
+      const run = beginBookScopedAiRun('world-template-batch');
+      if (!run) return;
       isGeneratingTemplate.value = true;
       const count = batchTemplateCount.value || 3;
       const hint = aiTemplateHint.value || '各种风格的奇幻世界';
       const prompt = '你是世界观设计大师。请生成' + count + '个不同风格的小说世界观模板。\n\n方向: ' + hint + '\n\n返回JSON数组: [{"name":"名称(4字以内)","icon":"一个emoji","genre":"分类(2字)","preview":"一句话简介(30字以内)","content":"完整世界观(每个至少500字，分章节描述背景、社会、力量、势力等)"}]\n\n要求：' + count + '个模板风格各异，不要雷同。不要代码块标记。';
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + request.apiKey },
-        body: JSON.stringify({ model: request.model, messages: buildNsfwMessages(prompt), stream: false })
-      })
-      .then(r => { if (!r.ok) throw new Error('API ' + r.status); return r.json(); })
-      .then(d => {
-        let raw = cleanAIResponse(extractAiTextFromResponse(d));
+      fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:false, omitTemperature:true, signal:run.controller.signal })
+      .then(result => {
+        if (!isBookScopedAiRunCurrent(run)) return;
+        let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const templates = JSON.parse(raw);
         templates.forEach(tpl => {
@@ -24637,8 +27757,8 @@ function getWritingModelLabel() {
         saveData();
         showToast('已生成 ' + templates.length + ' 个模板', 'success');
       })
-      .catch(e => showToast('失败: ' + e.message, 'error'))
-      .finally(() => { isGeneratingTemplate.value = false; });
+      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: ' + sanitizeApiErrorDetail(e.message || e), 'error'); })
+      .finally(() => { finishBookScopedAiRun(run); isGeneratingTemplate.value = false; });
     }
 
     /* ═══════════════════════════════════════════
@@ -24766,6 +27886,7 @@ function getWritingModelLabel() {
       if (!isMobile.value) mobileSidebarOpen.value = false;
       updateMobileBrowserBottomInset();
       nextTick(updateSidebarTabScrollState);
+      if (showRelGraph.value) nextTick(computeRelGraph);
     }
 
     const MOD_COLLAPSE_ANIMATION_MS = 240;
@@ -24878,6 +27999,10 @@ function getWritingModelLabel() {
     }
 
     onUnmounted(() => {
+      stopActiveGeneration('unmount');
+      cancelSuggestionRun('unmount');
+      cancelBookReviewRun('unmount');
+      resetCharacterDraftReviewForBookChange();
       window.removeEventListener('resize', handleResize);
       window.visualViewport?.removeEventListener('resize', handleResize);
       window.visualViewport?.removeEventListener('scroll', handleResize);
@@ -24912,19 +28037,50 @@ function getWritingModelLabel() {
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
       openSettings, clearAll,
+      // ── 创作设定工作台 Story Bible ──
+      storyBible, storyBibleFoundationStats, showStoryBibleWorkbench, storyBibleWorkbenchSection,
+      openStoryBibleWorkbench, closeStoryBibleWorkbench, touchStoryBible,
+      storyBibleEntryTypeOptions, storyBibleEntrySearch, storyBibleEntryFilter, selectedStoryBibleEntryId,
+      storyBibleEntries, filteredStoryBibleEntries, selectedStoryBibleEntry, getStoryBibleEntryTypeLabel,
+      selectStoryBibleEntry, setStoryBibleWorkbenchSection, addStoryBibleEntry, touchSelectedStoryBibleEntry, setStoryBibleEntryStringList,
+      requestDeleteStoryBibleEntry, activeStoryBibleOutlinePack, storyBibleContextPreview,
+      storyBibleEventScopeOptions:STORY_BIBLE_EVENT_SCOPES, storyBibleEventSearch, storyBibleEventScopeFilter, storyBibleEventVisibilityFilter,
+      storyBibleEventSortDirection, selectedStoryBibleEventId, storyBibleEventReturnTargetId,
+      storyBibleEvents, filteredStoryBibleEvents, selectedStoryBibleEvent, storyBibleEventStats,
+      getStoryBibleEventScopeLabel, getStoryBibleEventOrderLabel, getStoryBibleEventAssociationCount,
+      getStoryBibleEventLinkedCharacters, getStoryBibleEventLinkedEntries, getStoryBibleEventLinkedChapters,
+      selectStoryBibleEvent, addStoryBibleEvent, touchSelectedStoryBibleEvent, requestDeleteStoryBibleEvent,
+      isStoryBibleEventAssociationLinked, toggleStoryBibleEventAssociation, formatStoryBibleEventTime,
+      openStoryBibleEventCharacter, openStoryBibleEventEntry, openStoryBibleEventChapter, returnToStoryBibleEvent,
+      setStoryBibleContextTargetOutline, touchStoryBibleContext, getStoryBibleContextItemMode, setStoryBibleContextItemMode,
+      getStoryBibleContextStatusLabel,
+      showDetailedOutlinePinPicker, activeDetailedOutlinePinId, detailedOutlinePinKind, detailedOutlinePinSearch, detailedOutlineReturnTarget,
+      filteredDetailedOutlinePinCandidates, getDetailedOutlineLabel, getDetailedOutlinePinnedItems, getDetailedOutlinePinStats, isDetailedOutlinePinned,
+      openDetailedOutlinePinPicker, closeDetailedOutlinePinPicker, toggleDetailedOutlinePin, openDetailedOutlinePinnedItem,
+      getStoryBibleEntryLinkedOutlines, getSelectedCharacterLinkedOutlines, requestOpenDetailedOutline, returnToDetailedOutlineFromWorkbench,
 
       // ── Part 2: 角色系统 ──
       personalityTagPresets, dialogueTypes, getDialogueTypePrompt, getDialogueTypeObj,
       isGeneratingDialogueType, newDialogueTypeDesc, aiGenerateDialogueType, deleteDialogueType, getDialogueTypeReferenceImpact, repairDanglingCharacterReferences,
       charCustomTag, toggleCharTag, addCustomCharTag,
       addCharacter, removeCharacter, getCharacterReferenceImpact, addDialogueLine, addRelationship,
+      showCharacterWorkbench, characterWorkbenchSearch, characterWorkbenchFilter, selectedWorkbenchCharacterId, characterStateDraft,
+      selectedWorkbenchCharacter, filteredWorkbenchCharacters, characterWorkbenchStats, selectedCharacterWorkbenchStats,
+      openCharacterWorkbench, closeCharacterWorkbench, selectWorkbenchCharacter, addCharacterFromWorkbench,
+      touchSelectedCharacterWorkbench, setSelectedCharacterProfileLevel, setSelectedCharacterTags,
+      addSelectedCharacterStateLog, removeSelectedCharacterStateLog, formatCharacterStateLogTime,
+      getCharacterChapterLabel, getCharacterOutlineLabel, isSelectedCharacterAssociationLinked, toggleSelectedCharacterAssociation,
+      addSelectedCharacterRelationship, removeSelectedCharacterRelationship, getCharacterNameById,
       showAiCharModal, showCharPreview, aiCharDesc, isGeneratingChar, tempChar,
       generateAiCharacter, confirmAiCharacter, requestCloseAiCharacterModal, requestCloseCharPreview, aiCompleteCharacter, charactersPromptString,
       showBatchCharModal, batchCharCount, batchCharPrompt, isGeneratingBatch,
       generateBatchCharacters, requestCloseBatchCharacterModal,
+      showCharacterDraftReview, isGeneratingCharacterDraft, characterDraftReview, characterDraftCounts,
+      requestCloseCharacterDraftReview, stopCharacterDraftGeneration, setCharacterDraftItemDecision, setCharacterDraftTargetDecision,
+      getCharacterDraftKindLabel, getCharacterDraftKindStyle, getCharacterDraftRelationOptions, refreshCharacterDraftRelationItem, applyCharacterAiDraft,
       getCompletionsUrl, okStreamFetch, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
-      pipelineExpanded, promptPipeline, buildFullSystemPrompt, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
+      pipelineExpanded, promptPipeline, buildFullSystemPrompt: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt,
       // ── Part 2: 文风 ──
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
@@ -24932,7 +28088,7 @@ function getWritingModelLabel() {
       presetModules, presets, addPreset, deletePreset, togglePresetModule, getPresetsForModule,
       // ── Part 2: MOD ──
       modPacks, modImportInput, modPrivateData, modUiHostSlots, modAiToolRunning, modWorkflowRunning, modEventRunning, addModPack, addModRule, deleteModPack,
-      exportModPack, importModPack, handleModImport, getModRulesForPosition,
+      exportModPack, importModPack, handleModImport, getModRulesForPosition: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT,
       MOD_API_VERSION, MOD_RULE_POSITIONS, MOD_UI_SLOT_CATALOG, MOD_PERMISSION_CATALOG, MOD_UI_ACTION_CATALOG, MOD_WORKFLOW_STEP_TYPE_CATALOG, MOD_HOSTED_VIEW_COMPONENT_CATALOG, MOD_EVENT_CATALOG, MOD_EVENT_HANDLER_TYPE_CATALOG, MOD_THEME_VARIABLE_CATALOG, normalizeModPack, validateModPack,
       getModDisplayVersion, summarizeModFeatures, summarizeModModules, summarizeModAssets, summarizeModDataSchemas, summarizeModAiTools, summarizeModWorkflows, summarizeModHostedViews, summarizeModEventHandlers, summarizeModUiSlots, formatModDeveloperPreview, formatModPermissions, isSnowwingImportMod, isSnowwingPresetLocked, isSnowwingSkillHostMod, buildSnowwingImportConfirmConfig, isModPermissionEnabled, toggleModPermission,
       getModRuntimeModules, getModRuntimeDataSchemas, getModRuntimeAiTools, getModRuntimeWorkflows, getModRuntimeHostedViews, getModRuntimeActiveContextTools, getModRuntimeSettingsSchema, getInstalledSnowwingSkillPacks, getSnowwingSkillRegistryData, getSnowwingSkillCompatMatrixData, runSnowwingSkillRuntime, getSnowwingSkillRuntimeRuns, getSnowwingSkillLastRuntimeRun,
@@ -25063,7 +28219,7 @@ function getWritingModelLabel() {
 	  
 
       // ── v2.3.0 承载增强：真实上下文 / MOD Hub / 段评 ──
-      showRealContextModal, realContextViewMode, lastChapterContextMessages, lastChapterContextMeta, formatContextCapturedAt, getRealContextRoleStyle, getVisibleChapterContextMessages, copyLastChapterContextJson, copyLastChapterContextText, modFloatingHubOpen, activeModHubModId, getStandaloneModFloatingEntries, getStandaloneModHostedFloatingViews, getModFloatingHubMods, isModHubVisible, getModHubRootStyle, startModHubDrag, toggleModFloatingHub, getActiveModHubMod, openModHubDetail, closeModFloatingHub, getModHubMenuStyle, getModHubFeatureNames, getModHubFloatingEntries, runModUiEntryPrimaryAction, getModHubHostedFloatingViews, getModHubModalViews, getModHubPermissionLabels, MOD_TABLE_EXPORT_VERSION, getModActiveTableRowId, setModActiveTableRow, isModTableRowActive, exportModHostedViewTable, exportModHostedViewTableRow, importModHostedViewTable, addModHostedViewTableRow, updateModHostedViewTableCell, setModHostedViewActiveTableRow, isModHostedViewTableRowActive, deleteModHostedViewTableRow, clearModHostedViewTableRows, activeParagraphComment, getChapterParagraphs, openParagraphComments, closeParagraphComments, getActiveParagraphComments, regenerateActiveParagraphComments, isActiveParagraphCommentGenerating, isParagraphCommentsEnabled, getParagraphCommentCount, isParagraphCommentGenerating, generateParagraphCommentsFor, regenerateAllParagraphComments, getWritingModelLabel, isWritingModelOverridden,
+      showRealContextModal, realContextViewMode, lastChapterContextMessages, lastChapterContextMeta, safeChapterContextMessages, safeChapterContextMeta, openRealContextSafeView, refreshSafeChapterContextPreview, formatContextCapturedAt, getRealContextRoleStyle, getVisibleChapterContextMessages, copyLastChapterContextJson, copyLastChapterContextText, modFloatingHubOpen, activeModHubModId, getStandaloneModFloatingEntries, getStandaloneModHostedFloatingViews, getModFloatingHubMods, isModHubVisible, getModHubRootStyle, startModHubDrag, toggleModFloatingHub, getActiveModHubMod, openModHubDetail, closeModFloatingHub, getModHubMenuStyle, getModHubFeatureNames, getModHubFloatingEntries, runModUiEntryPrimaryAction, getModHubHostedFloatingViews, getModHubModalViews, getModHubPermissionLabels, MOD_TABLE_EXPORT_VERSION, getModActiveTableRowId, setModActiveTableRow, isModTableRowActive, exportModHostedViewTable, exportModHostedViewTableRow, importModHostedViewTable, addModHostedViewTableRow, updateModHostedViewTableCell, setModHostedViewActiveTableRow, isModHostedViewTableRowActive, deleteModHostedViewTableRow, clearModHostedViewTableRows, activeParagraphComment, getChapterParagraphs, openParagraphComments, closeParagraphComments, getActiveParagraphComments, regenerateActiveParagraphComments, isActiveParagraphCommentGenerating, isParagraphCommentsEnabled, getParagraphCommentCount, isParagraphCommentGenerating, generateParagraphCommentsFor, regenerateAllParagraphComments, getWritingModelLabel, isWritingModelOverridden,
       // ── NSFW + 上下文辅助 ──
       getNsfwInjectionMessages, getFullNsfwSystemPrompt, buildOutlineContext,
 	  
@@ -25080,9 +28236,14 @@ function getWritingModelLabel() {
       startFabDrag, startModFloatingDrag, startModFloatingTriggerDrag, getModFloatingHostStyle,
       startDrag, moveChapter, startCharDrag, moveCharacter,
       /* Part 10: 关系图 */
-      showRelGraph, relSvg, relGraphWidth, relGraphHeight,
-      relGraphNodes, relGraphLines, allRelationships, hoverRelNodeId,
-      computeRelGraph, isRelLineActive, isRelNodeActive, getRelNodeRelatedText,
+      showRelGraph, relSvg, relGraphPanel, relGraphViewport, relGraphWidth, relGraphHeight,
+      relGraphNodes, relGraphLines, allRelationships, filteredRelGraphFacts, filteredRelGraphCharacters, hoverRelNodeId,
+      selectedRelGraphNodeId, selectedRelGraphEdgeId, selectedRelGraphNode, selectedRelGraphEdge, selectedRelGraphEvents,
+      relGraphCharacterFilter, relGraphFactionFilter, relGraphTypeFilter, relGraphStatusFilter,
+      relGraphFactionOptions, relGraphTypeOptions, relGraphStatusOptions, relGraphStatusLegend,
+      openRelationshipGraph, closeRelationshipGraph, resetRelationshipGraphFilters, computeRelGraph,
+      selectRelGraphNode, selectRelGraphEdge, handleRelGraphKeydown, selectRelGraphFact, isRelLineActive, isRelLineMuted, isRelNodeActive, getRelNodeRelatedText,
+      getRelStatusColor, getRelGraphCharacterFactions, openRelGraphCharacter, openRelGraphRelationship, openRelGraphEvent,
 
     };
 

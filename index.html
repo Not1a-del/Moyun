@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=d564d41b9f2b">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=ee944d6dc056">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -34,7 +34,7 @@
        :role="toast.type==='error' ? 'alert' : 'status'"
        :aria-live="toast.type==='error' ? 'assertive' : 'polite'"
        aria-atomic="true"
-       class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-lg flex items-center gap-3 max-w-[90vw] whitespace-nowrap font-semibold text-sm"
+       class="moyun-toast fixed top-5 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-lg flex items-center gap-3 max-w-[90vw] font-semibold text-sm"
        :class="{'moyun-toast-sidebar-open': isMobile && mobileSidebarOpen}"
        :style="{
          background: toast.type==='error' ? 'var(--err-soft)' : toast.type==='success' ? 'var(--ok-soft)' : 'var(--bg-card)',
@@ -203,6 +203,18 @@
     <div v-show="currentTab==='settings'" class="absolute inset-0 overflow-y-auto p-4 space-y-5">
 
       <template v-if="currentTab==='settings'">
+      <!-- Phase A：侧栏保留轻入口，深度填写进入主内容区工作台。 -->
+      <button type="button" @click="openStoryBibleWorkbench('project')" data-moyun-entry="story-bible"
+              class="card moyun-entry-card p-3 w-full text-left flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="text-sm font-bold" style="color:var(--tx)">创作设定工作台 Story Bible</div>
+          <div class="text-[10px] mt-0.5" style="color:var(--tx3)">项目承诺、世界总览与结构化资料</div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[10px] font-bold" style="color:var(--accent)">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }}</div>
+          <div class="text-[9px]" style="color:var(--tx4)">展开编辑 ›</div>
+        </div>
+      </button>
       <!-- 书名 -->
       <div>
         <div class="flex items-center justify-between mb-1">
@@ -326,6 +338,17 @@
     <!-- ───── 角色 Tab（增强版） ───── -->
     <div v-show="currentTab==='characters'" class="absolute inset-0 overflow-y-auto flex flex-col">
       <div class="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-2">
+        <button type="button" @click="openCharacterWorkbench()" data-moyun-entry="character-workbench"
+                class="card moyun-entry-card p-3 w-full text-left flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-sm font-bold" style="color:var(--tx)">角色工作台</div>
+            <div class="text-[10px] mt-0.5" style="color:var(--tx3)">索引、角色档案与关系的展开编辑</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] font-bold" style="color:var(--accent)">{{ characterWorkbenchStats.total }} 人</div>
+            <div class="text-[9px]" style="color:var(--tx4)">展开编辑 ›</div>
+          </div>
+        </button>
         <!-- 角色列表 -->
         <div v-for="(char, ci) in structuredCharacters" :key="char.id"
              :id="'character-card-'+ci"
@@ -349,7 +372,7 @@
                     :style="isEnhancingChar?'opacity:.5':''">
               {{ isEnhancingChar && enhancingCharIdx===ci ? '完善中...' : '一键完善' }}
             </button>
-            <button @click.stop="char._expanded=!char._expanded" class="p-2" style="color:var(--tx4);min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center">
+            <button @click.stop="char._expanded=!char._expanded" class="p-2" style="color:var(--tx4);min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center" :aria-expanded="String(!!char._expanded)" :aria-label="(char._expanded?'收起':'展开')+'角色卡：'+(char.name || '未命名角色')" :title="(char._expanded?'收起':'展开')+'角色卡'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" :style="char._expanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </button>
           </div>
@@ -486,7 +509,7 @@
                     <span class="text-[10px] shrink-0" style="color:var(--tx4)">{{ li+1 }}.</span>
                     <input v-model="char.exampleDialogues[li]" @change="saveData()"
                            class="input-field text-xs flex-1" style="height:26px;padding:0 8px">
-                    <button @click="char.exampleDialogues.splice(li,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)">✕</button>
+                    <button @click="char.exampleDialogues.splice(li,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'第'+(li+1)+'条示例台词'" title="删除示例台词">✕</button>
                   </div>
                 </div>
                 <button @click="addDialogueLine(ci)"
@@ -518,7 +541,7 @@
                     </select>
                     <input v-model="rel.type" @change="saveData()" placeholder="关系类型" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:60px">
                     <input v-model="rel.attitude" @change="saveData()" placeholder="态度描述" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:80px">
-                    <button @click="char.relationships.splice(ri,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)">✕</button>
+                    <button @click="char.relationships.splice(ri,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'的第'+(ri+1)+'条关系'" title="删除角色关系">✕</button>
                   </div>
                 </div>
                 <button @click="addRelationship(ci)"
@@ -604,7 +627,7 @@
           <button type="button" @click="showAiCharModal=true;aiCharDesc=''" class="btn-primary text-xs">✨ AI新建</button>
           <button type="button" @click="showBatchCharModal=true;batchCharCount=3;batchCharPrompt=''"
                   class="text-xs rounded-lg font-semibold" style="background:var(--warn);color:white">👥 批量</button>
-          <button type="button" @click="showRelGraph=true;computeRelGraph()" class="text-xs rounded-lg font-semibold" style="background:var(--info-soft);color:var(--info)">🕸 关系图</button>
+          <button type="button" @click="openRelationshipGraph" class="text-xs rounded-lg font-semibold" style="background:var(--info-soft);color:var(--info)">关系图</button>
         </div>
       </div>
     </div>
@@ -654,7 +677,7 @@
             <span class="text-xs font-bold min-w-[20px]" style="color:var(--tx3)">{{ ci+1 }}</span>
             <span class="flex-1 text-sm text-truncate" :style="currentChapterIndex===ci?'font-weight:bold;color:var(--tx)':'color:var(--tx2)'">{{ getDisplayChapterTitle(ch, ci) }}</span>
             <span class="text-[10px]" style="color:var(--tx4)">{{ ch.wordCount||0 }}</span>
-            <button @click.stop="ch.showSummary=!ch.showSummary" class="p-0.5" style="color:var(--tx4)">
+            <button @click.stop="ch.showSummary=!ch.showSummary" class="p-0.5" style="color:var(--tx4)" :aria-expanded="String(!!ch.showSummary)" :aria-label="(ch.showSummary?'收起':'展开')+'第'+(ci+1)+'章摘要'" :title="(ch.showSummary?'收起':'展开')+'章节摘要'">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" :style="ch.showSummary?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </button>
           </div>
@@ -766,8 +789,8 @@
         <span class="text-[11px]" style="color:var(--tx3)">{{ currentMatchIndex+1 }} / {{ searchResults.length }}</span>
         <div class="flex gap-1.5">
           <button @click="replaceCurrentMatch" class="btn-ghost text-[10px] px-2 py-1">替换当前</button>
-          <button @click="prevMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)">▲</button>
-          <button @click="nextMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)">▼</button>
+          <button @click="prevMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="上一个搜索结果" title="上一个搜索结果">▲</button>
+          <button @click="nextMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="下一个搜索结果" title="下一个搜索结果">▼</button>
         </div>
       </div>
       <!-- 结果列表 -->
@@ -822,8 +845,8 @@
               <span class="text-xs font-bold flex-1" style="color:var(--tx)">{{ layer.label }}</span>
               <span class="text-[9px]" style="color:var(--tx4)">{{ (layer.content||'').length }}字</span>
               <div class="flex gap-1 shrink-0" @click.stop>
-                <button @click="movePipelineLayer(li,-1)" :disabled="li===0" class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" :style="li===0?'opacity:.35':''">↑</button>
-                <button @click="movePipelineLayer(li,1)" :disabled="li===promptPipeline.length-1" class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" :style="li===promptPipeline.length-1?'opacity:.35':''">↓</button>
+                <button @click="movePipelineLayer(li,-1)" :disabled="li===0" class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" :style="li===0?'opacity:.35':''" :aria-label="'上移'+layer.label" title="上移">↑</button>
+                <button @click="movePipelineLayer(li,1)" :disabled="li===promptPipeline.length-1" class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" :style="li===promptPipeline.length-1?'opacity:.35':''" :aria-label="'下移'+layer.label" title="下移">↓</button>
               </div>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s"
                    :style="layer._expanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
@@ -987,6 +1010,442 @@
      ════════════════════════════════════════════ -->
 <div class="flex-1 h-full flex flex-col md:flex-row overflow-hidden relative pt-14 md:pt-0" style="background:var(--bg)">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
+
+  <!-- ═════ 创作设定工作台 Story Bible ═════ -->
+  <div v-if="showStoryBibleWorkbench && storyBible"
+       class="moyun-workbench flex flex-col h-full shrink-0 z-10"
+       :style="isMobile ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto' : 'width:100%;position:absolute;inset:0'"
+       style="background:var(--bg-card)">
+    <div class="moyun-wb-header shrink-0">
+      <div class="moyun-wb-heading">
+        <h2 class="moyun-wb-title">创作设定工作台 <span class="text-sm font-semibold" style="color:var(--tx3)">Story Bible</span></h2>
+        <div class="moyun-wb-subtitle">上下文包：按细纲钉选资料，预览并控制正文续写实际使用的资料。</div>
+      </div>
+      <div class="moyun-wb-header-actions">
+        <button v-if="detailedOutlineReturnTarget.outlineId" type="button" @click="returnToDetailedOutlineFromWorkbench" class="moyun-c3-return-btn">← 返回 {{ getDetailedOutlineLabel(detailedOutlineReturnTarget.outlineId) }}</button>
+        <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
+        <span class="moyun-wb-pill">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }} 项项目承诺</span>
+        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="关闭设定工作台" aria-label="关闭设定工作台">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <aside class="hidden md:block w-[190px] shrink-0 overflow-y-auto p-3 space-y-2" style="background:var(--bg-inset);border-right:1px solid var(--bd)">
+        <button type="button" @click="setStoryBibleWorkbenchSection('project')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='project'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">项目总览</button>
+        <button type="button" @click="setStoryBibleWorkbenchSection('world')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='world'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">世界总览</button>
+        <button type="button" @click="setStoryBibleWorkbenchSection('events')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='events'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">事件时间线</button>
+        <button type="button" @click="setStoryBibleWorkbenchSection('entries')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='entries'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">资料条目</button>
+        <button type="button" @click="setStoryBibleWorkbenchSection('context')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='context'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">上下文包</button>
+        <div class="pt-2 px-1 text-[10px] leading-relaxed" style="color:var(--tx4)">可按细纲钉选资料并核对预算。打开此页不会调用模型；已接入的创作请求会使用这里的同源筛选结果。</div>
+      </aside>
+      <section class="flex-1 min-w-0 overflow-y-auto p-4 md:p-6" style="background:var(--bg)">
+        <div class="moyun-story-bible-mobile-nav md:hidden flex gap-2 overflow-x-auto pb-4">
+          <button type="button" @click="setStoryBibleWorkbenchSection('project')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='project'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">项目总览</button>
+          <button type="button" @click="setStoryBibleWorkbenchSection('world')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='world'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">世界总览</button>
+          <button type="button" @click="setStoryBibleWorkbenchSection('events')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='events'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">事件时间线</button>
+          <button type="button" @click="setStoryBibleWorkbenchSection('entries')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='entries'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">资料条目</button>
+          <button type="button" @click="setStoryBibleWorkbenchSection('context')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='context'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">上下文包</button>
+        </div>
+        <div v-if="storyBibleWorkbenchSection==='project'" class="max-w-3xl mx-auto space-y-5">
+          <div class="flex flex-col md:flex-row md:items-end gap-3 justify-between">
+            <div>
+              <div class="text-base font-black" style="color:var(--tx)">项目总览</div>
+              <div class="text-xs mt-1" style="color:var(--tx3)">作品级事实与写作约束。所有字段均可留空，旧书无需重填。</div>
+            </div>
+            <span class="text-[10px] px-2 py-1 rounded-full font-bold" style="background:var(--info-soft);color:var(--info)">更改自动保存</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="card p-3 block"><span class="label">书名</span><input v-model="novel.title" @change="saveData()" class="input-field" placeholder="无题"></label>
+            <label class="card p-3 block"><span class="label">题材</span><input v-model="novel.theme" @change="saveData()" class="input-field" placeholder="修仙、悬疑、赛博朋克..."></label>
+          </div>
+          <label class="card p-3 block"><span class="label">作品简介</span><textarea v-model="novel.synopsis" @change="saveData()" rows="4" class="textarea-field" placeholder="故事概要..."></textarea></label>
+          <label class="card p-3 block"><span class="label">一句话前提</span><textarea v-model="storyBible.project.premise" @change="touchStoryBible" rows="2" class="textarea-field" placeholder="谁在什么困境下，想得到什么？"></textarea></label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="card p-3 block"><span class="label">核心冲突</span><textarea v-model="storyBible.project.coreConflict" @change="touchStoryBible" rows="4" class="textarea-field" placeholder="阻碍主线的外部压力与代价..."></textarea></label>
+            <label class="card p-3 block"><span class="label">主题问题</span><textarea v-model="storyBible.project.themeQuestion" @change="touchStoryBible" rows="4" class="textarea-field" placeholder="作品持续追问的问题..."></textarea></label>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="card p-3 block"><span class="label">语气与氛围</span><textarea v-model="storyBible.project.toneNotes" @change="touchStoryBible" rows="3" class="textarea-field" placeholder="叙事温度、节奏、审美取向..."></textarea></label>
+            <label class="card p-3 block"><span class="label">叙事约束</span><textarea v-model="storyBible.project.narrativeRules" @change="touchStoryBible" rows="3" class="textarea-field" placeholder="视角、时态、信息可见性等..."></textarea></label>
+          </div>
+        </div>
+
+        <div v-else-if="storyBibleWorkbenchSection==='world'" class="max-w-3xl mx-auto space-y-4">
+          <div>
+            <div class="text-base font-black" style="color:var(--tx)">世界总览</div>
+            <div class="text-xs mt-1" style="color:var(--tx3)">这是现有 <code>novel.worldView</code> 的原字段编辑器。它不会被结构化内容自动覆盖，正文请求仍按现有逻辑读取它。</div>
+          </div>
+          <div class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:var(--info-soft);border:1px solid color-mix(in srgb,var(--info) 24%,transparent);color:var(--tx2)">世界总览仍是作者原文的兼容入口。结构化资料请在“资料条目”维护；它们不会反向改写这里。正文续写、AI 建议、全书大纲和细纲生成均已接入统一上下文包。</div>
+          <label class="card p-3 block"><span class="label">世界观（兼容总览）</span><textarea v-model="novel.worldView" @change="saveData()" rows="18" class="textarea-field" placeholder="时代背景、力量体系、势力关系、主要冲突..."></textarea></label>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">总览字符</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleFoundationStats.worldChars }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">世界条目</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleFoundationStats.entries }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">历史事件</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleFoundationStats.events }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">状态</div><strong class="text-xs" style="color:var(--ok)">兼容中</strong></div>
+          </div>
+        </div>
+
+        <div v-else-if="storyBibleWorkbenchSection==='events'" class="max-w-6xl mx-auto space-y-4" data-story-event-workbench>
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+            <div>
+              <div class="text-base font-black" style="color:var(--tx)">事件时间线</div>
+              <div class="text-xs mt-1" style="color:var(--tx3)">按作者定义的时间与顺序整理世界历史和故事主线；事件不会自动进入创作请求。</div>
+            </div>
+            <button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap" data-story-event-create>＋ 新建事件</button>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2" data-story-event-stats>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">全部事件</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.total }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">世界历史</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.world }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">故事主线</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.story }}</strong></div>
+            <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">读者可见</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.public }}</strong></div>
+          </div>
+
+          <div class="moyun-event-toolbar" data-story-event-toolbar>
+            <label class="sr-only" for="moyun-story-event-search">搜索事件</label>
+            <input id="moyun-story-event-search" v-model="storyBibleEventSearch" class="input-field text-xs" placeholder="搜索标题、时间、起因、结果…" data-story-event-search>
+            <label class="sr-only" for="moyun-story-event-scope">事件范围</label>
+            <select id="moyun-story-event-scope" v-model="storyBibleEventScopeFilter" class="select-field text-xs" data-story-event-scope-filter><option value="all">全部范围</option><option value="world">世界历史</option><option value="story">故事主线</option></select>
+            <label class="sr-only" for="moyun-story-event-visibility">读者可见性</label>
+            <select id="moyun-story-event-visibility" v-model="storyBibleEventVisibilityFilter" class="select-field text-xs" data-story-event-visibility-filter><option value="all">全部可见性</option><option value="public">读者可见</option><option value="private">仅作者可见</option></select>
+            <button type="button" @click="storyBibleEventSortDirection=storyBibleEventSortDirection==='asc'?'desc':'asc'" class="btn-ghost text-xs px-3" :aria-label="storyBibleEventSortDirection==='asc'?'切换为倒序':'切换为正序'" data-story-event-sort>{{ storyBibleEventSortDirection==='asc'?'顺序 ↑':'顺序 ↓' }}</button>
+          </div>
+
+          <div class="moyun-event-layout">
+            <aside class="card p-3 space-y-3 h-fit min-w-0" data-story-event-index>
+              <div class="flex items-center justify-between gap-2"><div class="text-xs font-black" style="color:var(--tx)">纵向时间线</div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ filteredStoryBibleEvents.length }} 项</span></div>
+              <div v-if="filteredStoryBibleEvents.length" class="moyun-event-timeline">
+                <button v-for="event in filteredStoryBibleEvents" :key="event.id" type="button" @click="selectStoryBibleEvent(event.id)" class="moyun-event-node" :data-story-event-id="event.id" :aria-pressed="selectedStoryBibleEventId===event.id">
+                  <span class="moyun-event-node-head"><span class="moyun-event-node-order">{{ getStoryBibleEventOrderLabel(event) }}</span><span class="moyun-event-node-time">{{ event.timeText || '时间待定' }}</span></span>
+                  <span class="moyun-event-node-title">{{ event.title || '未命名事件' }}</span>
+                  <span class="moyun-event-node-meta"><span class="moyun-event-badge">{{ getStoryBibleEventScopeLabel(event.scope) }}</span><span>{{ event.readerVisible?'读者可见':'仅作者' }}</span><span>{{ getStoryBibleEventAssociationCount(event) }} 个关联</span></span>
+                </button>
+              </div>
+              <div v-else class="moyun-event-empty">没有匹配事件。可新建事件，或调整搜索和筛选条件。</div>
+            </aside>
+
+            <section v-if="selectedStoryBibleEvent" class="card p-4 moyun-event-editor" data-story-event-editor>
+              <div class="moyun-event-editor-head">
+                <div class="min-w-0"><div class="text-sm font-black" style="color:var(--tx)">事件档案</div><div class="text-[10px] mt-1" style="color:var(--tx4)">稳定 ID：{{ selectedStoryBibleEvent.id }} · 更新 {{ formatStoryBibleEventTime(selectedStoryBibleEvent.updatedAt) }}</div></div>
+                <button type="button" @click="requestDeleteStoryBibleEvent(selectedStoryBibleEvent.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))" data-story-event-delete>删除事件</button>
+              </div>
+
+              <div class="moyun-event-fields three">
+                <label><span class="label">事件标题</span><input v-model="selectedStoryBibleEvent.title" @change="touchSelectedStoryBibleEvent" class="input-field" placeholder="发生了什么？" data-story-event-title></label>
+                <label><span class="label">人工排序值</span><input v-model.number="selectedStoryBibleEvent.sortOrder" @change="touchSelectedStoryBibleEvent" type="number" step="any" class="input-field" placeholder="可留空" data-story-event-order></label>
+                <label><span class="label">事件范围</span><select v-model="selectedStoryBibleEvent.scope" @change="touchSelectedStoryBibleEvent" class="select-field" data-story-event-scope><option v-for="scope in storyBibleEventScopeOptions" :key="scope.id" :value="scope.id">{{ scope.label }}</option></select></label>
+                <label class="full"><span class="label">时间文本</span><input v-model="selectedStoryBibleEvent.timeText" @change="touchSelectedStoryBibleEvent" class="input-field" placeholder="例如：帝国历 317 年冬 / 故事开始前三天" data-story-event-time></label>
+              </div>
+
+              <div class="moyun-event-fields">
+                <label><span class="label">起因</span><textarea v-model="selectedStoryBibleEvent.cause" @change="touchSelectedStoryBibleEvent" rows="4" class="textarea-field" placeholder="哪些条件促成了这件事？"></textarea></label>
+                <label><span class="label">结果</span><textarea v-model="selectedStoryBibleEvent.result" @change="touchSelectedStoryBibleEvent" rows="4" class="textarea-field" placeholder="事件直接改变了什么？"></textarea></label>
+                <label class="full"><span class="label">对当前剧情的遗留影响</span><textarea v-model="selectedStoryBibleEvent.legacyImpact" @change="touchSelectedStoryBibleEvent" rows="3" class="textarea-field" placeholder="仍在延续的矛盾、代价、误解或机会…"></textarea></label>
+              </div>
+
+              <label class="flex items-center gap-3 min-h-[44px] px-3 rounded-xl cursor-pointer" style="background:var(--bg-inset);border:1px solid var(--bd)"><input v-model="selectedStoryBibleEvent.readerVisible" @change="touchSelectedStoryBibleEvent" type="checkbox" class="w-5 h-5" style="accent-color:var(--accent)" data-story-event-reader-visible><span><strong class="block text-xs" style="color:var(--tx)">读者可见</strong><span class="block text-[10px] mt-0.5" style="color:var(--tx4)">关闭时仅作为作者资料保存。</span></span></label>
+
+              <div class="moyun-event-link-grid">
+                <div>
+                  <div class="label">参与角色</div>
+                  <div class="moyun-event-check-list" data-story-event-character-list><label v-for="character in structuredCharacters" :key="character.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('character',character.id)" @change="toggleStoryBibleEventAssociation('character',character.id)"><span>{{ character.name || '未命名角色' }}</span></label><div v-if="!structuredCharacters.length" class="moyun-event-empty">尚无角色。</div></div>
+                  <div v-if="getStoryBibleEventLinkedCharacters(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="character in getStoryBibleEventLinkedCharacters(selectedStoryBibleEvent)" :key="character.id" type="button" @click="openStoryBibleEventCharacter(character.id)" class="moyun-event-jump">打开 {{ character.name || '未命名角色' }}</button></div>
+                </div>
+                <div>
+                  <div class="label">关联世界资料</div>
+                  <div class="moyun-event-check-list" data-story-event-entry-list><label v-for="entry in storyBibleEntries" :key="entry.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('entry',entry.id)" @change="toggleStoryBibleEventAssociation('entry',entry.id)"><span>{{ entry.name || '未命名条目' }}</span></label><div v-if="!storyBibleEntries.length" class="moyun-event-empty">尚无资料条目。</div></div>
+                  <div v-if="getStoryBibleEventLinkedEntries(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="entry in getStoryBibleEventLinkedEntries(selectedStoryBibleEvent)" :key="entry.id" type="button" @click="openStoryBibleEventEntry(entry.id)" class="moyun-event-jump">打开 {{ entry.name || '未命名条目' }}</button></div>
+                </div>
+                <div>
+                  <div class="label">关联正文章节</div>
+                  <div class="moyun-event-check-list" data-story-event-chapter-list><label v-for="chapter in chapters" :key="chapter.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('chapter',chapter.id)" @change="toggleStoryBibleEventAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!chapters.length" class="moyun-event-empty">尚无章节。</div></div>
+                  <div v-if="getStoryBibleEventLinkedChapters(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="chapter in getStoryBibleEventLinkedChapters(selectedStoryBibleEvent)" :key="chapter.id" type="button" @click="openStoryBibleEventChapter(chapter.id)" class="moyun-event-jump">定位 {{ getCharacterChapterLabel(chapter.id) }}</button></div>
+                </div>
+              </div>
+            </section>
+            <section v-else class="card moyun-event-empty"><div class="text-sm font-bold mb-2" style="color:var(--tx)">先选择或新建一个事件</div><div>筛选结果为空时，已有事件仍会保留；清除筛选即可重新选择。</div><button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 mt-4">＋ 新建事件</button></section>
+          </div>
+        </div>
+
+        <div v-else-if="storyBibleWorkbenchSection==='entries'" class="max-w-6xl mx-auto space-y-4">
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+            <div><div class="text-base font-black" style="color:var(--tx)">资料条目</div><div class="text-xs mt-1" style="color:var(--tx3)">用稳定 ID 关联地点、势力、规则、文化、物件和术语；是否进入已接入请求由上下文策略、目标与预算共同决定。</div></div>
+            <button type="button" @click="addStoryBibleEntry()" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap">＋ 新建条目</button>
+          </div>
+          <div class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:var(--info-soft);border:1px solid color-mix(in srgb,var(--info) 24%,transparent);color:var(--tx2)">条目可关联角色、细纲和其他条目；“上下文包”会据此生成安全预览，并由正文续写、AI 建议、全书大纲和细纲生成按各自目标使用。</div>
+          <div class="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4">
+            <aside class="card p-3 space-y-3 h-fit">
+              <div class="flex items-center justify-between gap-2"><div class="text-xs font-black" style="color:var(--tx)">条目索引</div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleFoundationStats.entries }} 项</span></div>
+              <input v-model="storyBibleEntrySearch" class="input-field text-xs" placeholder="搜索名称、标签、摘要…">
+              <select v-model="storyBibleEntryFilter" class="select-field text-xs w-full"><option value="all">全部类型</option><option v-for="item in storyBibleEntryTypeOptions" :key="item.id" :value="item.id">{{ item.label }}</option></select>
+              <button v-for="entry in filteredStoryBibleEntries" :key="entry.id" type="button" @click="selectStoryBibleEntry(entry.id)" class="w-full text-left p-2.5 rounded-xl" :style="selectedStoryBibleEntryId===entry.id?'background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)':'background:var(--bg-card);border:1px solid var(--bd)'">
+                <div class="flex items-center justify-between gap-2"><div class="text-xs font-bold text-truncate" style="color:var(--tx)">{{ entry.name || '未命名条目' }}</div><span class="text-[9px] shrink-0" style="color:var(--tx4)">{{ getStoryBibleEntryTypeLabel(entry.type) }}</span></div>
+                <div v-if="entry.summary" class="text-[10px] mt-1.5 line-clamp-2" style="color:var(--tx3)">{{ entry.summary }}</div>
+              </button>
+              <div v-if="filteredStoryBibleEntries.length===0" class="text-center py-5 text-[11px] leading-relaxed" style="color:var(--tx4)">没有匹配条目。可新建，或调整筛选条件。</div>
+            </aside>
+            <section v-if="selectedStoryBibleEntry" class="space-y-4 min-w-0">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">条目档案</div><div class="text-xs mt-1" style="color:var(--tx3)">所有关联均使用稳定 ID，改名或调整排序不会断开关系。</div></div><button type="button" @click="requestDeleteStoryBibleEntry(selectedStoryBibleEntry.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))">删除条目</button></div>
+              <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_170px_140px] gap-3">
+                <label class="card p-3 block"><span class="label">名称</span><input v-model="selectedStoryBibleEntry.name" @change="touchSelectedStoryBibleEntry" class="input-field" placeholder="条目名称"></label>
+                <label class="card p-3 block"><span class="label">类型</span><select v-model="selectedStoryBibleEntry.type" @change="touchSelectedStoryBibleEntry" class="select-field"><option v-for="item in storyBibleEntryTypeOptions" :key="item.id" :value="item.id">{{ item.label }}</option></select></label>
+                <label class="card p-3 block"><span class="label">重要度</span><select v-model="selectedStoryBibleEntry.importance" @change="touchSelectedStoryBibleEntry" class="select-field"><option value="core">核心</option><option value="normal">常规</option><option value="minor">次要</option></select></label>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="card p-3 block"><span class="label">别名（用顿号或逗号分隔）</span><input :value="selectedStoryBibleEntry.aliases.join('、')" @input="setStoryBibleEntryStringList(selectedStoryBibleEntry,'aliases',$event.target.value)" class="input-field" placeholder="别称、旧称、外号"></label>
+                <label class="card p-3 block"><span class="label">标签（用顿号或逗号分隔）</span><input :value="selectedStoryBibleEntry.tags.join('、')" @input="setStoryBibleEntryStringList(selectedStoryBibleEntry,'tags',$event.target.value)" class="input-field" placeholder="政治、禁术、主线…"></label>
+              </div>
+              <label class="card p-3 block"><span class="label">摘要</span><textarea v-model="selectedStoryBibleEntry.summary" @change="touchSelectedStoryBibleEntry" rows="4" class="textarea-field" placeholder="一句到几句可快速理解的事实；成为候选后会优先按摘要控制上下文占用。"></textarea></label>
+              <label class="card p-3 block"><span class="label">详情</span><textarea v-model="selectedStoryBibleEntry.details" @change="touchSelectedStoryBibleEntry" rows="7" class="textarea-field" placeholder="设定依据、例外、历史、限制与作者备注…"></textarea></label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="card p-3 block"><span class="label">资料状态</span><select v-model="selectedStoryBibleEntry.status" @change="touchSelectedStoryBibleEntry" class="select-field"><option value="active">已启用</option><option value="draft">草稿</option><option value="archived">归档</option></select></label>
+                <label class="card p-3 block"><span class="label">上下文策略</span><select v-model="selectedStoryBibleEntry.contextPolicy" @change="touchSelectedStoryBibleEntry" class="select-field"><option value="auto">自动候选</option><option value="always">全局规则</option><option value="pinned">策略钉选</option><option value="never">不进入</option></select><div class="text-[10px] mt-2" style="color:var(--tx4)">影响安全预览，以及正文续写、AI 建议、全书大纲和细纲生成的实际注入。</div></label>
+              </div>
+              <div class="card p-3 space-y-4">
+                <div><div class="label mb-1">关联资料条目</div><div class="text-[10px] mb-2" style="color:var(--tx4)">可多选；关联项可成为一跳候选，仍受上下文模式与预算控制。</div><select v-model="selectedStoryBibleEntry.links" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="item in storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id)" :key="item.id" :value="item.id">{{ item.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(item.type) }}</option></select></div>
+                <div><div class="label mb-1">关联角色</div><div class="text-[10px] mb-2" style="color:var(--tx4)">使用现有角色 ID；角色改名或重排不会断开。</div><select v-model="selectedStoryBibleEntry.characterIds" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></div>
+                <div>
+                  <div class="label mb-1">关联细纲</div>
+                  <div class="text-[10px] mb-2" style="color:var(--tx4)">使用稳定细纲 ID；正文续写和 AI 建议按目标章选取，全书大纲不会误读单章关联。</div>
+                  <select v-model="selectedStoryBibleEntry.outlineIds" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ outline.title || '未命名细纲' }}</option></select>
+                  <div v-if="getStoryBibleEntryLinkedOutlines(selectedStoryBibleEntry).length" class="moyun-c3-jump-list">
+                    <button v-for="outline in getStoryBibleEntryLinkedOutlines(selectedStoryBibleEntry)" :key="outline.id" type="button" @click="requestOpenDetailedOutline(outline.id,'storyBible')" class="moyun-c3-jump-chip">打开 {{ getDetailedOutlineLabel(outline.id) }}</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section v-else class="card text-center py-16 px-5"><div class="text-3xl mb-3">◇</div><div class="text-sm font-bold" style="color:var(--tx)">先选择或新建一条资料</div><div class="text-xs mt-2 leading-relaxed" style="color:var(--tx3)">地点、势力、规则、文化、物件和术语都能从同一份档案开始。</div><button type="button" @click="addStoryBibleEntry()" class="btn-primary text-xs px-4 py-2 mt-5">＋ 新建条目</button></section>
+          </div>
+        </div>
+
+        <div v-else class="max-w-6xl mx-auto space-y-4">
+          <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+            <div>
+              <div class="text-base font-black" style="color:var(--tx)">上下文包安全预览</div>
+              <div class="text-xs mt-1" style="color:var(--tx3)">按目标细纲解释哪些作者资料会成为候选、为何入选以及预计占用多少字符。</div>
+            </div>
+            <span class="text-[10px] px-2.5 py-1.5 rounded-full font-bold" style="background:var(--ok-soft);color:var(--ok)">纯本地计算 · 不调用模型</span>
+          </div>
+          <div class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:var(--info-soft);border:1px solid color-mix(in srgb,var(--info) 24%,transparent);color:var(--tx2)">此处只展示书名、世界资料和角色档案的安全摘要，不读取预设、MOD、白鸟内部内容、连接凭据或原始请求。正文续写、AI 建议、全书大纲和细纲生成使用同源的候选、模式与预算结果。</div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <section class="card p-4 space-y-4">
+              <div><div class="text-sm font-black" style="color:var(--tx)">预览目标与预算</div><div class="text-[11px] mt-1" style="color:var(--tx3)">使用细纲稳定 ID；改名或重排不会把钉选串到别章。</div></div>
+              <label class="block"><span class="label">目标细纲</span><select :value="storyBible.context.selectedOutlineId" @change="setStoryBibleContextTargetOutline($event.target.value)" class="select-field w-full"><option value="">全书默认（不指定细纲）</option><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ outline.title || '未命名细纲' }}</option></select></label>
+              <div v-if="chapterOutlines.length===0" class="text-[11px] rounded-xl px-3 py-2" style="background:var(--warn-soft);color:var(--warn)">尚无细纲。可以先配置全书默认钉选；创建细纲后再建立本章追加项。</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl p-3" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="text-[10px]" style="color:var(--tx4)">世界资料预算</div><div class="text-sm font-black mt-1" :style="storyBibleContextPreview.world.overflow?'color:var(--err)':'color:var(--tx)'">{{ storyBibleContextPreview.world.used }} / {{ storyBibleContextPreview.world.budget===null?'不限':storyBibleContextPreview.world.budget }} 字</div></div>
+                <div class="rounded-xl p-3" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="text-[10px]" style="color:var(--tx4)">角色资料预算</div><div class="text-sm font-black mt-1" :style="storyBibleContextPreview.character.overflow?'color:var(--err)':'color:var(--tx)'">{{ storyBibleContextPreview.character.used }} / {{ storyBibleContextPreview.character.budget===null?'不限':storyBibleContextPreview.character.budget }} 字</div></div>
+              </div>
+              <div class="text-[10px] leading-relaxed" style="color:var(--tx4)">预算继承“全局设置 → 上下文”的世界观/角色字符上限。{{ storyBibleContextPreview.limitEnabled ? (storyBibleContextPreview.compactMode ? '当前已启用省 token 模式。' : '当前按普通上限预览。') : '当前已关闭截断上限。' }}</div>
+            </section>
+
+            <section class="card p-4 space-y-4">
+              <div><div class="text-sm font-black" style="color:var(--tx)">全书默认钉选</div><div class="text-[11px] mt-1" style="color:var(--tx3)">适合每章都要关注的资料；与条目的“全局规则”策略分别保存。</div></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="block"><span class="label">资料条目</span><select v-model="storyBible.context.pinnedEntryIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id" :value="entry.id">{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</option></select></label>
+                <label class="block"><span class="label">角色</span><select v-model="storyBible.context.pinnedCharacterIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
+              </div>
+            </section>
+          </div>
+
+          <section v-if="storyBible.context.selectedOutlineId && activeStoryBibleOutlinePack" class="card p-4 space-y-4">
+            <div><div class="text-sm font-black" style="color:var(--tx)">本细纲追加钉选 · {{ storyBibleContextPreview.targetOutline?.title || '未命名细纲' }}</div><div class="text-[11px] mt-1" style="color:var(--tx3)">只保存在当前细纲的上下文包中；切换细纲后使用各自独立的选择。</div></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label class="block"><span class="label">追加资料条目</span><select v-model="activeStoryBibleOutlinePack.pinnedEntryIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id" :value="entry.id">{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</option></select></label>
+              <label class="block"><span class="label">追加角色</span><select v-model="activeStoryBibleOutlinePack.pinnedCharacterIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <section class="space-y-3 min-w-0">
+              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">世界资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">全局规则与手动钉选不会因预算静默消失。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.world.items.length }} 项</span></div>
+              <article v-for="item in storyBibleContextPreview.world.items" :key="item.kind+':'+item.id" class="card p-3 space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div class="min-w-0"><div class="text-xs font-black text-truncate" style="color:var(--tx)">{{ item.name }}</div><div class="flex flex-wrap gap-1 mt-1"><span class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" v-for="source in item.sources" :key="source">{{ source }}</span></div></div>
+                  <select v-if="item.kind==='entry'" :value="getStoryBibleContextItemMode('entry',item.id)" @change="setStoryBibleContextItemMode('entry',item.id,$event.target.value)" class="select-field text-[10px] sm:w-[116px]"><option value="auto">自动</option><option value="summary">摘要</option><option value="details">详情</option><option value="ignore">忽略</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-2 text-[10px]"><span :style="item.status==='overflow'?'color:var(--err)':item.status==='downgraded'?'color:var(--warn)':(item.status==='ignored'||item.status==='excluded-budget')?'color:var(--tx4)':'color:var(--ok)'">{{ getStoryBibleContextStatusLabel(item.status) }}</span><span style="color:var(--tx4)">{{ item.charCount ? item.charCount+' 字' : '未计入' }}<template v-if="item.sourceTruncated"> · 已按现有上限截断</template></span></div>
+                <div v-if="item.safeExcerpt" class="text-[11px] leading-relaxed rounded-xl px-3 py-2" style="background:var(--bg-inset);color:var(--tx3);white-space:pre-wrap">{{ item.safeExcerpt }}</div>
+              </article>
+              <div v-if="storyBibleContextPreview.world.items.length===0" class="card text-center py-8 text-xs" style="color:var(--tx4)">当前没有世界资料候选。</div>
+            </section>
+
+            <section class="space-y-3 min-w-0">
+              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">角色资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">仅使用角色档案白名单字段，不显示角色写作提示词。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.character.items.length }} 项</span></div>
+              <article v-for="item in storyBibleContextPreview.character.items" :key="item.kind+':'+item.id" class="card p-3 space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div class="min-w-0"><div class="text-xs font-black text-truncate" style="color:var(--tx)">{{ item.name }}</div><div class="flex flex-wrap gap-1 mt-1"><span class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" v-for="source in item.sources" :key="source">{{ source }}</span></div></div>
+                  <select :value="getStoryBibleContextItemMode('character',item.id)" @change="setStoryBibleContextItemMode('character',item.id,$event.target.value)" class="select-field text-[10px] sm:w-[116px]"><option value="auto">自动</option><option value="summary">摘要</option><option value="details">详情</option><option value="ignore">忽略</option></select>
+                </div>
+                <div class="flex items-center justify-between gap-2 text-[10px]"><span :style="item.status==='overflow'?'color:var(--err)':item.status==='downgraded'?'color:var(--warn)':(item.status==='ignored'||item.status==='excluded-budget')?'color:var(--tx4)':'color:var(--ok)'">{{ getStoryBibleContextStatusLabel(item.status) }}</span><span style="color:var(--tx4)">{{ item.charCount ? item.charCount+' 字' : '未计入' }}</span></div>
+                <div v-if="item.safeExcerpt" class="text-[11px] leading-relaxed rounded-xl px-3 py-2" style="background:var(--bg-inset);color:var(--tx3);white-space:pre-wrap">{{ item.safeExcerpt }}</div>
+              </article>
+              <div v-if="storyBibleContextPreview.character.items.length===0" class="card text-center py-8 text-xs" style="color:var(--tx4)">当前没有角色资料候选。可在上方钉选角色，或让资料条目关联角色。</div>
+            </section>
+          </div>
+        </div>
+      </section>
+      <aside class="hidden 2xl:block w-[230px] shrink-0 overflow-y-auto p-4" style="background:var(--bg-inset);border-left:1px solid var(--bd)">
+        <div class="text-xs font-black mb-3" style="color:var(--tx)">上下文包检查器</div>
+        <div class="space-y-2 text-xs" style="color:var(--tx2)">
+          <div class="card p-3"><div style="color:var(--tx3)">项目承诺</div><strong>{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }}</strong></div>
+          <div class="card p-3"><div style="color:var(--tx3)">兼容世界观</div><strong>{{ storyBibleFoundationStats.worldChars }} 字</strong></div>
+          <div class="card p-3"><div style="color:var(--tx3)">资料条目</div><strong>{{ storyBibleFoundationStats.entries }} 项</strong></div>
+          <div class="card p-3"><div style="color:var(--tx3)">安全预览</div><strong>{{ storyBibleContextPreview.includedCount }} 纳入 · {{ storyBibleContextPreview.excludedCount }} 未计入</strong></div>
+          <div class="card p-3 leading-relaxed" :style="(storyBibleContextPreview.world.overflow||storyBibleContextPreview.character.overflow)?'color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))':'color:var(--tx3)'">{{ (storyBibleContextPreview.world.overflow||storyBibleContextPreview.character.overflow) ? '存在强制保留项超出预算；不会静默删除，请调整内容或上限。' : '预算内候选会显示来源与实际模式；正文续写、AI 建议、全书大纲和细纲生成使用同源结果。' }}</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ═════ Phase C.1：角色工作台 ═════ -->
+  <div v-if="showCharacterWorkbench" data-moyun-workbench="character"
+       class="moyun-workbench flex flex-col h-full shrink-0 z-10"
+       :style="isMobile ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto' : 'width:100%;position:absolute;inset:0'"
+       style="background:var(--bg-card)">
+    <div class="moyun-wb-header shrink-0">
+      <div class="moyun-wb-heading">
+        <h2 class="moyun-wb-title">角色工作台</h2>
+        <div class="moyun-wb-subtitle">用稳定档案、状态、关系与出场关联维护人物在故事中的变化。</div>
+      </div>
+      <div class="moyun-wb-header-actions">
+        <button v-if="detailedOutlineReturnTarget.outlineId" type="button" @click="returnToDetailedOutlineFromWorkbench" class="moyun-c3-return-btn">← 返回 {{ getDetailedOutlineLabel(detailedOutlineReturnTarget.outlineId) }}</button>
+        <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
+        <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span>
+        <button type="button" @click="openRelationshipGraph" class="btn-ghost text-xs px-3 py-2">关系图</button>
+        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="关闭角色工作台" aria-label="关闭角色工作台">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+      <aside class="moyun-character-index hidden md:flex">
+        <button type="button" @click="addCharacterFromWorkbench" class="btn-primary w-full text-xs py-2.5">＋ 新建角色</button>
+        <label class="sr-only" for="moyun-character-search">搜索角色</label>
+        <input id="moyun-character-search" v-model="characterWorkbenchSearch" class="input-field text-xs" placeholder="搜索角色…">
+        <div class="flex flex-wrap gap-1">
+          <button v-for="item in [{id:'all',label:'全部'},{id:'core',label:'核心'},{id:'pov',label:'POV'},{id:'unfinished',label:'待补'}]" :key="item.id" type="button" @click="characterWorkbenchFilter=item.id" class="text-[10px] px-2 py-1 rounded-md font-bold" :style="characterWorkbenchFilter===item.id?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx3);border:1px solid var(--bd)'">{{ item.label }}</button>
+        </div>
+        <div v-if="filteredWorkbenchCharacters.length===0" class="text-[11px] leading-relaxed py-5 text-center" style="color:var(--tx4)">没有匹配角色。可新建角色，或调整筛选条件。</div>
+        <div class="moyun-character-index-list">
+          <button v-for="character in filteredWorkbenchCharacters" :key="character.id" type="button" @click="selectWorkbenchCharacter(character.id)" class="moyun-character-index-row" :data-character-id="character.id" :aria-pressed="selectedWorkbenchCharacterId===character.id">
+            <span class="moyun-character-avatar"><img v-if="character.avatarBase64" :src="character.avatarBase64" alt=""><span v-else>{{ (character.name||'?')[0] }}</span></span>
+            <span class="min-w-0 flex-1"><span class="moyun-character-index-name">{{ character.name || '未命名' }}</span><span class="moyun-character-index-meta">{{ character.profileLevel==='core'?'核心':character.profileLevel==='sketch'?'速写':'常规' }}<template v-if="character.storyRole"> · {{ character.storyRole }}</template></span><span v-if="character.profile?.currentState" class="moyun-character-index-state">{{ character.profile.currentState }}</span></span>
+          </button>
+        </div>
+      </aside>
+      <section class="moyun-character-main flex-1 min-w-0 overflow-y-auto" style="background:var(--bg)">
+        <div class="moyun-character-mobile-picker md:hidden">
+          <label class="sr-only" for="moyun-character-mobile-select">选择角色</label>
+          <select id="moyun-character-mobile-select" v-if="structuredCharacters.length" v-model="selectedWorkbenchCharacterId" @change="selectWorkbenchCharacter(selectedWorkbenchCharacterId)" class="select-field text-xs min-w-0"><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select>
+          <button type="button" @click="addCharacterFromWorkbench" class="btn-primary text-xs px-3 py-2 whitespace-nowrap">＋ 新建</button>
+        </div>
+        <div v-if="selectedWorkbenchCharacter" class="moyun-character-editor">
+          <div class="moyun-character-editor-head">
+            <div class="min-w-0"><div class="text-base font-black text-truncate" style="color:var(--tx)">{{ selectedWorkbenchCharacter.name || '未命名角色' }}</div><div class="text-xs mt-1" style="color:var(--tx3)">更改自动保存；改名和排序不会改变关系或出场关联。</div></div>
+            <button type="button" @click="currentTab='characters';closeCharacterWorkbench()" class="btn-ghost text-xs px-3 py-2">查看原卡</button>
+          </div>
+          <div class="moyun-character-levels" role="radiogroup" aria-label="角色档案档位" aria-describedby="moyun-character-level-help">
+            <button v-for="level in [{id:'sketch',label:'速写'},{id:'regular',label:'常规'},{id:'core',label:'核心'}]" :key="level.id" type="button" role="radio" :data-character-level="level.id" :aria-checked="selectedWorkbenchCharacter.profileLevel===level.id" @click="setSelectedCharacterProfileLevel(level.id)">{{ level.label }}</button>
+          </div>
+          <div id="moyun-character-level-help" class="moyun-character-level-help">档位只调整显示栏目，不会删除、清空或复制已填写内容。</div>
+
+          <section class="moyun-character-section" data-character-section="profile">
+            <div class="moyun-character-section-head"><div><h3>基本档案与声音</h3><p>速写档也始终保留当前状态和写作约束。</p></div></div>
+            <div class="moyun-character-fields two">
+              <label><span class="label">姓名</span><input v-model="selectedWorkbenchCharacter.name" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="角色名"></label>
+              <label><span class="label">故事职责</span><input v-model="selectedWorkbenchCharacter.storyRole" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="主角、反派、POV..."></label>
+            </div>
+            <label><span class="label">人物简介</span><textarea v-model="selectedWorkbenchCharacter.desc" @change="touchSelectedCharacterWorkbench" rows="4" class="textarea-field" placeholder="性格、外貌、背景..."></textarea></label>
+            <div class="moyun-character-fields two">
+              <label data-character-field="currentState"><span class="label">当前状态</span><textarea v-model="selectedWorkbenchCharacter.profile.currentState" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="当前伤势、立场、情绪、认知阶段..."></textarea></label>
+              <label><span class="label">写作约束</span><textarea v-model="selectedWorkbenchCharacter.characterPrompt" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="写该角色时需要遵守的约束..."></textarea></label>
+            </div>
+            <div v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-fields two">
+              <label><span class="label">说话风格</span><textarea v-model="selectedWorkbenchCharacter.speakingStyle" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="用词、语速、口癖、句型..."></textarea></label>
+              <label><span class="label">人物标签</span><textarea :value="(selectedWorkbenchCharacter.personalityTags||[]).join('、')" @change="setSelectedCharacterTags($event.target.value)" rows="3" class="textarea-field" placeholder="冷静、执着、敏感..."></textarea></label>
+            </div>
+          </section>
+
+          <section v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-section" data-character-section="motivation">
+            <div class="moyun-character-section-head"><div><h3>动机与核心秘密</h3><p>常规档梳理行动逻辑；核心档额外维护秘密。</p></div></div>
+            <div class="moyun-character-fields two">
+              <label><span class="label">公开目标</span><textarea v-model="selectedWorkbenchCharacter.profile.publicGoal" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="角色想得到什么？"></textarea></label>
+              <label><span class="label">真实需求</span><textarea v-model="selectedWorkbenchCharacter.profile.realNeed" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="角色真正缺少或需要面对什么？"></textarea></label>
+              <label><span class="label">恐惧与底线</span><textarea v-model="selectedWorkbenchCharacter.profile.fear" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="最害怕失去什么，绝不做什么？"></textarea></label>
+              <label><span class="label">内在冲突</span><textarea v-model="selectedWorkbenchCharacter.profile.innerConflict" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="欲望与价值之间的拉扯..."></textarea></label>
+              <label v-if="selectedWorkbenchCharacter.profileLevel==='core'" class="full"><span class="label">秘密</span><textarea v-model="selectedWorkbenchCharacter.profile.secret" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="尚未公开的事实或动机..."></textarea></label>
+            </div>
+          </section>
+
+          <section v-if="selectedWorkbenchCharacter.profileLevel==='core'" class="moyun-character-section" data-character-section="state" data-character-field="stateHistory">
+            <div class="moyun-character-section-head"><div><h3>状态变更记录</h3><p>只有点击“记录当前状态”才会新增一条记录，编辑当前状态不会产生碎片日志。</p></div></div>
+            <div class="moyun-character-state-compose">
+              <label class="full"><span class="label">变化原因</span><input v-model="characterStateDraft.reason" class="input-field" placeholder="发生了什么，为什么改变？"></label>
+              <label><span class="label">生效章节</span><select v-model="characterStateDraft.chapterId" class="select-field"><option value="">不关联章节</option><option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">{{ getCharacterChapterLabel(chapter.id) }}</option></select></label>
+              <label><span class="label">生效细纲</span><select v-model="characterStateDraft.outlineId" class="select-field"><option value="">不关联细纲</option><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ getCharacterOutlineLabel(outline.id) }}</option></select></label>
+              <button type="button" @click="addSelectedCharacterStateLog" class="btn-primary">记录当前状态</button>
+            </div>
+            <div v-if="!selectedWorkbenchCharacter.stateLog.length" class="moyun-character-empty">尚无状态记录。</div>
+            <div v-for="(row,si) in selectedWorkbenchCharacter.stateLog" :key="row.id" class="moyun-character-state-row">
+              <div class="moyun-character-row-head"><strong>记录 {{ si+1 }}</strong><span>{{ formatCharacterStateLogTime(row.createdAt) }}</span><button type="button" @click="removeSelectedCharacterStateLog(si)" class="moyun-character-delete" :aria-label="'删除状态记录 ' + (si+1)">×</button></div>
+              <div class="moyun-character-fields two">
+                <label><span class="label">状态</span><textarea v-model="row.state" @change="touchSelectedCharacterWorkbench" rows="2" class="textarea-field"></textarea></label>
+                <label><span class="label">原因</span><textarea v-model="row.reason" @change="touchSelectedCharacterWorkbench" rows="2" class="textarea-field"></textarea></label>
+                <label><span class="label">章节</span><select v-model="row.chapterId" @change="touchSelectedCharacterWorkbench" class="select-field"><option value="">不关联章节</option><option v-for="chapter in chapters" :key="chapter.id" :value="chapter.id">{{ getCharacterChapterLabel(chapter.id) }}</option></select></label>
+                <label><span class="label">细纲</span><select v-model="row.outlineId" @change="touchSelectedCharacterWorkbench" class="select-field"><option value="">不关联细纲</option><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ getCharacterOutlineLabel(outline.id) }}</option></select></label>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-section" data-character-section="relationships">
+            <div class="moyun-character-section-head"><div><h3>角色关系</h3><p>关系始终指向稳定角色 ID；“当前态”沿用原关系描述字段。</p></div><button type="button" @click="addSelectedCharacterRelationship" class="btn-ghost text-xs px-3 py-2">＋ 添加关系</button></div>
+            <div v-if="!selectedWorkbenchCharacter.relationships.length" class="moyun-character-empty">暂无关系。</div>
+            <div v-for="(rel,ri) in selectedWorkbenchCharacter.relationships" :key="rel.id || ri" class="moyun-character-relationship-row" :data-character-relationship-id="rel.id || ''">
+              <div class="moyun-character-row-head"><strong>{{ getCharacterNameById(rel.targetId) }}</strong><button type="button" @click="removeSelectedCharacterRelationship(ri)" class="moyun-character-delete" :aria-label="'删除与' + getCharacterNameById(rel.targetId) + '的关系'">×</button></div>
+              <div class="moyun-character-fields three">
+                <label><span class="label">关联角色</span><select v-model="rel.targetId" @change="touchSelectedCharacterWorkbench" class="select-field"><option value="">选择角色</option><option v-for="other in structuredCharacters.filter(item=>item.id!==selectedWorkbenchCharacter.id)" :key="other.id" :value="other.id">{{ other.name || '未命名' }}</option></select></label>
+                <label><span class="label">关系类型</span><input v-model="rel.type" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="盟友、师徒、对手..."></label>
+                <label data-character-field="relationshipState"><span class="label">当前态</span><input v-model="rel.attitude" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="信任、疏离、试探..."></label>
+                <label class="full" data-character-field="changeReason"><span class="label">变化原因</span><textarea v-model="rel.changeReason" @change="touchSelectedCharacterWorkbench" rows="2" class="textarea-field" placeholder="关系为何处于当前状态？"></textarea></label>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-section" data-character-section="associations">
+            <div class="moyun-character-section-head"><div><h3>章节与细纲关联</h3><p>底层只保存稳定 ID；改名和重排不会改变关联对象。</p></div></div>
+            <div class="moyun-character-association-grid">
+              <div data-character-field="chapterIds"><div class="label">正文章节</div><div class="moyun-character-check-list"><label v-for="chapter in visibleChapters" :key="chapter.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('chapter',chapter.id)" @change="toggleSelectedCharacterAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!visibleChapters.length" class="moyun-character-empty">尚无章节。</div></div></div>
+              <div data-character-field="outlineIds">
+                <div class="label">稳定细纲</div>
+                <div class="moyun-character-check-list"><label v-for="outline in chapterOutlines" :key="outline.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('outline',outline.id)" @change="toggleSelectedCharacterAssociation('outline',outline.id)"><span>{{ getCharacterOutlineLabel(outline.id) }}</span></label><div v-if="!chapterOutlines.length" class="moyun-character-empty">尚无细纲。</div></div>
+                <div v-if="getSelectedCharacterLinkedOutlines().length" class="moyun-c3-jump-list">
+                  <button v-for="outline in getSelectedCharacterLinkedOutlines()" :key="outline.id" type="button" @click="requestOpenDetailedOutline(outline.id,'character')" class="moyun-c3-jump-chip">打开 {{ getDetailedOutlineLabel(outline.id) }}</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <details class="moyun-character-mobile-inspector lg:hidden">
+            <summary>当前角色检查器</summary>
+            <div class="moyun-character-inspector-stats"><span>状态记录<strong>{{ selectedCharacterWorkbenchStats.stateLog }}</strong></span><span>关系<strong>{{ selectedCharacterWorkbenchStats.relations }}</strong></span><span>章节<strong>{{ selectedCharacterWorkbenchStats.chapters }}</strong></span><span>细纲<strong>{{ selectedCharacterWorkbenchStats.outlines }}</strong></span></div>
+            <p :data-invalid="selectedCharacterWorkbenchStats.invalid>0">{{ selectedCharacterWorkbenchStats.invalid ? ('发现 '+selectedCharacterWorkbenchStats.invalid+' 个失效引用，请保存后重试。') : '稳定 ID 引用完整；角色档案继续由统一上下文包按目标与预算使用。' }}</p>
+          </details>
+        </div>
+        <div v-else class="max-w-md mx-auto text-center py-20"><div class="text-4xl mb-4">◌</div><div class="text-base font-bold" style="color:var(--tx)">先选一位角色</div><div class="text-xs mt-2" style="color:var(--tx3)">角色卡数据会保留；也可以从这里直接新建。</div><button type="button" @click="addCharacterFromWorkbench" class="btn-primary text-xs px-4 py-2 mt-5">＋ 新建角色</button></div>
+      </section>
+      <aside class="moyun-character-inspector hidden lg:block">
+        <div class="text-xs font-black mb-3" style="color:var(--tx)">当前角色检查器</div>
+        <template v-if="selectedWorkbenchCharacter">
+          <div class="moyun-character-inspector-stats"><span>状态记录<strong>{{ selectedCharacterWorkbenchStats.stateLog }}</strong></span><span>关系<strong>{{ selectedCharacterWorkbenchStats.relations }}</strong></span><span>章节<strong>{{ selectedCharacterWorkbenchStats.chapters }}</strong></span><span>细纲<strong>{{ selectedCharacterWorkbenchStats.outlines }}</strong></span></div>
+          <div class="moyun-character-inspector-note" :data-invalid="selectedCharacterWorkbenchStats.invalid>0">{{ selectedCharacterWorkbenchStats.invalid ? ('发现 '+selectedCharacterWorkbenchStats.invalid+' 个失效引用。') : '稳定 ID 引用完整。' }}</div>
+        </template>
+        <div class="moyun-character-inspector-note">角色档案由统一上下文包供正文续写、AI 建议、全书大纲和细纲生成按目标与预算使用。</div>
+      </aside>
+    </div>
+  </div>
 
   <!-- ═════ 大纲面板（主内容区） ═════ -->
   <div v-if="showOutlineInMain"
@@ -1398,16 +1857,30 @@
           <div v-if="co.isExpanded" class="px-3 pb-3 space-y-2" style="border-top:1px solid var(--bd)">
             <input v-model="co.title" @change="saveData()" data-story-field="title" placeholder="章节标题" class="input-field text-xs font-bold mt-2">
             <textarea v-model="co.content" @change="saveData()" data-story-field="content" rows="6" placeholder="编辑本章细纲..." class="textarea-field text-[11px]"></textarea>
+            <section class="moyun-do-context-card" :data-outline-context-id="co.id">
+              <div class="moyun-do-context-head">
+                <div class="min-w-0">
+                  <div class="moyun-do-context-title">本章活跃资料</div>
+                  <div class="moyun-do-context-meta">{{ getDetailedOutlinePinStats(co.id).characters }} 人 · {{ getDetailedOutlinePinStats(co.id).entries }} 项世界资料，仅追加到本细纲上下文包</div>
+                </div>
+                <button type="button" @click="openDetailedOutlinePinPicker(co)" class="moyun-do-context-manage">管理活跃资料</button>
+              </div>
+              <div v-if="getDetailedOutlinePinnedItems(co.id).length" class="moyun-do-context-chips">
+                <span v-for="item in getDetailedOutlinePinnedItems(co.id).slice(0,6)" :key="item.kind+':'+item.id" class="moyun-do-context-chip text-truncate">{{ item.kind==='character' ? '人物 · ' : '资料 · ' }}{{ item.name }}</span>
+                <span v-if="getDetailedOutlinePinnedItems(co.id).length>6" class="moyun-do-context-chip">另 {{ getDetailedOutlinePinnedItems(co.id).length-6 }} 项</span>
+              </div>
+              <div v-else class="moyun-do-context-empty">尚未手动钉选；仍会按全书钉选、直接关联、名称命中与预算规则自动组织上下文。</div>
+            </section>
             <!-- 中文注释：单章细纲 AI 工具只改当前卡片，补写会保留原有核心事件，修改会保留未提及内容。 -->
             <div class="p-2 rounded-lg space-y-1.5" style="background:var(--bg-inset);border:1px solid var(--bd)">
               <textarea v-model="co.aiInput" rows="2" placeholder="本章细纲修改/补写要求（例如：加强冲突、补环境、调整结尾钩子）..." class="textarea-field text-[10px]" style="resize:vertical"></textarea>
               <div class="moyun-do-toolbar">
                 <span class="text-[9px]" style="color:var(--tx3)">只作用于第{{ ci+1 }}章，不覆盖其他章节。</span>
                 <div class="flex gap-1.5">
-                  <button @click="aiRewriteChapterOutline(ci,'expand')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx===ci" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx===ci)?'opacity:.5':''">
+                  <button @click="aiRewriteChapterOutline(ci,'expand')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''">
                     {{ outlineAiEditingIdx===ci && outlineAiMode==='expand' ? '补写中...' : 'AI补写本章' }}
                   </button>
-                  <button @click="aiRewriteChapterOutline(ci,'rewrite')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx===ci" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx===ci)?'opacity:.5':''">
+                  <button @click="aiRewriteChapterOutline(ci,'rewrite')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''">
                     {{ outlineAiEditingIdx===ci && outlineAiMode==='rewrite' ? '修改中...' : 'AI修改本章' }}
                   </button>
                 </div>
@@ -1619,8 +2092,8 @@
               <span class="text-xl font-art shrink-0" style="color:var(--tx4)">{{ idx+1 }}</span>
 
               <span class="flex-1 text-base font-bold text-truncate" style="color:var(--tx)">{{ getDisplayChapterTitle(ch, idx) }}</span>
-              <button @click.stop="scrollChapterToEnd(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)" title="滚动到本章底部">回到本章底</button>
-              <button @click.stop="renameChapterTitle(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--accent-soft);color:var(--accent)" title="手动修改章节标题">改名</button>
+              <button @click.stop="scrollChapterToEnd(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)" aria-label="滚动到本章底部" title="滚动到本章底部">回到本章底</button>
+              <button @click.stop="renameChapterTitle(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--accent-soft);color:var(--accent)" aria-label="手动修改章节标题" title="手动修改章节标题">改名</button>
               <!-- 版本导航 -->
               <template v-if="ch.versions&&ch.versions.length>0">
                 <span class="chapter-version-controls" @click.stop>
@@ -1800,7 +2273,7 @@
                   <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前章节内容保存为可切换的历史稿">保存历史稿</button>
                   <button @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-1.5" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
                   <button @click.stop="openAiEdit(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--warn-soft);color:var(--warn)">AI编辑</button>
-                  <button @click.stop="scrollChapterToStart(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)" title="滚动到本章开头">回到本章首</button>
+                  <button @click.stop="scrollChapterToStart(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)" aria-label="滚动到本章开头" title="滚动到本章开头">回到本章首</button>
                   <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)"
                           :style="rewritingSummaryIdx===idx?'opacity:.5':''">{{ rewritingSummaryIdx===idx ? '生成中...' : '生成摘要' }}</button>
 
@@ -1836,7 +2309,7 @@
                   <span>📝 {{ genCharCount }} 字</span>
                   <span v-if="genRate>0">⚡ {{ genRate }} 字/秒</span>
                 </div>
-                <p class="text-[10px]" style="color:var(--tx4)">{{ settings.model }}</p>
+                <p class="text-[10px]" style="color:var(--tx4)">{{ getModelForModule('writing') || '未配置模型' }}</p>
                 <div v-if="genStalled" class="text-xs font-bold mt-2" style="color:var(--warn)">
                   ⚠ 超过15秒未收到数据，可能已断连
                 </div>
@@ -1921,7 +2394,7 @@
       </div><!-- 关闭 space-y-4 flex-1 pb-24 -->
 
       <!-- 底部控制栏（大纲/细纲面板打开时隐藏） -->
-      <div v-show="!novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10" style="padding-bottom:calc(max(var(--moyun-mobile-composer-gap, 16px), env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+      <div v-show="!novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10" style="padding-bottom:calc(max(var(--moyun-mobile-composer-gap, 16px), env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <div class="rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
              style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
           <div class="flex gap-1 items-end w-full">
@@ -1962,7 +2435,7 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap justify-end">
               <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
-              <button @click="realContextViewMode='safe';showRealContextModal=true" class="btn-ghost text-xs py-2 px-3" :title="lastChapterContextMessages.length ? '查看上一轮提笔续写安全上下文' : '暂无提笔续写上下文，请先生成一章'">📄 真实上下文</button>
+              <button @click="openRealContextSafeView" class="btn-ghost text-xs py-2 px-3" title="查看当前准备发送的安全上下文与实际字符数">📄 真实上下文</button>
               <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')" class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
               <button @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
@@ -1980,31 +2453,32 @@
     <div class="px-5 py-4 flex flex-col md:flex-row items-stretch md:items-start justify-between gap-3 shrink-0" style="background:var(--bg-card);border-bottom:1px solid var(--bd)">
       <div class="min-w-0">
         <h3 class="text-lg font-black" style="color:var(--tx)">真实上下文请求</h3>
-        <p class="text-xs mt-1" style="color:var(--tx3)">仅展示安全上下文：隐藏白鸟内置提示词，只保留发送顺序、角色、模型与触发提示词组摘要。</p>
-        <div v-if="lastChapterContextMeta" class="flex flex-wrap gap-2 mt-2 text-[11px]" style="color:var(--tx2)">
-          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">模型：{{ lastChapterContextMeta.model || '未指定' }}</span>
-          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">消息：{{ lastChapterContextMeta.messageCount }}</span>
-          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">总字符：{{ lastChapterContextMeta.totalChars }}</span>
-          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">时间：{{ formatContextCapturedAt(lastChapterContextMeta.capturedAt) }}</span>
+        <p class="text-xs mt-1" style="color:var(--tx3)">显示当前将要发送的消息顺序与实际字符数；系统提示词、白鸟提示词、CoT 与密钥始终隐藏。</p>
+        <div v-if="safeChapterContextMeta" class="flex flex-wrap gap-2 mt-2 text-[11px]" style="color:var(--tx2)">
+          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">模型：{{ safeChapterContextMeta.model || '未指定' }}</span>
+          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">消息：{{ safeChapterContextMeta.messageCount }}</span>
+          <span class="px-2 py-0.5 rounded-full font-black" style="background:rgba(14,165,233,.10);color:#0369a1;border:1px solid rgba(14,165,233,.24)">当前实际字符数：{{ safeChapterContextMeta.totalChars }}</span>
+          <span v-if="lastChapterContextMeta" class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">上次实际发送：{{ lastChapterContextMeta.totalChars }}</span>
+          <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">刷新：{{ formatContextCapturedAt(safeChapterContextMeta.capturedAt) }}</span>
         </div>
       </div>
       <div class="flex items-center gap-2 shrink-0 flex-wrap justify-start md:justify-end">
         <div class="inline-flex p-1 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">
           <button type="button" class="text-xs py-1.5 px-3 rounded-full font-bold" style="background:var(--accent);color:white" aria-pressed="true">安全视图</button>
         </div>
-        <button @click="copyLastChapterContextText" class="btn-ghost text-xs py-2 px-3" :disabled="!lastChapterContextMessages.length" :style="!lastChapterContextMessages.length?'opacity:.45':''">复制文本</button>
-        <button @click="copyLastChapterContextJson" class="btn-ghost text-xs py-2 px-3" :disabled="!lastChapterContextMessages.length" :style="!lastChapterContextMessages.length?'opacity:.45':''">复制JSON</button>
+        <button @click="copyLastChapterContextText" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''">复制文本</button>
+        <button @click="copyLastChapterContextJson" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''">复制JSON</button>
         <button type="button" data-moyun-modal-close @click="showRealContextModal=false" class="moyun-icon-button font-black" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" aria-label="关闭真实上下文" title="关闭">×</button>
       </div>
     </div>
 
     <div class="overflow-y-auto p-4 space-y-3" style="background:var(--bg-inset)">
-      <div v-if="lastChapterContextMessages.length" class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.20);color:var(--tx2)">
-        安全视图已将白鸟内置提示词替换为可读标签；复制内容也会默认使用脱敏版本。
+      <div v-if="safeChapterContextMessages.length" class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.20);color:var(--tx2)">
+        字符数按当前完整消息正文计算；安全视图和复制内容只保留脱敏标签及字符统计，不显示系统提示词、白鸟提示词或 CoT 原文。
       </div>
 
-      <div v-if="!lastChapterContextMessages.length" class="text-center py-14 rounded-2xl" style="background:var(--bg-card);border:1px dashed var(--bd);color:var(--tx3)">
-        暂无记录。点击“提笔续写”发送过一次正文生成请求后，这里会显示上一轮真实上下文。
+      <div v-if="!safeChapterContextMessages.length" class="text-center py-14 rounded-2xl" style="background:var(--bg-card);border:1px dashed var(--bd);color:var(--tx3)">
+        当前上下文尚未构建，请关闭后重试。
       </div>
 
       <details v-for="msg in getVisibleChapterContextMessages()" :key="msg.index" open class="group rounded-2xl overflow-hidden" style="background:var(--bg-card);border:1px solid var(--bd)">
@@ -2012,11 +2486,11 @@
           <div class="flex items-center gap-2 min-w-0">
             <span class="text-[11px] font-black px-2 py-1 rounded-full" :style="getRealContextRoleStyle(msg.role)">F{{ msg.floor }} · {{ msg.role }}</span>
             <span v-if="msg.name" class="text-[11px] px-2 py-1 rounded-full" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ msg.name }}</span>
-            <span v-if="msg.redacted" class="text-[10px] font-black px-2 py-1 rounded-full" style="background:rgba(14,165,233,.10);color:#0369a1;border:1px solid rgba(14,165,233,.22)">白鸟已脱敏</span>
+            <span v-if="msg.redacted" class="text-[10px] font-black px-2 py-1 rounded-full" style="background:rgba(14,165,233,.10);color:#0369a1;border:1px solid rgba(14,165,233,.22)">提示词已脱敏</span>
             <span class="text-xs truncate" style="color:var(--tx2)">messages[{{ msg.index }}]</span>
           </div>
           <div class="flex items-center gap-3 text-[11px] font-bold" style="color:var(--tx3)">
-            <span>{{ msg.displayChars || msg.chars }} / 原 {{ msg.chars }} 字符</span>
+            <span>实际 {{ msg.chars }} 字符</span>
             <span class="group-open:rotate-180 transition-transform">⌄</span>
           </div>
         </summary>
@@ -2028,7 +2502,7 @@
 
 
 <!-- 浮动主题切换按钮（移动端） -->
-<button v-show="!showOutlineInMain && !showDetailedOutlineInMain" @click="toggleTheme" data-moyun-region="theme-fab" class="theme-fab mobile-only">
+<button v-show="!showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" @click="toggleTheme" data-moyun-region="theme-fab" class="theme-fab mobile-only" :aria-label="isDark ? '切换浅色主题' : '切换深色主题'" :title="isDark ? '切换浅色主题' : '切换深色主题'">
   <svg v-if="isDark" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1z"/></svg>
   <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a4.5 4.5 0 01-6.04-6.04A9.06 9.06 0 0012 3z"/></svg>
 </button>
@@ -2188,12 +2662,12 @@
       </div>
       <div v-else-if="getActiveModHubMod()" class="p-3 space-y-3 relative">
         <div class="flex items-start gap-3 px-1 py-1">
-          <button @click="activeModHubModId=''" class="w-9 h-9 rounded-full shrink-0" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">‹</button>
+          <button @click="activeModHubModId=''" class="w-9 h-9 rounded-full shrink-0" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)" aria-label="返回 MOD 列表" title="返回 MOD 列表">‹</button>
           <div class="flex-1 min-w-0">
             <div class="text-base font-bold text-truncate" style="color:var(--tx)">🧩 {{ getActiveModHubMod().name }}</div>
             <div class="text-[11px] mt-0.5" style="color:var(--tx3)">v{{ getActiveModHubMod().version || '1.0.0' }} · {{ getActiveModHubMod().enabled===false ? '已禁用' : '已启用' }}</div>
           </div>
-          <button @click="closeModFloatingHub" class="w-9 h-9 rounded-full shrink-0" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">✕</button>
+          <button @click="closeModFloatingHub" class="w-9 h-9 rounded-full shrink-0" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)" aria-label="关闭 MOD 面板" title="关闭 MOD 面板">✕</button>
         </div>
         <div v-if="getActiveModHubMod().description" class="text-xs leading-relaxed whitespace-pre-wrap p-3 rounded-2xl" style="background:var(--bg-inset);color:var(--tx2)">{{ getActiveModHubMod().description }}</div>
         <div class="flex flex-wrap gap-1.5 px-1">
@@ -2846,7 +3320,7 @@
 <transition name="pop">
   <div v-if="showConfirm" data-moyun-region="modal" data-moyun-modal="confirm" data-moyun-initial-focus="[data-moyun-modal-cancel]"
        :data-moyun-modal-locked="confirmCfg.locked ? 'true' : 'false'" role="dialog" aria-modal="true" :aria-label="confirmCfg.title || '请确认'"
-       class="fixed inset-0 z-[240] flex items-end md:items-center justify-center p-0 md:p-4"
+       class="fixed inset-0 z-[300] flex items-end md:items-center justify-center p-0 md:p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <div data-moyun-modal-panel tabindex="-1" :class="getConfirmModalClass(confirmCfg)" :style="getConfirmModalStyle(confirmCfg)">
       <div class="moyun-confirm-scroll-body">
@@ -3460,6 +3934,157 @@
   </div>
 </transition>
 
+<!-- Phase C.2：角色 AI 字段级草案审阅 -->
+<transition name="pop">
+  <div v-if="showCharacterDraftReview" data-moyun-modal="character-draft-review"
+       data-moyun-initial-focus="[data-character-draft-primary]"
+       :data-moyun-modal-locked="(isGeneratingCharacterDraft || characterDraftReview.status==='applying') ? 'true' : 'false'"
+       data-moyun-locked-message="角色 AI 草案任务进行中，请使用弹窗内的停止按钮。"
+       role="dialog" aria-modal="true" aria-labelledby="moyun-character-draft-title" aria-describedby="moyun-character-draft-summary"
+       class="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-5xl rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden"
+         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
+      <div class="px-4 md:px-5 py-4 flex items-start justify-between gap-3 shrink-0" style="border-bottom:1px solid var(--bd)">
+        <div class="min-w-0">
+          <h3 id="moyun-character-draft-title" class="text-base font-black" style="color:var(--tx)">{{ characterDraftReview.title || '角色 AI 草案审阅' }}</h3>
+          <div id="moyun-character-draft-summary" class="text-[11px] mt-1" style="color:var(--tx3)">
+            <template v-if="characterDraftReview.status==='review'">{{ characterDraftCounts.targets }} 个角色 · {{ characterDraftCounts.accepted }}/{{ characterDraftCounts.total }} 项待应用 · {{ characterDraftCounts.blocked }} 项需处理</template>
+            <template v-else-if="characterDraftReview.status==='generating'">AI 只生成候选，确认前不会写入角色。</template>
+            <template v-else>{{ characterDraftReview.message || '本草案尚未写入角色数据。' }}</template>
+          </div>
+        </div>
+        <button type="button" data-moyun-modal-close data-character-draft-primary @click="requestCloseCharacterDraftReview"
+                :disabled="isGeneratingCharacterDraft || characterDraftReview.status==='applying'"
+                class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭角色 AI 草案" title="关闭">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-5" aria-live="polite">
+        <div v-if="characterDraftReview.status==='generating'" class="min-h-[260px] flex flex-col items-center justify-center text-center gap-4">
+          <span class="loading-spinner" style="width:28px;height:28px"></span>
+          <div><div class="text-sm font-bold" style="color:var(--tx)">正在生成可审阅草案</div><div class="text-xs mt-1" style="color:var(--tx3)">角色数据保持原样；停止或请求失败都不会写入半截内容。</div></div>
+          <button type="button" data-character-draft-stop @click="stopCharacterDraftGeneration" class="btn-ghost text-sm px-5 py-2" style="min-height:44px;color:var(--err);border-color:color-mix(in srgb,var(--err) 45%,var(--bd))">停止生成</button>
+        </div>
+
+        <div v-else-if="characterDraftReview.status==='error' || characterDraftReview.status==='cancelled'" class="min-h-[240px] flex flex-col items-center justify-center text-center gap-3">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-xl" :style="characterDraftReview.status==='error'?'background:var(--err-soft);color:var(--err)':'background:var(--info-soft);color:var(--info)'">{{ characterDraftReview.status==='error' ? '!' : '■' }}</div>
+          <div class="text-sm font-bold" style="color:var(--tx)">{{ characterDraftReview.status==='error' ? '草案生成失败' : '已停止生成' }}</div>
+          <div class="text-xs leading-relaxed max-w-xl" style="color:var(--tx3);white-space:pre-wrap">{{ characterDraftReview.message }}</div>
+        </div>
+
+        <div v-else-if="characterDraftReview.status==='review'" class="space-y-4">
+          <div class="flex flex-wrap gap-2 text-[10px] font-bold">
+            <span class="px-2 py-1 rounded-full" style="background:var(--ok-soft);color:var(--ok)">新增/补空默认接受</span>
+            <span class="px-2 py-1 rounded-full" style="background:var(--warn-soft);color:var(--warn)">替换已有内容默认拒绝</span>
+            <span class="px-2 py-1 rounded-full" style="background:var(--info-soft);color:var(--info)">关系必须指向稳定角色</span>
+          </div>
+
+          <section v-for="target in characterDraftReview.targets" :key="target.draftTargetKey" class="card overflow-hidden" :data-draft-target-id="target.targetId">
+            <div class="px-3 md:px-4 py-3 flex items-center justify-between gap-3 flex-wrap" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
+              <div class="min-w-0"><div class="text-sm font-black text-truncate" style="color:var(--tx)">{{ target.displayName || '未命名角色' }}</div><div class="text-[10px] mt-0.5" style="color:var(--tx3)">{{ target.mode==='create' ? '新角色候选 · 确认前未加入书籍' : '完善已有角色 · 按稳定 ID 提交' }}</div></div>
+              <div class="flex gap-2">
+                <button type="button" @click="setCharacterDraftTargetDecision(target,true)" class="btn-ghost text-[10px] px-3 py-1.5" style="min-height:40px;color:var(--ok)">接受本角色</button>
+                <button type="button" @click="setCharacterDraftTargetDecision(target,false)" class="btn-ghost text-[10px] px-3 py-1.5" style="min-height:40px;color:var(--err)">拒绝本角色</button>
+              </div>
+            </div>
+            <div class="p-3 md:p-4 space-y-3">
+              <article v-for="item in target.items" :key="item.id" class="rounded-xl p-3" :style="item.selected?'border:1px solid color-mix(in srgb,var(--ok) 45%,var(--bd));background:var(--bg-card)':'border:1px solid var(--bd);background:var(--bg-inset)'" :data-draft-item-id="item.id">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="text-xs font-black" style="color:var(--tx)">{{ item.label }}</span><span class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getCharacterDraftKindStyle(item.classification)">{{ getCharacterDraftKindLabel(item.classification) }}</span></div><div v-if="item.issue" class="text-[10px] mt-1" style="color:var(--err)">{{ item.issue }}</div></div>
+                  <div class="flex gap-1 shrink-0" role="radiogroup" :aria-label="item.label+'处理决定'">
+                    <button type="button" role="radio" :aria-checked="item.selected===true" @click="setCharacterDraftItemDecision(item,true)" class="text-[10px] px-2 py-1 rounded font-bold" :style="item.selected?'background:var(--ok);color:white':'background:var(--ok-soft);color:var(--ok)'">接受</button>
+                    <button type="button" role="radio" :aria-checked="item.selected===false" @click="setCharacterDraftItemDecision(item,false)" class="text-[10px] px-2 py-1 rounded font-bold" :style="!item.selected?'background:var(--err);color:white':'background:var(--err-soft);color:var(--err)'">拒绝</button>
+                  </div>
+                </div>
+
+                <template v-if="item.fieldType==='relationship'">
+                  <div v-if="item.originalValue" class="text-[10px] leading-relaxed mb-2 rounded-lg px-2 py-1.5" style="background:var(--err-soft);color:var(--tx3)">原关系：{{ item.originalValue }}</div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <label><span class="label">目标角色</span><select v-model="item.relationTargetId" @change="refreshCharacterDraftRelationItem(item,target)" class="select-field text-xs" style="min-height:44px"><option value="">请选择目标角色</option><option v-for="option in getCharacterDraftRelationOptions(target)" :key="option.id" :value="option.id">{{ option.label }}</option></select></label>
+                    <label><span class="label">关系类型</span><input v-model="item.relationshipType" class="input-field text-xs" style="min-height:44px" placeholder="盟友、对手、师徒..."></label>
+                    <label><span class="label">当前态/态度</span><input v-model="item.relationshipAttitude" class="input-field text-xs" style="min-height:44px" placeholder="当前态度描述"></label>
+                  </div>
+                </template>
+                <template v-else>
+                  <div v-if="item.originalValue" class="text-[10px] leading-relaxed mb-2 rounded-lg px-2 py-1.5" style="background:var(--err-soft);color:var(--tx3);white-space:pre-wrap"><strong>原值：</strong>{{ item.originalValue }}</div>
+                  <label><span class="label">候选值（可编辑）</span><textarea v-model="item.editValue" :rows="item.fieldType==='list'?3:Math.min(6,Math.max(2,Math.ceil(String(item.editValue||'').length/42)))" class="textarea-field text-xs" :placeholder="item.fieldType==='list'?'每行一项':'编辑候选内容'"></textarea></label>
+                </template>
+              </article>
+              <div v-if="target.items.length===0" class="text-xs text-center py-5" style="color:var(--tx4)">该角色没有可应用的候选字段。</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="px-4 md:px-5 py-3 flex items-center justify-end gap-2 flex-wrap shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(12px + env(safe-area-inset-bottom))">
+        <template v-if="characterDraftReview.status==='review'">
+          <button type="button" data-moyun-modal-close @click="requestCloseCharacterDraftReview" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">放弃草案</button>
+          <button type="button" @click="applyCharacterAiDraft({onlyFill:true})" :disabled="characterDraftCounts.safe===0 || characterDraftReview.status==='applying'" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">全部仅补空应用</button>
+          <button type="button" data-character-draft-apply @click="applyCharacterAiDraft()" :disabled="characterDraftCounts.accepted===0 || characterDraftReview.status==='applying'" class="btn-primary text-sm px-5 py-2" style="min-height:44px"><span v-if="characterDraftReview.status==='applying'" class="loading-spinner"></span>应用已接受 {{ characterDraftCounts.accepted }} 项</button>
+        </template>
+        <template v-else-if="characterDraftReview.status!=='generating'">
+          <button type="button" data-moyun-modal-close data-character-draft-primary @click="requestCloseCharacterDraftReview" class="btn-primary text-sm px-5 py-2" style="min-height:44px">关闭</button>
+        </template>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<!-- Phase C.3：按稳定细纲 ID 管理本章活跃人物与世界资料 -->
+<transition name="pop">
+  <div v-if="showDetailedOutlinePinPicker" data-moyun-modal="detailed-outline-context-picker"
+       data-moyun-initial-focus="[data-c3-picker-search]"
+       role="dialog" aria-modal="true" aria-labelledby="moyun-c3-picker-title" aria-describedby="moyun-c3-picker-summary"
+       class="fixed inset-0 z-[105] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-3xl rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden"
+         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(90vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
+      <div class="px-4 md:px-5 py-4 flex items-start justify-between gap-3 shrink-0" style="border-bottom:1px solid var(--bd)">
+        <div class="min-w-0">
+          <h3 id="moyun-c3-picker-title" class="text-base font-black" style="color:var(--tx)">{{ getDetailedOutlineLabel(activeDetailedOutlinePinId) }} · 本章活跃资料</h3>
+          <div id="moyun-c3-picker-summary" class="text-[11px] mt-1" style="color:var(--tx3)">直接写入该稳定细纲的上下文包；不会改动全书钉选、角色出场关联或资料直接关联。</div>
+        </div>
+        <button type="button" data-moyun-modal-close @click="closeDetailedOutlinePinPicker" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭本章活跃资料" title="关闭">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-5 space-y-4">
+        <div class="moyun-c3-preview-grid" aria-live="polite">
+          <div class="moyun-c3-preview-stat"><span>本细纲手动钉选</span><strong>{{ getDetailedOutlinePinStats(activeDetailedOutlinePinId).characters }} 人 / {{ getDetailedOutlinePinStats(activeDetailedOutlinePinId).entries }} 项</strong></div>
+          <div class="moyun-c3-preview-stat"><span>安全预览候选</span><strong>{{ storyBibleContextPreview.includedCount }} 纳入 / {{ storyBibleContextPreview.excludedCount }} 排除</strong></div>
+          <div class="moyun-c3-preview-stat"><span>预算占用</span><strong>{{ storyBibleContextPreview.character.used + storyBibleContextPreview.world.used }} 字</strong></div>
+        </div>
+
+        <div class="moyun-c3-picker-tabs" role="tablist" aria-label="活跃资料类型">
+          <button type="button" role="tab" :aria-selected="detailedOutlinePinKind==='character'" :class="{active:detailedOutlinePinKind==='character'}" @click="detailedOutlinePinKind='character';detailedOutlinePinSearch=''">人物</button>
+          <button type="button" role="tab" :aria-selected="detailedOutlinePinKind==='entry'" :class="{active:detailedOutlinePinKind==='entry'}" @click="detailedOutlinePinKind='entry';detailedOutlinePinSearch=''">世界资料</button>
+        </div>
+
+        <input v-model="detailedOutlinePinSearch" data-c3-picker-search class="input-field text-xs" :placeholder="detailedOutlinePinKind==='character'?'搜索人物名称、职责或简介…':'搜索资料名称、类型、标签或摘要…'">
+
+        <div class="moyun-c3-picker-list">
+          <div v-for="item in filteredDetailedOutlinePinCandidates" :key="item.kind+':'+item.id" class="moyun-c3-picker-row" :aria-pressed="isDetailedOutlinePinned(item.kind,activeDetailedOutlinePinId,item.id)">
+            <button type="button" class="moyun-c3-picker-select" @click="toggleDetailedOutlinePin(item.kind,activeDetailedOutlinePinId,item.id)" :aria-label="(isDetailedOutlinePinned(item.kind,activeDetailedOutlinePinId,item.id)?'取消钉选 ':'钉选 ')+item.name">
+              <span class="moyun-c3-picker-check" aria-hidden="true">✓</span>
+              <span class="min-w-0"><span class="moyun-c3-picker-name block">{{ item.name }}</span><span class="moyun-c3-picker-desc block">{{ item.meta }}</span></span>
+            </button>
+            <button type="button" class="moyun-c3-picker-view" @click="openDetailedOutlinePinnedItem(item.kind,item.id)">查看档案</button>
+          </div>
+          <div v-if="filteredDetailedOutlinePinCandidates.length===0" class="card text-center py-10 px-4 text-xs" style="color:var(--tx4)">{{ detailedOutlinePinSearch ? '没有匹配结果。' : (detailedOutlinePinKind==='character' ? '没有可钉选人物；“不进入上下文”的人物不会显示。' : '没有可钉选的已启用资料；草稿、归档和“不进入上下文”的资料不会显示。') }}</div>
+        </div>
+      </div>
+
+      <div class="px-4 md:px-5 py-3 flex items-center justify-between gap-3 flex-wrap shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(12px + env(safe-area-inset-bottom))">
+        <div class="text-[10px] leading-relaxed" style="color:var(--tx3)">勾选立即保存并刷新安全预览；真实请求仍按各自目标章隔离。</div>
+        <button type="button" data-moyun-modal-close @click="closeDetailedOutlinePinPicker" class="btn-primary text-sm px-5 py-2" style="min-height:44px">完成</button>
+      </div>
+    </div>
+  </div>
+</transition>
+
 <!-- MOD包导入隐藏文件输入 -->
 <!-- 隐藏文件输入汇总（确保全部存在） -->
 <input type="file" ref="importTxtInput" @change="handleImportTxt" accept=".txt" class="hidden" data-moyun-modal-support>
@@ -3900,7 +4525,7 @@
 
           <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">AI建议人设（已移动到这里）</div>
-            <textarea v-model="suggestionPersona" @change="saveData()" rows="3" class="textarea-field text-[10px]" style="line-height:1.5"></textarea>
+            <textarea v-model="suggestionPersona" @change="saveData()" rows="3" class="textarea-field text-[10px]" style="line-height:1.5" aria-label="AI建议人设提示词"></textarea>
           </div>
 
           <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
@@ -3908,7 +4533,7 @@
             <div class="space-y-2">
               <div v-for="layer in promptPipeline" :key="layer.key">
                 <div class="text-[10px] font-bold mb-1" style="color:var(--tx3)">{{ layer.label }}</div>
-                <textarea v-model="layer.content" @change="saveData()" :rows="layer.key==='scene'?2:3" class="textarea-field text-[10px]"></textarea>
+                <textarea v-model="layer.content" @change="saveData()" :rows="layer.key==='scene'?2:3" class="textarea-field text-[10px]" :aria-label="layer.label+'提示词'"></textarea>
               </div>
             </div>
           </div>
@@ -3940,7 +4565,7 @@
             <div class="space-y-2">
               <div v-for="(persona, key) in reviewPersonas" :key="key">
                 <div class="text-[10px] font-bold mb-1" style="color:var(--tx3)">{{ persona.name }}</div>
-                <textarea v-model="persona.prompt" @change="saveData()" rows="3" class="textarea-field text-[10px]"></textarea>
+                <textarea v-model="persona.prompt" @change="saveData()" rows="3" class="textarea-field text-[10px]" :aria-label="persona.name+'书评提示词'"></textarea>
               </div>
             </div>
           </div>
@@ -4031,11 +4656,12 @@
                     </div>
                     <div v-for="(mod, modi) in modPacks" :key="mod.id" class="card overflow-hidden">
                       <div class="flex items-center gap-2 px-3 py-2" style="border-bottom:1px solid var(--bd)">
-                        <div @click="mod.enabled=!mod.enabled;saveData()"
-                             class="w-5 h-5 rounded shrink-0 flex items-center justify-center text-xs border cursor-pointer"
-                             :style="mod.enabled?'background:var(--ok);color:white;border-color:var(--ok)':'background:var(--bg-inset);color:var(--tx4);border-color:var(--bd)'">
+                        <button type="button" @click="mod.enabled=!mod.enabled;saveData()"
+                             class="w-5 h-5 p-0 rounded shrink-0 flex items-center justify-center text-xs border cursor-pointer"
+                             :style="mod.enabled?'background:var(--ok);color:white;border-color:var(--ok)':'background:var(--bg-inset);color:var(--tx4);border-color:var(--bd)'"
+                             :aria-pressed="mod.enabled ? 'true' : 'false'" :aria-label="(mod.enabled ? '停用插件：' : '启用插件：') + (mod.name || '未命名插件')" :title="mod.enabled ? '停用插件' : '启用插件'">
                           {{ mod.enabled ? '✓' : '' }}
-                        </div>
+                        </button>
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center gap-1 min-w-0">
                             <div class="text-xs font-bold text-truncate" style="color:var(--tx)">{{ mod.name }}</div>
@@ -4085,7 +4711,7 @@
                             <input :value="fkey" @change="renameModFeature(mod, fkey, $event.target.value)" placeholder="功能Key" class="input-field text-[9px] font-mono" style="height:24px;padding:0 6px">
                             <input v-model="feature.title" @change="saveData()" placeholder="显示名" class="input-field text-[9px]" style="height:24px;padding:0 6px">
                             <div @click="feature.enabled=!feature.enabled;saveData()" class="w-5 h-5 rounded flex items-center justify-center text-[8px] cursor-pointer" :style="feature.enabled!==false?'background:var(--ok);color:white':'background:var(--bg-card);color:var(--tx4);border:1px solid var(--bd)'">{{ feature.enabled!==false ? '✓' : '' }}</div>
-                            <button @click="deleteModFeature(mod, fkey)" class="text-[9px]" style="color:var(--err)">✕</button>
+                            <button @click="deleteModFeature(mod, fkey)" class="text-[9px]" style="color:var(--err)" :aria-label="'删除 MOD 功能：'+(feature.title || fkey)" title="删除 MOD 功能">✕</button>
                           </div>
                           <div v-if="!Object.keys(mod.features||{}).length" class="text-[9px]" style="color:var(--tx4)">没有声明功能时，该 MOD 会作为纯规则包使用。</div>
                         </div>
@@ -4341,12 +4967,12 @@
                           </div>
                           <button @click="clearModPrivateData(mod.id)" class="text-[9px] px-2 py-0.5 rounded" style="background:var(--bg-card);color:var(--tx3);border:1px solid var(--bd)">清空该插件私有数据</button>
                         </div>
-                        <!-- 中文注释：开发者预览面板只展示归一化后的声明数据，方便共创者检查导入后主程序实际识别到的接口。 -->
+                        <!-- 中文注释：白鸟不公开运行时声明详情；普通共创 MOD 仍保留开发者预览。 -->
                         <details class="p-2 rounded-lg space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
-                          <summary class="text-[10px] font-bold cursor-pointer select-none" style="color:var(--tx3)">插件详情 / 开发者预览</summary>
-                          <div class="text-[9px] leading-relaxed mt-2" style="color:var(--tx4)">这里显示归一化后的清单、权限、功能、小说模块、资产包、UI 插槽、钩子、动作白名单、测试用例和规则统计；不会执行插件脚本。</div>
+                          <summary class="text-[10px] font-bold cursor-pointer select-none" style="color:var(--tx3)">{{ isSnowwingImportMod(mod) ? '插件详情 / 已关闭公开' : '插件详情 / 开发者预览' }}</summary>
+                          <div class="text-[9px] leading-relaxed mt-2" style="color:var(--tx4)">{{ isSnowwingImportMod(mod) ? '已关闭公开' : '这里显示归一化后的清单、权限、功能、小说模块、资产包、UI 插槽、钩子、动作白名单、测试用例和规则统计；不会执行插件脚本。' }}</div>
                           <textarea :value="formatModDeveloperPreview(mod)" readonly rows="8" class="textarea-field text-[9px] font-mono" style="min-height:120px;white-space:pre"></textarea>
-                          <div v-if="(mod.testCases||[]).length" class="space-y-1.5 mt-2">
+                          <div v-if="!isSnowwingImportMod(mod) && (mod.testCases||[]).length" class="space-y-1.5 mt-2">
                             <div class="text-[9px] font-bold" style="color:var(--tx3)">测试用例</div>
                             <div v-for="(tc, ti) in mod.testCases" :key="ti" class="p-2 rounded-lg text-[9px] leading-relaxed" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx3)">
                               <div class="font-bold" style="color:var(--tx2)">{{ tc.name || tc.title || ('测试 ' + (ti+1)) }}</div>
@@ -4368,7 +4994,7 @@
                               <select v-model="rule.position" @change="saveData()" class="select-field text-[9px] py-0" style="height:22px">
                                 <option v-for="pos in MOD_RULE_POSITIONS" :key="pos.key" :value="pos.key">{{ pos.name }}</option>
                               </select>
-                              <button @click="mod.rules.splice(ri,1);saveData()" class="text-[9px]" style="color:var(--err)">✕</button>
+                              <button @click="mod.rules.splice(ri,1);saveData()" class="text-[9px]" style="color:var(--err)" :aria-label="'删除 MOD 规则：'+(rule.name || (ri+1))" title="删除 MOD 规则">✕</button>
                             </div>
                             <textarea v-model="rule.content" @change="saveData()" rows="2"
                                       placeholder="规则内容..." class="textarea-field text-[10px]" style="min-height:40px"></textarea>
@@ -4614,7 +5240,7 @@
 </div>
 
 <!-- 书评团浮动入口按钮（面板打开时自动下移避免遮挡） -->
-<button v-if="settings.enableReviewer && !immersiveMode && !showDetailedOutlineInMain && !showOutlineInMain"
+<button v-if="settings.enableReviewer && !immersiveMode && !showDetailedOutlineInMain && !showOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench"
         @click="showReviewModal=true"
         class="fixed right-3 md:right-6 w-8 h-8 md:w-11 md:h-11 rounded-full flex items-center justify-center z-20 cursor-pointer"
         :style="{
@@ -4752,81 +5378,90 @@
      人物关系图弹窗
      ════════════════════════════════════════════ -->
 <transition name="pop">
-  <div v-if="showRelGraph" data-moyun-modal="relationship-graph" role="dialog" aria-modal="true" aria-label="人物关系图"
-       class="fixed inset-0 z-[85] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showRelGraph=false">
-    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-[700px] flex flex-col rounded-t-2xl md:rounded-2xl overflow-hidden"
-         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(85vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
-      <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
-        <h3 class="text-base font-bold" style="color:var(--tx)">🕸️ 人物关系图</h3>
-        <button type="button" data-moyun-modal-close @click="showRelGraph=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭人物关系图" title="关闭">
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
+  <div v-if="showRelGraph" data-moyun-modal="relationship-graph" role="dialog" aria-modal="true" aria-labelledby="moyun-rel-title" class="moyun-rel-modal">
+    <div ref="relGraphPanel" data-moyun-modal-panel tabindex="-1" class="moyun-rel-panel">
+      <header class="moyun-rel-header">
+        <div class="moyun-rel-title"><h3 id="moyun-rel-title">人物关系图</h3><p>图谱只读取原角色关系和事件；编辑仍回到角色档案。</p></div>
+        <div class="moyun-rel-header-meta">
+          <span class="moyun-rel-count">{{ filteredRelGraphCharacters.length }} 人 · {{ relGraphLines.length }} 组 · {{ filteredRelGraphFacts.length }} 条事实</span>
+          <button type="button" data-moyun-modal-close @click="closeRelationshipGraph" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭人物关系图" title="关闭">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="moyun-rel-filters" aria-label="关系图筛选">
+        <label class="moyun-rel-filter"><span>角色</span><select v-model="relGraphCharacterFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部角色</option><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
+        <label class="moyun-rel-filter"><span>阵营 / 势力资料</span><select v-model="relGraphFactionFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部阵营</option><option v-for="faction in relGraphFactionOptions" :key="faction.id" :value="faction.id">{{ faction.title || '未命名势力' }}</option></select></label>
+        <label class="moyun-rel-filter"><span>关系类型</span><select v-model="relGraphTypeFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部类型</option><option v-for="option in relGraphTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+        <label class="moyun-rel-filter"><span>当前状态</span><select v-model="relGraphStatusFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部状态</option><option v-for="option in relGraphStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+        <button type="button" @click="resetRelationshipGraphFilters" class="btn-ghost moyun-rel-reset">重置筛选</button>
       </div>
-      <div class="flex-1 overflow-auto p-4">
-        <div v-if="structuredCharacters.length < 2" class="text-center py-16" style="color:var(--tx3)">
-          <p class="text-3xl mb-2">🕸️</p>
-          <p class="text-sm">至少需要2个角色才能显示关系图</p>
-          <p class="text-[11px] mt-1" style="color:var(--tx4)">请在角色Tab中添加角色并定义关系</p>
-        </div>
-        <div v-else>
-          <!-- SVG关系图 -->
-          <svg ref="relSvg" :width="relGraphWidth" :height="relGraphHeight"
-               style="display:block;margin:0 auto;border-radius:12px"
-               :style="{background: isDark ? '#1a1a1a' : '#f5f5f0'}">
-            <!-- 中文注释：关系图支持头像节点与悬停高亮，默认弱化关系文字，避免人物少但关系多时重叠不可读。 -->
-            <defs>
-              <clipPath v-for="(node, ni) in relGraphNodes" :key="'clip'+ni" :id="'relAvatarClip'+ni">
-                <circle :cx="node.x" :cy="node.y" r="28"></circle>
-              </clipPath>
-            </defs>
-            <!-- 连线 -->
-            <g v-for="(line, li) in relGraphLines" :key="'line'+li">
-              <line :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
-                    :stroke="line.color" :stroke-width="isRelLineActive(line)?3:1.5" :stroke-opacity="hoverRelNodeId ? (isRelLineActive(line)?0.95:0.12) : 0.35"/>
-              <!-- 关系标签：只在悬停相关角色时显示，减少默认重叠 -->
-              <text v-if="isRelLineActive(line)" :x="line.labelX" :y="line.labelY"
-                    text-anchor="middle" :fill="line.color" font-size="10" font-weight="bold">
-                {{ line.label }}
-              </text>
-            </g>
-            <!-- 节点 -->
-            <g v-for="(node, ni) in relGraphNodes" :key="'node'+ni" @mouseenter="hoverRelNodeId=node.id" @mouseleave="hoverRelNodeId=''" style="cursor:pointer">
-              <circle :cx="node.x" :cy="node.y" r="31"
-                      :fill="isRelNodeActive(node)?node.color:(isDark?'#292524':'#e7e5e4')" stroke="white" :stroke-width="isRelNodeActive(node)?4:2"
-                      style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2))"/>
-              <image v-if="node.avatarBase64" :href="node.avatarBase64" :x="node.x-28" :y="node.y-28" width="56" height="56" preserveAspectRatio="xMidYMid slice" :clip-path="'url(#relAvatarClip'+ni+')'"></image>
-              <text v-else :x="node.x" :y="node.y + 5" text-anchor="middle" fill="white"
-                    font-size="16" font-weight="bold" style="font-family:Ma Shan Zheng,cursive">
-                {{ node.initial }}
-              </text>
-              <text :x="node.x" :y="node.y + 46" text-anchor="middle"
-                    :fill="isRelNodeActive(node) ? (isDark ? '#fff7ed' : '#1c1917') : (isDark ? '#a8a29e' : '#57534e')" font-size="12" font-weight="bold">
-                {{ node.name }}
-              </text>
-            </g>
-          </svg>
-          <div v-if="hoverRelNodeId" class="mt-3 p-3 rounded-xl text-xs leading-relaxed" style="background:var(--accent-soft);color:var(--tx2);border:1px solid var(--bd)">
-            <div class="font-bold mb-1" style="color:var(--tx)">当前高亮关系</div>
-            <div class="whitespace-pre-wrap">{{ getRelNodeRelatedText(hoverRelNodeId) }}</div>
-          </div>
-          <div v-else class="mt-3 text-[11px] text-center" style="color:var(--tx4)">鼠标移到角色头像或节点上，可高亮查看对应关系。</div>
-          <!-- 关系列表 -->
-          <div class="mt-4 space-y-1">
-            <div class="text-[11px] font-bold mb-2" style="color:var(--tx3)">关系明细</div>
-            <div v-for="(rel, ri) in allRelationships" :key="ri"
-                 class="flex items-center gap-2 text-xs p-2 rounded-lg" style="background:var(--bg-inset)">
-              <span class="font-bold" style="color:var(--tx)">{{ rel.from }}</span>
-              <span style="color:var(--tx3)">→</span>
-              <span class="font-bold" style="color:var(--tx)">{{ rel.to }}</span>
-              <span class="chip ml-1" :style="{borderColor: rel.color, color: rel.color}">{{ rel.type }}</span>
-              <span class="text-[10px] flex-1 text-right" style="color:var(--tx3)">{{ rel.attitude }}</span>
+
+      <div class="moyun-rel-legend" aria-label="关系状态颜色图例">
+        <span class="moyun-rel-legend-label">状态色</span>
+        <span v-for="item in relGraphStatusLegend" :key="item.key" class="moyun-rel-legend-item"><span class="moyun-rel-legend-dot" :style="{background:item.color}"></span>{{ item.label }}</span>
+      </div>
+      <div class="moyun-rel-mobile-note">手机端图谱默认只读。选择节点或连线查看详情；编辑请使用页面底部的关系条目。</div>
+
+      <div class="moyun-rel-scroll">
+        <div class="moyun-rel-layout">
+          <section class="moyun-rel-canvas" aria-label="关系图谱">
+            <div class="moyun-rel-canvas-head"><span>选择节点查看角色，选择连线查看双向事实。</span><span>{{ relGraphLines.length ? '视觉合并 ' + relGraphLines.length + ' 组' : '暂无连线' }}</span></div>
+            <div ref="relGraphViewport" class="moyun-rel-svg-wrap">
+              <div v-if="!relGraphNodes.length" class="moyun-rel-empty"><strong>没有符合筛选的角色</strong><span>可重置筛选，或先在角色工作台添加角色和关系。</span></div>
+              <svg v-else ref="relSvg" class="moyun-rel-svg" width="100%" height="100%" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid meet" :aria-label="'人物关系图，共 ' + relGraphNodes.length + ' 个角色'">
+                <defs>
+                  <clipPath v-for="(node, ni) in relGraphNodes" :key="'clip'+node.id" :id="'relAvatarClip'+ni"><circle :cx="node.x" :cy="node.y" r="26"></circle></clipPath>
+                </defs>
+                <g v-for="line in relGraphLines" :key="line.id" :data-rel-edge="line.id" role="button" tabindex="0" :aria-pressed="String(selectedRelGraphEdgeId===line.id)" :aria-label="line.ariaLabel" @click="selectRelGraphEdge(line.id)" @keydown="handleRelGraphKeydown($event,'edge',line.id)">
+                  <line :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2" :stroke="line.color" :stroke-width="isRelLineActive(line)?4:2" :stroke-dasharray="line.mixed?'7 5':''" :stroke-opacity="isRelLineMuted(line)?0.14:0.82"/>
+                  <line :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2" stroke="transparent" stroke-width="18" style="pointer-events:stroke"/>
+                  <text v-if="isRelLineActive(line)" :x="line.labelX" :y="line.labelY" text-anchor="middle" :fill="line.color" font-size="10" font-weight="bold">{{ line.label }}</text>
+                </g>
+                <g v-for="(node, ni) in relGraphNodes" :key="node.id" :data-rel-node="node.id" role="button" tabindex="0" :aria-pressed="String(selectedRelGraphNodeId===node.id)" :aria-label="'选择角色 ' + node.fullName" @mouseenter="hoverRelNodeId=node.id" @mouseleave="hoverRelNodeId=''" @focus="hoverRelNodeId=node.id" @blur="hoverRelNodeId=''" @click="selectRelGraphNode(node.id)" @keydown="handleRelGraphKeydown($event,'node',node.id)">
+                  <circle :cx="node.x" :cy="node.y" r="30" :fill="isRelNodeActive(node)?node.color:(isDark?'#292524':'#e7e5e4')" :stroke="selectedRelGraphNodeId===node.id?'var(--accent)':'white'" :stroke-width="selectedRelGraphNodeId===node.id?5:3" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.2))"/>
+                  <image v-if="node.avatarBase64" :href="node.avatarBase64" :x="node.x-26" :y="node.y-26" width="52" height="52" preserveAspectRatio="xMidYMid slice" :clip-path="'url(#relAvatarClip'+ni+')'"></image>
+                  <text v-else :x="node.x" :y="node.y + 5" text-anchor="middle" fill="white" font-size="16" font-weight="bold">{{ node.initial }}</text>
+                  <text :x="node.x" :y="node.y + 45" text-anchor="middle" :fill="isRelNodeActive(node) ? (isDark ? '#fff7ed' : '#1c1917') : (isDark ? '#a8a29e' : '#57534e')" font-size="11" font-weight="bold">{{ node.name }}</text>
+                </g>
+              </svg>
             </div>
-            <div v-if="allRelationships.length === 0" class="text-center py-4 text-[11px]" style="color:var(--tx4)">
-              暂无已定义的关系。请在角色面板中添加。
+          </section>
+
+          <aside class="moyun-rel-detail" aria-live="polite">
+            <div class="moyun-rel-detail-inner">
+              <template v-if="selectedRelGraphEdge">
+                <div class="moyun-rel-detail-title">{{ selectedRelGraphEdge.fromName }} ↔ {{ selectedRelGraphEdge.toName }}</div>
+                <div class="moyun-rel-detail-sub">视觉上合并为一条线；下方 {{ selectedRelGraphEdge.facts.length }} 条有向事实仍分别保存。</div>
+                <div v-for="fact in selectedRelGraphEdge.facts" :key="fact.relationId" class="moyun-rel-fact" :style="{'--rel-color':getRelStatusColor(fact.attitude)}">
+                  <div class="moyun-rel-fact-head"><span>{{ fact.from }} → {{ fact.to }}</span><span class="moyun-rel-fact-state" :style="{color:getRelStatusColor(fact.attitude)}">{{ fact.attitude || '当前态未填写' }}</span></div>
+                  <p>关系类型：{{ fact.type || '未定义' }}</p><p v-if="fact.changeReason">变化原因：{{ fact.changeReason }}</p>
+                  <div class="moyun-rel-detail-actions"><button type="button" @click="openRelGraphRelationship(fact)" class="btn-ghost moyun-rel-edit-action">编辑这条关系</button></div>
+                </div>
+                <div class="moyun-rel-events"><div class="moyun-rel-events-title">双方共同参与的事件 · {{ selectedRelGraphEvents.length }}</div><div class="moyun-rel-event-list"><button v-for="event in selectedRelGraphEvents" :key="event.id" type="button" @click="openRelGraphEvent(event.id)">{{ event.title || '未命名事件' }}<span v-if="event.timeText"> · {{ event.timeText }}</span></button><div v-if="!selectedRelGraphEvents.length" class="moyun-rel-detail-sub">暂无同时关联双方的事件。</div></div></div>
+              </template>
+              <template v-else-if="selectedRelGraphNode">
+                <div class="moyun-rel-detail-title">{{ selectedRelGraphNode.fullName }}</div>
+                <div class="moyun-rel-detail-sub">{{ selectedRelGraphNode.storyRole || '故事职责未填写' }}</div>
+                <div class="moyun-rel-detail-sub">阵营：{{ getRelGraphCharacterFactions(selectedRelGraphNode.id).map(item=>item.title || '未命名势力').join('、') || '未关联势力资料' }}</div>
+                <div class="moyun-rel-detail-sub">当前状态：{{ selectedRelGraphNode.currentState || '未填写' }}</div>
+                <div class="moyun-rel-detail-actions"><button type="button" @click="openRelGraphCharacter(selectedRelGraphNode.id)" class="btn-primary">打开角色档案</button></div>
+                <div class="moyun-rel-events"><div class="moyun-rel-events-title">角色相关事件 · {{ selectedRelGraphEvents.length }}</div><div class="moyun-rel-event-list"><button v-for="event in selectedRelGraphEvents" :key="event.id" type="button" @click="openRelGraphEvent(event.id)">{{ event.title || '未命名事件' }}<span v-if="event.timeText"> · {{ event.timeText }}</span></button><div v-if="!selectedRelGraphEvents.length" class="moyun-rel-detail-sub">暂无关联事件。</div></div></div>
+              </template>
+              <template v-else><div class="moyun-rel-detail-title">选择一个图谱对象</div><div class="moyun-rel-detail-sub">节点对应角色档案；连线包含该角色对的全部有向关系事实。筛选只改变视图，不会改写数据。</div></template>
             </div>
-          </div>
+          </aside>
         </div>
+
+        <section class="moyun-rel-records" aria-label="关系条目列表">
+          <div class="moyun-rel-records-head"><span>关系条目</span><span>{{ filteredRelGraphFacts.length }} 条有向事实</span></div>
+          <div v-for="fact in filteredRelGraphFacts" :key="fact.relationId" class="moyun-rel-record" :data-rel-record-id="fact.relationId">
+            <div class="moyun-rel-record-main"><div class="moyun-rel-record-line">{{ fact.from }} → {{ fact.to }}</div><div class="moyun-rel-record-meta">{{ fact.type || '类型未定义' }} · {{ fact.attitude || '当前态未填写' }}<template v-if="fact.changeReason"> · {{ fact.changeReason }}</template></div></div>
+            <div class="moyun-rel-record-actions"><button type="button" @click="selectRelGraphFact(fact)" class="btn-ghost">查看</button><button type="button" @click="openRelGraphRelationship(fact)" class="btn-primary">编辑</button></div>
+          </div>
+          <div v-if="!filteredRelGraphFacts.length" class="moyun-rel-empty"><strong>暂无匹配关系</strong><span>角色节点仍可浏览；需要编辑时请前往角色工作台添加关系。</span></div>
+        </section>
       </div>
     </div>
   </div>
@@ -4858,7 +5493,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=284ec612e45f"></script>
+<script src="./assets/js/moyun.js?v=154e5d55ec1e"></script>
 <!-- PART_1_END -->
 </body>
 </html>

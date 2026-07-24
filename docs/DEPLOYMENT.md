@@ -11,9 +11,13 @@
 
 1. 更新 `source/moyun.single.html`。
 2. 运行 `npm run build`，生成根目录 `index.html` 和 `assets/`。
-3. 提交并推送到 `main` 分支。
-4. GitHub Pages 会自动重新构建；通常在数分钟内生效。
-5. 访问网页并进行一次硬刷新，确认标题、设置页和主要写作界面正常加载。
+3. 运行 `node --check assets/js/moyun.js`、`node output/bug-audit/stage8-full-regression-runner.cjs` 和 `node output/bug-audit/stage8-finalize-report.cjs`；确认 `output/playwright/bug-audit-final-report.json` 为 `passed=true`。
+4. 检查 `git diff --check`、真实暂存区和待提交清单；只暂存本轮明确文件，不使用 `git add .`。
+5. 只有用户明确批准上线后，才提交并推送到 `main` 分支。
+6. GitHub Pages 会自动重新构建；通常在数分钟内生效。
+7. 硬刷新线上页面，用桌面与约 `390px` 手机视口复验加载、连接中心、正文主操作和本轮变更；若包含公告，再验证首次用户与已读用户状态。
+
+全量脚本中的当前线上检查是发布前的只读基线，不代表新候选已经部署。推送后必须使用新提交 SHA、生成资产指纹和预期公告文字重新执行线上冒烟。
 
 ## 自定义域名
 
