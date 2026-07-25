@@ -2797,6 +2797,7 @@
                       </div>
                       <div class="flex gap-2 flex-wrap">
                         <button @click="runModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" :disabled="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, child)">{{ isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool) ? '运行中' : (child.text || '运行整理') }}</button>
+                        <button v-if="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" @click="stopModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedMiniButtonStyle(entry, 'danger')">停止</button>
                         <button v-if="getModHostedViewComponentData(entry.mod, child).latest" @click="clearModAiToolResults(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg" :style="getModHostedMiniButtonStyle(entry, 'quiet')">清空结果</button>
                       </div>
                       <div v-if="getModHostedViewComponentData(entry.mod, child).latest" class="rounded-lg p-2 space-y-1" :style="getModHostedResultBoxStyle(entry)">
@@ -2939,6 +2940,7 @@
               </div>
               <div class="flex gap-2 flex-wrap">
                 <button @click="runModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" :disabled="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, component)">{{ isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool) ? '运行中' : (component.text || '运行整理') }}</button>
+                <button v-if="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" @click="stopModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedMiniButtonStyle(entry, 'danger')">停止</button>
                 <button v-if="getModHostedViewComponentData(entry.mod, component).latest" @click="clearModAiToolResults(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg" :style="getModHostedMiniButtonStyle(entry, 'quiet')">清空结果</button>
               </div>
               <div v-if="getModHostedViewComponentData(entry.mod, component).latest" class="rounded-lg p-2 space-y-1" :style="getModHostedResultBoxStyle(entry)">
@@ -4809,6 +4811,7 @@
                               </div>
                               <div class="flex gap-1 shrink-0 flex-wrap justify-end">
                                 <button @click="runModAiTool(mod, tool)" :disabled="isModAiToolRunning(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded font-bold" :style="isModPermissionEnabled(mod,'ai:request')?'background:var(--accent-soft);color:var(--accent)':'background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)'">{{ isModAiToolRunning(mod, tool) ? '运行中' : '运行' }}</button>
+                                <button v-if="isModAiToolRunning(mod, tool)" @click="stopModAiTool(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(239,68,68,.12);color:var(--err);border:1px solid rgba(239,68,68,.28)">停止</button>
                                 <button @click="clearModAiToolResults(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)">清空</button>
                               </div>
                             </div>
@@ -5493,7 +5496,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=3970ae1c55a3"></script>
+<script src="./assets/js/moyun.js?v=9a1817ac1cc9"></script>
 <!-- PART_1_END -->
 </body>
 </html>

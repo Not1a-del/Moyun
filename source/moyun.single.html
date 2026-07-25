@@ -4455,6 +4455,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
                       </div>
                       <div class="flex gap-2 flex-wrap">
                         <button @click="runModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" :disabled="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, child)">{{ isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool) ? '运行中' : (child.text || '运行整理') }}</button>
+                        <button v-if="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" @click="stopModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedMiniButtonStyle(entry, 'danger')">停止</button>
                         <button v-if="getModHostedViewComponentData(entry.mod, child).latest" @click="clearModAiToolResults(entry.mod, getModHostedViewComponentData(entry.mod, child).tool)" class="text-xs px-3 py-1.5 rounded-lg" :style="getModHostedMiniButtonStyle(entry, 'quiet')">清空结果</button>
                       </div>
                       <div v-if="getModHostedViewComponentData(entry.mod, child).latest" class="rounded-lg p-2 space-y-1" :style="getModHostedResultBoxStyle(entry)">
@@ -4597,6 +4598,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
               </div>
               <div class="flex gap-2 flex-wrap">
                 <button @click="runModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" :disabled="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, component)">{{ isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool) ? '运行中' : (component.text || '运行整理') }}</button>
+                <button v-if="isModAiToolRunning(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" @click="stopModAiTool(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedMiniButtonStyle(entry, 'danger')">停止</button>
                 <button v-if="getModHostedViewComponentData(entry.mod, component).latest" @click="clearModAiToolResults(entry.mod, getModHostedViewComponentData(entry.mod, component).tool)" class="text-xs px-3 py-1.5 rounded-lg" :style="getModHostedMiniButtonStyle(entry, 'quiet')">清空结果</button>
               </div>
               <div v-if="getModHostedViewComponentData(entry.mod, component).latest" class="rounded-lg p-2 space-y-1" :style="getModHostedResultBoxStyle(entry)">
@@ -6467,6 +6469,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
                               </div>
                               <div class="flex gap-1 shrink-0 flex-wrap justify-end">
                                 <button @click="runModAiTool(mod, tool)" :disabled="isModAiToolRunning(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded font-bold" :style="isModPermissionEnabled(mod,'ai:request')?'background:var(--accent-soft);color:var(--accent)':'background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)'">{{ isModAiToolRunning(mod, tool) ? '运行中' : '运行' }}</button>
+                                <button v-if="isModAiToolRunning(mod, tool)" @click="stopModAiTool(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(239,68,68,.12);color:var(--err);border:1px solid rgba(239,68,68,.28)">停止</button>
                                 <button @click="clearModAiToolResults(mod, tool)" class="text-[8px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)">清空</button>
                               </div>
                             </div>
@@ -14790,6 +14793,8 @@ function cleanAIResponse(text) {
     const modHostedDrafts = ref({});
     // 中文注释：第三批 AI 工具运行状态只存在于当前页面会话，避免刷新后误判工具仍在运行。
     const modAiToolRunning = ref({});
+    // 中文注释：AbortController 不写入 Vue 响应式数据或本地存储；按工具运行键保存，供超时和用户停止安全中断请求。
+    const modAiToolRunControllers = new Map();
     // 中文注释：第四批工作流运行状态只存在于当前页面会话，避免刷新后误判流程仍在执行。
     const modWorkflowRunning = ref({});
     // 中文注释：第六批事件处理运行状态只存在于当前页面会话，避免自动触发事件重复并发执行。
@@ -15234,6 +15239,7 @@ function cleanAIResponse(text) {
         targetTableId: raw.targetTableId || raw.tableId || '',
         saveResult: raw.saveResult !== false,
         maxInputChars: Math.min(50000, Math.max(1000, Number(raw.maxInputChars) || 12000)),
+        requestTimeoutSec: Math.min(300, Math.max(10, Number(raw.requestTimeoutSec ?? raw.timeoutSec) || 120)),
         useNsfwMessages: raw.useNsfwMessages !== false,
         requiredSettings,
         contextPolicy: raw.contextPolicy && typeof raw.contextPolicy === 'object' ? raw.contextPolicy : {},
@@ -18580,6 +18586,17 @@ function cleanAIResponse(text) {
       return !!modAiToolRunning.value[getModAiToolRunKey(mod, tool)];
     }
 
+    // 中文注释：用户停止只中断当前工具的网络请求；未完成响应不会解析、落表或写入最近结果。
+    function stopModAiTool(mod, tool) {
+      const runKey = getModAiToolRunKey(mod, tool);
+      const run = modAiToolRunControllers.get(runKey);
+      if (!run || !isModAiToolRunning(mod, tool)) return false;
+      run.stopRequested = true;
+      try { run.controller.abort(new DOMException('用户停止 AI 工具', 'AbortError')); } catch { run.controller.abort(); }
+      showToast('正在停止 AI 工具…', 'info');
+      return true;
+    }
+
     // 中文注释：安全读取对象路径，用于 AI 工具提示词模板的 {{context.novel.title}} 等占位符替换。
     function getModTemplatePathValue(source, path) {
       const parts = String(path || '').split('.').map(p => p.trim()).filter(Boolean);
@@ -18758,13 +18775,32 @@ function cleanAIResponse(text) {
       if (inputErr) return fail(inputErr);
       const runKey = getModAiToolRunKey(mod, tool);
       if (modAiToolRunning.value[runKey]) return { ok: false, skipped: true, error: 'AI工具正在运行' };
-      modAiToolRunning.value[runKey] = true;
+      const runtimeTimeoutMs = Number(runtimeOptions.timeoutMs);
+      const timeoutMs = Number.isFinite(runtimeTimeoutMs) && runtimeTimeoutMs > 0
+        ? Math.min(300000, Math.max(1000, runtimeTimeoutMs))
+        : Math.min(300000, Math.max(10000, Number(tool.requestTimeoutSec || 120) * 1000));
+      const controller = new AbortController();
+      const runState = { controller, startedAt: Date.now(), timeoutMs, stopRequested: false, timedOut: false, externalAbort: false };
+      const relayAbort = () => {
+        runState.externalAbort = true;
+        try { controller.abort(runtimeOptions.signal?.reason || new DOMException('AI工具已停止', 'AbortError')); } catch { controller.abort(); }
+      };
+      if (runtimeOptions.signal) {
+        if (runtimeOptions.signal.aborted) relayAbort();
+        else runtimeOptions.signal.addEventListener('abort', relayAbort, { once: true });
+      }
+      const timeoutTimer = setTimeout(() => {
+        runState.timedOut = true;
+        try { controller.abort(new DOMException('AI工具请求超时', 'TimeoutError')); } catch { controller.abort(); }
+      }, timeoutMs);
+      modAiToolRunControllers.set(runKey, runState);
+      modAiToolRunning.value[runKey] = { startedAt: runState.startedAt, timeoutMs };
       try {
         const prompt = renderModAiToolPrompt(mod, tool, inputs, context);
         const messages = tool.useNsfwMessages === false
           ? [{ role: 'user', content: prompt }]
           : buildNsfwMessages(prompt, { systemPrompt: tool.instruction || '', taskType: tool.taskType || tool.modelKey || 'writing' });
-        const completion = await fetchAdapterCompletion(request, messages, { stream:false, temperature:0.7, maxTokens:Math.min(16000, Number(tool.maxTokens) || 4096) });
+        const completion = await fetchAdapterCompletion(request, messages, { stream:false, temperature:0.7, maxTokens:Math.min(16000, Number(tool.maxTokens) || 4096), signal:controller.signal });
         const text = cleanAIResponse(completion.text || '');
         if (!text) throw new Error((tool.title || 'AI工具') + '返回为空');
         if (!isModExecutionValid(mod, runBookId)) return fail('AI工具结果已丢弃：书籍或 MOD 状态已变化');
@@ -18792,10 +18828,24 @@ function cleanAIResponse(text) {
         showToast(completionMessage, nonTableResult || tableRowsChanged ? 'success' : 'info');
         return { ok: true, text, outputMode: tool.outputMode || 'text', tableRowsAdded, tableRowsUpdated, tableRowsChanged, tableRowsSkipped, tableRowsInput, tableRowsEmpty, tableNoChangeReason, tableWriteMode: tableWrite.mode || '' };
       } catch (e) {
+        if (runState.stopRequested || runState.externalAbort) {
+          const message = 'AI工具已停止，未写入资料池';
+          showToast(message, 'info');
+          return { ok: false, cancelled: true, error: message };
+        }
+        if (runState.timedOut) {
+          const seconds = Math.max(1, Math.round(timeoutMs / 1000));
+          const message = 'AI工具运行失败: 请求超过 ' + seconds + ' 秒，已自动停止且未写入资料池';
+          showToast(message, 'error');
+          return { ok: false, timedOut: true, error: message };
+        }
         const message = 'AI工具运行失败: ' + (e.message || e);
         showToast(message, 'error');
         return { ok: false, error: message };
       } finally {
+        clearTimeout(timeoutTimer);
+        if (runtimeOptions.signal) runtimeOptions.signal.removeEventListener('abort', relayAbort);
+        modAiToolRunControllers.delete(runKey);
         delete modAiToolRunning.value[runKey];
       }
     }
@@ -24412,10 +24462,12 @@ function cleanAIResponse(text) {
 
     function getModHostedMiniButtonStyle(entry, tone = 'quiet') {
       if (isSnowwingThemed(entry)) {
+        if (tone === 'danger') return { background:'rgba(239,68,68,.10)', color:'#b91c1c', border:'1px solid rgba(239,68,68,.22)' };
         if (tone === 'ok') return { background:'rgba(34,197,94,.12)', color:'#15803d', border:'1px solid rgba(34,197,94,.18)' };
         if (tone === 'accent') return { background:'rgba(14,165,233,.12)', color:'#0369a1', border:'1px solid rgba(14,165,233,.18)' };
         return { background:'rgba(255,255,255,.72)', color:'#64748b', border:'1px solid rgba(148,163,184,.28)' };
       }
+      if (tone === 'danger') return { background:'rgba(239,68,68,.10)', color:'var(--err)', border:'1px solid rgba(239,68,68,.22)' };
       if (tone === 'ok') return { background:'var(--ok-soft)', color:'var(--ok)' };
       if (tone === 'accent') return { background:'var(--accent-soft)', color:'var(--accent)' };
       return { background:'var(--bg-card)', color:'var(--tx3)', border:'1px solid var(--bd)' };
@@ -35250,7 +35302,7 @@ function getWritingModelLabel() {
       getModRuntimeModules, getModRuntimeDataSchemas, getModRuntimeAiTools, getModRuntimeWorkflows, getModRuntimeHostedViews, getModRuntimeActiveContextTools, getModRuntimeSettingsSchema, getInstalledSnowwingSkillPacks, getSnowwingSkillRegistryData, getSnowwingSkillCompatMatrixData, runSnowwingSkillRuntime, getSnowwingSkillRuntimeRuns, getSnowwingSkillLastRuntimeRun,
       addModFeature, deleteModFeature, renameModFeature, isModFeatureEnabled, toggleModModule, setModRecommendedModules, setAllModModules, applyModAssets,
       formatModSettingsSchema, updateModSettingsSchema, getModSettingsFields, getModVisibleSettingsFields, getModSettingInputType, getModSettingValue, setModSettingValue, getModPrivateData, setModPrivateData,
-      countModPrivateData, getModAiToolInputs, setModAiToolInputValue, getModAiToolResults, getModAiToolLatestResult, clearModAiToolResults, isModAiToolRunning, runModAiTool,
+      countModPrivateData, getModAiToolInputs, setModAiToolInputValue, getModAiToolResults, getModAiToolLatestResult, clearModAiToolResults, isModAiToolRunning, stopModAiTool, runModAiTool,
       getModWorkflowRuns, getModWorkflowLatestRun, clearModWorkflowRuns, isModWorkflowRunning, runModWorkflow,
       getModEventRuns, getModEventLatestRun, clearModEventRuns, isModEventRunning, getModEventHandlers, getModEventHandlerTarget, formatModEventRunTime, runModEventHandler, runModEventHandlers,
       getModHostedViews, getModHostedViewKey, getModHostedVisibleComponents, getModHostedVisibleChildComponents, getModHostedViewComponentData, getModHostedDraftValue, setModHostedDraftValue, applyModMemoryPresetSelection, saveModMemoryCustomPreset, deleteModMemoryCustomPreset, formatModAuditTime, formatModAuditScore, getModAuditScoreBarStyle, getModAuditBreakdownPairs, runModHostedViewAction, selectModHostedModel, runModHostedWorkflow,
