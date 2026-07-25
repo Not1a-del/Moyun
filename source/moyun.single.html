@@ -7201,15 +7201,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-25-0455-creative-stability',
+  id: 'web-2026-07-26-0553-tool-runtime-stability',
   badge: '网页更新',
-  title: '创作体验与稳定性更新',
-  publishedAt: '2026-07-25 04:55',
-  message: 'Moyun 完成了一轮创作体验与稳定性更新。建议刷新页面后使用。',
+  title: '工具调用与稳定性更新',
+  publishedAt: '2026-07-26 05:53',
+  message: 'Moyun 已完成一轮工具调用稳定性更新。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'writing', title:'创作体验', body:'进一步优化设定、资料、大纲、细纲与章节之间的操作衔接，让长篇创作过程更顺畅。' }),
-    Object.freeze({ key:'stability', title:'连接与稳定性', body:'改进模型连接、生成中断、上下文检查和移动端操作体验，减少异常状态带来的干扰。' }),
-    Object.freeze({ key:'data', title:'使用提示', body:'作品与 API 配置仍保存在当前浏览器。重要作品请继续定期导出备份。' })
+    Object.freeze({ key:'control', title:'运行控制', body:'AI 整理工具运行时现在可以直接停止，长请求不必继续等待。' }),
+    Object.freeze({ key:'timeout', title:'超时保护', body:'请求超时后会自动结束，未完成结果不会写入资料；成功结果仍会正常保存。' }),
+    Object.freeze({ key:'data', title:'使用提示', body:'如果工具持续等待，请先停止并检查对应的模型连接。重要作品请继续定期导出备份。' })
   ]),
   acknowledge: '我知道了'
 });
