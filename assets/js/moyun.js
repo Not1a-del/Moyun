@@ -599,9 +599,10 @@ const DB = (() => {
         tx.objectStore('kv').put(val, key);
         tx.oncomplete = ok;
         tx.onerror = () => fail(tx.error);
+        tx.onabort = () => fail(tx.error || new Error('IndexedDB 事务被中止'));
       })).catch(e => {
-        try { localStorage.setItem('_nw6_' + key, typeof val === 'string' ? val : JSON.stringify(val)); }
-        catch(ex) { if (ex.name === 'QuotaExceededError') throw ex; }
+        // 中文注释：回退写入失败必须抛给调用方；静默吞掉会让保存假成功并顺带清掉应急备份。
+        localStorage.setItem('_nw6_' + key, typeof val === 'string' ? val : JSON.stringify(val));
       });
     }
   };
@@ -2631,11 +2632,22 @@ createApp({
         showToast('请先将默认配置和模块路由改为跟随默认配置', 'error');
         return false;
       }
-      connectionCenter.value.profiles = connectionCenter.value.profiles.filter(item => item.id !== profile.id);
-      setConnectionCredential(profile.id, '');
-      saveDataNow('删除 API 配置');
-      if (expandedConnectionProfileId.value === profile.id) expandedConnectionProfileId.value = '';
-      showToast('API 配置已删除', 'success');
+      const hasCredential = !!(connectionCredentials.value && connectionCredentials.value[profile.id]);
+      openConfirm({
+        title: '删除 API 配置',
+        message: '确定删除「' + (profile.name || '未命名配置') + '」？' + (hasCredential ? '本机保存的 API Key 将一并清除且无法找回，删除后需重新粘贴。' : ''),
+        confirmText: '删除配置',
+        impactLines: [
+          '接口地址：' + (profile.baseUrl || '未填写'),
+          hasCredential ? '将同时清除本机保存的 API Key（不可恢复）' : '该配置未保存 API Key'
+        ]
+      }, () => {
+        connectionCenter.value.profiles = connectionCenter.value.profiles.filter(item => item.id !== profile.id);
+        setConnectionCredential(profile.id, '');
+        saveDataNow('删除 API 配置');
+        if (expandedConnectionProfileId.value === profile.id) expandedConnectionProfileId.value = '';
+        showToast('API 配置已删除', 'success');
+      });
       return true;
     }
 
@@ -2664,23 +2676,17 @@ createApp({
       try { parsed = typeof rawText === 'string' ? JSON.parse(rawText) : rawText; } catch { showToast('配置方案不是有效 JSON', 'error'); return false; }
       if (!parsed || parsed.type !== 'moyun_connection_scheme' || !Array.isArray(parsed.profiles)) { showToast('不是墨韵 API 配置方案', 'error'); return false; }
       if (JSON.stringify(parsed).match(/apiKey|credential|authorization|x-api-key/i)) { showToast('安全方案不得包含 API 密钥或凭据字段', 'error'); return false; }
-      const oldToNew = new Map();
       const imported = [];
       for (const raw of parsed.profiles) {
         const adapterId = String(raw.adapterId || '').trim();
         if (!isSupportedRequestAdapter(adapterId)) { showToast('方案包含未知或未实现协议：' + adapterId, 'error'); return false; }
-        const id = uid(); oldToNew.set(String(raw.id || ''), id);
+        const id = uid();
         imported.push(normalizeConnectionProfile(Object.assign({}, raw, { id, lastTest:{ status:'unknown', at:0, detail:'从无密钥方案导入' }, enabled:true })));
       }
       connectionCenter.value.profiles.push(...imported);
-      const defaultOld = String(parsed.defaultProfileId || '');
-      if (oldToNew.has(defaultOld)) connectionCenter.value.defaultProfileId = oldToNew.get(defaultOld);
-      CONNECTION_MODULE_KEYS.forEach(key => {
-        const oldId = parsed.moduleRoutes?.[key]?.profileId || '';
-        connectionCenter.value.moduleRoutes[key] = { profileId:oldToNew.get(String(oldId)) || '' };
-      });
+      // 中文注释：导入方案只追加配置；默认配置与模块路由一律不动，静默改写会让用户现有请求悄悄换目标。
       saveDataNow('导入无密钥 API 配置方案');
-      showToast('已导入 ' + imported.length + ' 个无密钥 API 配置', 'success');
+      showToast('已导入 ' + imported.length + ' 个无密钥 API 配置；默认配置与模块路由未改动，可到连接中心手动切换', 'success');
       return true;
     }
 
@@ -3684,8 +3690,15 @@ createApp({
     function removeSelectedCharacterStateLog(index) {
       const character = selectedWorkbenchCharacter.value;
       if (!character || !Array.isArray(character.stateLog) || !character.stateLog[index]) return;
-      character.stateLog.splice(index, 1);
-      saveData();
+      const stateEntry = character.stateLog[index];
+      openConfirm({ title: '删除状态记录', message: '确定删除这条角色状态记录？删除后无法找回。', confirmText: '删除' }, () => {
+        // 中文注释：弹窗打开期间数组可能被后台重建，按对象引用而非下标删除，防止错删相邻记录。
+        const pos = Array.isArray(character.stateLog) ? character.stateLog.indexOf(stateEntry) : -1;
+        if (pos < 0) { showToast('该记录已不存在', 'info'); return; }
+        character.stateLog.splice(pos, 1);
+        saveData();
+        showToast('已删除状态记录', 'success');
+      });
     }
 
     function formatCharacterStateLogTime(value) {
@@ -3738,9 +3751,15 @@ createApp({
 
     function removeSelectedCharacterRelationship(index) {
       const character = selectedWorkbenchCharacter.value;
-      if (!character || !Array.isArray(character.relationships)) return;
-      character.relationships.splice(index, 1);
-      saveData();
+      if (!character || !Array.isArray(character.relationships) || !character.relationships[index]) return;
+      const relationEntry = character.relationships[index];
+      openConfirm({ title: '删除关系', message: '确定删除这条角色关系？删除后无法找回。', confirmText: '删除' }, () => {
+        const pos = Array.isArray(character.relationships) ? character.relationships.indexOf(relationEntry) : -1;
+        if (pos < 0) { showToast('该关系已不存在', 'info'); return; }
+        character.relationships.splice(pos, 1);
+        saveData();
+        showToast('已删除角色关系', 'success');
+      });
     }
 
     function getCharacterNameById(characterId) {
@@ -3753,8 +3772,11 @@ createApp({
     function showToast(msg, type = 'info') {
       clearTimeout(_toastTimer);
       toast.value = { show: true, message: msg, type };
-      _toastTimer = setTimeout(() => { toast.value.show = false; }, 2500);
+      // 中文注释：错误信息按长度延长停留（上限 8 秒），给用户读完的时间；其余类型保持 2.5 秒。
+      const duration = type === 'error' ? Math.min(8000, 2500 + String(msg || '').length * 40) : 2500;
+      _toastTimer = setTimeout(() => { toast.value.show = false; }, duration);
     }
+    function dismissToast() { clearTimeout(_toastTimer); toast.value.show = false; }
 
     /* 确认弹窗 */
     const showConfirm = ref(false);
@@ -3825,6 +3847,25 @@ createApp({
       openConfirm({ title, message, confirmText:'放弃并关闭' }, () => {
         if (typeof onDiscard === 'function') onDiscard();
       });
+    }
+
+    /* 通用输入弹窗：替代原生 window.prompt（原生弹窗违反统一弹窗红线且部分移动端 WebView 不可用） */
+    const showInputPrompt = ref(false);
+    const inputPromptCfg = ref({ title: '请输入', message: '', placeholder: '', multiline: false, confirmText: '确定', maxlength: 200 });
+    const inputPromptValue = ref('');
+    let _inputPromptCb = null;
+    function openInputPrompt(cfg, cb) {
+      inputPromptCfg.value = Object.assign({ title: '请输入', message: '', placeholder: '', multiline: false, confirmText: '确定', maxlength: 200 }, cfg || {});
+      inputPromptValue.value = String(cfg?.initialValue ?? '');
+      _inputPromptCb = cb;
+      showInputPrompt.value = true;
+      nextTick(() => document.querySelector('[data-moyun-input-prompt-field]')?.focus());
+    }
+    function cancelInputPrompt() { showInputPrompt.value = false; _inputPromptCb = null; }
+    function execInputPrompt() {
+      showInputPrompt.value = false;
+      const cb = _inputPromptCb; _inputPromptCb = null;
+      if (typeof cb === 'function') cb(inputPromptValue.value);
     }
     function getConfirmModalClass(cfg = {}) {
       if (cfg.variant === 'snowwingModImport') return 'w-full max-w-2xl p-4 md:p-5 rounded-[20px]';
@@ -3933,7 +3974,10 @@ createApp({
       return { background:'var(--err)', color:'white' };
     }
 
-    // 中文注释：白鸟 NFSW特化只在本次页面会话内记住 R18 确认；刷新后重新确认。
+    // 中文注释：白鸟成人栏目只在本次页面会话内记住 R18 确认；刷新后重新确认。
+    // R18 门按栏目标题匹配，必须同时接受新拼写 NSFW特化（v2.5.6 起）与历史拼写 NFSW特化（v2.5.5 及更早），
+    // 否则旧包或新包之一会绕过 R18 确认直接展开。
+    const SNOWWING_NSFW_SECTION_TITLE_RE = /^(?:NSFW|NFSW)特化$/;
     let snowwingNfswR18ConfirmedThisSession = false;
     function shouldGateSnowwingNfswSection(entry = {}, section = {}) {
       return !!(
@@ -3941,7 +3985,7 @@ createApp({
         isSnowwingMod(entry.mod) &&
         isSnowwingThemed(entry) &&
         isWorkbenchModUiEntry(entry) &&
-        String(section?.title || '').trim() === 'NFSW特化'
+        SNOWWING_NSFW_SECTION_TITLE_RE.test(String(section?.title || '').trim())
       );
     }
 
@@ -3951,7 +3995,7 @@ createApp({
         || (
           detail.classList.contains('mod-workbench-collapse') &&
           detail.dataset?.moyunModId === SNOWWING_CURRENT_MOD_ID &&
-          String(detail.dataset?.moyunSectionTitle || '').trim() === 'NFSW特化'
+          SNOWWING_NSFW_SECTION_TITLE_RE.test(String(detail.dataset?.moyunSectionTitle || '').trim())
         );
     }
 
@@ -3961,7 +4005,7 @@ createApp({
         title: 'R18 内容免责声明',
         confirmText: '确认并展开',
         dangerEyebrow: 'R18 / 成人内容确认',
-        dangerSub: '即将展开白鸟 NFSW特化模块。',
+        dangerSub: '即将展开白鸟 NSFW特化模块。',
         message: [
           '该模块可能涉及成人向 / R18 创作配置，仅限已成年人在合法、合规、自愿的创作边界内使用。',
           '',
@@ -3969,9 +4013,9 @@ createApp({
           '1. 你已达到当地法律规定的成年年龄。',
           '2. 你会自行遵守所在地法律法规、平台规则和社群边界。',
           '3. 该模块只展开可见配置，不会自动生成正文、调用模型或使用主 Key。',
-          '4. 取消将保持 NFSW特化收起，不会修改任何设置。'
+          '4. 取消将保持 NSFW特化收起，不会修改任何设置。'
         ].join('\n'),
-        dangerFootnote: '取消不会修改任何设置，也不会展开 NFSW特化；确认后仅在本次页面会话内记住。'
+        dangerFootnote: '取消不会修改任何设置，也不会展开 NSFW特化；确认后仅在本次页面会话内记住。'
       };
     }
 
@@ -4000,7 +4044,7 @@ createApp({
         snowwingNfswR18ConfirmedThisSession = true;
         openAnimatedDetailsElement(detail);
         showConfirm.value = false;
-        showToast('已确认并展开 NFSW特化', 'warning');
+        showToast('已确认并展开 NSFW特化', 'warning');
       });
     }
 
@@ -4266,7 +4310,7 @@ function getRealContextRoleStyle(role) {
 
 function isSnowwingContextContent(content) {
       const text = String(content || '');
-      return /白鸟·雪翼成双|snowwing|雪翼成双|破限增强|NFSW特化|伏笔池|伏笔分析|白鸟模型|白鸟记忆|白鸟推演|白鸟过河滩|<白鸟|getvar::|setvar::|cot_|【MOD模块：|\b(?:MOD|Skill|Hosted View|prompt:write|activeContextTools|data:table)\b|宿主预设|流水线|文风指令|预设指令|API 配置|连接中心/i.test(text);
+      return /白鸟·雪翼成双|snowwing|雪翼成双|破限增强|NFSW特化|NSFW特化|伏笔池|伏笔分析|白鸟模型|白鸟记忆|白鸟推演|白鸟过河滩|<白鸟|getvar::|setvar::|cot_|【MOD模块：|\b(?:MOD|Skill|Hosted View|prompt:write|activeContextTools|data:table)\b|宿主预设|流水线|文风指令|预设指令|API 配置|连接中心/i.test(text);
     }
 
 function collectSnowwingContextLabels(content) {
@@ -4283,7 +4327,7 @@ function collectSnowwingContextLabels(content) {
           .replace(/^模型\s*\/\s*/, '模型模式 / ')
           .replace(/^推演\s*\/\s*/, '章节推演 / ')
           .replace(/^底层\s*\/\s*/, '核心运行 / ')
-          .replace(/^官能\s*\/\s*/, 'NFSW特化 / ')
+          .replace(/^官能\s*\/\s*/, 'NSFW特化 / ')
           .replace(/^伏笔\s*\/\s*/, '伏笔 / ')
           .replace(/^记忆\s*\/\s*/, '记忆系统 / ');
         if (normalized && !labels.includes(normalized)) labels.push(normalized);
@@ -4296,7 +4340,7 @@ function collectSnowwingContextLabels(content) {
         ['记忆系统', /白鸟记忆|记忆召回|向量|memory/i],
         ['伏笔系统', /伏笔|线索|foreshadow/i],
         ['破限增强', /破限增强/i],
-        ['NFSW特化', /NFSW特化/i],
+        ['NSFW特化', /(?:NFSW|NSFW)特化/i],
         ['正文规则', /MOD规则|正文|输出格式|章节|续写/i]
       ];
       pairs.forEach(([label, re]) => { if (re.test(text) && !labels.includes(label)) labels.push(label); });
@@ -5018,7 +5062,13 @@ function copyLastChapterContextText() {
       }
     }
 
+    // 中文注释：存档加载失败后必须拒绝一切自动写入，否则空书架/半截数据会覆盖用户的真实存档。
+    let storageLoadFailed = false;
     async function persistLibraryNow(reason = '手动保存') {
+      if (storageLoadFailed) {
+        showToast('存档保护模式：加载失败期间已停止写入，请先导出备份或刷新重试', 'error');
+        return false;
+      }
       try {
         const library = buildLibrarySnapshot();
         const backupRef = saveEmergencyBackup(library, reason);
@@ -5123,7 +5173,19 @@ function copyLastChapterContextText() {
           connectionCredentials.value = parsedCredentials && typeof parsedCredentials === 'object' && !Array.isArray(parsedCredentials) ? parsedCredentials : {};
         } catch { connectionCredentials.value = {}; }
         if (raw) {
-          const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          let data;
+          try {
+            data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          } catch (parseErr) {
+            // 中文注释：解析失败时先把损坏原件原样另存，再进入保护模式；直接降级空书架会被后续保存覆盖真实存档。
+            storageLoadFailed = true;
+            const rawText = typeof raw === 'string' ? raw : String(raw);
+            Promise.resolve(DB.set('library_v6_corrupt_backup', rawText)).catch(() => {});
+            console.error('[Storage] 存档解析失败，进入保护模式:', parseErr);
+            showToast('存档数据损坏：已停用自动保存并将原始存档另存为恢复备份，请勿关闭页面，先截图并反馈', 'error');
+            initBooks();
+            return;
+          }
           // 核心
           if (data.novel) novel.value = data.novel;
           if (data.settings) Object.assign(settings.value, data.settings);
@@ -5313,7 +5375,13 @@ function copyLastChapterContextText() {
             initBooks();
           }
         }
-      }).catch(e => { console.error('[Storage] Load error:', e); initBooks(); });
+      }).catch(e => {
+        // 中文注释：任何加载异常都进入保护模式；此时数据可能只加载了一半，继续自动保存等于用残缺数据覆盖完整存档。
+        storageLoadFailed = true;
+        console.error('[Storage] Load error:', e);
+        showToast('存档加载失败：已停用自动保存以保护原始数据，请刷新重试；反复出现请立即反馈', 'error');
+        initBooks();
+      });
     }
 
     /* 初始化书架 */
@@ -5378,6 +5446,15 @@ function copyLastChapterContextText() {
       if (typeof stopActiveGeneration === 'function') stopActiveGeneration('bookSwitch');
       if (typeof cancelSuggestionRun === 'function') cancelSuggestionRun('bookSwitch', { resetView:true });
       if (typeof cancelBookReviewRun === 'function') cancelBookReviewRun('bookSwitch', { resetView:true });
+      // 中文注释：MOD AI 工具在切书时中止。Map 里存的是 runState（AbortController 在其 controller 字段上）；
+      // 运行态映射不整体清空——由各 run 的 finally 自行清理，否则旧 run 的 finally 会抹掉新书同名 run 的状态造成并发竞态。
+      try {
+        modAiToolRunControllers.forEach(run => {
+          if (!run || !run.controller) return;
+          run.externalAbort = true;
+          try { run.controller.abort(new DOMException('切换书籍，已中止 AI 工具', 'AbortError')); } catch { try { run.controller.abort(); } catch {} }
+        });
+      } catch (e) { console.warn('[ModRun] bookSwitch cancel failed:', e); }
     }
 
     function createNewBook(title, theme, worldView) {
@@ -5498,13 +5575,27 @@ function copyLastChapterContextText() {
     }
 
     function deleteBook(id) {
-      openConfirm({ title:'删除书籍', message:'确定删除这本书吗？不可恢复。', confirmText:'删除' }, () => {
+      const book = books.value.find(b => b && b.id === id);
+      if (!book) return;
+      const chapterCount = Array.isArray(book.chapters) ? book.chapters.length : 0;
+      const characterCount = Array.isArray(book.characters) ? book.characters.length : 0;
+      const modCount = Array.isArray(book.modPacks) ? book.modPacks.length : 0;
+      openConfirm({
+        title: '删除书籍',
+        message: '确定删除《' + (String(book.title || '').trim() || '未命名书籍') + '》？删除后不可恢复，建议先用「导出 JSON → 全量备份」留档。',
+        confirmText: '删除书籍',
+        impactLines: [
+          '章节 ' + chapterCount + ' 章（含全部分支）、存档字数约 ' + (Number(book.wordCount) || 0) + ' 字',
+          '角色：' + characterCount + ' 个' + (modCount ? '；MOD：' + modCount + ' 个（含其私有数据）' : ''),
+          '暗线计划、总结、细纲与快照关联将一并失效'
+        ]
+      }, () => {
         books.value = books.value.filter(b => b.id !== id);
         if (id === currentBookId.value) {
           if (books.value.length > 0) loadBook(books.value[0].id);
           else { const nid = createNewBook(); loadBook(nid); }
         }
-        saveData(); showToast('已删除', 'success');
+        saveData(); showToast('已删除《' + (String(book.title || '').trim() || '未命名书籍') + '》', 'success');
       });
     }
 
@@ -11605,9 +11696,7 @@ function cleanAIResponse(text) {
       if (!customApiUrl && !moduleRequest.ok) return fail(moduleRequest.reason || '请先配置对应模块 API');
       const request = {
         ok: true,
-        url: customApiUrl
-        ? (customApiUrl.replace(/\/+$/, '').endsWith('/chat/completions') ? customApiUrl.replace(/\/+$/, '') : customApiUrl.replace(/\/+$/, '') + '/chat/completions')
-        : moduleRequest.url,
+        url: customApiUrl ? resolveModToolChatUrl(customApiUrl) : moduleRequest.url,
         apiKey: customApiKey || (requiresExplicitToolKey ? '' : moduleRequest.apiKey),
         model: customModel || moduleRequest.model,
         adapterId: customApiUrl ? 'openai-compatible' : moduleRequest.adapterId
@@ -11690,8 +11779,11 @@ function cleanAIResponse(text) {
       } finally {
         clearTimeout(timeoutTimer);
         if (runtimeOptions.signal) runtimeOptions.signal.removeEventListener('abort', relayAbort);
-        modAiToolRunControllers.delete(runKey);
-        delete modAiToolRunning.value[runKey];
+        // 中文注释：只清理属于本 run 的注册，防止迟到的旧 run 抹掉后启动的同名 run 状态。
+        if (modAiToolRunControllers.get(runKey) === runState) {
+          modAiToolRunControllers.delete(runKey);
+          delete modAiToolRunning.value[runKey];
+        }
       }
     }
 
@@ -14635,6 +14727,19 @@ function cleanAIResponse(text) {
       url = url.replace(/\/+$/, '');
       if (!url.match(/\/v\d+$/)) url += '/v1';
       return url;
+    }
+
+    // 中文注释：只有纯主机/根路径的裸基址才走 /v1 归一化（与"测试连接"对齐，治"测试成功但运行 404"）；
+    // 写全 /chat/completions 的照旧直用；带自定义路径的基址（如 …/v1beta/openai）保持旧式直拼，避免把可用的存量配置改成 404。
+    function resolveModToolChatUrl(rawUrl) {
+      const trimmed = String(rawUrl || '').trim().replace(/\/+$/, '');
+      if (!trimmed) return '';
+      if (trimmed.endsWith('/chat/completions')) return trimmed;
+      try {
+        const parsed = new URL(trimmed);
+        if (!parsed.pathname || parsed.pathname === '/') return normalizeModApiBaseUrl(trimmed) + '/chat/completions';
+      } catch {}
+      return trimmed + '/chat/completions';
     }
 
     function getMainModelForModTask(task = 'writing') {
@@ -18116,6 +18221,8 @@ function getModHubPermissionLabels(mod) {
       const runKey = getModWorkflowRunKey(mod, workflow);
       if (modWorkflowRunning.value[runKey]) return { ok: false, skipped: true, error: '工作流正在运行' };
       const execute = async () => {
+        // 中文注释：confirmBeforeRun 弹窗确认与 skipConfirm 触发可能绕过入口防重检查，执行前必须复查运行态。
+        if (modWorkflowRunning.value[runKey]) return { ok: false, skipped: true, error: '工作流正在运行' };
         const runBookId = currentBookId.value;
         const missingSettings = getModWorkflowMissingSettings(mod, workflow);
         if (missingSettings.length) {
@@ -21652,9 +21759,14 @@ function getModHubPermissionLabels(mod) {
     }
 
     function editInlineImagePrompt(cacheKey, oldTag) {
-      const next = window.prompt('编辑这张图的提示词（英文 tags，逗号分隔）：', oldTag || '');
-      if (next === null) return;
-      regenerateInlineImage(cacheKey, next);
+      openInputPrompt({
+        title: '编辑生图提示词',
+        message: '英文 tags，逗号分隔；确认后立即按新提示词重新生成这张图。',
+        placeholder: '例如：1girl, silver hair, snow',
+        initialValue: oldTag || '',
+        maxlength: 500,
+        confirmText: '重新生成'
+      }, next => regenerateInlineImage(cacheKey, next));
     }
 
     if (!window._imgActionBound) {
@@ -21795,7 +21907,10 @@ function getModHubPermissionLabels(mod) {
     }
 
     function cancelChapterEdit(idx) {
-      const ch = visibleChapters.value[idx]; if (ch) ch.isEditing = false;
+      const ch = visibleChapters.value[idx]; if (!ch) return;
+      const dirty = (ch.tempContent !== undefined && ch.tempContent !== ch.content) || (ch.tempTitle !== undefined && ch.tempTitle !== ch.title);
+      if (!dirty) { ch.isEditing = false; return; }
+      confirmDiscardDraft('放弃章节修改', '本章有未保存的修改，放弃后将恢复为编辑前的内容，无法找回。', () => { ch.isEditing = false; });
     }
 
     function normalizeManualChapterTitle(text, fallbackTitle = '') {
@@ -21824,8 +21939,15 @@ function getModHubPermissionLabels(mod) {
       return '第' + n + '章';
     }
 
+    // 中文注释：章号查询在长列表渲染里被高频调用，indexOf 是 O(n)；用 id→index Map 降为 O(1)，无 id 时回退旧逻辑。
+    const chapterIndexById = computed(() => {
+      const map = new Map();
+      chapters.value.forEach((chapter, index) => { if (chapter && chapter.id != null) map.set(chapter.id, index); });
+      return map;
+    });
     function getChapterDisplayNumber(ch, visibleIdx = 0) {
-      const realIdx = chapters.value.indexOf(ch);
+      const mapped = ch && ch.id != null ? chapterIndexById.value.get(ch.id) : undefined;
+      const realIdx = mapped !== undefined ? mapped : chapters.value.indexOf(ch);
       return (realIdx >= 0 ? realIdx : visibleIdx) + 1;
     }
 
@@ -22757,7 +22879,14 @@ function getModHubPermissionLabels(mod) {
 
     function deleteBranch(bid) {
       if (bid === 'main') { showToast('不能删除主线', 'error'); return; }
-      openConfirm({title:'删除分支',message:'确定删除分支和它的所有章节？',confirmText:'删除'}, () => {
+      const branch = branchList.value.find(b => b && b.id === bid);
+      const branchChapterCount = chapters.value.filter(ch => ch && ch.branchId === bid).length;
+      openConfirm({
+        title: '删除分支',
+        message: '确定删除分支「' + (branch?.name || '未命名分支') + '」？其中的章节将一并删除，无法找回。',
+        confirmText: '删除分支',
+        impactLines: ['将删除该分支章节：' + branchChapterCount + ' 章', '主线与其他分支不受影响']
+      }, () => {
         chapters.value = chapters.value.filter(ch => ch.branchId !== bid);
         branchList.value = branchList.value.filter(b => b.id !== bid);
         if (activeBranchId.value === bid) { activeBranchId.value = 'main'; currentChapterIndex.value = -1; }
@@ -22768,8 +22897,16 @@ function getModHubPermissionLabels(mod) {
     function renameBranch(bid) {
       const b = branchList.value.find(x => x.id === bid);
       if (!b) return;
-      const nm = window.prompt('新名称:', b.name);
-      if (nm?.trim()) { b.name = nm.trim(); saveData(); showToast('已重命名', 'success'); }
+      openInputPrompt({
+        title: '重命名分支',
+        message: '当前名称：' + (b.name || '未命名分支'),
+        placeholder: '请输入新的分支名称',
+        initialValue: b.name || '',
+        maxlength: 30,
+        confirmText: '保存名称'
+      }, nm => {
+        if (nm?.trim()) { b.name = nm.trim(); saveData(); showToast('已重命名', 'success'); }
+      });
     }
 
     function regenerateChapter(idx) {
@@ -22783,28 +22920,36 @@ function getModHubPermissionLabels(mod) {
       const target = vc[idx];
       if (!target) { showToast('未找到要重写的章节', 'error'); return; }
       const forkIdx = idx > 0 ? idx - 1 : -1;
-      const prompt = window.prompt('分支重写方向（原章节会保留，留空=沿用原逻辑）:', '');
-      if (prompt === null) return;
-      let branchNo = 1;
-      while (branchList.value.some(item => item.name === '分支 ' + branchNo)) branchNo++;
-      const pendingBranch = {
-        id: uid(),
-        name: '分支 ' + branchNo,
-        forkFromChapterId: forkIdx >= 0 ? (vc[forkIdx]?.id || null) : null,
-        forkIndex: forkIdx
-      };
-      startGeneration({
-        mode: 'rewrite',
-        count: 1,
-        writingModel: prerequisites.model,
-        pendingBranch,
-        targetBranchId: pendingBranch.id,
-        currentChapterNo: idx + 1,
-        messageOptions: {
-          contextChapters: vc.slice(0, idx),
+      openInputPrompt({
+        title: '分支重写第' + (idx + 1) + '章',
+        message: '原章节会完整保留在当前分支；留空则沿用原章节逻辑重写。',
+        placeholder: '写下这次重写的方向或要求（可留空）',
+        initialValue: '',
+        multiline: true,
+        confirmText: '开始重写'
+      }, promptText => {
+        const prompt = String(promptText || '');
+        let branchNo = 1;
+        while (branchList.value.some(item => item.name === '分支 ' + branchNo)) branchNo++;
+        const pendingBranch = {
+          id: uid(),
+          name: '分支 ' + branchNo,
+          forkFromChapterId: forkIdx >= 0 ? (vc[forkIdx]?.id || null) : null,
+          forkIndex: forkIdx
+        };
+        startGeneration({
+          mode: 'rewrite',
+          count: 1,
+          writingModel: prerequisites.model,
+          pendingBranch,
+          targetBranchId: pendingBranch.id,
           currentChapterNo: idx + 1,
-          promptOverride: prompt || ''
-        }
+          messageOptions: {
+            contextChapters: vc.slice(0, idx),
+            currentChapterNo: idx + 1,
+            promptOverride: prompt || ''
+          }
+        });
       });
     }
 
@@ -22864,9 +23009,16 @@ function getModHubPermissionLabels(mod) {
     }
 
     function deleteSummary(id) {
-      openConfirm({title:'删除总结',message:'确定？',confirmText:'删除'}, () => {
+      const target = summaries.value.find(s => s && s.id === id);
+      const rangeText = target ? ('第' + target.startChapter + '-' + target.endChapter + '章总结') : '这条总结';
+      openConfirm({
+        title: '删除总结',
+        message: '确定删除' + rangeText + '？删除后无法找回，正文章节不受影响。',
+        confirmText: '删除总结',
+        impactLines: target ? ['内容约 ' + String(target.content || '').length + ' 字' + (target.useForContext ? '；该总结正被用作生成上下文' : '')] : []
+      }, () => {
         summaries.value = summaries.value.filter(s=>s.id!==id);
-        saveData(); showToast('已删除', 'success');
+        saveData(); showToast('已删除' + rangeText, 'success');
       });
     }
 
@@ -24545,11 +24697,13 @@ function getWritingModelLabel() {
         stopGenTimer();
         const stopReason = e.name === 'AbortError' ? (_generationStopReason || 'abort') : 'error';
         const stopPayload = { source: 'continueGeneration', mode: 'continue', reason: stopReason, error: e.message || '', preservedLength: (streamContent.value || '').length };
-        if (e.name === 'AbortError' && (streamContent.value||'').length > 50) {
+        // 中文注释：失败与中止同样回存草稿；续写开头已清空 interruptedContent，此处不回存则用户的中断草稿被彻底丢弃。短稿同样保留。
+        if ((streamContent.value||'').length > 0) {
           interruptedContent.value = streamContent.value;
           isInterrupted.value = true;
-        } else {
-          showToast('续写失败: ' + e.message, 'error');
+        }
+        if (e.name !== 'AbortError') {
+          showToast('续写失败: ' + e.message + (isInterrupted.value ? '（中断草稿已保留，可继续续写或恢复）' : ''), 'error');
         }
         streamContent.value = '';
         finishGenerationRun(run.id);
@@ -25503,7 +25657,8 @@ function getWritingModelLabel() {
         });
       }
       return {
-        save(snap) { return open().then(db => new Promise(ok => { const tx = db.transaction('snaps','readwrite'); tx.objectStore('snaps').put(snap); tx.oncomplete = ok; tx.onerror = ok; })).catch(() => {}); },
+        // 中文注释：save 永不 reject 但必须如实返回 {ok} 状态；把失败当成功会让"恢复前自动保存"落空后仍执行覆盖。
+        save(snap) { return open().then(db => new Promise(resolve => { const tx = db.transaction('snaps','readwrite'); tx.objectStore('snaps').put(snap); tx.oncomplete = () => resolve({ ok: true }); tx.onerror = () => resolve({ ok: false, error: (tx.error && tx.error.message) || '快照写入失败' }); tx.onabort = () => resolve({ ok: false, error: (tx.error && tx.error.message) || '快照事务被中止' }); })).catch(e => ({ ok: false, error: (e && e.message) || '快照库不可用' })); },
         list() { return open().then(db => new Promise(ok => { const r = db.transaction('snaps','readonly').objectStore('snaps').getAll(); r.onsuccess = () => { const arr = r.result || []; arr.sort((a,b) => b.timestamp - a.timestamp); ok(arr); }; r.onerror = () => ok([]); })).catch(() => []); },
         del(id) { return open().then(db => { db.transaction('snaps','readwrite').objectStore('snaps').delete(id); }).catch(() => {}); }
       };
@@ -25555,6 +25710,14 @@ function getWritingModelLabel() {
       });
     }
 
+    function saveSnapshotManually() {
+      saveSnapshot('手动保存').then(res => {
+        if (res && res.ok) showToast('快照已保存', 'success');
+        else showToast('快照保存失败：' + ((res && res.error) || '存储不可用') + '，请导出备份', 'error');
+        loadSnapshots();
+      });
+    }
+
     function deleteSnapshot(snapshotOrId) {
       const snap = snapshotOrId && typeof snapshotOrId === 'object'
         ? snapshotOrId
@@ -25586,7 +25749,12 @@ function getWritingModelLabel() {
       // 中文注释：保留快照历史作为下层弹窗；取消确认时可直接回到原恢复按钮和列表位置。
       openConfirm({ title: '恢复快照', message: '确定恢复？当前内容会先自动保存。', confirmText: '恢复' }, () => {
         showSnapshots.value = false;
-        saveSnapshot('恢复前自动保存').then(() => {
+        saveSnapshot('恢复前自动保存').then((saveResult) => {
+          if (!saveResult || !saveResult.ok) {
+            showToast('恢复已中止：当前内容自动保存失败（' + ((saveResult && saveResult.error) || '存储不可用') + '），请先手动保存快照或导出备份', 'error');
+            showSnapshots.value = true;
+            return;
+          }
           try {
             resetCharacterDraftReviewForBookChange();
             resetRelationshipGraphState();
@@ -25865,7 +26033,7 @@ function getWritingModelLabel() {
       showImportExport.value = false;
       const hasBranchData = branchList.value.length > 1 || chapters.value.some(chapter => chapter?.branchId && chapter.branchId !== 'main');
       if (activeBranchId.value !== 'main' || hasBranchData) {
-        showToast('TXT 无法完整保留分支；请使用 JSON 导出完整书籍，或删除支线后再导出 TXT', 'warning');
+        showToast('TXT 无法完整保留分支；请使用「导出 JSON → 全量备份」保留完整书籍，或删除支线后再导出 TXT', 'warning');
         return false;
       }
       const exportChapters = Array.from(visibleChapters.value || []);
@@ -25940,22 +26108,89 @@ function getWritingModelLabel() {
     }
 
 
-    // JSON 导出：只允许导出可分享的干净书稿，绝不把 CoT、提示词资产或插件运行数据混入文件。
+    // JSON 导出分两种用途：全量备份（自用恢复，含全部数据）与干净分享稿（对外分享，剥离 CoT、提示词资产和插件数据）。
     function exportBookJson() {
       showImportExport.value = false;
       nextTick(() => openConfirm({
         title: '导出 JSON',
-        message: '请选择导出方式。关闭弹窗或点击取消不会保存、打包或下载文件。',
+        message: '请选择导出方式。备份请选「全量备份」；分享给他人请选「干净分享稿」。关闭弹窗或点击取消不会下载文件。',
         impactLines: [
-          '完整导出：书名、世界观、章节名与清洗后的正文',
-          '仅导出正文：书名、章节名与清洗后的正文，不含世界观',
-          '不会导出 CoT/原生思考、工具记录、预设、文风、MOD、图片或其他配置'
+          '全量备份：本书全部数据（章节含分支与历史版本、角色卡、总结、细纲、暗线计划、预设、文风、MOD 数据），用于完整恢复',
+          '全量备份不包含任何 API Key（MOD 设置中保存的密钥会被剥离，恢复后需重新填写）；个别宿主级偏好不在备份范围',
+          '干净分享稿：仅书名、世界观、章节名与清洗后正文；不含 CoT/工具记录/预设/MOD，正文分支会合并，不能用于完整恢复',
+          '仅正文：书名、章节名与清洗后的正文，不含世界观'
         ],
         choices: [
-          { id:'complete', label:'完整导出' },
-          { id:'content', label:'仅导出正文', tone:'neutral' }
+          { id:'backup', label:'全量备份（推荐）' },
+          { id:'complete', label:'干净分享稿', tone:'neutral' },
+          { id:'content', label:'仅正文', tone:'neutral' }
         ]
-      }, action => performExportBookJson(action === 'content' ? 'content' : 'complete')));
+      }, action => action === 'backup' ? performExportBookFullBackup() : performExportBookJson(action === 'content' ? 'content' : 'complete')));
+    }
+
+    // 中文注释：全量备份不携带任何 API Key——MOD 私有数据 settings 里可能有用户粘贴的独立 Key，
+    // 甚至经"跟随主模型填写"复制进来的主 Key；按键名剥离（红线：导出数据不携带密钥），导入侧本就允许缺省。
+    const MOD_SECRET_SETTING_PATTERN = /apikey|api_key|apisecret|api_secret|token|credential|authorization|password/i;
+    function buildSanitizedModPrivateDataForExport() {
+      const clone = deepClone(modPrivateData.value || {});
+      Object.values(clone).forEach(entry => {
+        if (entry && typeof entry === 'object' && entry.settings && typeof entry.settings === 'object') {
+          Object.keys(entry.settings).forEach(key => {
+            if (MOD_SECRET_SETTING_PATTERN.test(key)) delete entry.settings[key];
+          });
+        }
+      });
+      return clone;
+    }
+
+    // 全量备份：镜像 handleImportJson 支持的字段，密钥剥离后可基本无损恢复；仅自用，不做正文清洗。
+    async function performExportBookFullBackup() {
+      syncBookData();
+      await saveDataNow('全量备份导出前保存');
+      try {
+        showToast('正在打包全量备份...', 'info');
+        const data = {
+          _type: 'moyun_full_book_backup',
+          _exportVersion: 7,
+          _exportMode: 'full-backup',
+          _exportDate: new Date().toISOString(),
+          novel: deepClone(novel.value),
+          storyBible: storyBible.value ? deepClone(storyBible.value) : null,
+          chapters: deepClone(chapters.value).map(ch => Object.assign({}, ch, { isExpanded: false, isEditing: false, contentHeight: 0 })),
+          characters: deepClone(structuredCharacters.value),
+          branchList: deepClone(branchList.value),
+          activeBranchId: activeBranchId.value,
+          chapterOutlines: deepClone(chapterOutlines.value),
+          chapterIndexDrafts: deepClone(chapterIndexDrafts.value),
+          foreshadowMatrix: deepClone(foreshadowMatrix.value),
+          summaries: deepClone(summaries.value),
+          coverImage: coverImage.value,
+          promptPipeline: deepClone(promptPipeline.value),
+          presets: deepClone(presets.value),
+          writingStyles: deepClone(writingStyles.value),
+          currentWritingStyleId: currentWritingStyleId.value,
+          modPacks: deepClone(modPacks.value),
+          modPrivateData: buildSanitizedModPrivateDataForExport(),
+          atmosphereEnabled: atmosphereEnabled.value,
+          atmospherePrompt: atmospherePrompt.value,
+          nsfwSettings: deepClone(nsfwSettings.value),
+          dialogueTypes: deepClone(dialogueTypes.value),
+          imageProfiles: deepClone(imageProfiles.value),
+          activeProfileId: activeProfileId.value
+        };
+        const jsonStr = JSON.stringify(data);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const a = document.createElement('a');
+        const objUrl = URL.createObjectURL(blob);
+        a.href = objUrl;
+        a.download = (novel.value.title || '未命名书稿') + '_全量备份.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(objUrl); }, 5000);
+        showToast('全量备份已导出（含分支、角色、总结、细纲与 MOD 数据）', 'success');
+      } catch (e) {
+        showToast('全量备份导出失败: ' + (e.message || '数据过大'), 'error');
+      }
     }
 
     // 书名与章节名同样可能来自旧 AI 结果或损坏导入；导出前移除明确的 CoT 载体，避免标题泄漏思考内容。
@@ -25999,11 +26234,11 @@ function getWritingModelLabel() {
         const a = document.createElement('a');
         const objUrl = URL.createObjectURL(blob);
         a.href = objUrl;
-        a.download = title + (isContentOnly ? '_正文' : '_完整书稿') + '.json';
+        a.download = title + (isContentOnly ? '_正文' : '_分享书稿') + '.json';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(objUrl); }, 5000);
-        showToast('JSON已导出：' + (isContentOnly ? '仅正文' : '完整书稿'), 'success');
+        showToast('JSON已导出：' + (isContentOnly ? '仅正文' : '干净分享稿（如需完整备份请选全量备份）'), 'success');
       } catch (e) {
         showToast('导出失败: ' + (e.message || '数据过大'), 'error');
       }
@@ -26366,7 +26601,18 @@ function getWritingModelLabel() {
             showToast('已恢复 ' + Object.keys(data._imageCache).length + ' 张缓存图片', 'success');
           }
 
-          saveDataNow('JSON导入完成');
+          // 中文注释：保护模式下导入的可能只是单本分享稿，而 IndexedDB 里的原存档也许仍然完好；
+          // 覆写前先把现存 library_v6 原样另存，再解除保护并落盘，避免"导入一本书=丢掉整库"。
+          if (storageLoadFailed) {
+            Promise.resolve(DB.get('library_v6')).then(existingRaw => {
+              if (existingRaw) return DB.set('library_v6_pre_import_backup', typeof existingRaw === 'string' ? existingRaw : JSON.stringify(existingRaw));
+            }).catch(() => {}).then(() => {
+              storageLoadFailed = false;
+              saveDataNow('JSON导入完成（已另存导入前存档并解除保护模式）');
+            });
+          } else {
+            saveDataNow('JSON导入完成');
+          }
           importJsonError.value = '';
           showImportExport.value = false;
           showToast('JSON已导入：' + chapters.value.length + '章，' + structuredCharacters.value.length + '角色，' + summaries.value.length + '条总结', 'success');
@@ -27034,7 +27280,7 @@ function getWritingModelLabel() {
       .then(result => {
         if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
         let raw = getAdapterCompletionText(result);
-        if (!raw) { ch.isGeneratingComments = false; return; }
+        if (!raw) { ch.isGeneratingComments = false; showToast('书评生成失败：模型未返回内容，可稍后重试', 'error'); return; }
         const locs = ["北京","上海","广东","浙江","江苏","四川","湖北","山东","河南","福建","安徽","辽宁","河北","重庆"];
         const rl = () => locs[Math.floor(Math.random() * locs.length)];
         try {
@@ -27047,7 +27293,12 @@ function getWritingModelLabel() {
         }
         saveData();
       })
-      .catch(e => { if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) console.error('书评生成失败:', sanitizeApiErrorDetail(e.message || e)); })
+      .catch(e => {
+        if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) {
+          console.error('书评生成失败:', sanitizeApiErrorDetail(e.message || e));
+          showToast('书评生成失败：' + sanitizeApiErrorDetail(e.message || e), 'error');
+        }
+      })
       .finally(() => { finishBookScopedAiRun(run); ch.isGeneratingComments = false; });
     }
 
@@ -28043,11 +28294,12 @@ function getWritingModelLabel() {
 
     function handleBeforeUnloadSave() {
       // 中文注释：页面关闭前先写同步 localStorage 兜底，再尽力写 IndexedDB，降低关闭浏览器后丢稿概率。
+      if (storageLoadFailed) return;
       syncBookData();
       try {
         const library = buildLibrarySnapshot();
         saveEmergencyBackup(library, '页面关闭前兜底');
-        DB.set('library_v6', JSON.stringify(library));
+        DB.set('library_v6', JSON.stringify(library)).catch(e => console.error('[Save] beforeunload fallback failed:', e));
       } catch(e) { console.error('[Save] beforeunload failed:', e); }
     }
 
@@ -28075,7 +28327,8 @@ function getWritingModelLabel() {
       novel, chapters, structuredCharacters, books, currentBookId, mainScroll,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
-      toast, showToast,
+      toast, showToast, dismissToast,
+      showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showSnapshots, showSettings_modal,
@@ -28216,7 +28469,7 @@ function getWritingModelLabel() {
       suggestionPersona, generateSuggestion,
 
       // ── Part 4: 快照 ──
-      snapshots, saveSnapshot, loadSnapshots, deleteSnapshot, restoreSnapshot,
+      snapshots, saveSnapshot, saveSnapshotManually, loadSnapshots, deleteSnapshot, restoreSnapshot,
 
       // ── Part 5: 搜索 ──
       searchQuery, replaceQuery, searchResults, currentMatchIndex, hasSearched,

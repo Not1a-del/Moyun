@@ -1168,7 +1168,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* 浮动主题切换按钮（移动端） */
 .theme-fab{
-  position:fixed;bottom:188px;right:16px;z-index:50;
+  position:fixed;bottom:calc(188px + var(--moyun-mobile-browser-bottom,0px) + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
   width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
   background:var(--bg-card);border:1px solid var(--bd2);
   box-shadow:var(--sh2);display:flex;align-items:center;
@@ -1621,7 +1621,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 .mod-hub-menu[style*="right: 0px"]:before,.mod-hub-menu[style*="right: 0"]:before{right:16px;left:auto}
 .mod-hub-backdrop{position:fixed!important;inset:0!important;z-index:59!important;background:rgba(15,23,42,.22)!important;backdrop-filter:none!important}
 @media(max-width:767px){.mod-hub-root{width:46px!important;height:46px!important}.mod-hub-trigger{width:46px!important;height:46px!important}.mod-hub-menu{top:56px!important;width:320px!important;max-width:88vw!important;max-height:min(68dvh,560px)!important;border-radius:20px!important}}
-}
 
 
 
@@ -1651,7 +1650,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 /* 中文注释：段评组件样式，用于段落气泡、评论弹窗和移动端底部抽屉。 */
 .paragraph-comment-content{font-size:15px;line-height:1.7;color:var(--tx)}
 .paragraph-comment-meta{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--tx4)}
-.paragraph-comment-actions{position:sticky;bottom:0;background:var(--bg-card);border-top:1px solid var(--bd);padding:12px 18px;display:flex;gap:10px;align-items:center}
+.paragraph-comment-actions{position:sticky;bottom:0;background:var(--bg-card);border-top:1px solid var(--bd);padding:12px 18px calc(12px + var(--moyun-mobile-browser-bottom,0px) + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center}
 /* 中文注释：段评组件样式，用于段落气泡、评论弹窗和移动端底部抽屉。 */
 .paragraph-comment-input{flex:1;border-radius:14px;background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3);padding:10px 12px;font-size:13px}
 @media (min-width:768px){.paragraph-comment-mask{align-items:flex-end;padding:20px}.paragraph-comment-sheet{border-radius:22px 22px 0 0;max-height:78vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-body{padding-bottom:18px}.paragraph-comment-actions{position:static}.paragraph-comment-line{margin-bottom:1.1em}}
