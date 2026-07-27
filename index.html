@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=e7c0b31bc54a">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=98f6aa71eb68">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -42,7 +42,10 @@
          border: '1px solid var(--bd)',
          boxShadow: 'var(--sh2)'
        }">
-    {{ toast.message }}
+    <span>{{ toast.message }}</span>
+    <button v-if="toast.type==='error'" type="button" @click="dismissToast" aria-label="关闭提示"
+            class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-black"
+            style="background:transparent;border:1px solid currentColor;opacity:.75;line-height:1">×</button>
   </div>
 </transition>
 
@@ -677,8 +680,8 @@
             <span class="text-xs font-bold min-w-[20px]" style="color:var(--tx3)">{{ ci+1 }}</span>
             <span class="flex-1 text-sm text-truncate" :style="currentChapterIndex===ci?'font-weight:bold;color:var(--tx)':'color:var(--tx2)'">{{ getDisplayChapterTitle(ch, ci) }}</span>
             <span class="text-[10px]" style="color:var(--tx4)">{{ ch.wordCount||0 }}</span>
-            <button @click.stop="ch.showSummary=!ch.showSummary" class="p-0.5" style="color:var(--tx4)" :aria-expanded="String(!!ch.showSummary)" :aria-label="(ch.showSummary?'收起':'展开')+'第'+(ci+1)+'章摘要'" :title="(ch.showSummary?'收起':'展开')+'章节摘要'">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" :style="ch.showSummary?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+            <button @click.stop="ch.showSummary=!ch.showSummary" class="flex items-center justify-center shrink-0 min-w-[36px] min-h-[36px] -my-2 -mr-1 rounded-lg" style="color:var(--tx4)" :aria-expanded="String(!!ch.showSummary)" :aria-label="(ch.showSummary?'收起':'展开')+'第'+(ci+1)+'章摘要'" :title="(ch.showSummary?'收起':'展开')+'章节摘要'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" :style="ch.showSummary?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </button>
           </div>
           <!-- 摘要（在同一个循环内） -->
@@ -2457,7 +2460,7 @@
         <div v-if="safeChapterContextMeta" class="flex flex-wrap gap-2 mt-2 text-[11px]" style="color:var(--tx2)">
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">模型：{{ safeChapterContextMeta.model || '未指定' }}</span>
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">消息：{{ safeChapterContextMeta.messageCount }}</span>
-          <span class="px-2 py-0.5 rounded-full font-black" style="background:rgba(14,165,233,.10);color:#0369a1;border:1px solid rgba(14,165,233,.24)">当前实际字符数：{{ safeChapterContextMeta.totalChars }}</span>
+          <span class="px-2 py-0.5 rounded-full font-black" style="background:var(--info-soft);color:var(--info);border:1px solid var(--bd)">当前实际字符数：{{ safeChapterContextMeta.totalChars }}</span>
           <span v-if="lastChapterContextMeta" class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">上次实际发送：{{ lastChapterContextMeta.totalChars }}</span>
           <span class="px-2 py-0.5 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">刷新：{{ formatContextCapturedAt(safeChapterContextMeta.capturedAt) }}</span>
         </div>
@@ -2486,7 +2489,7 @@
           <div class="flex items-center gap-2 min-w-0">
             <span class="text-[11px] font-black px-2 py-1 rounded-full" :style="getRealContextRoleStyle(msg.role)">F{{ msg.floor }} · {{ msg.role }}</span>
             <span v-if="msg.name" class="text-[11px] px-2 py-1 rounded-full" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ msg.name }}</span>
-            <span v-if="msg.redacted" class="text-[10px] font-black px-2 py-1 rounded-full" style="background:rgba(14,165,233,.10);color:#0369a1;border:1px solid rgba(14,165,233,.22)">提示词已脱敏</span>
+            <span v-if="msg.redacted" class="text-[10px] font-black px-2 py-1 rounded-full" style="background:var(--info-soft);color:var(--info);border:1px solid var(--bd)">提示词已脱敏</span>
             <span class="text-xs truncate" style="color:var(--tx2)">messages[{{ msg.index }}]</span>
           </div>
           <div class="flex items-center gap-3 text-[11px] font-bold" style="color:var(--tx3)">
@@ -3456,6 +3459,39 @@
   </div>
 </transition>
 
+<!-- ════════════════════════════════════════════
+     通用输入弹窗（统一弹窗红线：替代原生 window.prompt）
+     ════════════════════════════════════════════ -->
+<transition name="pop">
+  <div v-if="showInputPrompt" data-moyun-region="modal" data-moyun-modal="input-prompt"
+       data-moyun-initial-focus="[data-moyun-input-prompt-field]" role="dialog" aria-modal="true" aria-labelledby="moyun-input-prompt-title"
+       class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl"
+          style="background:var(--bg-card);box-shadow:var(--sh3)" @submit.prevent="execInputPrompt">
+      <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
+        <div>
+          <h3 id="moyun-input-prompt-title" class="text-lg font-bold" style="color:var(--tx)">{{ inputPromptCfg.title }}</h3>
+          <p v-if="inputPromptCfg.message" class="text-xs mt-1" style="color:var(--tx3)">{{ inputPromptCfg.message }}</p>
+        </div>
+        <button type="button" data-moyun-modal-close @click="cancelInputPrompt" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭输入弹窗" title="关闭">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-2">
+        <textarea v-if="inputPromptCfg.multiline" v-model="inputPromptValue" data-moyun-input-prompt-field rows="4"
+                  class="textarea-field text-sm w-full" :placeholder="inputPromptCfg.placeholder"></textarea>
+        <input v-else v-model="inputPromptValue" data-moyun-input-prompt-field autocomplete="off"
+               class="input-field text-sm w-full" :placeholder="inputPromptCfg.placeholder" :maxlength="inputPromptCfg.maxlength || 200">
+      </div>
+      <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-moyun-modal-close @click="cancelInputPrompt" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
+        <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">{{ inputPromptCfg.confirmText }}</button>
+      </div>
+    </form>
+  </div>
+</transition>
+
 <!-- 首次欢迎说明：说明内容与“关于”页共用，已读记录只保存在当前浏览器。 -->
 <transition name="pop">
   <div v-if="showWebUpdateAnnouncement" data-moyun-region="modal" data-moyun-modal="web-update-announcement"
@@ -4246,7 +4282,7 @@
       <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
         <h3 id="moyun-snapshots-title" class="text-base font-bold" style="color:var(--tx)">🕐 快照历史</h3>
         <div class="flex gap-2 items-center">
-          <button @click="saveSnapshot('手动保存');loadSnapshots()" class="btn-primary text-[11px] px-3 py-1">💾 保存快照</button>
+          <button @click="saveSnapshotManually()" class="btn-primary text-[11px] px-3 py-1">💾 保存快照</button>
           <button type="button" data-moyun-modal-close data-snapshot-close @click="showSnapshots=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭快照历史" title="关闭">
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
           </button>
@@ -5245,7 +5281,7 @@
 <!-- 书评团浮动入口按钮（面板打开时自动下移避免遮挡） -->
 <button v-if="settings.enableReviewer && !immersiveMode && !showDetailedOutlineInMain && !showOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench"
         @click="showReviewModal=true"
-        class="fixed right-3 md:right-6 w-8 h-8 md:w-11 md:h-11 rounded-full flex items-center justify-center z-20 cursor-pointer"
+        class="fixed right-3 md:right-6 w-11 h-11 rounded-full flex items-center justify-center z-20 cursor-pointer"
         :style="{
           top: isMobile ? '4rem' : '5rem',
           background: 'var(--accent)',
@@ -5496,7 +5532,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=27b6d46c849d"></script>
+<script src="./assets/js/moyun.js?v=3121cd2e2ed8"></script>
 <!-- PART_1_END -->
 </body>
 </html>
