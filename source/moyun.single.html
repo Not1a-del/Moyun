@@ -1809,10 +1809,10 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
                @click="switchBook(book.id)"
                class="card relative p-4 cursor-pointer transition-all duration-200"
                :class="currentBookId===book.id ? 'card-active' : ''">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 pr-20">
               <div class="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-art shrink-0 shadow-sm overflow-hidden"
                    :style="currentBookId===book.id ? 'background:var(--accent);color:var(--accent-fg)' : 'background:var(--bd);color:var(--tx3)'">
-                <img v-if="book.coverImage" :src="book.coverImage" class="w-full h-full object-cover">
+                <img v-if="book.coverImage" :src="book.coverImage" :alt="'《' + (book.title || '无题') + '》封面'" class="w-full h-full object-cover">
                 <span v-else>{{ (book.title || '无')[0] }}</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -1831,12 +1831,16 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
             <div v-if="book.novel && book.novel.worldView" class="text-xs mt-2 line-clamp-2" style="color:var(--tx3)">
               {{ book.novel.worldView }}
             </div>
-            <!-- 删除按钮 -->
-            <button @click.stop="deleteBook(book.id)"
-                    class="absolute top-3 right-3 p-1 rounded-full"
-                    style="color:var(--tx4)" title="删除">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            </button>
+            <div class="absolute top-2 right-2 flex items-center">
+              <button type="button" @click.stop="openBookEditor(book.id)" class="moyun-icon-button"
+                      style="color:var(--tx3)" :title="'编辑《' + (book.title || '无题') + '》'" :aria-label="'编辑《' + (book.title || '无题') + '》'">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/></svg>
+              </button>
+              <button type="button" @click.stop="deleteBook(book.id)" class="moyun-icon-button"
+                      style="color:var(--tx4)" :title="'删除《' + (book.title || '无题') + '》'" :aria-label="'删除《' + (book.title || '无题') + '》'">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              </button>
+            </div>
             <!-- 选中指示器 -->
             <div v-if="currentBookId===book.id" class="absolute top-3 left-3">
               <span class="flex h-2 w-2">
@@ -3952,7 +3956,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
         <!-- ═════ 生成中状态 ═════ -->
         <transition name="fade">
-          <div v-if="isGenerating" class="card overflow-hidden mb-4" style="box-shadow:var(--sh2)">
+          <div v-if="isGenerating" ref="generationStatusCard" data-generation-status-card class="card overflow-hidden mb-4" style="box-shadow:var(--sh2)">
             <div class="flex flex-col items-center justify-center py-8">
               <!-- 笔尖动画 -->
               <svg class="quill-svg mb-4" viewBox="0 0 100 100">
@@ -5117,6 +5121,66 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 </transition>
 
 <!-- ════════════════════════════════════════════
+     书籍编辑弹窗：书名与本机封面
+     ════════════════════════════════════════════ -->
+<transition name="pop">
+  <div v-if="showBookEditor" data-moyun-region="modal" data-moyun-modal="book-editor"
+       data-moyun-initial-focus="[data-book-title-input]" role="dialog" aria-modal="true" aria-labelledby="moyun-book-editor-title"
+       class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-y-auto rounded-t-2xl md:rounded-2xl"
+          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:calc(100dvh - 2rem)" @submit.prevent="saveBookEditor">
+      <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
+        <div>
+          <h3 id="moyun-book-editor-title" class="text-lg font-bold" style="color:var(--tx)">编辑书籍</h3>
+          <p class="text-xs mt-1" style="color:var(--tx3)">修改书名，或从本机上传封面</p>
+        </div>
+        <button type="button" data-moyun-modal-close @click="requestCloseBookEditor" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭书籍编辑" title="关闭">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="space-y-2">
+          <label for="moyun-book-title-input" class="label">书名</label>
+          <input id="moyun-book-title-input" v-model="bookEditorDraft.title" data-book-title-input maxlength="60" autocomplete="off"
+                 class="input-field text-sm w-full" placeholder="请输入书名" @input="bookEditorError=''">
+          <div class="min-h-[18px] flex items-start justify-between gap-3 text-[10px]">
+            <span v-if="bookEditorError" role="alert" style="color:var(--err)">{{ bookEditorError }}</span>
+            <span v-else style="color:var(--tx3)">书名最长 60 个字符。</span>
+            <span class="shrink-0" style="color:var(--tx3)">{{ bookEditorDraft.title.length }}/60</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="label">书籍封面</div>
+          <div class="min-h-[180px] max-h-[40dvh] rounded-xl overflow-hidden flex items-center justify-center"
+               style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <img v-if="bookEditorDraft.coverImage" :src="bookEditorDraft.coverImage" alt="书籍封面预览" class="w-full h-full object-contain" style="max-height:40dvh">
+            <div v-else class="text-center px-6 py-10" style="color:var(--tx3)">
+              <svg aria-hidden="true" class="mx-auto mb-2 opacity-60" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2zM8.5 11.5l2.5 3.01L14.5 10l4.5 6H5l3.5-4.5z"/></svg>
+              <div class="text-xs">尚未设置封面</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <label class="btn-primary flex-1 min-h-[44px] px-3 text-sm inline-flex items-center justify-center gap-2 cursor-pointer">
+              <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+              {{ bookEditorDraft.coverImage ? '更换封面' : '上传封面' }}
+              <input type="file" accept="image/*" data-book-cover-file class="sr-only" @change="handleBookCoverFile">
+            </label>
+            <button type="button" @click="removeBookEditorCover" :disabled="!bookEditorDraft.coverImage"
+                    class="btn-ghost min-h-[44px] px-4 text-sm disabled:opacity-40">删除封面</button>
+          </div>
+          <p class="text-[10px] leading-relaxed" style="color:var(--tx3)">支持常见图片格式，单张不超过 8 MB；图片只保存在当前浏览器的本机存档中。</p>
+        </div>
+      </div>
+      <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-moyun-modal-close @click="requestCloseBookEditor" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
+        <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">保存修改</button>
+      </div>
+    </form>
+  </div>
+</transition>
+
+<!-- ════════════════════════════════════════════
      通用输入弹窗（统一弹窗红线：替代原生 window.prompt）
      ════════════════════════════════════════════ -->
 <transition name="pop">
@@ -6119,7 +6183,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <div class="divider"></div>
 
           <div class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">生成时自动滚动</span></div>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">生成开始时定位</span><br><span class="text-[10px]" style="color:var(--tx3)">只定位到生成内容开头，不再持续追到页面底部</span></div>
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
@@ -7236,15 +7300,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-27-1005-data-safety-update',
+  id: 'web-2026-07-27-1342-writing-library-update',
   badge: '网页更新',
-  title: '数据安全与操作体验更新',
-  publishedAt: '2026-07-27 10:05',
-  message: 'Moyun 已完成一轮数据安全与操作体验更新。刷新页面即可使用。',
+  title: '写作阅读与书籍管理更新',
+  publishedAt: '2026-07-27 13:42',
+  message: 'Moyun 已更新正文生成阅读、书籍管理与 API 配置体验。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'safety', title:'数据安全', body:'新增「全量备份」导出：包含章节分支与历史版本、角色卡、总结、细纲、暗线计划与 MOD 数据，可完整恢复，且不会包含任何 API Key。存档加载异常时将进入保护模式并自动另存原始数据，不再覆盖存档；续写失败时会保留已生成的草稿。' }),
-    Object.freeze({ key:'ux', title:'操作体验', body:'删除书籍、分支、API 配置等关键操作提供更清晰的确认与影响说明；错误提示停留更久且可手动关闭；移动端按钮热区、底部输入栏与暗色对比度多处优化。' }),
-    Object.freeze({ key:'data', title:'使用提示', body:'作品与 API 配置仍保存在你自己的浏览器中；建议用新的「全量备份」定期导出重要作品。' })
+    Object.freeze({ key:'reading', title:'生成阅读', body:'正文生成开始时会定位到生成内容开头，流式输出不再持续把页面拖到最底部，可以从开头开始边生成边阅读。' }),
+    Object.freeze({ key:'library', title:'书籍管理', body:'书架新增书籍编辑入口，已创建的作品现在可以修改书名，并从本机上传、替换或删除封面；原有 AI 封面生成功能继续保留。' }),
+    Object.freeze({ key:'connection', title:'API 配置', body:'成功获取模型列表后，选择模型即可直接保存配置，无需再重复测试连接；修改 API 地址、密钥或协议后仍会要求重新验证。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -7885,6 +7949,7 @@ createApp({
     const books = ref([]);
     const currentBookId = ref('');
     const mainScroll = ref(null);
+    const generationStatusCard = ref(null);
 
     /* ═══ 创作设定工作台 Story Bible：基础数据 ═══
        中文注释：设定资料只在作者打开对应工作台时惰性创建。旧书即使继续编辑正文，
@@ -9542,8 +9607,8 @@ createApp({
       if (!profile.baseUrl) return { ok:false, label:'缺少地址', reason:'请填写 API 地址' };
       if (!getConnectionCredential(profile.id)) return { ok:false, label:'缺少密钥', reason:'请填写 API 密钥' };
       if (!profile.defaultModel) return { ok:false, label:'缺少模型', reason:'请填写默认模型' };
-      if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未测试', reason:'请先测试连接并通过' };
-      return { ok:true, label:'已测试', reason:'' };
+      if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未验证', reason:'请先获取模型或测试连接并通过' };
+      return { ok:true, label:'已验证', reason:'' };
     }
 
     function getAssignableConnectionProfiles() {
@@ -9634,6 +9699,8 @@ createApp({
       if (connectionProfileTesting.value) return;
       connectionProfileTestResult.value = { status:'unknown', detail:'' };
       connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      connectionProfileDraft.value.selectedDiscoveredModelId = '';
     }
 
     function invalidateConnectionProfileModelTest() {
@@ -9690,7 +9757,9 @@ createApp({
         const models = [...new Set(rows.map(item => String(item?.id || item?.name || item?.model || '').replace(/^models\//, '').trim()).filter(Boolean))];
         if (!models.length) throw new Error('接口未返回可用模型');
         connectionProfileModelDiscovery.value = { loading:false, models, error:'' };
-        showToast('已获取 ' + models.length + ' 个模型，请选择一个模型', 'success');
+        connectionProfileTestResult.value = { status:'ok', at:Date.now(), method:'model-discovery', detail:'模型列表获取成功，已验证连接（' + models.length + ' 个模型）' };
+        connectionProfileDraftError.value = '';
+        showToast('已获取 ' + models.length + ' 个模型，选择模型后可直接保存', 'success');
         return true;
       } catch (e) {
         connectionProfileModelDiscovery.value = { loading:false, models:[], error:'获取模型失败：' + sanitizeApiErrorDetail(e.message || e) };
@@ -9766,7 +9835,7 @@ createApp({
       const draft = connectionProfileDraft.value;
       const error = validateConnectionProfileDraft();
       if (error) { connectionProfileDraftError.value = error; return false; }
-      if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先测试连接并通过'; return false; }
+      if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先获取模型或测试连接并通过'; return false; }
       const modelCatalog = buildConnectionProfileModelCatalog();
       const existingId = connectionProfileEditorMode.value === 'edit' ? expandedConnectionProfileId.value : '';
       let savedProfile = null;
@@ -11793,8 +11862,12 @@ function copyLastChapterContextText() {
     const showSettings_modal = ref(false);
     const showImportExport = ref(false);
     const showNewBook = ref(false);
+    const showBookEditor = ref(false);
     const showSnapshots = ref(false);
     const newBookForm = ref({ theme: '', title: '', worldView: '', charCount: 3, strictTheme: false });
+    const bookEditorDraft = ref({ bookId:'', title:'', coverImage:'' });
+    const bookEditorError = ref('');
+    let bookEditorBaseline = '';
     const isOneKeyCreating = ref(false);
 
     watch(showSettings_modal, isOpen => {
@@ -12645,6 +12718,103 @@ function copyLastChapterContextText() {
           try { run.controller.abort(new DOMException('切换书籍，已中止 AI 工具', 'AbortError')); } catch { try { run.controller.abort(); } catch {} }
         });
       } catch (e) { console.warn('[ModRun] bookSwitch cancel failed:', e); }
+    }
+
+    function openBookEditor(bookId) {
+      syncBookData();
+      const book = books.value.find(item => String(item?.id || '') === String(bookId || ''));
+      if (!book) return false;
+      bookEditorDraft.value = {
+        bookId: String(book.id),
+        title: String(book.title || book.novel?.title || '').trim(),
+        coverImage: String(book.coverImage || '')
+      };
+      bookEditorError.value = '';
+      bookEditorBaseline = JSON.stringify(bookEditorDraft.value);
+      showBookEditor.value = true;
+      return true;
+    }
+
+    function closeBookEditor() {
+      showBookEditor.value = false;
+      bookEditorError.value = '';
+    }
+
+    function requestCloseBookEditor() {
+      if (bookEditorBaseline && JSON.stringify(bookEditorDraft.value) !== bookEditorBaseline) {
+        confirmDiscardDraft('放弃书籍修改', '当前书名或封面尚未保存，关闭后会丢失本次修改。', closeBookEditor);
+        return false;
+      }
+      closeBookEditor();
+      return true;
+    }
+
+    function handleBookCoverFile(event) {
+      const file = event?.target?.files?.[0];
+      if (event?.target) event.target.value = '';
+      if (!file) return false;
+      if (!String(file.type || '').startsWith('image/')) {
+        bookEditorError.value = '请选择图片文件';
+        return false;
+      }
+      if (Number(file.size) > 8 * 1024 * 1024) {
+        bookEditorError.value = '封面图片不能超过 8 MB';
+        return false;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string' || !reader.result.startsWith('data:image/')) {
+          bookEditorError.value = '封面读取失败，请换一张图片重试';
+          return;
+        }
+        bookEditorDraft.value.coverImage = reader.result;
+        bookEditorError.value = '';
+      };
+      reader.onerror = () => { bookEditorError.value = '封面读取失败，请换一张图片重试'; };
+      reader.readAsDataURL(file);
+      return true;
+    }
+
+    function removeBookEditorCover() {
+      bookEditorDraft.value.coverImage = '';
+      bookEditorError.value = '';
+    }
+
+    async function saveBookEditor() {
+      const id = String(bookEditorDraft.value.bookId || '');
+      const title = String(bookEditorDraft.value.title || '').trim();
+      const bookIndex = books.value.findIndex(item => String(item?.id || '') === id);
+      const book = bookIndex >= 0 ? books.value[bookIndex] : null;
+      if (!book) { bookEditorError.value = '找不到这本书，请刷新后重试'; return false; }
+      if (!title) { bookEditorError.value = '书名不能为空'; return false; }
+      if (title.length > 60) { bookEditorError.value = '书名不能超过 60 个字符'; return false; }
+
+      const originalBook = deepClone(book);
+      const originalCurrentTitle = novel.value.title;
+      const originalCurrentCover = coverImage.value;
+      if (id === String(currentBookId.value || '')) {
+        novel.value.title = title;
+        coverImage.value = String(bookEditorDraft.value.coverImage || '');
+        syncBookData();
+      } else {
+        book.title = title;
+        book.novel = Object.assign({}, book.novel || {}, { title });
+        book.coverImage = String(bookEditorDraft.value.coverImage || '');
+        book.lastModified = Date.now();
+      }
+      const saved = await saveDataNow('编辑书籍');
+      if (!saved) {
+        books.value.splice(bookIndex, 1, originalBook);
+        if (id === String(currentBookId.value || '')) {
+          novel.value.title = originalCurrentTitle;
+          coverImage.value = originalCurrentCover;
+        }
+        bookEditorError.value = '保存失败，请导出备份后重试';
+        return false;
+      }
+      closeBookEditor();
+      showToast('书籍信息已保存', 'success');
+      return true;
     }
 
     function createNewBook(title, theme, worldView) {
@@ -29028,6 +29198,25 @@ function getModHubPermissionLabels(mod) {
       return Math.max(0, scrollerRect.bottom - Math.max(scrollerRect.top, controlsRect.top));
     }
 
+    function scrollGenerationStatusToStart() {
+      if (!settings.value.autoScroll) return;
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          const scroller = mainScroll.value;
+          const card = generationStatusCard.value;
+          if (!scroller || !(card instanceof HTMLElement)) return;
+          const scrollerRect = scroller.getBoundingClientRect();
+          const cardRect = card.getBoundingClientRect();
+          const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+          const top = Math.max(0, Math.min(maxTop, scroller.scrollTop + cardRect.top - scrollerRect.top - 20));
+          const previousScrollBehavior = scroller.style.scrollBehavior;
+          scroller.style.scrollBehavior = 'auto';
+          scroller.scrollTop = top;
+          scroller.style.scrollBehavior = previousScrollBehavior;
+        });
+      });
+    }
+
     function getChapterScrollTop(idx, edge = 'start') {
       const el = document.getElementById('chapter-' + idx);
       const scroller = mainScroll.value;
@@ -31005,6 +31194,8 @@ function getWritingModelLabel() {
       _remainingCount = run.remaining;
       _generationStopReason = '';
       isGenerating.value = true;
+      // 每轮只定位一次到生成卡片开头；流式内容增长期间保持用户阅读位置不动。
+      scrollGenerationStatusToStart();
       return run;
     }
 
@@ -31279,9 +31470,6 @@ function getWritingModelLabel() {
             const rawCot = separated.cot;
             streamCotContent.value = formatSnowwingCotRecordText(rawCot, snowwingCotContext);
             streamNativeThinking.value = separated.native;
-            if (settings.value.autoScroll && mainScroll.value) {
-              mainScroll.value.scrollTop = mainScroll.value.scrollHeight;
-            }
             return pump();
           }).catch(error => {
             if (!isGenerationRunCurrent(runId) || requestController.signal.aborted) throw error;
@@ -31738,7 +31926,6 @@ function getWritingModelLabel() {
             const rawCot = separated.cot;
             streamCotContent.value = formatSnowwingCotRecordText(rawCot, snowwingCotContext);
             streamNativeThinking.value = separated.native;
-            if (settings.value.autoScroll && mainScroll.value) mainScroll.value.scrollTop = mainScroll.value.scrollHeight;
             return pump();
           }).catch(error => {
             if (!isGenerationRunCurrent(run.id) || requestController.signal.aborted) throw error;
@@ -35514,15 +35701,15 @@ function getWritingModelLabel() {
 
     return {
       // ── Part 1: 核心数据 ──
-      novel, chapters, structuredCharacters, books, currentBookId, mainScroll,
+      novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
-      showImportExport, showNewBook, showSnapshots, showSettings_modal,
-      newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
+      showImportExport, showNewBook, showBookEditor, showSnapshots, showSettings_modal,
+      newBookForm, bookEditorDraft, bookEditorError, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
       connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
@@ -35532,6 +35719,7 @@ function getWritingModelLabel() {
       // ── Part 1: 基本操作 ──
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
+      openBookEditor, closeBookEditor, requestCloseBookEditor, handleBookCoverFile, removeBookEditorCover, saveBookEditor,
       openSettings, clearAll,
       // ── 创作设定工作台 Story Bible ──
       storyBible, storyBibleFoundationStats, showStoryBibleWorkbench, storyBibleWorkbenchSection,
@@ -35749,4 +35937,3 @@ function getWritingModelLabel() {
 <!-- PART_1_END -->
 </body>
 </html>
-
