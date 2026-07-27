@@ -152,10 +152,10 @@
                @click="switchBook(book.id)"
                class="card relative p-4 cursor-pointer transition-all duration-200"
                :class="currentBookId===book.id ? 'card-active' : ''">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 pr-20">
               <div class="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-art shrink-0 shadow-sm overflow-hidden"
                    :style="currentBookId===book.id ? 'background:var(--accent);color:var(--accent-fg)' : 'background:var(--bd);color:var(--tx3)'">
-                <img v-if="book.coverImage" :src="book.coverImage" class="w-full h-full object-cover">
+                <img v-if="book.coverImage" :src="book.coverImage" :alt="'《' + (book.title || '无题') + '》封面'" class="w-full h-full object-cover">
                 <span v-else>{{ (book.title || '无')[0] }}</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -174,12 +174,16 @@
             <div v-if="book.novel && book.novel.worldView" class="text-xs mt-2 line-clamp-2" style="color:var(--tx3)">
               {{ book.novel.worldView }}
             </div>
-            <!-- 删除按钮 -->
-            <button @click.stop="deleteBook(book.id)"
-                    class="absolute top-3 right-3 p-1 rounded-full"
-                    style="color:var(--tx4)" title="删除">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            </button>
+            <div class="absolute top-2 right-2 flex items-center">
+              <button type="button" @click.stop="openBookEditor(book.id)" class="moyun-icon-button"
+                      style="color:var(--tx3)" :title="'编辑《' + (book.title || '无题') + '》'" :aria-label="'编辑《' + (book.title || '无题') + '》'">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/></svg>
+              </button>
+              <button type="button" @click.stop="deleteBook(book.id)" class="moyun-icon-button"
+                      style="color:var(--tx4)" :title="'删除《' + (book.title || '无题') + '》'" :aria-label="'删除《' + (book.title || '无题') + '》'">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+              </button>
+            </div>
             <!-- 选中指示器 -->
             <div v-if="currentBookId===book.id" class="absolute top-3 left-3">
               <span class="flex h-2 w-2">
@@ -2295,7 +2299,7 @@
 
         <!-- ═════ 生成中状态 ═════ -->
         <transition name="fade">
-          <div v-if="isGenerating" class="card overflow-hidden mb-4" style="box-shadow:var(--sh2)">
+          <div v-if="isGenerating" ref="generationStatusCard" data-generation-status-card class="card overflow-hidden mb-4" style="box-shadow:var(--sh2)">
             <div class="flex flex-col items-center justify-center py-8">
               <!-- 笔尖动画 -->
               <svg class="quill-svg mb-4" viewBox="0 0 100 100">
@@ -3460,6 +3464,66 @@
 </transition>
 
 <!-- ════════════════════════════════════════════
+     书籍编辑弹窗：书名与本机封面
+     ════════════════════════════════════════════ -->
+<transition name="pop">
+  <div v-if="showBookEditor" data-moyun-region="modal" data-moyun-modal="book-editor"
+       data-moyun-initial-focus="[data-book-title-input]" role="dialog" aria-modal="true" aria-labelledby="moyun-book-editor-title"
+       class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-y-auto rounded-t-2xl md:rounded-2xl"
+          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:calc(100dvh - 2rem)" @submit.prevent="saveBookEditor">
+      <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
+        <div>
+          <h3 id="moyun-book-editor-title" class="text-lg font-bold" style="color:var(--tx)">编辑书籍</h3>
+          <p class="text-xs mt-1" style="color:var(--tx3)">修改书名，或从本机上传封面</p>
+        </div>
+        <button type="button" data-moyun-modal-close @click="requestCloseBookEditor" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭书籍编辑" title="关闭">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="space-y-2">
+          <label for="moyun-book-title-input" class="label">书名</label>
+          <input id="moyun-book-title-input" v-model="bookEditorDraft.title" data-book-title-input maxlength="60" autocomplete="off"
+                 class="input-field text-sm w-full" placeholder="请输入书名" @input="bookEditorError=''">
+          <div class="min-h-[18px] flex items-start justify-between gap-3 text-[10px]">
+            <span v-if="bookEditorError" role="alert" style="color:var(--err)">{{ bookEditorError }}</span>
+            <span v-else style="color:var(--tx3)">书名最长 60 个字符。</span>
+            <span class="shrink-0" style="color:var(--tx3)">{{ bookEditorDraft.title.length }}/60</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="label">书籍封面</div>
+          <div class="min-h-[180px] max-h-[40dvh] rounded-xl overflow-hidden flex items-center justify-center"
+               style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <img v-if="bookEditorDraft.coverImage" :src="bookEditorDraft.coverImage" alt="书籍封面预览" class="w-full h-full object-contain" style="max-height:40dvh">
+            <div v-else class="text-center px-6 py-10" style="color:var(--tx3)">
+              <svg aria-hidden="true" class="mx-auto mb-2 opacity-60" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2zM8.5 11.5l2.5 3.01L14.5 10l4.5 6H5l3.5-4.5z"/></svg>
+              <div class="text-xs">尚未设置封面</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <label class="btn-primary flex-1 min-h-[44px] px-3 text-sm inline-flex items-center justify-center gap-2 cursor-pointer">
+              <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+              {{ bookEditorDraft.coverImage ? '更换封面' : '上传封面' }}
+              <input type="file" accept="image/*" data-book-cover-file class="sr-only" @change="handleBookCoverFile">
+            </label>
+            <button type="button" @click="removeBookEditorCover" :disabled="!bookEditorDraft.coverImage"
+                    class="btn-ghost min-h-[44px] px-4 text-sm disabled:opacity-40">删除封面</button>
+          </div>
+          <p class="text-[10px] leading-relaxed" style="color:var(--tx3)">支持常见图片格式，单张不超过 8 MB；图片只保存在当前浏览器的本机存档中。</p>
+        </div>
+      </div>
+      <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-moyun-modal-close @click="requestCloseBookEditor" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
+        <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">保存修改</button>
+      </div>
+    </form>
+  </div>
+</transition>
+
+<!-- ════════════════════════════════════════════
      通用输入弹窗（统一弹窗红线：替代原生 window.prompt）
      ════════════════════════════════════════════ -->
 <transition name="pop">
@@ -4462,7 +4526,7 @@
           <div class="divider"></div>
 
           <div class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">生成时自动滚动</span></div>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">生成开始时定位</span><br><span class="text-[10px]" style="color:var(--tx3)">只定位到生成内容开头，不再持续追到页面底部</span></div>
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
@@ -5532,8 +5596,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=0146c96c42b5"></script>
+<script src="./assets/js/moyun.js?v=80bad2930ead"></script>
 <!-- PART_1_END -->
 </body>
 </html>
-

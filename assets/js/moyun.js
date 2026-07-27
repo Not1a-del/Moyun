@@ -46,15 +46,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-27-1005-data-safety-update',
+  id: 'web-2026-07-27-1342-writing-library-update',
   badge: '网页更新',
-  title: '数据安全与操作体验更新',
-  publishedAt: '2026-07-27 10:05',
-  message: 'Moyun 已完成一轮数据安全与操作体验更新。刷新页面即可使用。',
+  title: '写作阅读与书籍管理更新',
+  publishedAt: '2026-07-27 13:42',
+  message: 'Moyun 已更新正文生成阅读、书籍管理与 API 配置体验。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'safety', title:'数据安全', body:'新增「全量备份」导出：包含章节分支与历史版本、角色卡、总结、细纲、暗线计划与 MOD 数据，可完整恢复，且不会包含任何 API Key。存档加载异常时将进入保护模式并自动另存原始数据，不再覆盖存档；续写失败时会保留已生成的草稿。' }),
-    Object.freeze({ key:'ux', title:'操作体验', body:'删除书籍、分支、API 配置等关键操作提供更清晰的确认与影响说明；错误提示停留更久且可手动关闭；移动端按钮热区、底部输入栏与暗色对比度多处优化。' }),
-    Object.freeze({ key:'data', title:'使用提示', body:'作品与 API 配置仍保存在你自己的浏览器中；建议用新的「全量备份」定期导出重要作品。' })
+    Object.freeze({ key:'reading', title:'生成阅读', body:'正文生成开始时会定位到生成内容开头，流式输出不再持续把页面拖到最底部，可以从开头开始边生成边阅读。' }),
+    Object.freeze({ key:'library', title:'书籍管理', body:'书架新增书籍编辑入口，已创建的作品现在可以修改书名，并从本机上传、替换或删除封面；原有 AI 封面生成功能继续保留。' }),
+    Object.freeze({ key:'connection', title:'API 配置', body:'成功获取模型列表后，选择模型即可直接保存配置，无需再重复测试连接；修改 API 地址、密钥或协议后仍会要求重新验证。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -695,6 +695,7 @@ createApp({
     const books = ref([]);
     const currentBookId = ref('');
     const mainScroll = ref(null);
+    const generationStatusCard = ref(null);
 
     /* ═══ 创作设定工作台 Story Bible：基础数据 ═══
        中文注释：设定资料只在作者打开对应工作台时惰性创建。旧书即使继续编辑正文，
@@ -2352,8 +2353,8 @@ createApp({
       if (!profile.baseUrl) return { ok:false, label:'缺少地址', reason:'请填写 API 地址' };
       if (!getConnectionCredential(profile.id)) return { ok:false, label:'缺少密钥', reason:'请填写 API 密钥' };
       if (!profile.defaultModel) return { ok:false, label:'缺少模型', reason:'请填写默认模型' };
-      if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未测试', reason:'请先测试连接并通过' };
-      return { ok:true, label:'已测试', reason:'' };
+      if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未验证', reason:'请先获取模型或测试连接并通过' };
+      return { ok:true, label:'已验证', reason:'' };
     }
 
     function getAssignableConnectionProfiles() {
@@ -2444,6 +2445,8 @@ createApp({
       if (connectionProfileTesting.value) return;
       connectionProfileTestResult.value = { status:'unknown', detail:'' };
       connectionProfileModelTestResult.value = { status:'unknown', model:'', detail:'' };
+      connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
+      connectionProfileDraft.value.selectedDiscoveredModelId = '';
     }
 
     function invalidateConnectionProfileModelTest() {
@@ -2500,7 +2503,9 @@ createApp({
         const models = [...new Set(rows.map(item => String(item?.id || item?.name || item?.model || '').replace(/^models\//, '').trim()).filter(Boolean))];
         if (!models.length) throw new Error('接口未返回可用模型');
         connectionProfileModelDiscovery.value = { loading:false, models, error:'' };
-        showToast('已获取 ' + models.length + ' 个模型，请选择一个模型', 'success');
+        connectionProfileTestResult.value = { status:'ok', at:Date.now(), method:'model-discovery', detail:'模型列表获取成功，已验证连接（' + models.length + ' 个模型）' };
+        connectionProfileDraftError.value = '';
+        showToast('已获取 ' + models.length + ' 个模型，选择模型后可直接保存', 'success');
         return true;
       } catch (e) {
         connectionProfileModelDiscovery.value = { loading:false, models:[], error:'获取模型失败：' + sanitizeApiErrorDetail(e.message || e) };
@@ -2576,7 +2581,7 @@ createApp({
       const draft = connectionProfileDraft.value;
       const error = validateConnectionProfileDraft();
       if (error) { connectionProfileDraftError.value = error; return false; }
-      if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先测试连接并通过'; return false; }
+      if (connectionProfileTestResult.value.status !== 'ok') { connectionProfileDraftError.value = '请先获取模型或测试连接并通过'; return false; }
       const modelCatalog = buildConnectionProfileModelCatalog();
       const existingId = connectionProfileEditorMode.value === 'edit' ? expandedConnectionProfileId.value : '';
       let savedProfile = null;
@@ -4603,8 +4608,12 @@ function copyLastChapterContextText() {
     const showSettings_modal = ref(false);
     const showImportExport = ref(false);
     const showNewBook = ref(false);
+    const showBookEditor = ref(false);
     const showSnapshots = ref(false);
     const newBookForm = ref({ theme: '', title: '', worldView: '', charCount: 3, strictTheme: false });
+    const bookEditorDraft = ref({ bookId:'', title:'', coverImage:'' });
+    const bookEditorError = ref('');
+    let bookEditorBaseline = '';
     const isOneKeyCreating = ref(false);
 
     watch(showSettings_modal, isOpen => {
@@ -5455,6 +5464,103 @@ function copyLastChapterContextText() {
           try { run.controller.abort(new DOMException('切换书籍，已中止 AI 工具', 'AbortError')); } catch { try { run.controller.abort(); } catch {} }
         });
       } catch (e) { console.warn('[ModRun] bookSwitch cancel failed:', e); }
+    }
+
+    function openBookEditor(bookId) {
+      syncBookData();
+      const book = books.value.find(item => String(item?.id || '') === String(bookId || ''));
+      if (!book) return false;
+      bookEditorDraft.value = {
+        bookId: String(book.id),
+        title: String(book.title || book.novel?.title || '').trim(),
+        coverImage: String(book.coverImage || '')
+      };
+      bookEditorError.value = '';
+      bookEditorBaseline = JSON.stringify(bookEditorDraft.value);
+      showBookEditor.value = true;
+      return true;
+    }
+
+    function closeBookEditor() {
+      showBookEditor.value = false;
+      bookEditorError.value = '';
+    }
+
+    function requestCloseBookEditor() {
+      if (bookEditorBaseline && JSON.stringify(bookEditorDraft.value) !== bookEditorBaseline) {
+        confirmDiscardDraft('放弃书籍修改', '当前书名或封面尚未保存，关闭后会丢失本次修改。', closeBookEditor);
+        return false;
+      }
+      closeBookEditor();
+      return true;
+    }
+
+    function handleBookCoverFile(event) {
+      const file = event?.target?.files?.[0];
+      if (event?.target) event.target.value = '';
+      if (!file) return false;
+      if (!String(file.type || '').startsWith('image/')) {
+        bookEditorError.value = '请选择图片文件';
+        return false;
+      }
+      if (Number(file.size) > 8 * 1024 * 1024) {
+        bookEditorError.value = '封面图片不能超过 8 MB';
+        return false;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string' || !reader.result.startsWith('data:image/')) {
+          bookEditorError.value = '封面读取失败，请换一张图片重试';
+          return;
+        }
+        bookEditorDraft.value.coverImage = reader.result;
+        bookEditorError.value = '';
+      };
+      reader.onerror = () => { bookEditorError.value = '封面读取失败，请换一张图片重试'; };
+      reader.readAsDataURL(file);
+      return true;
+    }
+
+    function removeBookEditorCover() {
+      bookEditorDraft.value.coverImage = '';
+      bookEditorError.value = '';
+    }
+
+    async function saveBookEditor() {
+      const id = String(bookEditorDraft.value.bookId || '');
+      const title = String(bookEditorDraft.value.title || '').trim();
+      const bookIndex = books.value.findIndex(item => String(item?.id || '') === id);
+      const book = bookIndex >= 0 ? books.value[bookIndex] : null;
+      if (!book) { bookEditorError.value = '找不到这本书，请刷新后重试'; return false; }
+      if (!title) { bookEditorError.value = '书名不能为空'; return false; }
+      if (title.length > 60) { bookEditorError.value = '书名不能超过 60 个字符'; return false; }
+
+      const originalBook = deepClone(book);
+      const originalCurrentTitle = novel.value.title;
+      const originalCurrentCover = coverImage.value;
+      if (id === String(currentBookId.value || '')) {
+        novel.value.title = title;
+        coverImage.value = String(bookEditorDraft.value.coverImage || '');
+        syncBookData();
+      } else {
+        book.title = title;
+        book.novel = Object.assign({}, book.novel || {}, { title });
+        book.coverImage = String(bookEditorDraft.value.coverImage || '');
+        book.lastModified = Date.now();
+      }
+      const saved = await saveDataNow('编辑书籍');
+      if (!saved) {
+        books.value.splice(bookIndex, 1, originalBook);
+        if (id === String(currentBookId.value || '')) {
+          novel.value.title = originalCurrentTitle;
+          coverImage.value = originalCurrentCover;
+        }
+        bookEditorError.value = '保存失败，请导出备份后重试';
+        return false;
+      }
+      closeBookEditor();
+      showToast('书籍信息已保存', 'success');
+      return true;
     }
 
     function createNewBook(title, theme, worldView) {
@@ -21838,6 +21944,25 @@ function getModHubPermissionLabels(mod) {
       return Math.max(0, scrollerRect.bottom - Math.max(scrollerRect.top, controlsRect.top));
     }
 
+    function scrollGenerationStatusToStart() {
+      if (!settings.value.autoScroll) return;
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          const scroller = mainScroll.value;
+          const card = generationStatusCard.value;
+          if (!scroller || !(card instanceof HTMLElement)) return;
+          const scrollerRect = scroller.getBoundingClientRect();
+          const cardRect = card.getBoundingClientRect();
+          const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+          const top = Math.max(0, Math.min(maxTop, scroller.scrollTop + cardRect.top - scrollerRect.top - 20));
+          const previousScrollBehavior = scroller.style.scrollBehavior;
+          scroller.style.scrollBehavior = 'auto';
+          scroller.scrollTop = top;
+          scroller.style.scrollBehavior = previousScrollBehavior;
+        });
+      });
+    }
+
     function getChapterScrollTop(idx, edge = 'start') {
       const el = document.getElementById('chapter-' + idx);
       const scroller = mainScroll.value;
@@ -23815,6 +23940,8 @@ function getWritingModelLabel() {
       _remainingCount = run.remaining;
       _generationStopReason = '';
       isGenerating.value = true;
+      // 每轮只定位一次到生成卡片开头；流式内容增长期间保持用户阅读位置不动。
+      scrollGenerationStatusToStart();
       return run;
     }
 
@@ -24089,9 +24216,6 @@ function getWritingModelLabel() {
             const rawCot = separated.cot;
             streamCotContent.value = formatSnowwingCotRecordText(rawCot, snowwingCotContext);
             streamNativeThinking.value = separated.native;
-            if (settings.value.autoScroll && mainScroll.value) {
-              mainScroll.value.scrollTop = mainScroll.value.scrollHeight;
-            }
             return pump();
           }).catch(error => {
             if (!isGenerationRunCurrent(runId) || requestController.signal.aborted) throw error;
@@ -24548,7 +24672,6 @@ function getWritingModelLabel() {
             const rawCot = separated.cot;
             streamCotContent.value = formatSnowwingCotRecordText(rawCot, snowwingCotContext);
             streamNativeThinking.value = separated.native;
-            if (settings.value.autoScroll && mainScroll.value) mainScroll.value.scrollTop = mainScroll.value.scrollHeight;
             return pump();
           }).catch(error => {
             if (!isGenerationRunCurrent(run.id) || requestController.signal.aborted) throw error;
@@ -28324,15 +28447,15 @@ function getWritingModelLabel() {
 
     return {
       // ── Part 1: 核心数据 ──
-      novel, chapters, structuredCharacters, books, currentBookId, mainScroll,
+      novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
       mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
-      showImportExport, showNewBook, showSnapshots, showSettings_modal,
-      newBookForm, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
+      showImportExport, showNewBook, showBookEditor, showSnapshots, showSettings_modal,
+      newBookForm, bookEditorDraft, bookEditorError, isOneKeyCreating, oneKeyPhase, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
       connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
@@ -28342,6 +28465,7 @@ function getWritingModelLabel() {
       // ── Part 1: 基本操作 ──
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
+      openBookEditor, closeBookEditor, requestCloseBookEditor, handleBookCoverFile, removeBookEditorCover, saveBookEditor,
       openSettings, clearAll,
       // ── 创作设定工作台 Story Bible ──
       storyBible, storyBibleFoundationStats, showStoryBibleWorkbench, storyBibleWorkbenchSection,
