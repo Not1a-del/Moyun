@@ -46,15 +46,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-27-1342-writing-library-update',
+  id: 'web-2026-07-27-2215-writing-context-update',
   badge: '网页更新',
-  title: '写作阅读与书籍管理更新',
-  publishedAt: '2026-07-27 13:42',
-  message: 'Moyun 已更新正文生成阅读、书籍管理与 API 配置体验。刷新页面即可使用。',
+  title: '写作上下文一致性更新',
+  publishedAt: '2026-07-27 22:15',
+  message: 'Moyun 已更新正文、建议与大纲的资料读取一致性，并增强连续写作稳定性。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'reading', title:'生成阅读', body:'正文生成开始时会定位到生成内容开头，流式输出不再持续把页面拖到最底部，可以从开头开始边生成边阅读。' }),
-    Object.freeze({ key:'library', title:'书籍管理', body:'书架新增书籍编辑入口，已创建的作品现在可以修改书名，并从本机上传、替换或删除封面；原有 AI 封面生成功能继续保留。' }),
-    Object.freeze({ key:'connection', title:'API 配置', body:'成功获取模型列表后，选择模型即可直接保存配置，无需再重复测试连接；修改 API 地址、密钥或协议后仍会要求重新验证。' })
+    Object.freeze({ key:'writing', title:'正文规划', body:'修复正文生成未正确读取作品总纲和目标章细纲的问题。' }),
+    Object.freeze({ key:'author-context', title:'创作资料', body:'AI 建议、全书大纲、单章及批量细纲现在会正确读取当前作品的世界观和角色资料。' }),
+    Object.freeze({ key:'workflow', title:'写作流程', body:'增强连续生成、分支重写和中断续写时的章节资料一致性。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -1212,18 +1212,9 @@ createApp({
       return formatStoryBibleContextPackage(preview);
     }
 
-    /* Phase B.4.3：AI 建议按下一章稳定细纲 ID 取包；白鸟锁定时显式阻止旧角色串回流。 */
+    /* Phase B.4.3：AI 建议按下一章稳定细纲 ID 取作者资料包；白鸟锁定只关闭宿主提示资产，不关闭作者事实。 */
     function buildStoryBibleSuggestionContextPackage(options = {}) {
       const currentChapterNo = Math.max(1, Number(options.currentChapterNo) || (visibleChapters.value.length + 1));
-      if (isSnowwingPresetLocked()) {
-        return {
-          suppressed: true,
-          selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(currentChapterNo),
-          worldText: '',
-          characterText: '',
-          characterIntent: 'structured'
-        };
-      }
       const contextPackage = buildStoryBibleWritingContextPackage(Object.assign({}, options, { currentChapterNo }));
       return contextPackage ? Object.assign({ suppressed: false }, contextPackage) : null;
     }
@@ -1248,9 +1239,6 @@ createApp({
     }
 
     function buildStoryBibleOutlineContextPackage(options = {}) {
-      if (isSnowwingPresetLocked()) {
-        return { suppressed: true, legacyCompatible: false, selectedOutlineId: '', worldText: '', characterText: '', characterIntent: 'structured' };
-      }
       if (!storyBible.value) return null;
       const nameMatchText = Object.prototype.hasOwnProperty.call(options, 'nameMatchText')
         ? String(options.nameMatchText || '')
@@ -1309,16 +1297,6 @@ createApp({
 
     function buildStoryBibleDetailedOutlineContextPackage(options = {}) {
       const currentChapterNo = Math.max(1, Number(options.currentChapterNo) || 1);
-      if (isSnowwingPresetLocked()) {
-        return {
-          suppressed: true,
-          legacyCompatible: false,
-          selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(currentChapterNo),
-          worldText: '',
-          characterText: '',
-          characterIntent: 'structured'
-        };
-      }
       if (!storyBible.value) return null;
       const preview = buildStoryBibleDetailedOutlinePreview(Object.assign({}, options, { currentChapterNo }));
       return Object.assign({
@@ -1339,9 +1317,6 @@ createApp({
 
     function buildStoryBibleDetailedOutlineBatchContext(chapterNos = []) {
       const targets = Array.from(new Set((Array.isArray(chapterNos) ? chapterNos : []).map(value => Math.max(1, Number(value) || 1))));
-      if (isSnowwingPresetLocked()) {
-        return { suppressed: true, legacyCompatible: false, commonWorldText: '', commonCharacterText: '', chapters: targets.map(chapterNo => ({ chapterNo, selectedOutlineId: resolveStoryBibleOutlineIdForChapterNo(chapterNo), worldText: '', characterText: '' })) };
-      }
       if (!storyBible.value) return null;
       const rows = targets.map(chapterNo => {
         const preview = buildStoryBibleDetailedOutlinePreview({ currentChapterNo: chapterNo });
@@ -19326,9 +19301,11 @@ function getModHubPermissionLabels(mod) {
           worldP += '世界观: ' + clipContextText(novel.value.worldView, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxWorldChars) || 2500, 2500) : (Number(settings.value.contextMaxWorldChars) || 4000), { keepHead: true }) + '\n';
         }
         if (novel.value.synopsis) worldP += '简介: ' + novel.value.synopsis + '\n';
-        const modWorld = getModRulesForPosition('world', options);
-        if (modWorld) worldP += modWorld + '\n';
-        if (layer.content) worldP += layer.content + '\n';
+        if (options.authorOnly !== true) {
+          const modWorld = getModRulesForPosition('world', options);
+          if (modWorld) worldP += modWorld + '\n';
+          if (layer.content) worldP += layer.content + '\n';
+        }
         return worldP.trim() ? '【世界观设定】\n' + worldP.trim() : '';
       }
       if (key === 'character' || key === 'chars') {
@@ -19336,9 +19313,11 @@ function getModHubPermissionLabels(mod) {
         let charP = storyBiblePackage?.characterIntent === 'structured'
           ? String(storyBiblePackage.characterText || '')
           : clipContextText(charactersPromptString.value, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxCharacterChars) || 3500, 3500) : (Number(settings.value.contextMaxCharacterChars) || 6000), { keepHead: true });
-        const modCharacter = getModRulesForPosition('character', options);
-        if (modCharacter) charP += '\n' + modCharacter;
-        if (layer.content) charP += '\n' + layer.content;
+        if (options.authorOnly !== true) {
+          const modCharacter = getModRulesForPosition('character', options);
+          if (modCharacter) charP += '\n' + modCharacter;
+          if (layer.content) charP += '\n' + layer.content;
+        }
         return charP.trim() ? '【角色设定】\n' + charP.trim() : '';
       }
       if (key === 'outline') {
@@ -19346,9 +19325,11 @@ function getModHubPermissionLabels(mod) {
         if (novel.value.outline) outlineP += '大纲:\n' + clipContextText(novel.value.outline, settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxOutlineChars) || 5000, 5000) : (Number(settings.value.contextMaxOutlineChars) || 8000), { keepHead: true }) + '\n\n';
         const outlineCtx = buildOutlineContext(options.currentChapterNo);
         if (outlineCtx) outlineP += outlineCtx;
-        const modOutline = getModRulesForPosition('outline', options);
-        if (modOutline) outlineP += '\n' + modOutline + '\n';
-        if (layer.content) outlineP += layer.content + '\n';
+        if (options.authorOnly !== true) {
+          const modOutline = getModRulesForPosition('outline', options);
+          if (modOutline) outlineP += '\n' + modOutline + '\n';
+          if (layer.content) outlineP += layer.content + '\n';
+        }
         return outlineP.trim() ? '【故事大纲与细纲】\n' + outlineP.trim() : '';
       }
       if (key === 'scene') {
@@ -19375,6 +19356,23 @@ function getModHubPermissionLabels(mod) {
       return String(layer.content || '').trim();
     }
 
+    // 中文注释：白鸟锁定只隔离宿主提示资产，不得隔离作者自己的书籍事实。
+    // 复用普通正文 world/chars/outline 三层的取值、预算和章号映射，但 authorOnly 禁止普通 MOD、预设或流水线自定义内容回流。
+    function buildSnowwingAuthorContextPrompt(options = {}) {
+      const authorOptions = Object.assign({}, options, {
+        authorOnly: true,
+        storyBibleContextPackage: buildStoryBibleWritingContextPackage(options)
+      });
+      const parts = [];
+      ['world', 'chars', 'outline'].forEach(key => {
+        const sourceLayer = getPipelineLayer(key);
+        if (!sourceLayer || sourceLayer.enabled === false) return;
+        const part = buildPipelineLayerPrompt({ key, enabled:true, content:'' }, authorOptions);
+        if (part) parts.push(part);
+      });
+      return parts.join('\n\n').trim();
+    }
+
     function buildFullSystemPrompt(options = {}) {
       const parts = [];
       const presetLocked = isSnowwingPresetLocked();
@@ -19390,6 +19388,8 @@ function getModHubPermissionLabels(mod) {
           if (part) parts.push(part);
         });
       } else {
+        const authorContextPrompt = buildSnowwingAuthorContextPrompt(pipelineOptions);
+        if (authorContextPrompt) parts.push(authorContextPrompt);
         const snowwingPrompt = buildSnowwingLockedPrompt(pipelineOptions);
         if (snowwingPrompt) parts.push(snowwingPrompt);
       }
@@ -21183,9 +21183,7 @@ function getModHubPermissionLabels(mod) {
       const outlineContextPackage = buildStoryBibleOutlineContextPackage();
       let prompt = ('你是专业网文策划。' + (novel.value.outline?'请安全修改完善':'请生成') + '小说大纲。') + '\n\n';
       prompt += '标题: ' + (novel.value.title||'') + '\n主题: ' + (novel.value.theme||'') + '\n';
-      if (outlineContextPackage?.suppressed) {
-        // 白鸟锁定时不回流宿主世界观、结构化故事设定或旧角色串；后续 MOD 大纲规则保持原位。
-      } else if (!outlineContextPackage || outlineContextPackage.legacyCompatible) {
+      if (!outlineContextPackage || outlineContextPackage.legacyCompatible) {
         prompt += '世界观: ' + (novel.value.worldView||'') + '\n角色:\n' + charactersPromptString.value + '\n';
       } else {
         if (outlineContextPackage.worldText) prompt += '故事设定:\n' + outlineContextPackage.worldText + '\n';
@@ -21459,9 +21457,7 @@ function getModHubPermissionLabels(mod) {
       const detailedOutlineContextPackage = buildStoryBibleDetailedOutlineContextPackage({ currentChapterNo: ci + 1 });
       let prompt = '你是资深小说细纲编辑。请只处理当前这一章细纲，不要输出其他章节。\n\n';
       prompt += '书名: ' + (novel.value.title || '') + '\n';
-      if (detailedOutlineContextPackage?.suppressed) {
-        // 白鸟锁定时不回流宿主世界观、故事设定或旧角色串；后续 MOD/暗线与章节参考保持原位。
-      } else if (!detailedOutlineContextPackage || detailedOutlineContextPackage.legacyCompatible) {
+      if (!detailedOutlineContextPackage || detailedOutlineContextPackage.legacyCompatible) {
         if (novel.value.worldView) prompt += '世界观: ' + novel.value.worldView + '\n';
         if (charactersPromptString.value) prompt += '角色设定:\n' + charactersPromptString.value + '\n';
       } else {
