@@ -7236,15 +7236,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-26-0553-tool-runtime-stability',
+  id: 'web-2026-07-27-1005-data-safety-update',
   badge: '网页更新',
-  title: '工具调用与稳定性更新',
-  publishedAt: '2026-07-26 05:53',
-  message: 'Moyun 已完成一轮工具调用稳定性更新。刷新页面即可使用。',
+  title: '数据安全与操作体验更新',
+  publishedAt: '2026-07-27 10:05',
+  message: 'Moyun 已完成一轮数据安全与操作体验更新。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'control', title:'运行控制', body:'AI 整理工具运行时现在可以直接停止，长请求不必继续等待。' }),
-    Object.freeze({ key:'timeout', title:'超时保护', body:'请求超时后会自动结束，未完成结果不会写入资料；成功结果仍会正常保存。' }),
-    Object.freeze({ key:'data', title:'使用提示', body:'如果工具持续等待，请先停止并检查对应的模型连接。重要作品请继续定期导出备份。' })
+    Object.freeze({ key:'safety', title:'数据安全', body:'新增「全量备份」导出：包含章节分支与历史版本、角色卡、总结、细纲、暗线计划与 MOD 数据，可完整恢复，且不会包含任何 API Key。存档加载异常时将进入保护模式并自动另存原始数据，不再覆盖存档；续写失败时会保留已生成的草稿。' }),
+    Object.freeze({ key:'ux', title:'操作体验', body:'删除书籍、分支、API 配置等关键操作提供更清晰的确认与影响说明；错误提示停留更久且可手动关闭；移动端按钮热区、底部输入栏与暗色对比度多处优化。' }),
+    Object.freeze({ key:'data', title:'使用提示', body:'作品与 API 配置仍保存在你自己的浏览器中；建议用新的「全量备份」定期导出重要作品。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -35749,5 +35749,4 @@ function getWritingModelLabel() {
 <!-- PART_1_END -->
 </body>
 </html>
-
 
