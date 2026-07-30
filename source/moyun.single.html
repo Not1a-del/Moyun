@@ -6969,16 +6969,17 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="updateConnectionProfileDraftTemplate" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
           <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
+          <div v-if="getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" role="alert" class="text-[10px] leading-relaxed" style="color:var(--err)">{{ getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl) }}</div>
           <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
           <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel" class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
-            <div v-if="connectionProfileModelDiscovery.error" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
+            <div v-if="connectionProfileModelDiscovery.error && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
             <div v-if="connectionProfileModelDiscovery.models.length" class="max-h-36 overflow-auto rounded-lg p-2 space-y-1" style="border:1px solid var(--bd);background:var(--bg-inset)">
               <label v-for="modelId in connectionProfileModelDiscovery.models" :key="modelId" class="flex items-center gap-2 min-w-0 cursor-pointer"><input type="radio" name="connection-profile-model" :checked="isConnectionProfileDiscoveredModelSelected(modelId)" @change="selectConnectionProfileDiscoveredModel(modelId)"><span class="text-[10px] font-mono truncate" style="color:var(--tx)">{{ modelId }}</span></label>
             </div>
           </div>
-          <div v-if="connectionProfileDraftError" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
+          <div v-if="connectionProfileDraftError && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
           <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">连接：{{ connectionProfileTestResult.detail }}</div>
           <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
           <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
@@ -7300,15 +7301,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-07-27-2215-writing-context-update',
+  id: 'web-2026-07-31-0325-api-compatibility-update',
   badge: '网页更新',
-  title: '写作上下文一致性更新',
-  publishedAt: '2026-07-27 22:15',
-  message: 'Moyun 已更新正文、建议与大纲的资料读取一致性，并增强连续写作稳定性。刷新页面即可使用。',
+  title: 'API 兼容性与连接配置更新',
+  publishedAt: '2026-07-31 03:25',
+  message: 'Moyun 已更新浏览器 API 兼容检测与 Kimi 开放平台配置流程。刷新页面即可使用。',
   sections: Object.freeze([
-    Object.freeze({ key:'writing', title:'正文规划', body:'修复正文生成未正确读取作品总纲和目标章细纲的问题。' }),
-    Object.freeze({ key:'author-context', title:'创作资料', body:'AI 建议、全书大纲、单章及批量细纲现在会正确读取当前作品的世界观和角色资料。' }),
-    Object.freeze({ key:'workflow', title:'写作流程', body:'增强连续生成、分支重写和中断续写时的章节资料一致性。' })
+    Object.freeze({ key:'kimi-platform', title:'Kimi 配置', body:'连接中心新增“Kimi 开放平台”预设，可自动填写官方产品 API 地址，并继续通过模型列表完成连接验证。' }),
+    Object.freeze({ key:'browser-compatibility', title:'浏览器兼容', body:'使用 Kimi Code 会员地址时会显示准确的网页直连限制说明，不再反复发起无效的模型或验证请求。' }),
+    Object.freeze({ key:'credential-safety', title:'密钥保护', body:'切换到不同平台地址时会清空原平台的密钥与模型，避免凭据被带到另一服务。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -9486,6 +9487,7 @@ createApp({
     const CONNECTION_MODULE_KEYS = ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
     const PROVIDER_TEMPLATES = Object.freeze([
       { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
+      { id:'kimi-open-platform', name:'Kimi 开放平台', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true, defaultBaseUrl:'https://api.moonshot.cn/v1' },
       { id:'openai', name:'OpenAI', adapterId:'openai-chat', source:'builtin-template', canDiscoverModels:true },
       { id:'anthropic', name:'Anthropic', adapterId:'anthropic-messages', source:'builtin-template', canDiscoverModels:false },
       { id:'gemini', name:'Google Gemini', adapterId:'gemini-generate', source:'builtin-template', canDiscoverModels:false },
@@ -9571,6 +9573,18 @@ createApp({
       return getEffectiveDefaultConnectionProfile()?.id || '';
     }
 
+    function getConnectionProfileBrowserCompatibilityIssue(rawUrl = '') {
+      const text = String(rawUrl || '').trim();
+      if (!text) return '';
+      try {
+        const parsed = new URL(text);
+        if (parsed.hostname.toLowerCase() === 'api.kimi.com' && /^\/coding(?:\/|$)/i.test(parsed.pathname)) {
+          return 'Kimi Code 会员 API 未开放浏览器跨域访问，Moyun 网页版无法直连。Kimi 官方说明该接口用于终端/IDE 编程工具；产品接入请改选“Kimi 开放平台”并使用开放平台独立 API Key。';
+        }
+      } catch {}
+      return '';
+    }
+
     function isConnectionProfileAdapterSupported(profile) {
       return !!profile && ['openai-chat', 'openai-compatible', 'anthropic-messages', 'gemini-generate'].includes(String(profile.adapterId || ''));
     }
@@ -9580,6 +9594,8 @@ createApp({
       if (!profile.enabled) return { ok:false, label:'已停用', reason:'配置已停用' };
       if (!isConnectionProfileAdapterSupported(profile)) return { ok:false, label:'待适配', reason:'该协议将在后续适配轮开放' };
       if (!profile.baseUrl) return { ok:false, label:'缺少地址', reason:'请填写 API 地址' };
+      const browserCompatibilityIssue = getConnectionProfileBrowserCompatibilityIssue(profile.baseUrl);
+      if (browserCompatibilityIssue) return { ok:false, label:'网页不可直连', reason:browserCompatibilityIssue };
       if (!getConnectionCredential(profile.id)) return { ok:false, label:'缺少密钥', reason:'请填写 API 密钥' };
       if (!profile.defaultModel) return { ok:false, label:'缺少模型', reason:'请填写默认模型' };
       if (profile.lastTest?.status !== 'ok') return { ok:false, label:'未验证', reason:'请先获取模型或测试连接并通过' };
@@ -9666,6 +9682,17 @@ createApp({
       connectionProfileDraft.value.adapterId = template.id === 'custom'
         ? (isConnectionProfileAdapterSupported({ adapterId:connectionProfileDraft.value.adapterId }) ? connectionProfileDraft.value.adapterId : 'openai-compatible')
         : template.adapterId;
+      if (template.defaultBaseUrl) {
+        const previousBaseUrl = String(connectionProfileDraft.value.baseUrl || '').trim().replace(/\/+$/, '');
+        const nextBaseUrl = String(template.defaultBaseUrl).replace(/\/+$/, '');
+        if (previousBaseUrl && previousBaseUrl !== nextBaseUrl) {
+          connectionProfileDraft.value.apiKey = '';
+          connectionProfileDraft.value.defaultModel = '';
+          connectionProfileDraft.value.selectedDiscoveredModelId = '';
+        }
+        connectionProfileDraft.value.baseUrl = template.defaultBaseUrl;
+      }
+      if (template.defaultBaseUrl && !String(connectionProfileDraft.value.name || '').trim()) connectionProfileDraft.value.name = template.name;
       connectionProfileModelDiscovery.value = { loading:false, models:[], error:'' };
       invalidateConnectionProfileDraftTest();
     }
@@ -9716,6 +9743,8 @@ createApp({
     async function fetchConnectionProfileModels() {
       const draft = connectionProfileDraft.value;
       if (!String(draft.baseUrl || '').trim()) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:'请先填写 API 地址' }; return false; }
+      const browserCompatibilityIssue = getConnectionProfileBrowserCompatibilityIssue(draft.baseUrl);
+      if (browserCompatibilityIssue) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:browserCompatibilityIssue }; return false; }
       const key = String(draft.apiKey || '').trim();
       if (!key) { connectionProfileModelDiscovery.value = { loading:false, models:[], error:'请先填写 API 密钥' }; return false; }
       const adapterId = String(draft.adapterId || '');
@@ -9746,6 +9775,8 @@ createApp({
       const draft = connectionProfileDraft.value;
       if (!String(draft.name || '').trim()) return '配置名称不能为空';
       if (!String(draft.baseUrl || '').trim()) return '请填写 API 地址';
+      const browserCompatibilityIssue = getConnectionProfileBrowserCompatibilityIssue(draft.baseUrl);
+      if (browserCompatibilityIssue) return browserCompatibilityIssue;
       if (!String(draft.defaultModel || '').trim()) return '请填写默认模型';
       if (!String(draft.apiKey || '').trim() && connectionProfileEditorMode.value === 'create') return '请填写 API 密钥';
       if (!isConnectionProfileAdapterSupported({ adapterId:draft.adapterId })) return '该协议暂未开放请求适配';
@@ -35857,7 +35888,7 @@ function getWritingModelLabel() {
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  
