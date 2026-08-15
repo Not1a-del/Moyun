@@ -857,13 +857,19 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-row-tools{grid-column:auto}
 }
 .moyun-mobile-header{
+  position:relative;
+  flex:0 0 auto;
+  width:100%;
+  box-sizing:content-box;
   padding-top:env(safe-area-inset-top, 0px);
-  min-height:var(--moyun-mobile-header-height);
-  height:var(--moyun-mobile-header-height);
-  box-sizing:border-box;
+  min-height:3.5rem;
+  height:auto;
+  z-index:20;
 }
-.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
 .moyun-main-shell,.moyun-main-body{min-height:0}
+@media(max-width:767px){
+  [data-moyun-region="app-shell"]{flex-direction:column}
+}
 .moyun-wb-back-writing{
   display:inline-flex;align-items:center;justify-content:center;
   min-height:36px;padding:0 10px;border-radius:8px;
@@ -934,7 +940,15 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-tool-btn{min-height:38px;height:38px;padding:0 10px}
   .moyun-check-item{min-height:52px;padding:10px 11px}
   .moyun-action-status{justify-content:space-between;min-height:30px}
-  .moyun-character-main{padding:10px 10px calc(22px + env(safe-area-inset-bottom))}
+  .moyun-character-main{padding:10px 10px calc(22px + env(safe-area-inset-bottom, 0px) + var(--moyun-mobile-browser-bottom, 0px))}
+  .moyun-wb-body-scroll{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px) + var(--moyun-mobile-browser-bottom, 0px))!important}
+  .moyun-story-bible-mobile-nav{align-items:center;flex-wrap:nowrap}
+  .moyun-story-bible-mobile-nav button{
+    flex:0 0 auto!important;width:auto!important;min-width:max-content!important;
+    height:auto!important;min-height:36px!important;padding:8px 12px!important;
+    line-height:1.35!important;white-space:nowrap!important;overflow:visible!important;
+    box-sizing:border-box;font-size:12px!important;
+  }
   .moyun-character-mobile-picker{display:grid}
   .moyun-character-mobile-picker button,.moyun-character-mobile-picker select{min-height:44px}
   .moyun-character-editor{gap:10px}
@@ -1349,6 +1363,10 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   [data-moyun-modal="connection-profile-editor"] button,
   [id^="settings-panel-"] button,
   .moyun-workbench button{min-width:44px;min-height:46px}
+  .moyun-workbench .moyun-story-bible-mobile-nav button{
+    flex:0 0 auto!important;width:auto!important;min-width:max-content!important;
+    height:auto!important;min-height:36px!important;padding:8px 12px!important;
+  }
   .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
   .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
   .moyun-soft-bottom-composer .btn-primary{min-height:36px}
@@ -1920,7 +1938,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      移动端顶部导航栏
      ════════════════════════════════════════════ -->
-<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
+<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden flex items-center justify-between px-2"
      style="background:var(--bg-sidebar);border-bottom:1px solid var(--bd)">
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -2966,13 +2984,13 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
-<div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
+<div class="moyun-main-shell flex-1 min-h-0 md:h-full flex flex-col overflow-hidden" style="background:var(--bg)">
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
   <!-- ═════ 创作设定工作台 Story Bible ═════ -->
   <div v-if="showStoryBibleWorkbench && storyBible"
+       data-moyun-workbench="story-bible"
        class="moyun-workbench flex flex-col h-full shrink-0 z-10"
        :style="isMobile ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%' : 'width:100%;position:absolute;inset:0'"
        style="background:var(--bg-card)">
@@ -3000,7 +3018,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <button type="button" @click="setStoryBibleWorkbenchSection('context')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='context'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">上下文包</button>
         <div class="pt-2 px-1 text-[10px] leading-relaxed" style="color:var(--tx4)">可按细纲钉选资料并核对预算。打开此页不会调用模型；已接入的创作请求会使用这里的同源筛选结果。</div>
       </aside>
-      <section class="flex-1 min-w-0 overflow-y-auto p-4 md:p-6" style="background:var(--bg)">
+      <section class="moyun-wb-body-scroll flex-1 min-w-0 overflow-y-auto p-4 md:p-6" style="background:var(--bg)">
         <div class="moyun-story-bible-mobile-nav md:hidden flex gap-2 overflow-x-auto scrollbar-hide pb-2" data-moyun-story-bible-mobile-nav>
           <button type="button" @click="setStoryBibleWorkbenchSection('project')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='project'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">项目总览</button>
           <button type="button" @click="setStoryBibleWorkbenchSection('world')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='world'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">世界总览</button>
@@ -7437,7 +7455,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
               <div>
                 <label class="label">每章图片</label>
                 <select v-model.number="imageCountPerChapter" @change="saveData()" class="select-field text-xs" style="width:80px">
-                  <option :value="1">1张</option><option :value="2">2张</option><option :value="3">3张</option>
+                  <option :value="1">1张</option><option :value="2">2张</option><option :value="3">3张</option><option :value="4">4张</option><option :value="5">5张</option><option :value="6">6张</option>
                 </select>
               </div>
               <div>
@@ -13838,7 +13856,7 @@ function copyLastChapterContextText() {
           if (data.imagePromptTemplate) imagePromptTemplate.value = data.imagePromptTemplate;
           if (data.avatarPromptTemplate) avatarPromptTemplate.value = data.avatarPromptTemplate;
           if (data.imageSize) imageSize.value = data.imageSize;
-          if (data.imageCountPerChapter) imageCountPerChapter.value = data.imageCountPerChapter;
+          if (data.imageCountPerChapter) imageCountPerChapter.value = Math.min(6, Math.max(1, Number(data.imageCountPerChapter) || 2));
 		  
           if (data.imageProfiles?.length) {
             imageProfiles.value = data.imageProfiles;
@@ -42260,29 +42278,31 @@ function getWritingModelLabel() {
       return mobileWidth && (coarsePointer || noHover || touchPoints > 0 || mobileUa || localFileMobile);
     }
 
+    function readMobileSafeAreaTop() {
+      const testTop = Number(window.__SNOWWING_SAFE_AREA_TEST_TOP_RESERVE || 0);
+      if (Number.isFinite(testTop) && testTop > 0) return Math.round(testTop);
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+      document.body.appendChild(probe);
+      const top = Math.round(parseFloat(getComputedStyle(probe).paddingTop) || 0);
+      probe.remove();
+      return top;
+    }
+
     function syncMobileHeaderOffset() {
       const root = document.documentElement;
       const header = document.querySelector('[data-moyun-region="mobile-header"]');
-      const spacer = document.querySelector('.moyun-mobile-header-spacer');
-      const testTop = Number(window.__SNOWWING_SAFE_AREA_TEST_TOP_RESERVE || 0);
-      if (header && Number.isFinite(testTop) && testTop > 0) {
-        header.style.paddingTop = testTop + 'px';
-      }
       const headerVisible = Boolean(header && header.getClientRects().length > 0 && getComputedStyle(header).display !== 'none');
       if (!headerVisible || window.innerWidth >= 768) {
         root.style.setProperty('--moyun-mobile-header-height', '3.5rem');
-        if (spacer) spacer.style.height = '';
+        if (header) header.style.paddingTop = '';
         return;
       }
-      // 中文注释：fixed 顶栏的 padding-top 能吃到真实 safe-area；spacer 上的 env() 在部分 iOS 上是 0。这里用顶栏实测 padding 写成 px，两边共用。
-      const paddingTop = Math.round(parseFloat(getComputedStyle(header).paddingTop) || 0);
-      const headerH = Math.max(56, 56 + paddingTop);
+      // 中文注释：顶栏已回到文档流，不能再用 fixed 盖住书名和工作台。安全区用 fixed 探针读取，再写到顶栏 padding。
+      const paddingTop = readMobileSafeAreaTop();
+      header.style.paddingTop = paddingTop + 'px';
+      const headerH = Math.max(56, Math.round(header.getBoundingClientRect().height) || (56 + paddingTop));
       root.style.setProperty('--moyun-mobile-header-height', headerH + 'px');
-      void header.offsetHeight;
-      const rect = header.getBoundingClientRect();
-      const visualOffsetTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
-      const spacerH = Math.max(headerH, Math.round(rect.bottom + visualOffsetTop));
-      if (spacer) spacer.style.height = spacerH + 'px';
     }
 
     function updateMobileBrowserBottomInset() {

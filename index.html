@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=ad7ce1dc2a6d">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=3d03313ddb88">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -52,7 +52,7 @@
 <!-- ════════════════════════════════════════════
      移动端顶部导航栏
      ════════════════════════════════════════════ -->
-<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
+<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden flex items-center justify-between px-2"
      style="background:var(--bg-sidebar);border-bottom:1px solid var(--bd)">
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -1098,13 +1098,13 @@
 <!-- ════════════════════════════════════════════
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
-<div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
+<div class="moyun-main-shell flex-1 min-h-0 md:h-full flex flex-col overflow-hidden" style="background:var(--bg)">
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
   <!-- ═════ 创作设定工作台 Story Bible ═════ -->
   <div v-if="showStoryBibleWorkbench && storyBible"
+       data-moyun-workbench="story-bible"
        class="moyun-workbench flex flex-col h-full shrink-0 z-10"
        :style="isMobile ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%' : 'width:100%;position:absolute;inset:0'"
        style="background:var(--bg-card)">
@@ -1132,7 +1132,7 @@
         <button type="button" @click="setStoryBibleWorkbenchSection('context')" class="w-full text-left px-3 py-2 rounded-xl text-xs font-bold" :style="storyBibleWorkbenchSection==='context'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">上下文包</button>
         <div class="pt-2 px-1 text-[10px] leading-relaxed" style="color:var(--tx4)">可按细纲钉选资料并核对预算。打开此页不会调用模型；已接入的创作请求会使用这里的同源筛选结果。</div>
       </aside>
-      <section class="flex-1 min-w-0 overflow-y-auto p-4 md:p-6" style="background:var(--bg)">
+      <section class="moyun-wb-body-scroll flex-1 min-w-0 overflow-y-auto p-4 md:p-6" style="background:var(--bg)">
         <div class="moyun-story-bible-mobile-nav md:hidden flex gap-2 overflow-x-auto scrollbar-hide pb-2" data-moyun-story-bible-mobile-nav>
           <button type="button" @click="setStoryBibleWorkbenchSection('project')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='project'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">项目总览</button>
           <button type="button" @click="setStoryBibleWorkbenchSection('world')" class="text-xs px-3 py-2 rounded-lg whitespace-nowrap font-bold" :style="storyBibleWorkbenchSection==='world'?'background:var(--accent);color:var(--accent-fg)':'background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)'">世界总览</button>
@@ -5569,7 +5569,7 @@
               <div>
                 <label class="label">每章图片</label>
                 <select v-model.number="imageCountPerChapter" @change="saveData()" class="select-field text-xs" style="width:80px">
-                  <option :value="1">1张</option><option :value="2">2张</option><option :value="3">3张</option>
+                  <option :value="1">1张</option><option :value="2">2张</option><option :value="3">3张</option><option :value="4">4张</option><option :value="5">5张</option><option :value="6">6张</option>
                 </select>
               </div>
               <div>
@@ -6015,7 +6015,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=36a80e423a3d"></script>
+<script src="./assets/js/moyun.js?v=48a304b2bbf4"></script>
 <!-- PART_1_END -->
 </body>
 </html>
