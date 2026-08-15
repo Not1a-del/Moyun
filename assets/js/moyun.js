@@ -46,13 +46,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-08-15-1905-0815-update',
+  id: 'web-2026-08-15-1920-0815-update',
   badge: '网页更新',
   title: '0815更新',
-  publishedAt: '2026-08-15 19:05',
-  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚补上了创作设定勾选和左右分栏，所以请再看一遍。点「我知道了」后，这条不会再弹。',
+  publishedAt: '2026-08-15 19:20',
+  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又补了生图页的图书馆友链，并改成只能点「我知道了」才关掉公告。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这两条。' }),
+    Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这几条。' }),
+    Object.freeze({ key:'extra-library', tone:'extra', title:'生图页加入图书馆友链', body:'设置 → 生图 的最顶部新增友链「图书馆」。点开后在新标签打开，不会冲掉当前正在写的页面。' }),
+    Object.freeze({ key:'extra-ack-only', tone:'extra', title:'公告只能点「我知道了」关闭', body:'点公告周围的空白、按 Esc、或点浏览器后退，都不会再把公告关掉。只有点底部「我知道了」才会关闭，并记住你已经看过。' }),
     Object.freeze({ key:'extra-picks', tone:'extra', title:'创作设定改成勾选列表', body:'资料关联、全书钉选、本细纲追加钉选不再是看起来像输入框的多选框。现在是勾选列表：可以同时勾多项，再点一次即可取消。目标细纲仍是单选下拉。事件参与角色、角色出场章节、细纲「管理活跃资料」同样可以取消勾选。' }),
     Object.freeze({ key:'extra-split', tone:'extra', title:'左右分栏在桌面常驻', body:'大纲页的「左右分栏」不再只在打开大纲时出现。细纲同样左右分栏，所以这个开关一直留在桌面侧栏。大纲和细纲互切会记住你的选择；关掉工作台后开关还在。手机端仍是全屏，不提供分栏。' }),
     Object.freeze({ key:'group-new', kind:'group', title:'新增', body:'这一轮网页新加上的能力。' }),
@@ -84,7 +86,7 @@ const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
     Object.freeze({ key:'fix-review', tone:'fix', title:'书评默认关闭看起来像坏了', body:'书评总开关默认关闭是有意的，并补了说明。子项收在总开关下面，总开关关闭时子项置灰禁用。' }),
     Object.freeze({ key:'fix-darkline', tone:'fix', title:'暗线同步静默失败、设定串书', body:'暗线回收计划按主线章号维护，支线不会自动改写共享计划。同步失败会说明。设定工作台的事件、角色和预览对齐当前书，不会串到另一本。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'点「我知道了」后，这条公告不会再弹。若本地还有未关闭的旧标签，建议只留一个标签写同一本书。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。点周围空白或按 Esc 都关不掉。若本地还有未关闭的旧标签，建议只留一个标签写同一本书。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -3525,6 +3527,13 @@ createApp({
     function requestCloseTopMoyunModal(source = 'escape') {
       const top = getTopMoyunModalEntry();
       if (!top) return false;
+      // 中文注释：公告/新手说明只能点底部确认按钮关掉，Esc、后退、点空白都不算已读。
+      if (top.root.dataset.moyunModal === 'web-update-announcement') {
+        const ack = top.root.querySelector('[data-web-update-ack]');
+        const label = String(ack && ack.textContent || '底部按钮').replace(/\s+/g, ' ').trim();
+        showToast('请点「' + label + '」后再继续', 'info');
+        return false;
+      }
       if (top.root.dataset.moyunModalLocked === 'true') {
         showToast(top.root.dataset.moyunLockedMessage || '当前操作进行中，请使用弹窗内的操作按钮。', 'info');
         return false;
