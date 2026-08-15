@@ -846,12 +846,19 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-row-tools{grid-column:auto}
 }
 .moyun-mobile-header{
+  display:none;
   padding-top:env(safe-area-inset-top, 0px);
   min-height:var(--moyun-mobile-header-height);
   height:var(--moyun-mobile-header-height);
   box-sizing:border-box;
 }
-.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
+.moyun-mobile-header-spacer{display:none;height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
+@media (max-width:767px), (pointer:coarse) and (hover:none){
+  .moyun-mobile-header{display:flex}
+  .moyun-mobile-header-spacer{display:block}
+}
+.moyun-touch-layout .moyun-mobile-header{display:flex}
+.moyun-touch-layout .moyun-mobile-header-spacer{display:block}
 .moyun-main-shell,.moyun-main-body{min-height:0}
 .moyun-wb-back-writing{
   display:inline-flex;align-items:center;justify-content:center;

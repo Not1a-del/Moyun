@@ -3738,7 +3738,14 @@ createApp({
       }
     }
 
+    function detectTouchLikeViewport() {
+      const coarse = window.matchMedia?.('(pointer: coarse)')?.matches;
+      const noHover = window.matchMedia?.('(hover: none)')?.matches;
+      const mobileUa = /Android|iPhone|iPad|iPod|Mobile|EdgA|CriOS|FxiOS/i.test(navigator.userAgent || '');
+      return Boolean(mobileUa || (coarse && noHover));
+    }
     const isMobile = ref(window.innerWidth < 768);
+    const isTouchLike = ref(detectTouchLikeViewport());
     const currentTab = ref('bookshelf');
     const sidebarTabs = [
       {id:'bookshelf',name:'书架'},{id:'settings',name:'设定'},
@@ -34385,7 +34392,8 @@ function getWritingModelLabel() {
         header.style.paddingTop = testTop + 'px';
       }
       const headerVisible = Boolean(header && header.getClientRects().length > 0 && getComputedStyle(header).display !== 'none');
-      if (!headerVisible || window.innerWidth >= 768) {
+      const mobileLayout = isMobile.value || isTouchLike.value;
+      if (!headerVisible || !mobileLayout) {
         root.style.setProperty('--moyun-mobile-header-height', '3.5rem');
         if (spacer) spacer.style.height = '';
         return;
@@ -34407,7 +34415,7 @@ function getWritingModelLabel() {
       const visualHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight || 0));
       const visualOffsetTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
       const viewportDelta = Math.max(0, Math.round(window.innerHeight - visualHeight - visualOffsetTop));
-      const mobileViewport = window.innerWidth < 768;
+      const mobileViewport = isMobile.value || isTouchLike.value;
       // 中文注释：软键盘会显著压缩 visualViewport；它不是浏览器底栏，不应只截断为 120px 的安全区。
       const keyboardOpen = mobileViewport && viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
       let bottom = 0;
@@ -34434,7 +34442,8 @@ function getWritingModelLabel() {
 
     function handleResize() {
       isMobile.value = window.innerWidth < 768;
-      if (!isMobile.value) mobileSidebarOpen.value = false;
+      isTouchLike.value = detectTouchLikeViewport();
+      if (!isMobile.value && !isTouchLike.value) mobileSidebarOpen.value = false;
       updateMobileBrowserBottomInset();
       nextTick(updateSidebarTabScrollState);
       if (showRelGraph.value) nextTick(computeRelGraph);
@@ -34583,7 +34592,7 @@ function getWritingModelLabel() {
       // ── Part 1: 核心数据 ──
       novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
-      mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
+      mobileSidebarOpen, isMobile, isTouchLike, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
