@@ -21,6 +21,8 @@
   --font-art:'Ma Shan Zheng',cursive;
   --moyun-mobile-browser-bottom:0px;
   --moyun-mobile-composer-gap:16px;
+  --moyun-mobile-header-height:calc(3.5rem + env(safe-area-inset-top, 0px));
+  --moyun-keyboard-inset:0px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -60,8 +62,8 @@ body{
   -webkit-font-smoothing:antialiased;
   overscroll-behavior:none;touch-action:manipulation;
   transition:background .35s,color .35s;
-  padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px));
+  padding-top:0;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
 }
 ::selection{background:var(--accent-mid);color:var(--tx)}
 a{color:var(--accent);text-decoration:none}
@@ -842,17 +844,42 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-row-actions{justify-content:flex-start}
   .moyun-darkline-row-tools{grid-column:auto}
 }
+.moyun-mobile-header{
+  padding-top:env(safe-area-inset-top, 0px);
+  height:var(--moyun-mobile-header-height);
+  box-sizing:border-box;
+}
+.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto}
+.moyun-main-shell,.moyun-main-body{min-height:0}
+.moyun-wb-back-writing{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;padding:0 10px;border-radius:8px;
+  border:1px solid var(--bd);background:var(--bg-card);
+  color:var(--tx);font-size:12px;font-weight:800;white-space:nowrap;
+}
+.moyun-composer-reuse-short,.moyun-composer-metric-short{display:none}
+.moyun-composer-icon-row{
+  display:flex;align-items:center;gap:6px;width:100%;
+}
+.moyun-composer-icon-btn{
+  width:32px;height:32px;min-width:32px;min-height:32px;padding:0;
+  border-radius:999px;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 32px;overflow:hidden;
+}
+.moyun-composer-icon-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:767px){
   .moyun-workbench{
-    height:var(--moyun-workbench-height,calc(100dvh - 3.5rem))!important;
-    max-height:var(--moyun-workbench-height,calc(100dvh - 3.5rem))!important;
-    bottom:auto!important;
+    top:0!important;
+    bottom:0!important;
+    height:100%!important;
+    max-height:none!important;
   }
-  .moyun-wb-header{align-items:flex-start;padding:10px 12px;gap:10px}
+  .moyun-wb-header{position:sticky;top:0;z-index:5;align-items:flex-start;padding:10px 12px;gap:10px}
   .moyun-wb-header-actions{gap:5px}
   .moyun-wb-title{font-size:16px}
   .moyun-wb-subtitle{display:none}
-  .moyun-wb-scroll{padding:10px}
+  .moyun-wb-scroll{padding:10px;min-height:0}
+  .moyun-outline-grid{min-height:100%}
   .moyun-wb-pill{height:22px;padding:0 6px;font-size:9px}
   .moyun-wb-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .moyun-wb-operation{padding:9px}
@@ -985,40 +1012,87 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .moyun-soft-bottom-composer{
     bottom:0;
     margin-top:auto;
-    /* 中文注释：必须把浏览器底栏变量算进去。旧的 4px !important 会盖掉 inline padding，Safari 浮栏就会挡住「提笔续写」。 */
-    padding-bottom:calc(max(8px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))!important;
+    padding-bottom:max(6px, env(safe-area-inset-bottom, 0px))!important;
   }
-  .moyun-soft-bottom-composer>div{
-    border-radius:18px 18px 12px 12px;
+  .moyun-soft-bottom-composer>div,
+  .moyun-soft-bottom-composer .moyun-composer-card{
+    border-radius:16px 16px 10px 10px;
     backdrop-filter:blur(16px);
-    box-shadow:0 14px 42px rgba(15,23,42,.16)!important;
-    gap:10px!important;
-    padding:10px!important;
+    box-shadow:0 10px 28px rgba(15,23,42,.14)!important;
+    gap:8px!important;
+    padding:8px!important;
   }
   .moyun-soft-bottom-composer textarea{
-    min-height:44px!important;
-    max-height:88px!important;
+    min-height:40px!important;
+    max-height:min(32vh, 168px)!important;
     font-size:16px!important;
     line-height:1.4!important;
-    padding:10px 12px!important;
-    border-radius:12px!important;
+    padding:8px 10px!important;
+    border-radius:10px!important;
     resize:none!important;
+  }
+  .moyun-composer-reuse-hint{display:none}
+  .moyun-composer-reuse-full,.moyun-composer-metric-label{display:none}
+  .moyun-composer-reuse-short,.moyun-composer-metric-short{display:inline}
+  .moyun-composer-controls{
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+  }
+  .moyun-composer-metrics{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .moyun-composer-reuse{min-height:32px;font-size:11px;font-weight:800}
+  .moyun-composer-metric{display:inline-flex;align-items:center;gap:3px;font-size:11px}
+  .moyun-composer-metric select{
+    min-height:32px!important;
+    height:32px;
+    padding:2px 4px;
+    font-size:12px;
+    border-radius:8px;
+  }
+  .moyun-composer-icon-row{gap:8px}
+  .moyun-soft-bottom-composer .moyun-composer-icon-btn{
+    width:32px;
+    height:32px;
+    min-width:32px!important;
+    min-height:32px!important;
+    padding:0;
+    border-radius:999px;
+    flex:0 0 32px;
   }
   .moyun-soft-bottom-composer .moyun-composer-toolbar{
     display:flex;
-    flex-wrap:wrap;
-    align-items:stretch;
-    gap:8px;
-  }
-  .moyun-soft-bottom-composer .moyun-composer-toolbar .btn-ghost{
-    flex:1 1 calc(50% - 8px);
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+    margin-left:auto;
   }
   .moyun-soft-bottom-composer .moyun-composer-toolbar .btn-primary{
-    flex:1 0 100%;
-    min-height:46px;
-    border-radius:12px;
-    order:10;
+    flex:1 1 auto;
+    min-width:72px!important;
+    min-height:36px!important;
+    height:36px;
+    padding:0 10px;
+    border-radius:10px;
+    font-size:13px;
+    order:unset;
   }
+  .moyun-keyboard-open .moyun-soft-bottom-composer{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:var(--moyun-keyboard-inset, 0px);
+    z-index:35;
+    padding-bottom:6px!important;
+    margin:0;
+  }
+  .moyun-keyboard-open .theme-fab{display:none}
 }
 
 
@@ -1242,7 +1316,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* 浮动主题切换按钮（移动端） */
 .theme-fab{
-  position:fixed;bottom:calc(188px + var(--moyun-mobile-browser-bottom,0px) + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
+  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
   width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
   background:var(--bg-card);border:1px solid var(--bd2);
   box-shadow:var(--sh2);display:flex;align-items:center;
@@ -1255,11 +1329,12 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 @media(max-width:767px){
   .sidebar-tab-shell [data-sidebar-tab]{min-width:44px;min-height:44px}
   [role="tablist"][aria-label="设置分类"] > button{min-height:44px}
-  [data-moyun-region="composer"] button,
   [data-moyun-modal="connection-profile-editor"] button,
   [id^="settings-panel-"] button,
   .moyun-workbench button{min-width:44px;min-height:46px}
-  .moyun-soft-bottom-composer .btn-primary{min-height:46px}
+  .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
+  .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
+  .moyun-soft-bottom-composer .btn-primary{min-height:36px}
   .moyun-workbench .moyun-wb-operation button,
   .moyun-workbench .moyun-wb-mode-tabs button,
   .moyun-workbench .moyun-action-status button{min-height:46px}
@@ -1275,7 +1350,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   [data-moyun-region="sidebar"] button,
   [data-moyun-region="sidebar"] select{min-height:44px}
   /* 底栏的「本章目标字数」「生成章节数」是写正文前最常改的两个下拉，此前只有 28px。 */
-  [data-moyun-region="composer"] select{min-height:44px}
+  [data-moyun-region="composer"] select{min-height:32px;height:32px}
 }
 [data-moyun-modal="web-update-announcement"] .moyun-announce-stack{display:flex;flex-direction:column;gap:10px}
 [data-moyun-modal="web-update-announcement"] .moyun-announce-lead{

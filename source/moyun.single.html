@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Moyun</title>
 <link rel="icon" href="./assets/favicon/moyun.svg" type="image/svg+xml">
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -32,6 +32,8 @@
   --font-art:'Ma Shan Zheng',cursive;
   --moyun-mobile-browser-bottom:0px;
   --moyun-mobile-composer-gap:16px;
+  --moyun-mobile-header-height:calc(3.5rem + env(safe-area-inset-top, 0px));
+  --moyun-keyboard-inset:0px;
 }
 
 /* ═══════════════════════════════════════════════
@@ -71,8 +73,8 @@ body{
   -webkit-font-smoothing:antialiased;
   overscroll-behavior:none;touch-action:manipulation;
   transition:background .35s,color .35s;
-  padding-top:env(safe-area-inset-top);
-  padding-bottom:calc(env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px));
+  padding-top:0;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
 }
 ::selection{background:var(--accent-mid);color:var(--tx)}
 a{color:var(--accent);text-decoration:none}
@@ -853,17 +855,42 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-row-actions{justify-content:flex-start}
   .moyun-darkline-row-tools{grid-column:auto}
 }
+.moyun-mobile-header{
+  padding-top:env(safe-area-inset-top, 0px);
+  height:var(--moyun-mobile-header-height);
+  box-sizing:border-box;
+}
+.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto}
+.moyun-main-shell,.moyun-main-body{min-height:0}
+.moyun-wb-back-writing{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;padding:0 10px;border-radius:8px;
+  border:1px solid var(--bd);background:var(--bg-card);
+  color:var(--tx);font-size:12px;font-weight:800;white-space:nowrap;
+}
+.moyun-composer-reuse-short,.moyun-composer-metric-short{display:none}
+.moyun-composer-icon-row{
+  display:flex;align-items:center;gap:6px;width:100%;
+}
+.moyun-composer-icon-btn{
+  width:32px;height:32px;min-width:32px;min-height:32px;padding:0;
+  border-radius:999px;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 32px;overflow:hidden;
+}
+.moyun-composer-icon-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:767px){
   .moyun-workbench{
-    height:var(--moyun-workbench-height,calc(100dvh - 3.5rem))!important;
-    max-height:var(--moyun-workbench-height,calc(100dvh - 3.5rem))!important;
-    bottom:auto!important;
+    top:0!important;
+    bottom:0!important;
+    height:100%!important;
+    max-height:none!important;
   }
-  .moyun-wb-header{align-items:flex-start;padding:10px 12px;gap:10px}
+  .moyun-wb-header{position:sticky;top:0;z-index:5;align-items:flex-start;padding:10px 12px;gap:10px}
   .moyun-wb-header-actions{gap:5px}
   .moyun-wb-title{font-size:16px}
   .moyun-wb-subtitle{display:none}
-  .moyun-wb-scroll{padding:10px}
+  .moyun-wb-scroll{padding:10px;min-height:0}
+  .moyun-outline-grid{min-height:100%}
   .moyun-wb-pill{height:22px;padding:0 6px;font-size:9px}
   .moyun-wb-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .moyun-wb-operation{padding:9px}
@@ -996,40 +1023,87 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .moyun-soft-bottom-composer{
     bottom:0;
     margin-top:auto;
-    /* 中文注释：必须把浏览器底栏变量算进去。旧的 4px !important 会盖掉 inline padding，Safari 浮栏就会挡住「提笔续写」。 */
-    padding-bottom:calc(max(8px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))!important;
+    padding-bottom:max(6px, env(safe-area-inset-bottom, 0px))!important;
   }
-  .moyun-soft-bottom-composer>div{
-    border-radius:18px 18px 12px 12px;
+  .moyun-soft-bottom-composer>div,
+  .moyun-soft-bottom-composer .moyun-composer-card{
+    border-radius:16px 16px 10px 10px;
     backdrop-filter:blur(16px);
-    box-shadow:0 14px 42px rgba(15,23,42,.16)!important;
-    gap:10px!important;
-    padding:10px!important;
+    box-shadow:0 10px 28px rgba(15,23,42,.14)!important;
+    gap:8px!important;
+    padding:8px!important;
   }
   .moyun-soft-bottom-composer textarea{
-    min-height:44px!important;
-    max-height:88px!important;
+    min-height:40px!important;
+    max-height:min(32vh, 168px)!important;
     font-size:16px!important;
     line-height:1.4!important;
-    padding:10px 12px!important;
-    border-radius:12px!important;
+    padding:8px 10px!important;
+    border-radius:10px!important;
     resize:none!important;
+  }
+  .moyun-composer-reuse-hint{display:none}
+  .moyun-composer-reuse-full,.moyun-composer-metric-label{display:none}
+  .moyun-composer-reuse-short,.moyun-composer-metric-short{display:inline}
+  .moyun-composer-controls{
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+  }
+  .moyun-composer-metrics{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .moyun-composer-reuse{min-height:32px;font-size:11px;font-weight:800}
+  .moyun-composer-metric{display:inline-flex;align-items:center;gap:3px;font-size:11px}
+  .moyun-composer-metric select{
+    min-height:32px!important;
+    height:32px;
+    padding:2px 4px;
+    font-size:12px;
+    border-radius:8px;
+  }
+  .moyun-composer-icon-row{gap:8px}
+  .moyun-soft-bottom-composer .moyun-composer-icon-btn{
+    width:32px;
+    height:32px;
+    min-width:32px!important;
+    min-height:32px!important;
+    padding:0;
+    border-radius:999px;
+    flex:0 0 32px;
   }
   .moyun-soft-bottom-composer .moyun-composer-toolbar{
     display:flex;
-    flex-wrap:wrap;
-    align-items:stretch;
-    gap:8px;
-  }
-  .moyun-soft-bottom-composer .moyun-composer-toolbar .btn-ghost{
-    flex:1 1 calc(50% - 8px);
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+    margin-left:auto;
   }
   .moyun-soft-bottom-composer .moyun-composer-toolbar .btn-primary{
-    flex:1 0 100%;
-    min-height:46px;
-    border-radius:12px;
-    order:10;
+    flex:1 1 auto;
+    min-width:72px!important;
+    min-height:36px!important;
+    height:36px;
+    padding:0 10px;
+    border-radius:10px;
+    font-size:13px;
+    order:unset;
   }
+  .moyun-keyboard-open .moyun-soft-bottom-composer{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:var(--moyun-keyboard-inset, 0px);
+    z-index:35;
+    padding-bottom:6px!important;
+    margin:0;
+  }
+  .moyun-keyboard-open .theme-fab{display:none}
 }
 
 
@@ -1253,7 +1327,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* 浮动主题切换按钮（移动端） */
 .theme-fab{
-  position:fixed;bottom:calc(188px + var(--moyun-mobile-browser-bottom,0px) + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
+  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
   width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
   background:var(--bg-card);border:1px solid var(--bd2);
   box-shadow:var(--sh2);display:flex;align-items:center;
@@ -1266,11 +1340,12 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 @media(max-width:767px){
   .sidebar-tab-shell [data-sidebar-tab]{min-width:44px;min-height:44px}
   [role="tablist"][aria-label="设置分类"] > button{min-height:44px}
-  [data-moyun-region="composer"] button,
   [data-moyun-modal="connection-profile-editor"] button,
   [id^="settings-panel-"] button,
   .moyun-workbench button{min-width:44px;min-height:46px}
-  .moyun-soft-bottom-composer .btn-primary{min-height:46px}
+  .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
+  .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
+  .moyun-soft-bottom-composer .btn-primary{min-height:36px}
   .moyun-workbench .moyun-wb-operation button,
   .moyun-workbench .moyun-wb-mode-tabs button,
   .moyun-workbench .moyun-action-status button{min-height:46px}
@@ -1286,7 +1361,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   [data-moyun-region="sidebar"] button,
   [data-moyun-region="sidebar"] select{min-height:44px}
   /* 底栏的「本章目标字数」「生成章节数」是写正文前最常改的两个下拉，此前只有 28px。 */
-  [data-moyun-region="composer"] select{min-height:44px}
+  [data-moyun-region="composer"] select{min-height:32px;height:32px}
 }
 [data-moyun-modal="web-update-announcement"] .moyun-announce-stack{display:flex;flex-direction:column;gap:10px}
 [data-moyun-modal="web-update-announcement"] .moyun-announce-lead{
@@ -1836,7 +1911,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      移动端顶部导航栏
      ════════════════════════════════════════════ -->
-<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="md:hidden fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-2 z-30"
+<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
      style="background:var(--bg-sidebar);border-bottom:1px solid var(--bd)">
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -2882,13 +2957,15 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
-<div class="flex-1 h-full flex flex-col md:flex-row overflow-hidden relative pt-14 md:pt-0" style="background:var(--bg)">
+<div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
+  <div class="moyun-mobile-header-spacer md:hidden" aria-hidden="true"></div>
+  <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
   <!-- ═════ 创作设定工作台 Story Bible ═════ -->
   <div v-if="showStoryBibleWorkbench && storyBible"
        class="moyun-workbench flex flex-col h-full shrink-0 z-10"
-       :style="isMobile ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto' : 'width:100%;position:absolute;inset:0'"
+       :style="isMobile ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%' : 'width:100%;position:absolute;inset:0'"
        style="background:var(--bg-card)">
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
@@ -2899,6 +2976,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <button v-if="detailedOutlineReturnTarget.outlineId" type="button" @click="returnToDetailedOutlineFromWorkbench" class="moyun-c3-return-btn">← 返回 {{ getDetailedOutlineLabel(detailedOutlineReturnTarget.outlineId) }}</button>
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
         <span class="moyun-wb-pill">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }} 项项目承诺</span>
+        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="关闭设定工作台" aria-label="关闭设定工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
@@ -3245,7 +3323,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   <!-- ═════ Phase C.1：角色工作台 ═════ -->
   <div v-if="showCharacterWorkbench" data-moyun-workbench="character"
        class="moyun-workbench flex flex-col h-full shrink-0 z-10"
-       :style="isMobile ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto' : 'width:100%;position:absolute;inset:0'"
+       :style="isMobile ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%' : 'width:100%;position:absolute;inset:0'"
        style="background:var(--bg-card)">
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
@@ -3257,6 +3335,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
         <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span>
         <button type="button" @click="openRelationshipGraph" class="btn-ghost text-xs px-3 py-2">关系图</button>
+        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="关闭角色工作台" aria-label="关闭角色工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
@@ -3404,7 +3483,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
        :style="splitScreen
          ? 'width:50%;border-right:1px solid var(--bd)'
           : isMobile
-            ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto'
+            ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%'
            : 'width:100%;position:absolute;inset:0'"
        style="background:var(--bg-card)">
 
@@ -3422,6 +3501,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
           <button @click="deferOutlineRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" title="先退出面板，修订原样保留，重开可继续审阅">稍后审阅</button>
         </template>
         <button v-else-if="canUndoOutlineRevisionApply" @click="undoOutlineRevisionApply" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)" title="把大纲退回接受修订之前，并让这批修订重新进入审阅">撤销接受</button>
+        <button type="button" class="moyun-wb-back-writing" @click="outlineRevisions.length>0 ? deferOutlineRevisions() : requestCloseOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
@@ -3531,7 +3611,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       :style="splitScreen
         ? 'width:50%;border-right:1px solid var(--bd)'
         : isMobile
-          ? 'width:100%;position:absolute;top:3.5rem;left:0;right:0;bottom:0;height:auto'
+          ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%'
           : 'width:100%;position:absolute;inset:0'"
       style="background:var(--bg-card)">
 
@@ -3541,6 +3621,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <div class="moyun-wb-subtitle">分批生成、逐章检查、失败重试和正文前打磨</div>
       </div>
       <div class="moyun-wb-header-actions">
+        <button type="button" class="moyun-wb-back-writing" @click="requestCloseDetailedOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭细纲面板" aria-label="关闭细纲面板">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
@@ -3936,15 +4017,15 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
   <!-- 正文主区域 -->
   <main data-moyun-region="main" class="flex-1 h-full overflow-y-auto relative scroll-smooth scrollbar-hide md:scrollbar-auto" ref="mainScroll" style="-webkit-overflow-scrolling:touch">
-    <div class="max-w-4xl mx-auto px-4 md:px-12 py-8 md:py-16 min-h-full flex flex-col">
+    <div class="max-w-4xl mx-auto px-4 md:px-12 pt-4 pb-0 md:py-16 min-h-full flex flex-col">
       <!-- 标题 -->
-      <div class="text-center mb-8 md:mb-20 mt-2 md:mt-4">
+      <div class="text-center mb-6 md:mb-20 mt-0 md:mt-4">
 	        <!-- 封面图 -->
       <div v-if="coverImage" class="mb-4 flex justify-center">
         <img :src="coverImage" class="w-64 md:w-80 h-auto rounded-xl cursor-pointer" style="border:1px solid var(--bd);box-shadow:var(--sh2)"
              @click="previewImage(coverImage)">
       </div>
-        <h1 class="moyun-wordmark text-2xl md:text-5xl mb-4 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
+        <h1 class="moyun-wordmark text-xl md:text-5xl mb-3 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -4419,53 +4500,71 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       </div><!-- 关闭 space-y-4 flex-1 pb-24 -->
 
       <!-- 底部控制栏（大纲/细纲面板打开时隐藏） -->
-      <div v-show="!novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10" style="padding-bottom:calc(max(var(--moyun-mobile-composer-gap, 16px), env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-        <div class="rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
+      <div v-show="!novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10">
+        <div class="moyun-composer-card rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
              style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
-          <div class="flex gap-1 items-end w-full">
+          <div class="moyun-composer-prompt-row flex gap-1 items-end w-full">
             <textarea v-model="nextChapterPrompt" placeholder="下一章剧情走向..." rows="1"
                       data-moyun-composer-prompt
                       class="textarea-field text-sm flex-1" style="border-radius:10px;resize:vertical;min-height:36px;max-height:800px"
-                      @focus="$event.target.rows=2"
-                      @blur="nextChapterPrompt || ($event.target.rows=1)"></textarea>
-            <button @click="showFullscreenInput=true" class="p-2 shrink-0 md:hidden" style="color:var(--tx3)" title="全屏输入">
+                      @input="autosizeComposerPrompt($event)"
+                      @focus="autosizeComposerPrompt($event)"
+                      @blur="autosizeComposerPrompt($event)"></textarea>
+            <button @click="showFullscreenInput=true" class="p-2 shrink-0 md:hidden" style="color:var(--tx3)" title="全屏输入" aria-label="全屏输入">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
           </div>
-          <div class="flex items-center justify-between gap-2 flex-wrap text-[10px]" style="color:var(--tx3)">
-            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[44px]">
-              <input type="checkbox" v-model="keepNextChapterPrompt" @change="saveNextChapterPromptPreference" class="accent-current w-4 h-4">
-              <span>生成成功后保留并复用</span>
-            </label>
+          <div class="moyun-composer-icon-row" data-moyun-composer-icons>
+            <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
+            <button type="button" @click="openRealContextSafeView" class="moyun-composer-icon-btn btn-ghost" title="真实上下文" aria-label="真实上下文">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </button>
+            <button type="button" @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')"
+                :title="!isModuleRequestReady('suggestion') ? '先在设置里配置「AI建议」模块的 API' : (isGeneratingSuggestion ? '正在思考，请稍候' : 'AI建议')"
+                :aria-label="isGeneratingSuggestion ? '思考中' : 'AI建议'"
+                class="moyun-composer-icon-btn btn-ghost" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''">
+              <span v-if="isGeneratingSuggestion" class="loading-spinner"></span>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            </button>
+            <button type="button" @click="openSettingsTab('api')" class="moyun-composer-icon-btn btn-ghost" :style="(!writingGenerationReady&&!isGenerating)?'color:var(--warn);border-color:var(--warn)':''" title="去连接中心配置" aria-label="去连接中心配置">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+          </div>
+          <div class="moyun-composer-reuse-hint flex items-center justify-between gap-2 flex-wrap text-[10px]" style="color:var(--tx3)">
             <button v-if="!nextChapterPrompt && lastUsedNextChapterPrompt" type="button" @click="reuseLastNextChapterPrompt"
                     class="px-2.5 py-1.5 rounded-lg font-bold" style="background:var(--accent-soft);color:var(--accent)">再次使用上次要求</button>
             <span v-else-if="nextChapterPrompt && !keepNextChapterPrompt">成功后自动清空；失败或停止会保留</span>
           </div>
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-3 text-xs font-bold" style="color:var(--tx3)">
+          <div class="moyun-composer-controls flex items-center justify-between flex-wrap gap-2">
+            <div class="moyun-composer-metrics flex items-center gap-3 text-xs font-bold" style="color:var(--tx3)">
+              <label class="moyun-composer-reuse inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" v-model="keepNextChapterPrompt" @change="saveNextChapterPromptPreference" class="accent-current w-4 h-4">
+                <span class="moyun-composer-reuse-full">生成成功后保留并复用</span>
+                <span class="moyun-composer-reuse-short">复用</span>
+              </label>
               <span v-if="nextChapterPrompt" class="text-[10px] px-1.5 py-0.5 rounded" style="color:var(--ok);background:var(--ok-soft)">({{ nextChapterPrompt.length }}字)</span>
-              <span>字数:</span>
-              <select v-model.number="wordCountTarget" class="select-field text-xs py-1">
-                <option :value="600">600</option><option :value="1000">1000</option>
-                <option :value="1500">1500</option><option :value="2000">2000</option>
-                <option :value="2500">2500</option><option :value="4000">4000</option>
-                <option :value="6000">6000</option><option :value="8000">8000</option>
-                <option :value="10000">10000</option><option :value="15000">15000</option>
-              </select>
-              <span>章数:</span>
-              <select v-model.number="generateCount" class="select-field text-xs py-1">
-                <option :value="1">1</option><option :value="2">2</option>
-                <option :value="3">3</option><option :value="5">5</option>
-                <option :value="10">10</option>
-              </select>
+              <label class="moyun-composer-metric">
+                <span class="moyun-composer-metric-label">字数:</span>
+                <span class="moyun-composer-metric-short">字</span>
+                <select v-model.number="wordCountTarget" class="select-field text-xs py-1">
+                  <option :value="600">600</option><option :value="1000">1000</option>
+                  <option :value="1500">1500</option><option :value="2000">2000</option>
+                  <option :value="2500">2500</option><option :value="4000">4000</option>
+                  <option :value="6000">6000</option><option :value="8000">8000</option>
+                  <option :value="10000">10000</option><option :value="15000">15000</option>
+                </select>
+              </label>
+              <label class="moyun-composer-metric">
+                <span class="moyun-composer-metric-label">章数:</span>
+                <span class="moyun-composer-metric-short">章</span>
+                <select v-model.number="generateCount" class="select-field text-xs py-1">
+                  <option :value="1">1</option><option :value="2">2</option>
+                  <option :value="3">3</option><option :value="5">5</option>
+                  <option :value="10">10</option>
+                </select>
+              </label>
             </div>
             <div class="moyun-composer-toolbar flex items-center gap-2 flex-wrap justify-end">
-              <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
-              <button @click="openRealContextSafeView" class="btn-ghost text-xs py-2 px-3" title="查看当前准备发送的安全上下文与实际字符数">📄 真实上下文</button>
-              <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')"
-                  :title="!isModuleRequestReady('suggestion') ? '先在设置里配置「AI建议」模块的 API' : (isGeneratingSuggestion ? '正在思考，请稍候' : '让 AI 给出接下来的写作建议')"
-                  class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
-              <button v-if="!writingGenerationReady&&!isGenerating" @click="openSettingsTab('api')" class="btn-ghost text-xs py-2 px-3" style="color:var(--warn);border-color:var(--warn)" title="前往连接中心配置并分配正文模型">去连接中心配置</button>
               <button data-moyun-composer-generate @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
           </div>
@@ -4474,6 +4573,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
     </div>
   </main>
+  </div>
 </div>
 
 <!-- 真实上下文请求弹窗：默认展示安全视图，避免暴露 MOD 内置提示词 -->
@@ -7815,14 +7915,17 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-08-15-2056-0815-update',
+  id: 'web-2026-08-15-2240-0815-update',
   badge: '网页更新',
   title: '0815更新',
-  publishedAt: '2026-08-15 20:56',
-  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又修了手机写作底栏、大纲细纲分段条、设定工作台页签和侧栏滑条。点「我知道了」后，这条不会再弹。',
+  publishedAt: '2026-08-15 22:40',
+  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又把手机输入栏收成图标行，并修好大纲、细纲、角色回正文和工作台铺满。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
     Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这几条。' }),
-    Object.freeze({ key:'extra-composer', tone:'extra', title:'手机写作底栏不再被挡住', body:'空的「下一章剧情走向」收成一行输入高度。「提笔续写」单独占满一行，并抬离手机浏览器底部地址栏，不再被挡住。' }),
+    Object.freeze({ key:'extra-composer-icons', tone:'extra', title:'手机输入栏改成图标行', body:'「真实上下文」「AI建议」「去配置」只留圆形图标，放在输入框正下方第一行，不再显示文字。生成复用和字数、章数挤在同一行，按钮不再占满半屏。键盘弹出时底栏跟着升，输入框会按内容变高。' }),
+    Object.freeze({ key:'extra-workbench-back', tone:'extra', title:'大纲细纲角色能回正文', body:'大纲、细纲、设定和角色工作台都露出「回正文」，不再被上面的 Moyun 栏挡住。工作台铺满剩下的整屏，下面不再空一大块。书架里点当前正在看的书，会关掉工作台并回到正文。' }),
+    Object.freeze({ key:'extra-open-title', tone:'extra', title:'开书标题不再被切掉', body:'手机上打开一本书时，书名完整落在顶栏下面，不会再被 Moyun 栏挡住一半。' }),
+    Object.freeze({ key:'extra-composer', tone:'extra', title:'手机写作底栏不再被挡住', body:'写作底栏抬离手机浏览器底部地址栏。空的「下一章剧情走向」收成一行输入高度，不再被底下的浏览器栏挡住。' }),
     Object.freeze({ key:'extra-mobile-sliders', tone:'extra', title:'手机分段条和侧栏滑条对齐', body:'大纲的「自动 / 流式 / 非流式」、细纲的「全部 / 只看问题」高亮会铺在对应那一格上。细纲范围栏和说明不再被右边缘切掉。侧栏选中页签的底线跟在真实按钮下面，越往右也不会越偏。创作设定工作台页签下那条灰杠是滚动条，已经藏掉。' }),
     Object.freeze({ key:'extra-library', tone:'extra', title:'生图页加入图书馆友链', body:'设置 → 生图 的最顶部新增友链「图书馆」。点开后在新标签打开，不会冲掉当前正在写的页面。' }),
     Object.freeze({ key:'extra-ack-only', tone:'extra', title:'公告只能点「我知道了」关闭', body:'点公告周围的空白、按 Esc、或点浏览器后退，都不会再把公告关掉。只有点底部「我知道了」才会关闭，并记住你已经看过。' }),
@@ -12844,7 +12947,20 @@ function copyLastChapterContextText() {
     function reuseLastNextChapterPrompt() {
       if (!lastUsedNextChapterPrompt.value) return;
       nextChapterPrompt.value = lastUsedNextChapterPrompt.value;
-      nextTick(() => document.querySelector('[data-moyun-region="composer"] textarea')?.focus());
+      nextTick(() => {
+        const el = document.querySelector('[data-moyun-region="composer"] textarea');
+        if (el) { el.focus(); autosizeComposerPrompt({ target: el }); }
+      });
+    }
+    function autosizeComposerPrompt(event) {
+      const el = (event && event.target && event.target.tagName === 'TEXTAREA')
+        ? event.target
+        : document.querySelector('[data-moyun-composer-prompt]');
+      if (!el) return;
+      const visualHeight = Math.max(1, Math.round(window.visualViewport?.height || window.innerHeight || 0));
+      const maxH = Math.max(72, Math.round(visualHeight * 0.32));
+      el.style.height = 'auto';
+      el.style.height = Math.min(Math.max(el.scrollHeight, 40), maxH) + 'px';
     }
     function archiveSuccessfulNextChapterPrompt(promptSnapshot, runOptions = {}) {
       const text = String(promptSnapshot || '');
@@ -14144,8 +14260,19 @@ function copyLastChapterContextText() {
     }
 
 
+    function returnToWritingSurface() {
+      showOutlineInMain.value = false;
+      showDetailedOutlineInMain.value = false;
+      showStoryBibleWorkbench.value = false;
+      showCharacterWorkbench.value = false;
+      mobileSidebarOpen.value = false;
+    }
+
     function switchBook(id) {
-      if (id === currentBookId.value) return;
+      if (id === currentBookId.value) {
+        returnToWritingSurface();
+        return;
+      }
       // 切书会关闭编辑器：未保存的章节改动过去在这里静默消失，现在先让用户决定草稿去留。
       const dirty = getDirtyChapterEdits();
       if (dirty.length) {
@@ -14179,7 +14306,7 @@ function copyLastChapterContextText() {
       if (loadBook(id)) {
         saveDataNow('切换书籍');
         showToast('已切换', 'success');
-        mobileSidebarOpen.value = false;
+        returnToWritingSurface();
         runModEventHandlers('bookLoaded', { source: 'switchBook', bookId: id });
       }
     }
@@ -42132,19 +42259,17 @@ function getWritingModelLabel() {
       if (Number.isFinite(testReserve) && testReserve > 0) {
         bottom = testReserve;
       } else if (!keyboardOpen && visualViewport) {
-        bottom = viewportDelta;
-      }
-      if (!keyboardOpen && bottom < 24 && shouldUseMobileBrowserBottomFallback()) {
-        const shortViewport = window.innerHeight < 760;
-        bottom = Math.max(bottom, shortViewport ? 72 : 56);
+        bottom = Math.min(viewportDelta, 48);
       }
       bottom = Math.min(Math.max(bottom, 0), 120);
-      const workbenchHeight = Math.max(240, visualHeight + visualOffsetTop - 56);
+      const keyboardInset = keyboardOpen ? viewportDelta : 0;
       root.style.setProperty('--moyun-mobile-browser-bottom', bottom + 'px');
+      root.style.setProperty('--moyun-keyboard-inset', keyboardInset + 'px');
       root.style.setProperty('--moyun-visual-viewport-height', visualHeight + 'px');
-      root.style.setProperty('--moyun-workbench-height', workbenchHeight + 'px');
+      root.style.setProperty('--moyun-workbench-height', '100%');
       root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
+      if (keyboardOpen) nextTick(autosizeComposerPrompt);
     }
 
     function handleResize() {
@@ -42316,7 +42441,7 @@ function getWritingModelLabel() {
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
       // ── Part 1: 基本操作 ──
-      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
+      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, returnToWritingSurface, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
       openBookEditor, closeBookEditor, requestCloseBookEditor, handleBookCoverFile, removeBookEditorCover, saveBookEditor,
       openSettings, openSettingsTab, clearAll,
@@ -42446,7 +42571,7 @@ function getWritingModelLabel() {
       streamContent, streamCotContent, streamNativeThinking, streamToolTimeline, streamCotActive, lastGenerationCot, lastGenerationNativeThinking, lastGenerationToolTimeline, abortController, interruptedContent, isInterrupted, interruptedIssue, interruptedCanContinue, interruptedThinkingText, interruptedThinkingOnly, interruptedBodyLooksLikeReasoning, copyInterruptedThinking, copyInterruptedBody,
       genElapsed, genCharCount, genRate, genStalled, streamReasoningCharCount, reasoningHeavyNoBody,
       startGeneration, discardInterrupted, saveInterruptedAsChapter, continueGeneration,
-      nextChapterPrompt, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, wordCountTarget, generateCount,
+      nextChapterPrompt, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, autosizeComposerPrompt, wordCountTarget, generateCount,
       // ── Part 4: AI建议 ──
       suggestionPersona, generateSuggestion,
 

@@ -46,14 +46,17 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-08-15-2056-0815-update',
+  id: 'web-2026-08-15-2240-0815-update',
   badge: '网页更新',
   title: '0815更新',
-  publishedAt: '2026-08-15 20:56',
-  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又修了手机写作底栏、大纲细纲分段条、设定工作台页签和侧栏滑条。点「我知道了」后，这条不会再弹。',
+  publishedAt: '2026-08-15 22:40',
+  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又把手机输入栏收成图标行，并修好大纲、细纲、角色回正文和工作台铺满。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
     Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这几条。' }),
-    Object.freeze({ key:'extra-composer', tone:'extra', title:'手机写作底栏不再被挡住', body:'空的「下一章剧情走向」收成一行输入高度。「提笔续写」单独占满一行，并抬离手机浏览器底部地址栏，不再被挡住。' }),
+    Object.freeze({ key:'extra-composer-icons', tone:'extra', title:'手机输入栏改成图标行', body:'「真实上下文」「AI建议」「去配置」只留圆形图标，放在输入框正下方第一行，不再显示文字。生成复用和字数、章数挤在同一行，按钮不再占满半屏。键盘弹出时底栏跟着升，输入框会按内容变高。' }),
+    Object.freeze({ key:'extra-workbench-back', tone:'extra', title:'大纲细纲角色能回正文', body:'大纲、细纲、设定和角色工作台都露出「回正文」，不再被上面的 Moyun 栏挡住。工作台铺满剩下的整屏，下面不再空一大块。书架里点当前正在看的书，会关掉工作台并回到正文。' }),
+    Object.freeze({ key:'extra-open-title', tone:'extra', title:'开书标题不再被切掉', body:'手机上打开一本书时，书名完整落在顶栏下面，不会再被 Moyun 栏挡住一半。' }),
+    Object.freeze({ key:'extra-composer', tone:'extra', title:'手机写作底栏不再被挡住', body:'写作底栏抬离手机浏览器底部地址栏。空的「下一章剧情走向」收成一行输入高度，不再被底下的浏览器栏挡住。' }),
     Object.freeze({ key:'extra-mobile-sliders', tone:'extra', title:'手机分段条和侧栏滑条对齐', body:'大纲的「自动 / 流式 / 非流式」、细纲的「全部 / 只看问题」高亮会铺在对应那一格上。细纲范围栏和说明不再被右边缘切掉。侧栏选中页签的底线跟在真实按钮下面，越往右也不会越偏。创作设定工作台页签下那条灰杠是滚动条，已经藏掉。' }),
     Object.freeze({ key:'extra-library', tone:'extra', title:'生图页加入图书馆友链', body:'设置 → 生图 的最顶部新增友链「图书馆」。点开后在新标签打开，不会冲掉当前正在写的页面。' }),
     Object.freeze({ key:'extra-ack-only', tone:'extra', title:'公告只能点「我知道了」关闭', body:'点公告周围的空白、按 Esc、或点浏览器后退，都不会再把公告关掉。只有点底部「我知道了」才会关闭，并记住你已经看过。' }),
@@ -5075,7 +5078,20 @@ function copyLastChapterContextText() {
     function reuseLastNextChapterPrompt() {
       if (!lastUsedNextChapterPrompt.value) return;
       nextChapterPrompt.value = lastUsedNextChapterPrompt.value;
-      nextTick(() => document.querySelector('[data-moyun-region="composer"] textarea')?.focus());
+      nextTick(() => {
+        const el = document.querySelector('[data-moyun-region="composer"] textarea');
+        if (el) { el.focus(); autosizeComposerPrompt({ target: el }); }
+      });
+    }
+    function autosizeComposerPrompt(event) {
+      const el = (event && event.target && event.target.tagName === 'TEXTAREA')
+        ? event.target
+        : document.querySelector('[data-moyun-composer-prompt]');
+      if (!el) return;
+      const visualHeight = Math.max(1, Math.round(window.visualViewport?.height || window.innerHeight || 0));
+      const maxH = Math.max(72, Math.round(visualHeight * 0.32));
+      el.style.height = 'auto';
+      el.style.height = Math.min(Math.max(el.scrollHeight, 40), maxH) + 'px';
     }
     function archiveSuccessfulNextChapterPrompt(promptSnapshot, runOptions = {}) {
       const text = String(promptSnapshot || '');
@@ -6375,8 +6391,19 @@ function copyLastChapterContextText() {
     }
 
 
+    function returnToWritingSurface() {
+      showOutlineInMain.value = false;
+      showDetailedOutlineInMain.value = false;
+      showStoryBibleWorkbench.value = false;
+      showCharacterWorkbench.value = false;
+      mobileSidebarOpen.value = false;
+    }
+
     function switchBook(id) {
-      if (id === currentBookId.value) return;
+      if (id === currentBookId.value) {
+        returnToWritingSurface();
+        return;
+      }
       // 切书会关闭编辑器：未保存的章节改动过去在这里静默消失，现在先让用户决定草稿去留。
       const dirty = getDirtyChapterEdits();
       if (dirty.length) {
@@ -6410,7 +6437,7 @@ function copyLastChapterContextText() {
       if (loadBook(id)) {
         saveDataNow('切换书籍');
         showToast('已切换', 'success');
-        mobileSidebarOpen.value = false;
+        returnToWritingSurface();
         runModEventHandlers('bookLoaded', { source: 'switchBook', bookId: id });
       }
     }
@@ -34363,19 +34390,17 @@ function getWritingModelLabel() {
       if (Number.isFinite(testReserve) && testReserve > 0) {
         bottom = testReserve;
       } else if (!keyboardOpen && visualViewport) {
-        bottom = viewportDelta;
-      }
-      if (!keyboardOpen && bottom < 24 && shouldUseMobileBrowserBottomFallback()) {
-        const shortViewport = window.innerHeight < 760;
-        bottom = Math.max(bottom, shortViewport ? 72 : 56);
+        bottom = Math.min(viewportDelta, 48);
       }
       bottom = Math.min(Math.max(bottom, 0), 120);
-      const workbenchHeight = Math.max(240, visualHeight + visualOffsetTop - 56);
+      const keyboardInset = keyboardOpen ? viewportDelta : 0;
       root.style.setProperty('--moyun-mobile-browser-bottom', bottom + 'px');
+      root.style.setProperty('--moyun-keyboard-inset', keyboardInset + 'px');
       root.style.setProperty('--moyun-visual-viewport-height', visualHeight + 'px');
-      root.style.setProperty('--moyun-workbench-height', workbenchHeight + 'px');
+      root.style.setProperty('--moyun-workbench-height', '100%');
       root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
+      if (keyboardOpen) nextTick(autosizeComposerPrompt);
     }
 
     function handleResize() {
@@ -34547,7 +34572,7 @@ function getWritingModelLabel() {
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
       // ── Part 1: 基本操作 ──
-      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, deleteBook, tryRestoreEmergencyBackup,
+      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, returnToWritingSurface, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
       openBookEditor, closeBookEditor, requestCloseBookEditor, handleBookCoverFile, removeBookEditorCover, saveBookEditor,
       openSettings, openSettingsTab, clearAll,
@@ -34677,7 +34702,7 @@ function getWritingModelLabel() {
       streamContent, streamCotContent, streamNativeThinking, streamToolTimeline, streamCotActive, lastGenerationCot, lastGenerationNativeThinking, lastGenerationToolTimeline, abortController, interruptedContent, isInterrupted, interruptedIssue, interruptedCanContinue, interruptedThinkingText, interruptedThinkingOnly, interruptedBodyLooksLikeReasoning, copyInterruptedThinking, copyInterruptedBody,
       genElapsed, genCharCount, genRate, genStalled, streamReasoningCharCount, reasoningHeavyNoBody,
       startGeneration, discardInterrupted, saveInterruptedAsChapter, continueGeneration,
-      nextChapterPrompt, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, wordCountTarget, generateCount,
+      nextChapterPrompt, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, autosizeComposerPrompt, wordCountTarget, generateCount,
       // ── Part 4: AI建议 ──
       suggestionPersona, generateSuggestion,
 
