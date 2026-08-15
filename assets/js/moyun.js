@@ -3727,6 +3727,7 @@ createApp({
         }
       }
       if (e.key === 'Escape' && immersiveMode.value) { toggleImmersive(); return; }
+      if (e.key === 'Escape' && workbenchImmersiveMode.value) { requestCloseActiveWorkbench(); return; }
       // 桌面浮窗不是模态，原来 Esc 完全管不到它；面板内容很高时关闭按钮会被滚走，Esc 是最自然的退路。
       // 正在输入框里打字时不响应，免得把没提交的内容连面板一起关掉。
       if (e.key === 'Escape' && !isMobile.value && activeModFloatingPanelKey.value) {
@@ -3738,7 +3739,10 @@ createApp({
       }
     }
 
-    const isMobile = ref(window.innerWidth < 768);
+    // Treat a short, narrow landscape viewport as mobile so workbenches do not
+    // collapse into a desktop two-column layout on a phone held sideways.
+    const isCompactViewport = () => window.innerWidth < 768 || (window.innerWidth < 1024 && window.innerHeight <= 560);
+    const isMobile = ref(isCompactViewport());
     const currentTab = ref('bookshelf');
     const sidebarTabs = [
       {id:'bookshelf',name:'书架'},{id:'settings',name:'设定'},
@@ -25915,6 +25919,21 @@ function getModHubPermissionLabels(mod) {
 
     /* ═══ 细纲系统 ═══ */
     const showDetailedOutlineInMain = ref(false);
+    const workbenchImmersiveMode = computed(() => Boolean(
+      isMobile.value && (
+        showStoryBibleWorkbench.value
+        || showCharacterWorkbench.value
+        || showOutlineInMain.value
+        || showDetailedOutlineInMain.value
+      )
+    ));
+
+    function requestCloseActiveWorkbench() {
+      if (showStoryBibleWorkbench.value) { closeStoryBibleWorkbench(); return; }
+      if (showCharacterWorkbench.value) { closeCharacterWorkbench(); return; }
+      if (showOutlineInMain.value) { requestCloseOutlineWorkbench(); return; }
+      if (showDetailedOutlineInMain.value) { requestCloseDetailedOutlineWorkbench(); }
+    }
     // chapterOutlines 已在 Part 2 定义
     const isGeneratingDO = ref(false);
     watch(isGeneratingDO, (running, wasRunning) => {
@@ -34407,7 +34426,7 @@ function getWritingModelLabel() {
       const visualHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight || 0));
       const visualOffsetTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
       const viewportDelta = Math.max(0, Math.round(window.innerHeight - visualHeight - visualOffsetTop));
-      const mobileViewport = window.innerWidth < 768;
+      const mobileViewport = isCompactViewport();
       // 中文注释：软键盘会显著压缩 visualViewport；它不是浏览器底栏，不应只截断为 120px 的安全区。
       const keyboardOpen = mobileViewport && viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
       let bottom = 0;
@@ -34433,7 +34452,7 @@ function getWritingModelLabel() {
     }
 
     function handleResize() {
-      isMobile.value = window.innerWidth < 768;
+      isMobile.value = isCompactViewport();
       if (!isMobile.value) mobileSidebarOpen.value = false;
       updateMobileBrowserBottomInset();
       nextTick(updateSidebarTabScrollState);
@@ -34583,7 +34602,7 @@ function getWritingModelLabel() {
       // ── Part 1: 核心数据 ──
       novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
-      mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
+      mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, workbenchImmersiveMode, handleKeydown,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
