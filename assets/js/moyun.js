@@ -46,13 +46,15 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-08-15-1920-0815-update',
+  id: 'web-2026-08-15-2056-0815-update',
   badge: '网页更新',
   title: '0815更新',
-  publishedAt: '2026-08-15 19:20',
-  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又补了生图页的图书馆友链，并改成只能点「我知道了」才关掉公告。点「我知道了」后，这条不会再弹。',
+  publishedAt: '2026-08-15 20:56',
+  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚又修了手机写作底栏、大纲细纲分段条、设定工作台页签和侧栏滑条。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
     Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这几条。' }),
+    Object.freeze({ key:'extra-composer', tone:'extra', title:'手机写作底栏不再被挡住', body:'空的「下一章剧情走向」收成一行输入高度。「提笔续写」单独占满一行，并抬离手机浏览器底部地址栏，不再被挡住。' }),
+    Object.freeze({ key:'extra-mobile-sliders', tone:'extra', title:'手机分段条和侧栏滑条对齐', body:'大纲的「自动 / 流式 / 非流式」、细纲的「全部 / 只看问题」高亮会铺在对应那一格上。细纲范围栏和说明不再被右边缘切掉。侧栏选中页签的底线跟在真实按钮下面，越往右也不会越偏。创作设定工作台页签下那条灰杠是滚动条，已经藏掉。' }),
     Object.freeze({ key:'extra-library', tone:'extra', title:'生图页加入图书馆友链', body:'设置 → 生图 的最顶部新增友链「图书馆」。点开后在新标签打开，不会冲掉当前正在写的页面。' }),
     Object.freeze({ key:'extra-ack-only', tone:'extra', title:'公告只能点「我知道了」关闭', body:'点公告周围的空白、按 Esc、或点浏览器后退，都不会再把公告关掉。只有点底部「我知道了」才会关闭，并记住你已经看过。' }),
     Object.freeze({ key:'extra-picks', tone:'extra', title:'创作设定改成勾选列表', body:'资料关联、全书钉选、本细纲追加钉选不再是看起来像输入框的多选框。现在是勾选列表：可以同时勾多项，再点一次即可取消。目标细纲仍是单选下拉。事件参与角色、角色出场章节、细纲「管理活跃资料」同样可以取消勾选。' }),
@@ -3744,11 +3746,31 @@ createApp({
     const sidebarTabsScroller = ref(null);
     const canScrollSidebarTabsRight = ref(false);
     const canScrollSidebarTabsLeft = ref(false);
+    const tabSliderBox = ref({ left: 0, width: 0, ready: false });
+    function updateSidebarTabSlider() {
+      const scroller = sidebarTabsScroller.value;
+      const tab = scroller && scroller.querySelector('[data-sidebar-tab="' + currentTab.value + '"]');
+      if (!scroller || !tab) {
+        tabSliderBox.value = { left: 0, width: 0, ready: false };
+        return;
+      }
+      tabSliderBox.value = {
+        left: tab.offsetLeft,
+        width: Math.max(1, tab.offsetWidth),
+        ready: true
+      };
+    }
     function updateSidebarTabScrollState() {
       const scroller = sidebarTabsScroller.value;
-      if (!scroller) { canScrollSidebarTabsRight.value = false; canScrollSidebarTabsLeft.value = false; return; }
+      if (!scroller) {
+        canScrollSidebarTabsRight.value = false;
+        canScrollSidebarTabsLeft.value = false;
+        updateSidebarTabSlider();
+        return;
+      }
       canScrollSidebarTabsRight.value = scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft > 2;
       canScrollSidebarTabsLeft.value = scroller.scrollLeft > 2;
+      updateSidebarTabSlider();
     }
     function selectSidebarTab(tabId, element = null) {
       currentTab.value = tabId;
@@ -3771,10 +3793,17 @@ createApp({
       setTimeout(updateSidebarTabScrollState, 260);
     }
     const tabSliderStyle = computed(() => {
-      const idx = sidebarTabs.findIndex(t => t.id === currentTab.value);
-      if (idx < 0) return { display: 'none' };
-      const w = 100 / sidebarTabs.length;
-      return { left: (idx * w) + '%', width: w + '%' };
+      if (!tabSliderBox.value.ready) return { display: 'none' };
+      return {
+        left: tabSliderBox.value.left + 'px',
+        width: tabSliderBox.value.width + 'px'
+      };
+    });
+    watch(currentTab, () => {
+      nextTick(() => requestAnimationFrame(updateSidebarTabSlider));
+    });
+    watch(mobileSidebarOpen, (open) => {
+      if (open) nextTick(() => requestAnimationFrame(updateSidebarTabScrollState));
     });
 
     /* ═══ Phase A：设定 / 角色展开工作台状态 ═══ */
