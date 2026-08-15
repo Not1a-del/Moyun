@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=b6ff92da3de0">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=ad7ce1dc2a6d">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -1099,7 +1099,7 @@
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
 <div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div class="moyun-mobile-header-spacer md:hidden" aria-hidden="true"></div>
+  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
@@ -1718,10 +1718,26 @@
         <span class="font-bold">安全改写</span>
         <span>AI 修改只处理下方意见，未提及设定、主线和段落会要求保留。</span>
         <span v-if="outlineLastRequest">{{ formatOutlineRequestSummary(outlineLastRequest) }}</span>
+        <div class="moyun-wb-operation-toolbar">
         <div class="moyun-wb-mode-tabs ml-auto" data-moyun-mode-tabs="outline-request">
           <button @click="settings.outlineRequestMode='auto';saveData()" :class="{active:settings.outlineRequestMode==='auto'}">自动</button>
           <button @click="settings.outlineRequestMode='stream';saveData()" :class="{active:settings.outlineRequestMode==='stream'}">流式</button>
           <button @click="settings.outlineRequestMode='nonstream';saveData()" :class="{active:settings.outlineRequestMode==='nonstream'}">非流式</button>
+        </div>
+        <div class="moyun-wb-operation-actions">
+          <!-- 中文注释：生成中此前只把按钮置灰成“生成中...”，stopOutlineRun 已实现却没有入口，用户只能关面板间接中止。 -->
+          <button v-if="isGeneratingOutline" @click="stopOutlineRun()"
+                  data-moyun-outline-ai
+                  class="moyun-wb-ai-compact" style="background:var(--err);color:white"
+                  title="停止本次大纲生成（已生成的内容不会写入）">⏸ 停止</button>
+          <button v-else @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
+                  data-moyun-outline-ai
+                  :aria-describedby="getOutlineAiDisabledReason() ? 'moyun-outline-disabled-reason' : undefined"
+                  :title="getOutlineAiDisabledReason() || (novel.outline ? '按修改意见改写，改动会先进入逐项审阅' : '生成新大纲')"
+                  class="btn-primary moyun-wb-ai-compact" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
+            {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
+          </button>
+        </div>
         </div>
       </div>
       <textarea v-model="outlineInput" placeholder="输入对大纲的修改意见；未提及内容会要求AI保留..." rows="2"
@@ -1729,18 +1745,6 @@
       <div v-if="getOutlineAiDisabledReason()" id="moyun-outline-disabled-reason" class="moyun-action-status" role="status">
         <span>{{ getOutlineAiDisabledReason() }}</span>
         <button v-if="getOutlineAiDisabledActionLabel()" type="button" @click="resolveOutlineAiDisabledAction()">{{ getOutlineAiDisabledActionLabel() }}</button>
-      </div>
-      <div class="flex justify-end moyun-wb-operation-actions">
-        <!-- 中文注释：生成中此前只把按钮置灰成“生成中...”，stopOutlineRun 已实现却没有入口，用户只能关面板间接中止。 -->
-        <button v-if="isGeneratingOutline" @click="stopOutlineRun()"
-                class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--err);color:white"
-                title="停止本次大纲生成（已生成的内容不会写入）">⏸ 停止生成</button>
-        <button v-else @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
-                :aria-describedby="getOutlineAiDisabledReason() ? 'moyun-outline-disabled-reason' : undefined"
-                :title="getOutlineAiDisabledReason() || (novel.outline ? '按修改意见改写，改动会先进入逐项审阅' : '生成新大纲')"
-                class="btn-primary text-sm px-5 py-2" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
-          {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
-        </button>
       </div>
     </div>
   </div>
@@ -2127,24 +2131,26 @@
     <!-- 中文注释：移动端细纲生成栏固定在面板底部，并预留安全区，避免按钮被浏览器底栏遮挡。 -->
     <div class="moyun-wb-operation moyun-do-footer shrink-0" style="padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
       <textarea v-model="doInput" data-story-footer-input placeholder="对细纲的补充要求..." rows="1" class="textarea-field text-sm" style="border-radius:10px;resize:none"></textarea>
-      <div class="moyun-do-footer-actions flex flex-col md:flex-row md:justify-end gap-2">
+      <div class="moyun-do-footer-actions flex flex-row flex-wrap justify-end gap-2">
         <!-- 中文注释：顶栏失败条有 disabled 原因说明，底部这个按钮此前只是变半透明，用户不知要先停生成还是先配 API。 -->
         <button v-if="detailedOutlineRun.failedChapters.length>0" @click="retryFailedDetailedOutline()" :disabled="!!getDetailedOutlineAiDisabledReason('retry')"
-                class="text-sm px-4 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err-soft);color:var(--err)"
+                class="moyun-wb-ai-compact" style="background:var(--err-soft);color:var(--err)"
                 :style="getDetailedOutlineAiDisabledReason('retry')?'opacity:.5':''"
                 :title="getDetailedOutlineAiDisabledReason('retry') || ('重新生成失败的第' + detailedOutlineRun.failedChapters.join('、') + '章')">
-          重试失败章节
+          重试失败
         </button>
         <!-- 中文注释：生成中原来只是把按钮置灰显示“生成中...”，停止函数存在却没入口，只能靠关面板间接中止。 -->
         <button v-if="isGeneratingDO" @click="stopDetailedOutlineRun()"
-                class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err);color:white"
+                data-moyun-detailed-ai
+                class="moyun-wb-ai-compact" style="background:var(--err);color:white"
                 :title="detailedOutlineRun.currentRange ? ('正在生成 ' + detailedOutlineRun.currentRange + '，点此停止') : '停止细纲生成'">
-          ⏸ 停止生成{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
+          ⏸ 停止{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
         </button>
         <button v-else @click="requestDetailedOutlineGeneration()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
+                data-moyun-detailed-ai
                 :aria-describedby="getDetailedOutlineAiDisabledReason('generate') ? 'moyun-detailed-disabled-reason' : undefined"
                 :title="getDetailedOutlineAiDisabledReason('generate') || (settings.detailedOutlineOnlyEmpty === false ? '当前允许覆盖已有细纲，生成前会再确认一次' : '只补空白：已有内容的章节会被跳过')"
-                class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--warn);color:white"
+                class="moyun-wb-ai-compact" style="background:var(--warn);color:white"
                 :style="getDetailedOutlineAiDisabledReason('generate')?'opacity:.5':''">
           AI生成细纲
         </button>
@@ -2166,7 +2172,7 @@
         <img :src="coverImage" class="w-64 md:w-80 h-auto rounded-xl cursor-pointer" style="border:1px solid var(--bd);box-shadow:var(--sh2)"
              @click="previewImage(coverImage)">
       </div>
-        <h1 class="moyun-wordmark text-xl md:text-5xl mb-3 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
+        <h1 class="moyun-wordmark text-xl md:text-5xl mb-3 md:mb-6" style="color:var(--tx);scroll-margin-top:12px">{{ novel.title || 'Moyun' }}</h1>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -6009,7 +6015,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=64c63d1d3889"></script>
+<script src="./assets/js/moyun.js?v=36a80e423a3d"></script>
 <!-- PART_1_END -->
 </body>
 </html>

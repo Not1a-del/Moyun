@@ -606,6 +606,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   display:flex;flex-direction:column;gap:8px;
 }
 .moyun-wb-operation-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.moyun-wb-operation-toolbar{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;justify-content:flex-end}
 .moyun-do-rangebar>span,.moyun-do-rangebar>label{white-space:nowrap}
 .moyun-wb-mode-tabs{display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid var(--bd);border-radius:8px;background:var(--bg-card)}
 .moyun-wb-mode-tabs button{
@@ -846,10 +847,11 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 }
 .moyun-mobile-header{
   padding-top:env(safe-area-inset-top, 0px);
+  min-height:var(--moyun-mobile-header-height);
   height:var(--moyun-mobile-header-height);
   box-sizing:border-box;
 }
-.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto}
+.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
 .moyun-main-shell,.moyun-main-body{min-height:0}
 .moyun-wb-back-writing{
   display:inline-flex;align-items:center;justify-content:center;
@@ -884,26 +886,31 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-wb-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .moyun-wb-operation{padding:9px}
   .moyun-wb-operation-row{align-items:stretch}
+  .moyun-wb-operation-toolbar{flex:1 1 100%;justify-content:flex-end}
   .moyun-wb-operation-row .input-field,.moyun-wb-operation-row select{min-height:30px}
   .moyun-workbench .moyun-wb-operation{padding-right:12px}
-  .moyun-workbench .moyun-wb-operation .moyun-wb-operation-actions{padding-right:64px}
-  .moyun-workbench .moyun-wb-operation button{min-height:42px}
+  .moyun-workbench .moyun-wb-operation .moyun-wb-operation-actions{padding-right:0;display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+  .moyun-workbench .moyun-wb-operation button{min-height:32px}
   .moyun-workbench .moyun-wb-operation textarea.moyun-wb-outline-prompt{
     min-height:56px;height:auto;max-height:88px;font-size:16px;line-height:1.4;padding:10px 12px;resize:none;
   }
-  .moyun-wb-mode-tabs{display:flex;width:100%;max-width:100%;box-sizing:border-box;margin-left:0}
-  .moyun-wb-operation-row .moyun-wb-mode-tabs,.moyun-do-rangebar .moyun-wb-mode-tabs{flex:1 1 100%;margin-left:0}
+  .moyun-wb-mode-tabs{display:flex;width:auto;max-width:100%;box-sizing:border-box;margin-left:0}
+  .moyun-wb-operation-row .moyun-wb-mode-tabs,.moyun-do-rangebar .moyun-wb-mode-tabs{flex:1 1 auto;margin-left:0;width:auto;max-width:none}
   .moyun-workbench .moyun-wb-mode-tabs button{
-    flex:1 1 0;min-width:0;padding:0 6px;
+    flex:1 1 0;min-width:0;min-height:28px;padding:0 6px;
+  }
+  .moyun-wb-ai-compact{
+    min-width:0!important;min-height:32px!important;height:32px;width:auto!important;
+    padding:0 10px!important;border-radius:8px!important;font-size:12px!important;font-weight:800;white-space:nowrap;
   }
   .moyun-do-rangebar{overflow:visible}
   .moyun-do-range-hint{white-space:normal!important;overflow-wrap:anywhere;width:100%}
   .moyun-wb-stat span{white-space:normal}
   .moyun-workbench .moyun-do-scroll{padding-bottom:12px}
-  .moyun-workbench .moyun-do-footer{gap:7px;padding-top:7px;padding-right:76px}
+  .moyun-workbench .moyun-do-footer{gap:7px;padding-top:7px;padding-right:12px}
   .moyun-workbench .moyun-do-footer textarea{min-height:42px;height:42px;max-height:80px;padding:8px 10px}
-  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
-  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding:8px 10px;font-size:12px}
+  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:32px;width:auto;padding:0 10px;font-size:12px}
   .moyun-do-card-head{grid-template-columns:1fr}
   .moyun-do-actions{justify-content:flex-start}
   .moyun-lf-panel{padding:9px;margin-bottom:18px}
@@ -954,10 +961,9 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-vv-short .moyun-workbench .moyun-wb-title{font-size:14px}
 .moyun-vv-short .moyun-workbench .moyun-do-rangebar{flex-wrap:wrap;overflow:visible;padding:5px 8px;min-height:42px}
 .moyun-vv-short .moyun-workbench .moyun-do-rangebar .moyun-wb-mode-tabs,.moyun-vv-short .moyun-workbench .moyun-do-range-hint,.moyun-vv-short .moyun-workbench .moyun-do-compact-label,.moyun-vv-short .moyun-workbench .moyun-do-only-empty{display:none}
-.moyun-vv-short .moyun-workbench .moyun-do-footer{gap:5px;padding-top:5px;padding-right:58px}
+.moyun-vv-short .moyun-workbench .moyun-do-footer{gap:5px;padding-top:5px;padding-right:12px}
 .moyun-vv-short .moyun-workbench .moyun-do-footer textarea{height:36px;min-height:36px}
-/* 中文注释：短屏原本把底栏按钮压到 38px，低于 44px 触控下限；这里保住 44px，只压内边距换空间。 */
-.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding-top:4px;padding-bottom:4px}
+.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:32px;padding:0 10px}
 .moyun-vv-short .moyun-workbench .moyun-action-status{min-height:24px}
 }
 
@@ -1010,7 +1016,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .infinite-control-bar textarea{max-height:120px}
   .infinite-control-bar button{min-height:36px}
   .moyun-soft-bottom-composer{
-    bottom:0;
+    bottom:var(--moyun-mobile-browser-bottom, 0px)!important;
     margin-top:auto;
     padding-bottom:max(6px, env(safe-area-inset-bottom, 0px))!important;
   }
@@ -1087,7 +1093,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     position:fixed;
     left:0;
     right:0;
-    bottom:var(--moyun-keyboard-inset, 0px);
+    bottom:var(--moyun-keyboard-inset, 0px)!important;
     z-index:35;
     padding-bottom:6px!important;
     margin:0;
@@ -1316,7 +1322,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* 浮动主题切换按钮（移动端） */
 .theme-fab{
-  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
+  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px) + var(--moyun-mobile-browser-bottom, 0px));right:16px;z-index:50;
   width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
   background:var(--bg-card);border:1px solid var(--bd2);
   box-shadow:var(--sh2);display:flex;align-items:center;
@@ -1335,10 +1341,13 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
   .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
   .moyun-soft-bottom-composer .btn-primary{min-height:36px}
-  .moyun-workbench .moyun-wb-operation button,
-  .moyun-workbench .moyun-wb-mode-tabs button,
-  .moyun-workbench .moyun-action-status button{min-height:46px}
-  .moyun-workbench .moyun-wb-mode-tabs button{min-width:0}
+  .moyun-workbench .moyun-wb-operation button{min-height:32px}
+  .moyun-workbench .moyun-wb-mode-tabs button{min-width:0;min-height:28px}
+  .moyun-workbench .moyun-action-status button{min-height:32px}
+  .moyun-workbench .moyun-wb-ai-compact,
+  .moyun-workbench .moyun-do-footer .moyun-wb-ai-compact{
+    min-width:0!important;min-height:32px!important;height:32px;width:auto!important;
+  }
   [id^="settings-panel-"] a[href],
   [data-moyun-modal="web-update-announcement"] button,
   [data-moyun-modal="web-update-announcement"] a[href]{min-width:46px;min-height:46px}

@@ -34376,6 +34376,31 @@ function getWritingModelLabel() {
       return mobileWidth && (coarsePointer || noHover || touchPoints > 0 || mobileUa || localFileMobile);
     }
 
+    function syncMobileHeaderOffset() {
+      const root = document.documentElement;
+      const header = document.querySelector('[data-moyun-region="mobile-header"]');
+      const spacer = document.querySelector('.moyun-mobile-header-spacer');
+      const testTop = Number(window.__SNOWWING_SAFE_AREA_TEST_TOP_RESERVE || 0);
+      if (header && Number.isFinite(testTop) && testTop > 0) {
+        header.style.paddingTop = testTop + 'px';
+      }
+      const headerVisible = Boolean(header && header.getClientRects().length > 0 && getComputedStyle(header).display !== 'none');
+      if (!headerVisible || window.innerWidth >= 768) {
+        root.style.setProperty('--moyun-mobile-header-height', '3.5rem');
+        if (spacer) spacer.style.height = '';
+        return;
+      }
+      // 中文注释：fixed 顶栏的 padding-top 能吃到真实 safe-area；spacer 上的 env() 在部分 iOS 上是 0。这里用顶栏实测 padding 写成 px，两边共用。
+      const paddingTop = Math.round(parseFloat(getComputedStyle(header).paddingTop) || 0);
+      const headerH = Math.max(56, 56 + paddingTop);
+      root.style.setProperty('--moyun-mobile-header-height', headerH + 'px');
+      void header.offsetHeight;
+      const rect = header.getBoundingClientRect();
+      const visualOffsetTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
+      const spacerH = Math.max(headerH, Math.round(rect.bottom + visualOffsetTop));
+      if (spacer) spacer.style.height = spacerH + 'px';
+    }
+
     function updateMobileBrowserBottomInset() {
       const root = document.documentElement;
       const visualViewport = window.visualViewport;
@@ -34389,8 +34414,11 @@ function getWritingModelLabel() {
       const testReserve = Number(window.__SNOWWING_SAFE_AREA_TEST_BOTTOM_RESERVE || 0);
       if (Number.isFinite(testReserve) && testReserve > 0) {
         bottom = testReserve;
-      } else if (!keyboardOpen && visualViewport) {
-        bottom = Math.min(viewportDelta, 48);
+      } else if (!keyboardOpen && mobileViewport) {
+        const measured = visualViewport ? Math.min(viewportDelta, 48) : 0;
+        const isiOS = /iPhone|iPad|iPod|CriOS|FxiOS/i.test(navigator.userAgent || '');
+        const fallback = shouldUseMobileBrowserBottomFallback() ? (isiOS ? 72 : 56) : 0;
+        bottom = Math.max(measured, fallback);
       }
       bottom = Math.min(Math.max(bottom, 0), 120);
       const keyboardInset = keyboardOpen ? viewportDelta : 0;
@@ -34400,6 +34428,7 @@ function getWritingModelLabel() {
       root.style.setProperty('--moyun-workbench-height', '100%');
       root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
+      syncMobileHeaderOffset();
       if (keyboardOpen) nextTick(autosizeComposerPrompt);
     }
 
@@ -34484,6 +34513,7 @@ function getWritingModelLabel() {
         }, 2100);
       });
       updateMobileBrowserBottomInset();
+      window.__moyunSyncMobileChrome = updateMobileBrowserBottomInset;
       initMoyunModalCoordinator();
       nextTick(updateSidebarTabScrollState);
       window.addEventListener('resize', handleResize);

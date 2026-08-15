@@ -617,6 +617,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   display:flex;flex-direction:column;gap:8px;
 }
 .moyun-wb-operation-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.moyun-wb-operation-toolbar{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;justify-content:flex-end}
 .moyun-do-rangebar>span,.moyun-do-rangebar>label{white-space:nowrap}
 .moyun-wb-mode-tabs{display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid var(--bd);border-radius:8px;background:var(--bg-card)}
 .moyun-wb-mode-tabs button{
@@ -857,10 +858,11 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 }
 .moyun-mobile-header{
   padding-top:env(safe-area-inset-top, 0px);
+  min-height:var(--moyun-mobile-header-height);
   height:var(--moyun-mobile-header-height);
   box-sizing:border-box;
 }
-.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto}
+.moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
 .moyun-main-shell,.moyun-main-body{min-height:0}
 .moyun-wb-back-writing{
   display:inline-flex;align-items:center;justify-content:center;
@@ -895,26 +897,31 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-wb-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .moyun-wb-operation{padding:9px}
   .moyun-wb-operation-row{align-items:stretch}
+  .moyun-wb-operation-toolbar{flex:1 1 100%;justify-content:flex-end}
   .moyun-wb-operation-row .input-field,.moyun-wb-operation-row select{min-height:30px}
   .moyun-workbench .moyun-wb-operation{padding-right:12px}
-  .moyun-workbench .moyun-wb-operation .moyun-wb-operation-actions{padding-right:64px}
-  .moyun-workbench .moyun-wb-operation button{min-height:42px}
+  .moyun-workbench .moyun-wb-operation .moyun-wb-operation-actions{padding-right:0;display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+  .moyun-workbench .moyun-wb-operation button{min-height:32px}
   .moyun-workbench .moyun-wb-operation textarea.moyun-wb-outline-prompt{
     min-height:56px;height:auto;max-height:88px;font-size:16px;line-height:1.4;padding:10px 12px;resize:none;
   }
-  .moyun-wb-mode-tabs{display:flex;width:100%;max-width:100%;box-sizing:border-box;margin-left:0}
-  .moyun-wb-operation-row .moyun-wb-mode-tabs,.moyun-do-rangebar .moyun-wb-mode-tabs{flex:1 1 100%;margin-left:0}
+  .moyun-wb-mode-tabs{display:flex;width:auto;max-width:100%;box-sizing:border-box;margin-left:0}
+  .moyun-wb-operation-row .moyun-wb-mode-tabs,.moyun-do-rangebar .moyun-wb-mode-tabs{flex:1 1 auto;margin-left:0;width:auto;max-width:none}
   .moyun-workbench .moyun-wb-mode-tabs button{
-    flex:1 1 0;min-width:0;padding:0 6px;
+    flex:1 1 0;min-width:0;min-height:28px;padding:0 6px;
+  }
+  .moyun-wb-ai-compact{
+    min-width:0!important;min-height:32px!important;height:32px;width:auto!important;
+    padding:0 10px!important;border-radius:8px!important;font-size:12px!important;font-weight:800;white-space:nowrap;
   }
   .moyun-do-rangebar{overflow:visible}
   .moyun-do-range-hint{white-space:normal!important;overflow-wrap:anywhere;width:100%}
   .moyun-wb-stat span{white-space:normal}
   .moyun-workbench .moyun-do-scroll{padding-bottom:12px}
-  .moyun-workbench .moyun-do-footer{gap:7px;padding-top:7px;padding-right:76px}
+  .moyun-workbench .moyun-do-footer{gap:7px;padding-top:7px;padding-right:12px}
   .moyun-workbench .moyun-do-footer textarea{min-height:42px;height:42px;max-height:80px;padding:8px 10px}
-  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
-  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding:8px 10px;font-size:12px}
+  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:32px;width:auto;padding:0 10px;font-size:12px}
   .moyun-do-card-head{grid-template-columns:1fr}
   .moyun-do-actions{justify-content:flex-start}
   .moyun-lf-panel{padding:9px;margin-bottom:18px}
@@ -965,10 +972,9 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-vv-short .moyun-workbench .moyun-wb-title{font-size:14px}
 .moyun-vv-short .moyun-workbench .moyun-do-rangebar{flex-wrap:wrap;overflow:visible;padding:5px 8px;min-height:42px}
 .moyun-vv-short .moyun-workbench .moyun-do-rangebar .moyun-wb-mode-tabs,.moyun-vv-short .moyun-workbench .moyun-do-range-hint,.moyun-vv-short .moyun-workbench .moyun-do-compact-label,.moyun-vv-short .moyun-workbench .moyun-do-only-empty{display:none}
-.moyun-vv-short .moyun-workbench .moyun-do-footer{gap:5px;padding-top:5px;padding-right:58px}
+.moyun-vv-short .moyun-workbench .moyun-do-footer{gap:5px;padding-top:5px;padding-right:12px}
 .moyun-vv-short .moyun-workbench .moyun-do-footer textarea{height:36px;min-height:36px}
-/* 中文注释：短屏原本把底栏按钮压到 38px，低于 44px 触控下限；这里保住 44px，只压内边距换空间。 */
-.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding-top:4px;padding-bottom:4px}
+.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:32px;padding:0 10px}
 .moyun-vv-short .moyun-workbench .moyun-action-status{min-height:24px}
 }
 
@@ -1021,7 +1027,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .infinite-control-bar textarea{max-height:120px}
   .infinite-control-bar button{min-height:36px}
   .moyun-soft-bottom-composer{
-    bottom:0;
+    bottom:var(--moyun-mobile-browser-bottom, 0px)!important;
     margin-top:auto;
     padding-bottom:max(6px, env(safe-area-inset-bottom, 0px))!important;
   }
@@ -1098,7 +1104,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     position:fixed;
     left:0;
     right:0;
-    bottom:var(--moyun-keyboard-inset, 0px);
+    bottom:var(--moyun-keyboard-inset, 0px)!important;
     z-index:35;
     padding-bottom:6px!important;
     margin:0;
@@ -1327,7 +1333,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* 浮动主题切换按钮（移动端） */
 .theme-fab{
-  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px));right:16px;z-index:50;
+  position:fixed;bottom:calc(108px + env(safe-area-inset-bottom,0px) + var(--moyun-mobile-browser-bottom, 0px));right:16px;z-index:50;
   width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
   background:var(--bg-card);border:1px solid var(--bd2);
   box-shadow:var(--sh2);display:flex;align-items:center;
@@ -1346,10 +1352,13 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
   .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
   .moyun-soft-bottom-composer .btn-primary{min-height:36px}
-  .moyun-workbench .moyun-wb-operation button,
-  .moyun-workbench .moyun-wb-mode-tabs button,
-  .moyun-workbench .moyun-action-status button{min-height:46px}
-  .moyun-workbench .moyun-wb-mode-tabs button{min-width:0}
+  .moyun-workbench .moyun-wb-operation button{min-height:32px}
+  .moyun-workbench .moyun-wb-mode-tabs button{min-width:0;min-height:28px}
+  .moyun-workbench .moyun-action-status button{min-height:32px}
+  .moyun-workbench .moyun-wb-ai-compact,
+  .moyun-workbench .moyun-do-footer .moyun-wb-ai-compact{
+    min-width:0!important;min-height:32px!important;height:32px;width:auto!important;
+  }
   [id^="settings-panel-"] a[href],
   [data-moyun-modal="web-update-announcement"] button,
   [data-moyun-modal="web-update-announcement"] a[href]{min-width:46px;min-height:46px}
@@ -2958,7 +2967,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
 <div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div class="moyun-mobile-header-spacer md:hidden" aria-hidden="true"></div>
+  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
@@ -3577,10 +3586,26 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <span class="font-bold">安全改写</span>
         <span>AI 修改只处理下方意见，未提及设定、主线和段落会要求保留。</span>
         <span v-if="outlineLastRequest">{{ formatOutlineRequestSummary(outlineLastRequest) }}</span>
+        <div class="moyun-wb-operation-toolbar">
         <div class="moyun-wb-mode-tabs ml-auto" data-moyun-mode-tabs="outline-request">
           <button @click="settings.outlineRequestMode='auto';saveData()" :class="{active:settings.outlineRequestMode==='auto'}">自动</button>
           <button @click="settings.outlineRequestMode='stream';saveData()" :class="{active:settings.outlineRequestMode==='stream'}">流式</button>
           <button @click="settings.outlineRequestMode='nonstream';saveData()" :class="{active:settings.outlineRequestMode==='nonstream'}">非流式</button>
+        </div>
+        <div class="moyun-wb-operation-actions">
+          <!-- 中文注释：生成中此前只把按钮置灰成“生成中...”，stopOutlineRun 已实现却没有入口，用户只能关面板间接中止。 -->
+          <button v-if="isGeneratingOutline" @click="stopOutlineRun()"
+                  data-moyun-outline-ai
+                  class="moyun-wb-ai-compact" style="background:var(--err);color:white"
+                  title="停止本次大纲生成（已生成的内容不会写入）">⏸ 停止</button>
+          <button v-else @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
+                  data-moyun-outline-ai
+                  :aria-describedby="getOutlineAiDisabledReason() ? 'moyun-outline-disabled-reason' : undefined"
+                  :title="getOutlineAiDisabledReason() || (novel.outline ? '按修改意见改写，改动会先进入逐项审阅' : '生成新大纲')"
+                  class="btn-primary moyun-wb-ai-compact" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
+            {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
+          </button>
+        </div>
         </div>
       </div>
       <textarea v-model="outlineInput" placeholder="输入对大纲的修改意见；未提及内容会要求AI保留..." rows="2"
@@ -3588,18 +3613,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       <div v-if="getOutlineAiDisabledReason()" id="moyun-outline-disabled-reason" class="moyun-action-status" role="status">
         <span>{{ getOutlineAiDisabledReason() }}</span>
         <button v-if="getOutlineAiDisabledActionLabel()" type="button" @click="resolveOutlineAiDisabledAction()">{{ getOutlineAiDisabledActionLabel() }}</button>
-      </div>
-      <div class="flex justify-end moyun-wb-operation-actions">
-        <!-- 中文注释：生成中此前只把按钮置灰成“生成中...”，stopOutlineRun 已实现却没有入口，用户只能关面板间接中止。 -->
-        <button v-if="isGeneratingOutline" @click="stopOutlineRun()"
-                class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--err);color:white"
-                title="停止本次大纲生成（已生成的内容不会写入）">⏸ 停止生成</button>
-        <button v-else @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
-                :aria-describedby="getOutlineAiDisabledReason() ? 'moyun-outline-disabled-reason' : undefined"
-                :title="getOutlineAiDisabledReason() || (novel.outline ? '按修改意见改写，改动会先进入逐项审阅' : '生成新大纲')"
-                class="btn-primary text-sm px-5 py-2" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
-          {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
-        </button>
       </div>
     </div>
   </div>
@@ -3986,24 +3999,26 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     <!-- 中文注释：移动端细纲生成栏固定在面板底部，并预留安全区，避免按钮被浏览器底栏遮挡。 -->
     <div class="moyun-wb-operation moyun-do-footer shrink-0" style="padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
       <textarea v-model="doInput" data-story-footer-input placeholder="对细纲的补充要求..." rows="1" class="textarea-field text-sm" style="border-radius:10px;resize:none"></textarea>
-      <div class="moyun-do-footer-actions flex flex-col md:flex-row md:justify-end gap-2">
+      <div class="moyun-do-footer-actions flex flex-row flex-wrap justify-end gap-2">
         <!-- 中文注释：顶栏失败条有 disabled 原因说明，底部这个按钮此前只是变半透明，用户不知要先停生成还是先配 API。 -->
         <button v-if="detailedOutlineRun.failedChapters.length>0" @click="retryFailedDetailedOutline()" :disabled="!!getDetailedOutlineAiDisabledReason('retry')"
-                class="text-sm px-4 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err-soft);color:var(--err)"
+                class="moyun-wb-ai-compact" style="background:var(--err-soft);color:var(--err)"
                 :style="getDetailedOutlineAiDisabledReason('retry')?'opacity:.5':''"
                 :title="getDetailedOutlineAiDisabledReason('retry') || ('重新生成失败的第' + detailedOutlineRun.failedChapters.join('、') + '章')">
-          重试失败章节
+          重试失败
         </button>
         <!-- 中文注释：生成中原来只是把按钮置灰显示“生成中...”，停止函数存在却没入口，只能靠关面板间接中止。 -->
         <button v-if="isGeneratingDO" @click="stopDetailedOutlineRun()"
-                class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err);color:white"
+                data-moyun-detailed-ai
+                class="moyun-wb-ai-compact" style="background:var(--err);color:white"
                 :title="detailedOutlineRun.currentRange ? ('正在生成 ' + detailedOutlineRun.currentRange + '，点此停止') : '停止细纲生成'">
-          ⏸ 停止生成{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
+          ⏸ 停止{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
         </button>
         <button v-else @click="requestDetailedOutlineGeneration()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
+                data-moyun-detailed-ai
                 :aria-describedby="getDetailedOutlineAiDisabledReason('generate') ? 'moyun-detailed-disabled-reason' : undefined"
                 :title="getDetailedOutlineAiDisabledReason('generate') || (settings.detailedOutlineOnlyEmpty === false ? '当前允许覆盖已有细纲，生成前会再确认一次' : '只补空白：已有内容的章节会被跳过')"
-                class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--warn);color:white"
+                class="moyun-wb-ai-compact" style="background:var(--warn);color:white"
                 :style="getDetailedOutlineAiDisabledReason('generate')?'opacity:.5':''">
           AI生成细纲
         </button>
@@ -4025,7 +4040,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <img :src="coverImage" class="w-64 md:w-80 h-auto rounded-xl cursor-pointer" style="border:1px solid var(--bd);box-shadow:var(--sh2)"
              @click="previewImage(coverImage)">
       </div>
-        <h1 class="moyun-wordmark text-xl md:text-5xl mb-3 md:mb-6" style="color:var(--tx)">{{ novel.title || 'Moyun' }}</h1>
+        <h1 class="moyun-wordmark text-xl md:text-5xl mb-3 md:mb-6" style="color:var(--tx);scroll-margin-top:12px">{{ novel.title || 'Moyun' }}</h1>
         <div class="text-xs tracking-widest flex justify-center gap-8" style="color:var(--tx3)">
           <span>{{ totalWordCount }} 字</span>
           <span>{{ visibleChapters.length }} 章</span>
@@ -42245,6 +42260,31 @@ function getWritingModelLabel() {
       return mobileWidth && (coarsePointer || noHover || touchPoints > 0 || mobileUa || localFileMobile);
     }
 
+    function syncMobileHeaderOffset() {
+      const root = document.documentElement;
+      const header = document.querySelector('[data-moyun-region="mobile-header"]');
+      const spacer = document.querySelector('.moyun-mobile-header-spacer');
+      const testTop = Number(window.__SNOWWING_SAFE_AREA_TEST_TOP_RESERVE || 0);
+      if (header && Number.isFinite(testTop) && testTop > 0) {
+        header.style.paddingTop = testTop + 'px';
+      }
+      const headerVisible = Boolean(header && header.getClientRects().length > 0 && getComputedStyle(header).display !== 'none');
+      if (!headerVisible || window.innerWidth >= 768) {
+        root.style.setProperty('--moyun-mobile-header-height', '3.5rem');
+        if (spacer) spacer.style.height = '';
+        return;
+      }
+      // 中文注释：fixed 顶栏的 padding-top 能吃到真实 safe-area；spacer 上的 env() 在部分 iOS 上是 0。这里用顶栏实测 padding 写成 px，两边共用。
+      const paddingTop = Math.round(parseFloat(getComputedStyle(header).paddingTop) || 0);
+      const headerH = Math.max(56, 56 + paddingTop);
+      root.style.setProperty('--moyun-mobile-header-height', headerH + 'px');
+      void header.offsetHeight;
+      const rect = header.getBoundingClientRect();
+      const visualOffsetTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
+      const spacerH = Math.max(headerH, Math.round(rect.bottom + visualOffsetTop));
+      if (spacer) spacer.style.height = spacerH + 'px';
+    }
+
     function updateMobileBrowserBottomInset() {
       const root = document.documentElement;
       const visualViewport = window.visualViewport;
@@ -42258,8 +42298,11 @@ function getWritingModelLabel() {
       const testReserve = Number(window.__SNOWWING_SAFE_AREA_TEST_BOTTOM_RESERVE || 0);
       if (Number.isFinite(testReserve) && testReserve > 0) {
         bottom = testReserve;
-      } else if (!keyboardOpen && visualViewport) {
-        bottom = Math.min(viewportDelta, 48);
+      } else if (!keyboardOpen && mobileViewport) {
+        const measured = visualViewport ? Math.min(viewportDelta, 48) : 0;
+        const isiOS = /iPhone|iPad|iPod|CriOS|FxiOS/i.test(navigator.userAgent || '');
+        const fallback = shouldUseMobileBrowserBottomFallback() ? (isiOS ? 72 : 56) : 0;
+        bottom = Math.max(measured, fallback);
       }
       bottom = Math.min(Math.max(bottom, 0), 120);
       const keyboardInset = keyboardOpen ? viewportDelta : 0;
@@ -42269,6 +42312,7 @@ function getWritingModelLabel() {
       root.style.setProperty('--moyun-workbench-height', '100%');
       root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
+      syncMobileHeaderOffset();
       if (keyboardOpen) nextTick(autosizeComposerPrompt);
     }
 
@@ -42353,6 +42397,7 @@ function getWritingModelLabel() {
         }, 2100);
       });
       updateMobileBrowserBottomInset();
+      window.__moyunSyncMobileChrome = updateMobileBrowserBottomInset;
       initMoyunModalCoordinator();
       nextTick(updateSidebarTabScrollState);
       window.addEventListener('resize', handleResize);
