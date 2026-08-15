@@ -156,6 +156,33 @@ button{cursor:pointer}
 .toggle-on{background:var(--ok)}
 .toggle-off{background:var(--bd2)}
 .toggle-on .toggle-thumb{transform:translateX(20px)}
+.moyun-toggle-hitbox{
+  width:44px;height:44px;padding:0;border:0;background:transparent;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.moyun-toggle-hitbox:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.moyun-toggle-hitbox:disabled{opacity:.5;cursor:not-allowed}
+.moyun-toggle-hitbox:disabled .toggle-track{cursor:not-allowed}
+.moyun-hosted-action{min-height:36px}
+.moyun-hosted-action:disabled{opacity:.5;cursor:not-allowed}
+.moyun-hosted-range{min-height:36px}
+.moyun-hosted-quick-nav{display:flex;flex-wrap:wrap;align-items:center;min-width:0;padding:8px 20px;overflow:hidden}
+.moyun-hosted-quick-nav-track{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 100%;overflow-x:auto;overscroll-behavior-x:contain;padding:1px 0;scrollbar-width:thin}
+.moyun-hosted-quick-nav-hint{display:none;flex:1 1 100%;font-size:9px;line-height:1.35;color:#64748b;letter-spacing:.01em}
+@media (max-width:767px){.moyun-hosted-quick-nav-hint{display:block}}
+.moyun-hosted-quick-nav-item{flex:0 0 auto;max-width:160px;min-height:32px;padding:6px 10px;border-radius:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;line-height:1.2;letter-spacing:0}
+@media(max-width:767px){
+  .moyun-hosted-action,.moyun-hosted-range{min-height:44px}
+  .moyun-hosted-quick-nav{padding:8px 12px}
+  .moyun-hosted-quick-nav-item{max-width:136px;min-height:44px;padding:8px 12px}
+  /* Hosted MOD forms use compact desktop tokens and several fields have inline 30px heights. Keep the expansion scoped to the mobile hosted modal. */
+  [data-moyun-modal-panel] button,[data-moyun-modal-panel] select,[data-moyun-modal-panel] summary{min-height:44px;box-sizing:border-box}
+  [data-moyun-modal="hosted-modal"] [data-moyun-modal-panel] button{min-width:44px}
+  [data-moyun-modal-panel] select{height:44px!important}
+  [data-moyun-modal-panel] summary{display:flex;align-items:center}
+  [data-moyun-modal-panel] input:not([type="hidden"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]){height:44px!important;min-height:44px!important;box-sizing:border-box}
+  [data-moyun-modal-panel] textarea{min-height:44px!important;box-sizing:border-box}
+}
 /* 中文注释：小号开关用于紧凑设置卡片，单独缩小滑块并重算位移，避免沿用默认 20px 位移导致滑块跑偏。 */
 .toggle-sm{width:34px;height:18px}
 .toggle-sm .toggle-thumb{top:3px;left:3px;width:12px;height:12px}
@@ -388,7 +415,15 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .snowwing-floating-panel-enter-active{animation:snowwingPanelIn .34s cubic-bezier(.2,.85,.18,1) both}
 .snowwing-floating-panel-leave-active{animation:snowwingPanelOut .24s cubic-bezier(.55,.08,.68,.53) both}
 .snowwing-floating-panel{transform-origin:28px 24px;will-change:transform,opacity,filter}
-.snowwing-floating-trigger-docked{position:absolute;left:12px;top:12px;z-index:4}
+/* 面板内容比可视区高一倍多，原来关闭按钮与拖拽把手都在滚动流里，往下翻就没了：
+   面板打开时右上角触发胶囊是隐藏的，Esc 与点击面板外都不关闭，用户必须先滚回顶部才能关。
+   把这一行钉在面板顶部，滚到哪都能关闭和拖动。 */
+.snowwing-floating-trigger-docked{position:relative;z-index:4;flex:none}
+.snowwing-floating-head{
+  position:sticky;top:-12px;z-index:6;
+  margin:-12px -12px 12px;padding:12px 12px 8px;border-radius:22px 22px 0 0;
+  box-shadow:0 8px 16px -14px rgba(15,23,42,.5);
+}
 .snowwing-floating-close{
   width:32px;height:32px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:1px solid rgba(254,202,202,.58);
@@ -822,7 +857,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-workbench .moyun-do-footer{gap:7px;padding-top:7px;padding-right:76px}
   .moyun-workbench .moyun-do-footer textarea{min-height:42px;height:42px;max-height:80px;padding:8px 10px}
   .moyun-workbench .moyun-do-footer .moyun-do-footer-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
-  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:42px;padding:8px 10px;font-size:12px}
+  .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding:8px 10px;font-size:12px}
   .moyun-do-card-head{grid-template-columns:1fr}
   .moyun-do-actions{justify-content:flex-start}
   .moyun-lf-panel{padding:9px;margin-bottom:18px}
@@ -875,7 +910,8 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-vv-short .moyun-workbench .moyun-do-rangebar .moyun-wb-mode-tabs,.moyun-vv-short .moyun-workbench .moyun-do-range-hint,.moyun-vv-short .moyun-workbench .moyun-do-compact-label,.moyun-vv-short .moyun-workbench .moyun-do-only-empty{display:none}
 .moyun-vv-short .moyun-workbench .moyun-do-footer{gap:5px;padding-top:5px;padding-right:58px}
 .moyun-vv-short .moyun-workbench .moyun-do-footer textarea{height:36px;min-height:36px}
-.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:38px;padding-top:5px;padding-bottom:5px}
+/* 中文注释：短屏原本把底栏按钮压到 38px，低于 44px 触控下限；这里保住 44px，只压内边距换空间。 */
+.moyun-vv-short .moyun-workbench .moyun-do-footer .moyun-do-footer-actions button{min-height:44px;padding-top:4px;padding-bottom:4px}
 .moyun-vv-short .moyun-workbench .moyun-action-status{min-height:24px}
 }
 
@@ -1194,19 +1230,38 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   [data-moyun-modal="web-update-announcement"] a[href]{min-width:46px;min-height:46px}
   button[aria-label^="滚动到本章"],
   button[aria-label="手动修改章节标题"]{min-width:44px;min-height:44px}
+  /* 侧栏各功能页（设定/角色/大纲/目录/总结/查找/预设）此前从未纳入触控目标规则，
+     实测仍有 18–36px 的按钮与下拉：模板库 19、AI 一键补全 23、生成总结 24、人称切换 27、
+     下拉 28、展开摘要 36、预设排序 ↑↓ 18。这里按侧栏 region 统一兜底。 */
+  [data-moyun-region="sidebar"] button,
+  [data-moyun-region="sidebar"] select{min-height:44px}
+  /* 底栏的「本章目标字数」「生成章节数」是写正文前最常改的两个下拉，此前只有 28px。 */
+  [data-moyun-region="composer"] select{min-height:44px}
+}
+/* 只放一个窄符号的按钮（✕ 删除示例台词/角色关系/MOD 条目、角色卡展开收起、白鸟浮窗关闭）
+   宽度完全由字宽决定，实测移动端只有 8px；桌面保留紧凑尺寸，移动端统一抬到 44px。 */
+.moyun-char-card-toggle{min-width:36px;min-height:36px}
+.moyun-compact-tap{min-width:26px}
+@media(max-width:767px){
+  .moyun-char-card-toggle,
+  .moyun-compact-tap{min-width:44px;min-height:44px}
+  .snowwing-floating-close{width:44px;height:44px;min-width:44px;min-height:44px}
 }
 
 /* 插入章节分隔线 */
 .insert-line{
   display:flex;align-items:center;justify-content:center;
-  padding:4px 0;cursor:pointer;opacity:0;transition:opacity .2s;
+  padding:10px 0;cursor:pointer;opacity:.55;transition:opacity .2s;
 }
-.insert-line:hover{opacity:1}
+.insert-line:hover,.insert-line:active{opacity:1}
 .insert-line-bar{flex:1;height:1px;background:var(--bd)}
 .insert-line-btn{
-  padding:0 8px;font-size:11px;color:var(--tx3);
-  background:var(--bg);border:1px solid var(--bd);
+  padding:6px 16px;font-size:12px;font-weight:600;color:var(--tx2);
+  background:var(--bg);border:1px solid var(--tx4);
   border-radius:999px;white-space:nowrap;
+}
+.insert-line:hover .insert-line-btn,.insert-line:active .insert-line-btn{
+  color:var(--accent);border-color:var(--accent);
 }
 
 
@@ -1217,6 +1272,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 /* 设置面板内部Tab */
 .settings-tab-bar {
   display: flex;
+  flex-wrap: nowrap;
   gap: 4px;
   padding: 4px;
   border-radius: 10px;
@@ -1235,16 +1291,20 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 }
 .settings-tab-bar::-webkit-scrollbar { display:none; }
 .settings-tab-item {
-  flex: 1;
-  min-width: 64px;
-  padding: 8px 4px;
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 8px 10px;
   text-align: center;
   font-size: 12px;
+  line-height: 1.25;
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
   color: var(--tx3);
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 .settings-tab-item.active {
   background: var(--bg-card);
@@ -1304,22 +1364,24 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   100% { box-shadow:var(--sh1); }
 }
 .sidebar-tab-shell { position:relative; flex-shrink:0; }
-.sidebar-tab-more {
+.sidebar-tab-more, .sidebar-tab-back {
   position:absolute;
   top:0;
-  right:0;
   bottom:1px;
   z-index:20;
-  width:36px;
+  width:44px;
   display:flex;
   align-items:center;
   justify-content:center;
   background:var(--bg-sidebar);
   color:var(--tx2);
-  border-left:1px solid var(--bd);
   font-size:22px;
   font-weight:800;
 }
+.sidebar-tab-more { right:0; border-left:1px solid var(--bd); }
+/* 页签行只放得下 7 个：选中右侧页签时会自动滚到右端，把「书架」推出左边界。
+   原来只有向右的入口，往左没有任何指示，用户会以为书架入口不见了。 */
+.sidebar-tab-back { left:0; border-right:1px solid var(--bd); }
 
 /* 角色卡展开面板分区标题 */
 .char-section-label {
@@ -1539,6 +1601,9 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   .character-action-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
   .character-action-grid > button { padding:6px 3px; font-size:10px; line-height:1.2; }
   .settings-tab-bar { top:65px; }
+  /* 中断草稿的放弃/保存/继续/复制是生成失败后最常用的一组操作，移动端必须给足触控高度。 */
+  .interrupted-draft-actions > button { min-height:44px; }
+  .sidebar-tab-more, .sidebar-tab-back { bottom:0; }
 }
 
 /* 沉浸阅读模式 */

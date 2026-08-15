@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=98f6aa71eb68">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=cda0a2ebf142">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -31,19 +31,19 @@
 <transition name="toast">
   <div v-if="toast.show"
        data-moyun-region="toast"
-       :role="toast.type==='error' ? 'alert' : 'status'"
+       :role="toast.type==='error' || toast.type==='warn' ? 'alert' : 'status'"
        :aria-live="toast.type==='error' ? 'assertive' : 'polite'"
        aria-atomic="true"
        class="moyun-toast fixed top-5 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-lg flex items-center gap-3 max-w-[90vw] font-semibold text-sm"
        :class="{'moyun-toast-sidebar-open': isMobile && mobileSidebarOpen}"
        :style="{
-         background: toast.type==='error' ? 'var(--err-soft)' : toast.type==='success' ? 'var(--ok-soft)' : 'var(--bg-card)',
-         color: toast.type==='error' ? 'var(--err)' : toast.type==='success' ? 'var(--ok)' : 'var(--tx)',
+         background: toast.type==='error' ? 'var(--err-soft)' : toast.type==='warn' ? 'var(--warn-soft)' : toast.type==='success' ? 'var(--ok-soft)' : 'var(--bg-card)',
+         color: toast.type==='error' ? 'var(--err)' : toast.type==='warn' ? 'var(--warn)' : toast.type==='success' ? 'var(--ok)' : 'var(--tx)',
          border: '1px solid var(--bd)',
          boxShadow: 'var(--sh2)'
        }">
     <span>{{ toast.message }}</span>
-    <button v-if="toast.type==='error'" type="button" @click="dismissToast" aria-label="关闭提示"
+    <button v-if="toast.type==='error' || toast.type==='warn'" type="button" @click="dismissToast" aria-label="关闭提示"
             class="shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-black"
             style="background:transparent;border:1px solid currentColor;opacity:.75;line-height:1">×</button>
   </div>
@@ -138,6 +138,7 @@
       </button>
       <div class="tab-slider" :style="tabSliderStyle"></div>
     </div>
+    <button v-if="canScrollSidebarTabsLeft" type="button" @click="scrollSidebarTabsBack" class="sidebar-tab-back md:hidden" aria-label="显示前面的页签" title="显示前面的页签（含书架）">‹</button>
     <button v-if="canScrollSidebarTabsRight" type="button" @click="scrollSidebarTabsForward" class="sidebar-tab-more md:hidden" aria-label="显示后续页签" title="显示后续页签">›</button>
   </div>
 
@@ -226,8 +227,9 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <label class="label mb-0">书名</label>
-          <button @click="aiAutoFillSettings()" :disabled="!!getSettingsAiDisabledReason()"
-                  class="text-[10px] px-3 py-1 rounded-lg font-bold"
+            <button @click="aiAutoFillSettings()" :disabled="!!getSettingsAiDisabledReason()"
+                    :title="getSettingsAiDisabledReason() || '按已填内容补齐世界观、主题与风格设定'"
+                    class="text-[10px] px-3 py-1 rounded-lg font-bold"
                   style="background:var(--warn);color:white"
                   :style="getSettingsAiDisabledReason()?'opacity:.5':''">
             <span v-if="isAutoFilling" class="loading-spinner"></span>{{ isAutoFilling ? '补全中...' : '✨ AI一键补全' }}
@@ -296,9 +298,40 @@
           <span class="badge-err ml-1.5" style="font-size:10px;padding:1px 5px;border-radius:4px">R18</span>
           <br><span class="text-[11px]" style="color:var(--tx3)">解除内容审查，允许 NSFW 内容</span>
         </div>
-        <div @click="novel.isAdultMode=!novel.isAdultMode;saveData();showToast(novel.isAdultMode?'已开启':'已关闭','success')"
+        <div @click="toggleAdultMode()"
              class="toggle-track" :class="novel.isAdultMode ? 'toggle-on' : 'toggle-off'">
           <div class="toggle-thumb"></div>
+        </div>
+      </div>
+
+      <!-- 系统内置提示词：仅在 NSFW 模式打开后出现，分模块可编辑、可展开。 -->
+      <div v-if="novel.isAdultMode" data-moyun-builtin-prompts class="space-y-2">
+        <div>
+          <div class="text-sm font-bold" style="color:var(--tx)">系统内置提示词</div>
+          <div class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">包含 NSFW、讨论、一键开书和生图模板。输入框保存完整原文，不截断；修改后直接参与对应 AI 请求。</div>
+        </div>
+        <div v-for="card in builtinSystemPromptCards" :key="card.key"
+             class="rounded-xl overflow-hidden" :data-moyun-builtin-prompt="card.key"
+             :data-moyun-nsfw-system-core="card.key==='nsfwCore' ? 'true' : null"
+             style="background:var(--bg-card);border:1px solid var(--bd)">
+          <div class="flex items-center gap-2 px-3 py-2.5" :style="isBuiltinSystemPromptExpanded(card.key)?'border-bottom:1px solid var(--bd)':''">
+            <span :data-moyun-nsfw-system-prompt-badge="card.key==='nsfwCore' ? 'true' : null"
+                  class="text-[9px] font-black tracking-wide px-1.5 py-0.5 rounded shrink-0"
+                  :style="card.badge==='NSFW' ? 'background:var(--err);color:#fff' : 'background:var(--accent-soft);color:var(--accent)'">{{ card.badge }}</span>
+            <span class="text-xs font-bold flex-1 min-w-0" style="color:var(--tx)">{{ card.title }}</span>
+            <span class="text-[10px] shrink-0" style="color:var(--tx4)">{{ (getBuiltinSystemPrompt(card.key)||'').length }}字</span>
+            <button type="button" class="text-[10px] font-bold shrink-0" style="color:var(--accent)" @click="toggleBuiltinSystemPrompt(card.key)">{{ isBuiltinSystemPromptExpanded(card.key) ? '收起' : '展开' }}</button>
+          </div>
+          <div v-if="isBuiltinSystemPromptExpanded(card.key)" class="px-3 py-2.5 space-y-2">
+            <div class="text-[10px] leading-relaxed" style="color:var(--tx4)">{{ card.desc }}</div>
+            <textarea :value="getBuiltinSystemPrompt(card.key)" @input="setBuiltinSystemPrompt(card.key, $event.target.value)" @change="saveData()"
+                      :rows="card.rows" class="textarea-field text-[11px] font-mono" style="line-height:1.55"
+                      :aria-label="card.title"
+                      :data-moyun-nsfw-system-prompt="card.key==='nsfwCore' ? 'true' : null"></textarea>
+            <div class="flex justify-end">
+              <button type="button" @click="restoreBuiltinSystemPrompt(card.key)" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--accent-soft);color:var(--accent)">恢复默认</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -311,7 +344,7 @@
         </div>
         <div v-if="showNsfwEditor" class="p-3 space-y-3">
           <div class="text-[10px] p-2 rounded-md" style="background:var(--bg-inset);color:var(--tx3)">
-            以下模块仅作为大纲、细纲、正文的效果增强；破限核心不在这里编辑。
+            以下模块仅作为大纲、细纲、正文的效果增强。系统核心在上方「系统内置提示词」里编辑。
           </div>
           <button @click="aiGenerateNsfwModules()" :disabled="isGeneratingNsfw"
                   class="w-full py-2 rounded-lg text-xs font-bold mb-2"
@@ -374,12 +407,17 @@
             <input v-model="char.name" @change="saveData()" placeholder="角色名" @click.stop data-character-name-input
                    class="flex-1 bg-transparent font-bold text-sm outline-none min-w-0" style="color:var(--tx);border-bottom:1px solid transparent"
                    onfocus="this.style.borderBottomColor='var(--bd2)'" onblur="this.style.borderBottomColor='transparent'">
+            <!-- 中文注释：isEnhancingChar 是全局锁，任一角色在跑就禁掉所有角色的按钮。原来没有任何说明，
+                 用户看不出在等哪个角色，只觉得按钮坏了。 -->
             <button @click.stop="aiCompleteCharacter(ci)" :disabled="isEnhancingChar"
                     class="text-[9px] px-2 py-1 rounded font-bold shrink-0" style="background:var(--warn-soft);color:var(--warn)"
-                    :style="isEnhancingChar?'opacity:.5':''">
+                    :style="isEnhancingChar?'opacity:.5':''"
+                    :title="isEnhancingChar
+                      ? (enhancingCharIdx===ci ? '正在完善本角色，请稍候' : '正在完善「' + ((structuredCharacters[enhancingCharIdx]||{}).name || '其他角色') + '」，完成后可继续')
+                      : '按现有描述补全性格标签、说话风格和示例对话'">
               {{ isEnhancingChar && enhancingCharIdx===ci ? '完善中...' : '一键完善' }}
             </button>
-            <button @click.stop="char._expanded=!char._expanded" class="p-2" style="color:var(--tx4);min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center" :aria-expanded="String(!!char._expanded)" :aria-label="(char._expanded?'收起':'展开')+'角色卡：'+(char.name || '未命名角色')" :title="(char._expanded?'收起':'展开')+'角色卡'">
+            <button @click.stop="char._expanded=!char._expanded" class="p-2 moyun-char-card-toggle" style="color:var(--tx4);display:flex;align-items:center;justify-content:center" :aria-expanded="String(!!char._expanded)" :aria-label="(char._expanded?'收起':'展开')+'角色卡：'+(char.name || '未命名角色')" :title="(char._expanded?'收起':'展开')+'角色卡'">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" :style="char._expanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </button>
           </div>
@@ -405,7 +443,8 @@
                 <label class="label mb-0 cursor-pointer">性格标签</label>
                 <div class="flex items-center gap-2">
                   <button @click.stop="aiGenerateTags(ci)" :disabled="isEnhancingChar"
-                          class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
+                    :title="isEnhancingChar ? (enhancingCharIdx===ci ? '本角色的 AI 任务正在进行' : '另一个角色的 AI 任务正在进行，请等它结束') : 'AI 推荐 5-8 个性格标签（生成后可逐项审阅）'"
+                    class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
                     {{ isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善' }}
                   </button>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="shrink-0" style="color:var(--tx4);transition:transform .2s;min-width:14px" :style="char._sec_tags?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
@@ -457,7 +496,12 @@
                   </button>
                 </div>
                 <div v-if="char.dialogueType" class="p-2 rounded-md mb-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
-                  <div class="text-[9px] font-bold mb-1" style="color:var(--tx3)">风格描述（可直接编辑）</div>
+                  <!-- 中文注释：这个输入框绑的是 dialogueTypes 里的全局模板，不是角色自己的字段。原文案只说“可直接编辑”，
+                       改 A 角色会静默改掉所有同风格角色的口吻，必须把共享范围写在旁边。 -->
+                  <div class="text-[9px] font-bold mb-1" style="color:var(--tx3)">风格描述（全局模板，可直接编辑）</div>
+                  <div v-if="countCharactersUsingDialogueType(char.dialogueType) > 1" class="text-[9px] mb-1 leading-relaxed" style="color:var(--warn)">
+                    共享模板：这里的改动会同时影响使用「{{ getDialogueTypeObj(char.dialogueType).label || '该风格' }}」的 {{ countCharactersUsingDialogueType(char.dialogueType) }} 个角色。只想改这一个角色，请另建风格或写进「角色专属提示词」。
+                  </div>
                   <textarea v-model="getDialogueTypeObj(char.dialogueType).prompt" @change="saveData()"
                             rows="2" class="textarea-field text-[10px]" style="line-height:1.4;resize:vertical"></textarea>
                 </div>
@@ -465,6 +509,7 @@
                   <input v-model="newDialogueTypeDesc" placeholder="描述想要的风格，如：暴躁老哥、大小姐..."
                          class="input-field text-[10px] flex-1" style="height:26px;padding:0 8px">
                   <button @click="aiGenerateDialogueType()" :disabled="isGeneratingDialogueType"
+                          :title="isGeneratingDialogueType ? '正在生成，请稍候' : 'AI 生成一个新的对话类型模板'"
                           class="text-[9px] px-2.5 py-1 rounded font-bold shrink-0"
                           style="background:var(--warn-soft);color:var(--warn)"
                           :style="isGeneratingDialogueType?'opacity:.5':''">
@@ -480,9 +525,13 @@
               <div class="flex items-center justify-between cursor-pointer select-none" @click="char._sec_style=!char._sec_style">
                 <label class="label mb-0 cursor-pointer">说话风格描述</label>
                 <div class="flex items-center gap-2">
-                  <button @click.stop="aiEnhanceStyle(ci)" :disabled="isEnhancingChar"
-                          class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
-                    {{ isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善' }}
+                  <!-- 中文注释：跑起来之后同一个按钮变成停止入口，避免模型卡住时只能刷新页面。 -->
+                  <button @click.stop="isCharacterFieldAiRunStoppable(ci,'style') ? stopCharacterFieldAiRun() : aiEnhanceStyle(ci)"
+                          :disabled="isEnhancingChar && !isCharacterFieldAiRunStoppable(ci,'style')"
+                          class="text-[9px] px-2 py-0.5 rounded font-bold"
+                          :style="isCharacterFieldAiRunStoppable(ci,'style')?'background:var(--err-soft);color:var(--err)':'background:var(--warn-soft);color:var(--warn)'"
+                          :title="isCharacterFieldAiRunStoppable(ci,'style') ? '停止本次生成；该字段不会写入内容' : (isEnhancingChar ? '另一个角色 AI 任务正在进行，请等它结束或在那边停止' : '按当前设定 AI 补写说话风格')">
+                    {{ isCharacterFieldAiRunStoppable(ci,'style') ? '■ 停止' : (isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善') }}
                   </button>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="shrink-0" style="color:var(--tx4);transition:transform .2s;min-width:14px" :style="char._sec_style?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                 </div>
@@ -502,9 +551,12 @@
                   <span class="badge-muted text-[9px]">{{ (char.exampleDialogues||[]).length }}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <button @click.stop="aiGenerateDialogues(ci)" :disabled="isEnhancingChar"
-                          class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
-                    {{ isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI生成台词' }}
+                  <button @click.stop="isCharacterFieldAiRunStoppable(ci,'dialogues') ? stopCharacterFieldAiRun() : aiGenerateDialogues(ci)"
+                          :disabled="isEnhancingChar && !isCharacterFieldAiRunStoppable(ci,'dialogues')"
+                          class="text-[9px] px-2 py-0.5 rounded font-bold"
+                          :style="isCharacterFieldAiRunStoppable(ci,'dialogues')?'background:var(--err-soft);color:var(--err)':'background:var(--warn-soft);color:var(--warn)'"
+                          :title="isCharacterFieldAiRunStoppable(ci,'dialogues') ? '停止本次生成；不会追加台词' : (isEnhancingChar ? '另一个角色 AI 任务正在进行，请等它结束或在那边停止' : 'AI 追加 5 条典型台词')">
+                    {{ isCharacterFieldAiRunStoppable(ci,'dialogues') ? '■ 停止' : (isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI生成台词') }}
                   </button>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="shrink-0" style="color:var(--tx4);transition:transform .2s;min-width:14px" :style="char._sec_examples?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                 </div>
@@ -516,7 +568,7 @@
                     <span class="text-[10px] shrink-0" style="color:var(--tx4)">{{ li+1 }}.</span>
                     <input v-model="char.exampleDialogues[li]" @change="saveData()"
                            class="input-field text-xs flex-1" style="height:26px;padding:0 8px">
-                    <button @click="char.exampleDialogues.splice(li,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'第'+(li+1)+'条示例台词'" title="删除示例台词">✕</button>
+                    <button @click="confirmRemoveExampleDialogue(char,li)" class="text-[10px] shrink-0 moyun-compact-tap" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'第'+(li+1)+'条示例台词'" title="删除示例台词">✕</button>
                   </div>
                 </div>
                 <button @click="addDialogueLine(ci)"
@@ -530,6 +582,7 @@
                 <label class="label mb-0 cursor-pointer">角色关系</label>
                 <div class="flex items-center gap-2">
                   <button @click.stop="aiGenerateRelationships(ci)" :disabled="isEnhancingChar"
+                          :title="isEnhancingChar ? (enhancingCharIdx===ci ? '本角色的 AI 任务正在进行' : '另一个角色的 AI 任务正在进行，请等它结束') : 'AI 补写与其他角色的关系（至少需要两个角色）'"
                           class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
                     {{ isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善' }}
                   </button>
@@ -548,7 +601,7 @@
                     </select>
                     <input v-model="rel.type" @change="saveData()" placeholder="关系类型" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:60px">
                     <input v-model="rel.attitude" @change="saveData()" placeholder="态度描述" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:80px">
-                    <button @click="char.relationships.splice(ri,1);saveData()" class="text-[10px] shrink-0" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'的第'+(ri+1)+'条关系'" title="删除角色关系">✕</button>
+                    <button @click="confirmRemoveRelationship(char,ri)" class="text-[10px] shrink-0 moyun-compact-tap" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'的第'+(ri+1)+'条关系'" title="删除角色关系">✕</button>
                   </div>
                 </div>
                 <button @click="addRelationship(ci)"
@@ -561,9 +614,12 @@
               <div class="flex items-center justify-between cursor-pointer select-none" @click="char._sec_prompt=!char._sec_prompt">
                 <label class="label mb-0 cursor-pointer">角色专属提示词</label>
                 <div class="flex items-center gap-2">
-                  <button @click.stop="aiGenerateCharPrompt(ci)" :disabled="isEnhancingChar"
-                          class="text-[9px] px-2 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">
-                    {{ isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善' }}
+                  <button @click.stop="isCharacterFieldAiRunStoppable(ci,'prompt') ? stopCharacterFieldAiRun() : aiGenerateCharPrompt(ci)"
+                          :disabled="isEnhancingChar && !isCharacterFieldAiRunStoppable(ci,'prompt')"
+                          class="text-[9px] px-2 py-0.5 rounded font-bold"
+                          :style="isCharacterFieldAiRunStoppable(ci,'prompt')?'background:var(--err-soft);color:var(--err)':'background:var(--warn-soft);color:var(--warn)'"
+                          :title="isCharacterFieldAiRunStoppable(ci,'prompt') ? '停止本次生成；该字段不会写入内容' : (isEnhancingChar ? '另一个角色 AI 任务正在进行，请等它结束或在那边停止' : 'AI 补写该角色的专属写作指令')">
+                    {{ isCharacterFieldAiRunStoppable(ci,'prompt') ? '■ 停止' : (isEnhancingChar && enhancingCharIdx===ci ? '生成中...' : 'AI完善') }}
                   </button>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="shrink-0" style="color:var(--tx4);transition:transform .2s;min-width:14px" :style="char._sec_prompt?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                 </div>
@@ -583,7 +639,8 @@
               </div>
               <div v-if="char._sec_avatar" class="mt-2 space-y-2">
                 <div v-if="char.avatarBase64" class="mb-2 text-center">
-                  <button @click="char.avatarBase64=null;saveData()" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--err)">删除立绘</button>
+                  <!-- 中文注释：原来一点即删且不可恢复；立绘是生成消耗换来的，误触代价不对等。 -->
+                  <button @click="confirmRemoveCharacterAvatar(char)" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--err)" title="删除这张立绘（会二次确认）">删除立绘</button>
                 </div><div>
                   <div class="text-[9px] font-bold mb-1" style="color:var(--tx3)">生图关键词（可编辑）</div>
                   <textarea v-model="char.avatarPrompt" @change="saveData()" rows="3"
@@ -592,6 +649,7 @@
                 </div>
                 <div class="flex gap-2">
                   <button @click="generateCharAvatarTags(ci)" :disabled="isGeneratingAvatarTags"
+                          :title="isGeneratingAvatarTags ? '正在提取关键词，请稍候' : '按角色描述提取英文生图关键词'"
                           class="text-[10px] px-3 py-1.5 rounded-lg font-bold flex-1"
                           style="background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)"
                           :style="isGeneratingAvatarTags && generatingAvatarIdx===ci ? 'opacity:.5' : ''">
@@ -599,6 +657,7 @@
                     {{ isGeneratingAvatarTags && generatingAvatarIdx===ci ? '提取中...' : '🏷️ AI提取关键词' }}
                   </button>
                   <button @click="generateCharAvatarImage(ci)" :disabled="isGeneratingAvatar || !char.avatarPrompt"
+                          :title="!char.avatarPrompt ? '先填写上面的立绘关键词，或点左边的「AI提取关键词」' : (isGeneratingAvatar ? '正在生成立绘，请稍候' : '按关键词生成这个角色的立绘')"
                           class="text-[10px] px-3 py-1.5 rounded-lg font-bold flex-1"
                           style="background:var(--info-soft);color:var(--info);border:1px solid var(--info)"
                           :style="(isGeneratingAvatar && generatingAvatarIdx===ci) || !char.avatarPrompt ? 'opacity:.5' : ''">
@@ -644,7 +703,7 @@
       <!-- 主内容区编辑开关 -->
       <button type="button" @click="toggleOutlineWorkbench()" :aria-pressed="showOutlineInMain" data-moyun-entry="outline"
               class="card moyun-entry-card p-3 flex items-center justify-between">
-        <div><span class="text-sm font-bold" style="color:var(--tx)">主内容区编辑</span><br><span class="text-[10px]" style="color:var(--tx3)">在右侧大屏编辑大纲</span></div>
+        <div><span class="text-sm font-bold" style="color:var(--tx)">打开大纲工作台</span><br><span class="text-[10px]" style="color:var(--tx3)">在右侧大屏编辑故事大纲</span></div>
         <div aria-hidden="true" class="toggle-track" :class="showOutlineInMain?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
       </button>
       <button v-if="showOutlineInMain && !isMobile" type="button" @click="toggleOutlineSplitScreen()" :aria-pressed="splitScreen" data-moyun-entry="outline-split"
@@ -659,11 +718,27 @@
         <div aria-hidden="true" class="toggle-track" :class="showDetailedOutlineInMain?'toggle-on':'toggle-off'"
              :style="showDetailedOutlineInMain?'background:var(--warn)':''"><div class="toggle-thumb"></div></div>
       </button>
+      <!-- 暗线回收计划一级入口 -->
+      <button type="button" @click="openDarklinePlan()" data-moyun-entry="darkline"
+              class="card moyun-entry-card p-3 flex items-center justify-between">
+        <div><span class="text-sm font-bold" style="color:var(--tx)">暗线回收计划</span><br><span class="text-[10px]" style="color:var(--tx3)">规划伏笔的布置与回收章节（长篇工程）</span></div>
+        <span class="text-[10px] px-2 py-0.5 rounded shrink-0" style="background:var(--accent-soft);color:var(--accent)">{{ foreshadowMatrixStats.total }} 条</span>
+      </button>
       <!-- 大纲预览 -->
       <div class="flex-1 card overflow-hidden flex flex-col min-h-0">
-        <div class="px-3 py-2 text-[11px] font-bold shrink-0" style="border-bottom:1px solid var(--bd);color:var(--tx3)">大纲预览</div>
-        <textarea v-model="novel.outline" @change="saveData()" :readonly="showOutlineInMain"
-                  placeholder="暂无大纲内容..." class="flex-1 p-3 text-xs outline-none resize-none min-h-0"
+        <div class="px-3 py-2 text-[11px] font-bold shrink-0 flex items-center justify-between gap-2" style="border-bottom:1px solid var(--bd);color:var(--tx3)">
+          <span>大纲预览</span>
+          <!-- 中文注释：此前只在工作台打开时锁定这里。关掉工作台后仍可改，而待审修订是基于旧文本做的 diff，
+               改完再回去审阅等于审的是过期内容——这就成了两个真值。有待审修订时一律只读。 -->
+          <!-- 中文注释：这枚徽标只在有待审修订时才渲染，所以先前那轮移动端触控兜底没量到它，实测只有 18px 高。
+               卡片头部很窄，撑高会顶开布局；改用「内边距扩热区 + 等量负外边距抵消视觉」把可点区域补到 44px。 -->
+          <button v-if="outlineRevisions.length>0" type="button" @click="openOutlineWorkbench()"
+                  class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0" style="background:var(--warn-soft);color:var(--warn);padding-top:13px;padding-bottom:13px;margin-top:-13px;margin-bottom:-13px"
+                  title="有 AI 修订待审阅，此处暂时只读。点此回到审阅界面">{{ outlineRevisions.filter(r => r.type!==0 && r.status==='pending').length }} 项待审 →</button>
+        </div>
+        <textarea v-model="novel.outline" @change="saveData()" :readonly="showOutlineInMain || outlineRevisions.length>0"
+                  :placeholder="outlineRevisions.length>0 ? '有 AI 修订待审阅，先处理修订后才能直接编辑' : '暂无大纲内容...'" class="flex-1 p-3 text-xs outline-none resize-none min-h-0"
+                  :title="outlineRevisions.length>0 ? '有待审 AI 修订，先在大纲工作台接受或拒绝' : ''"
                   style="background:transparent;color:var(--tx2);line-height:1.6;border:none"></textarea>
         <div v-if="novel.outline" class="px-3 py-1 shrink-0 text-right" style="border-top:1px solid var(--bd)">
           <span class="text-[9px] font-bold" style="color:var(--tx4)">{{ novel.outline.length }}字</span>
@@ -703,14 +778,19 @@
     <div v-show="currentTab==='summary'" class="absolute inset-0 overflow-y-auto p-4 flex flex-col gap-3">
       <div class="card p-3">
         <div class="text-sm font-bold mb-2" style="color:var(--tx)">手动生成总结</div>
-        <div class="flex items-center gap-2 text-xs flex-wrap" style="color:var(--tx2)">
+        <!-- 0 章时两个章号下拉里没有任何选项，配上灰掉且没有 title 的按钮，用户看不出缺的是章节。 -->
+        <div v-if="chapters.length===0" class="text-[11px] leading-relaxed" style="color:var(--tx3)">
+          这本书还没有章节。先在主编辑区点「提笔续写」写出第一章，或用「+ 在此插入章节」手动建一章，之后就能在这里按章节区间生成总结。
+        </div>
+        <div v-else class="flex items-center gap-2 text-xs flex-wrap" style="color:var(--tx2)">
           <span>第</span>
           <select v-model.number="summaryStart" class="select-field text-xs py-0.5" style="width:50px"><option v-for="n in chapters.length" :value="n">{{n}}</option></select>
           <span>章 至 第</span>
           <select v-model.number="summaryEnd" class="select-field text-xs py-0.5" style="width:50px"><option v-for="n in chapters.length" :value="n">{{n}}</option></select>
           <span>章</span>
-          <button @click="generateSummaryRange()" :disabled="isGeneratingSummary||chapters.length===0"
-                  class="btn-primary text-[11px] px-3 py-1 ml-auto" :style="(isGeneratingSummary||chapters.length===0)?'opacity:.5':''">
+          <button @click="generateSummaryRange()" :disabled="isGeneratingSummary"
+                  class="btn-primary text-[11px] px-3 py-1 ml-auto" :style="isGeneratingSummary?'opacity:.5':''"
+                  :title="isGeneratingSummary ? '正在生成总结，完成后可再次生成' : '为选定章节区间生成总结'">
             <span v-if="isGeneratingSummary" class="loading-spinner"></span>{{ isGeneratingSummary ? '生成中...' : '生成总结' }}
           </button>
         </div>
@@ -777,13 +857,14 @@
       <div class="grid grid-cols-2 gap-2">
         <button @click="performSearch" class="btn-primary text-xs py-2">查找全部</button>
         <button @click="replaceAll" :disabled="searchResults.length===0"
-                class="btn-ghost text-xs py-2" :style="searchResults.length===0?'opacity:.5':''">全部替换</button>
+                class="btn-ghost text-xs py-2" :style="searchResults.length===0?'opacity:.5':''"
+                :title="searchResults.length===0 ? '先点「查找全部」得到结果，才能批量替换' : '把上面所有查找结果替换为新文字'">全部替换</button>
       </div>
       <!-- 搜索历史 -->
       <div v-if="searchHistory.length>0">
         <div class="flex items-center justify-between mb-1">
           <span class="text-[10px] font-bold" style="color:var(--tx4)">搜索历史</span>
-          <button @click="searchHistory=[]" class="text-[9px]" style="color:var(--err)">清空</button>
+          <button @click="clearSearchHistory()" class="text-[9px]" style="color:var(--err)">清空</button>
         </div>
         <div class="flex gap-1 flex-wrap">
           <button v-for="(h,hi) in searchHistory.slice(0,8)" :key="hi"
@@ -796,16 +877,17 @@
         <span class="text-[11px]" style="color:var(--tx3)">{{ currentMatchIndex+1 }} / {{ searchResults.length }}</span>
         <div class="flex gap-1.5">
           <button @click="replaceCurrentMatch" class="btn-ghost text-[10px] px-2 py-1">替换当前</button>
-          <button @click="prevMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="上一个搜索结果" title="上一个搜索结果">▲</button>
-          <button @click="nextMatch" class="w-6 h-6 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="下一个搜索结果" title="下一个搜索结果">▼</button>
+          <button @click="prevMatch" class="w-11 h-11 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="上一个搜索结果" title="上一个搜索结果">▲</button>
+          <button @click="nextMatch" class="w-11 h-11 rounded flex items-center justify-center text-xs" style="background:var(--bg-inset);border:1px solid var(--bd);color:var(--tx3)" aria-label="下一个搜索结果" title="下一个搜索结果">▼</button>
         </div>
       </div>
       <!-- 结果列表 -->
       <div v-if="searchResults.length>0" class="max-h-[300px] overflow-y-auto space-y-1">
         <div v-for="(r,ri) in searchResults" :key="ri" @click="jumpToMatch(ri)"
              class="p-2 rounded-lg cursor-pointer text-xs border"
+             :data-search-chapter-id="r.chapterId"
              :style="currentMatchIndex===ri?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-card);color:var(--tx2);border-color:var(--bd)'">
-          <div class="font-bold mb-0.5">第 {{ r.chapterIndex+1 }} 章</div>
+          <div class="font-bold mb-0.5" data-search-hit-label>{{ formatSearchHitChapterLabel(r) }}</div>
           <div class="text-[11px] opacity-80 text-truncate" v-html="r.context"></div>
         </div>
       </div>
@@ -826,6 +908,7 @@
             {{ pipelineExpanded ? '收起' : '展开' }}
           </button>
           <button @click="aiBatchGeneratePipeline()" :disabled="isGeneratingPipelineBatch||!writingGenerationReady"
+                  :title="!writingGenerationReady ? '先在设置里配置正文模型的 API' : (isGeneratingPipelineBatch ? '正在批量填充，请稍候' : '让 AI 一次性填好各层提示词')"
                   class="text-[10px] font-bold px-3 py-0.5 rounded ml-1"
                   style="background:var(--warn-soft);color:var(--warn)"
                   :style="(isGeneratingPipelineBatch||!writingGenerationReady)?'opacity:.5':''">
@@ -1001,7 +1084,7 @@
       <div v-if="isSnowwingPresetLocked()" class="absolute inset-0 z-30 flex items-center justify-center p-4 text-center" style="background:rgba(100,116,139,.58);backdrop-filter:grayscale(1) blur(1px)">
         <div class="max-w-[280px] rounded-2xl px-5 py-4 shadow-xl" style="background:#0f172a;border:1px solid rgba(226,232,240,.65);color:#f8fafc">
           <div class="text-base font-black leading-relaxed">您正在使用白鸟·雪翼成双Mod</div>
-          <div class="mt-1 text-[11px] leading-relaxed" style="color:#e2e8f0">宿主预设已全部关闭，且不会进入本次上下文。</div>
+          <div class="mt-1 text-[11px] leading-relaxed" style="color:#e2e8f0">宿主预设已全部关闭，且不会进入本次上下文。模型、文风与破限等改到白鸟工作台里调整——点右下角悬浮「翼」按钮打开工作台。</div>
         </div>
       </div>
     </div>
@@ -1081,7 +1164,7 @@
         <div v-else-if="storyBibleWorkbenchSection==='world'" class="max-w-3xl mx-auto space-y-4">
           <div>
             <div class="text-base font-black" style="color:var(--tx)">世界总览</div>
-            <div class="text-xs mt-1" style="color:var(--tx3)">这是现有 <code>novel.worldView</code> 的原字段编辑器。它不会被结构化内容自动覆盖，正文请求仍按现有逻辑读取它。</div>
+            <div class="text-xs mt-1" style="color:var(--tx3)">这是“世界观总览”的兼容编辑器：它不会被结构化资料自动覆盖，正文生成仍会读取它。若你在下方填了结构化资料，这里可作为整体背景补充。</div>
           </div>
           <div class="rounded-2xl px-4 py-3 text-xs leading-relaxed" style="background:var(--info-soft);border:1px solid color-mix(in srgb,var(--info) 24%,transparent);color:var(--tx2)">世界总览仍是作者原文的兼容入口。结构化资料请在“资料条目”维护；它们不会反向改写这里。正文续写、AI 建议、全书大纲和细纲生成均已接入统一上下文包。</div>
           <label class="card p-3 block"><span class="label">世界观（兼容总览）</span><textarea v-model="novel.worldView" @change="saveData()" rows="18" class="textarea-field" placeholder="时代背景、力量体系、势力关系、主要冲突..."></textarea></label>
@@ -1246,6 +1329,12 @@
                 <div class="rounded-xl p-3" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="text-[10px]" style="color:var(--tx4)">角色资料预算</div><div class="text-sm font-black mt-1" :style="storyBibleContextPreview.character.overflow?'color:var(--err)':'color:var(--tx)'">{{ storyBibleContextPreview.character.used }} / {{ storyBibleContextPreview.character.budget===null?'不限':storyBibleContextPreview.character.budget }} 字</div></div>
               </div>
               <div class="text-[10px] leading-relaxed" style="color:var(--tx4)">预算继承“全局设置 → 上下文”的世界观/角色字符上限。{{ storyBibleContextPreview.limitEnabled ? (storyBibleContextPreview.compactMode ? '当前已启用省 token 模式。' : '当前按普通上限预览。') : '当前已关闭截断上限。' }}</div>
+              <!-- 中文注释：这两条以前没写明，用户会以为"填了就会用"。草稿/归档条目一律不进上下文；
+                   预览是安全摘要，真实请求还会附带台词、对话类型和写作约束，字数天然比预览多。 -->
+              <div v-if="storyBibleExcludedEntryStats.total" class="text-[10px] leading-relaxed rounded-xl px-3 py-2" style="background:var(--warn-soft);color:var(--warn)">
+                有 {{ storyBibleExcludedEntryStats.draft }} 条草稿、{{ storyBibleExcludedEntryStats.archived }} 条归档、{{ storyBibleExcludedEntryStats.never }} 条“从不注入”的资料不会进入上下文，也不出现在下方预览里。要让它生效，请把状态改成“启用”。
+              </div>
+              <div class="text-[10px] leading-relaxed" style="color:var(--tx4)">下方预览是安全摘要；真实请求还会附带角色典型台词、对话类型与写作约束，因此实际注入字数会略高于预览摘要长度。事件时间线按与本章的关联度参与预算，未对读者公开的事件会带上“不得直接揭露”的标注。</div>
             </section>
 
             <section class="card p-4 space-y-4">
@@ -1346,13 +1435,21 @@
       <section class="moyun-character-main flex-1 min-w-0 overflow-y-auto" style="background:var(--bg)">
         <div class="moyun-character-mobile-picker md:hidden">
           <label class="sr-only" for="moyun-character-mobile-select">选择角色</label>
-          <select id="moyun-character-mobile-select" v-if="structuredCharacters.length" v-model="selectedWorkbenchCharacterId" @change="selectWorkbenchCharacter(selectedWorkbenchCharacterId)" class="select-field text-xs min-w-0"><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select>
+          <!-- 中文注释：桌面侧栏走 filteredWorkbenchCharacters（含搜索与核心/POV/待补筛选），这里原本遍历全量，
+               于是筛选后桌面显示“没有匹配角色”，手机上却还能选中被筛掉的角色，两端口径不一致。 -->
+          <select id="moyun-character-mobile-select" v-if="filteredWorkbenchCharacters.length" v-model="selectedWorkbenchCharacterId" @change="selectWorkbenchCharacter(selectedWorkbenchCharacterId)" class="select-field text-xs min-w-0"><option v-for="character in filteredWorkbenchCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select>
+          <span v-else-if="structuredCharacters.length" class="text-[10px] flex-1 min-w-0" style="color:var(--tx4)">没有匹配角色，调整上方筛选或搜索</span>
           <button type="button" @click="addCharacterFromWorkbench" class="btn-primary text-xs px-3 py-2 whitespace-nowrap">＋ 新建</button>
         </div>
         <div v-if="selectedWorkbenchCharacter" class="moyun-character-editor">
           <div class="moyun-character-editor-head">
             <div class="min-w-0"><div class="text-base font-black text-truncate" style="color:var(--tx)">{{ selectedWorkbenchCharacter.name || '未命名角色' }}</div><div class="text-xs mt-1" style="color:var(--tx3)">更改自动保存；改名和排序不会改变关系或出场关联。</div></div>
-            <button type="button" @click="currentTab='characters';closeCharacterWorkbench()" class="btn-ghost text-xs px-3 py-2">查看原卡</button>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" @click="currentTab='characters';closeCharacterWorkbench()" class="btn-ghost text-xs px-3 py-2">查看原卡</button>
+              <!-- 中文注释：工作台里能深度编辑档案/关系/状态，却唯独删不掉角色，必须退出去侧栏底部找。
+                   这里复用侧栏那套带引用影响说明的删除确认流。 -->
+              <button type="button" @click="removeSelectedWorkbenchCharacter()" class="text-xs px-3 py-2 rounded-lg font-bold shrink-0" style="background:var(--err-soft);color:var(--err)" title="删除这个角色（会列出引用影响并二次确认）">删除角色</button>
+            </div>
           </div>
           <div class="moyun-character-levels" role="radiogroup" aria-label="角色档案档位" aria-describedby="moyun-character-level-help">
             <button v-for="level in [{id:'sketch',label:'速写'},{id:'regular',label:'常规'},{id:'core',label:'核心'}]" :key="level.id" type="button" role="radio" :data-character-level="level.id" :aria-checked="selectedWorkbenchCharacter.profileLevel===level.id" @click="setSelectedCharacterProfileLevel(level.id)">{{ level.label }}</button>
@@ -1472,10 +1569,13 @@
       <div class="moyun-wb-header-actions">
         <span v-if="outlineLastRequest" class="moyun-wb-pill">{{ formatOutlineRequestSummary(outlineLastRequest) }}</span>
         <template v-if="outlineRevisions.length>0">
-          <button @click="acceptAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--ok-soft);color:var(--ok)">全部接受</button>
-          <button @click="rejectAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--err-soft);color:var(--err)">全部拒绝</button>
+          <button @click="requestAcceptAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--ok-soft);color:var(--ok)" title="接受全部改动；含删除时会先确认">全部接受</button>
+          <button @click="rejectAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--err-soft);color:var(--err)" title="丢弃 AI 本次全部改动，保留原大纲">全部拒绝</button>
+          <!-- 中文注释：原来审阅期只有全接受/全拒绝两条出路，关闭按钮被顶掉，用户会被卡在审阅态。 -->
+          <button @click="deferOutlineRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" title="先退出面板，修订原样保留，重开可继续审阅">稍后审阅</button>
         </template>
-        <button v-else @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
+        <button v-else-if="canUndoOutlineRevisionApply" @click="undoOutlineRevisionApply" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)" title="把大纲退回接受修订之前，并让这批修订重新进入审阅">撤销接受</button>
+        <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -1536,6 +1636,7 @@
           <div v-if="outlineStructureCoverage.missing.length" class="moyun-wb-hint">
             待补结构：{{ outlineStructureCoverage.missing.slice(0,5).join('、') }}
           </div>
+          <div class="moyun-wb-hint">这里的「字数」是大纲文本本身的长度。大纲里写的正文字数要求不生效，正文长度只看写作页的目标字数。</div>
           <button @click="openDetailedOutlineWorkbench()"
                   class="btn-ghost text-xs py-2 px-3 w-full">
             查看细纲工作台
@@ -1562,10 +1663,15 @@
         <button v-if="getOutlineAiDisabledActionLabel()" type="button" @click="resolveOutlineAiDisabledAction()">{{ getOutlineAiDisabledActionLabel() }}</button>
       </div>
       <div class="flex justify-end">
-        <button @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
+        <!-- 中文注释：生成中此前只把按钮置灰成“生成中...”，stopOutlineRun 已实现却没有入口，用户只能关面板间接中止。 -->
+        <button v-if="isGeneratingOutline" @click="stopOutlineRun()"
+                class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--err);color:white"
+                title="停止本次大纲生成（已生成的内容不会写入）">⏸ 停止生成</button>
+        <button v-else @click="generateOutline()" :disabled="!!getOutlineAiDisabledReason()"
                 :aria-describedby="getOutlineAiDisabledReason() ? 'moyun-outline-disabled-reason' : undefined"
+                :title="getOutlineAiDisabledReason() || (novel.outline ? '按修改意见改写，改动会先进入逐项审阅' : '生成新大纲')"
                 class="btn-primary text-sm px-5 py-2" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
-          <span v-if="isGeneratingOutline" class="loading-spinner"></span>{{ isGeneratingOutline ? '生成中...' : (novel.outline ? 'AI修改大纲' : 'AI生成大纲') }}
+          {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
         </button>
       </div>
     </div>
@@ -1613,11 +1719,16 @@
       <label class="moyun-do-only-empty flex items-center gap-1 text-[10px]" style="color:var(--tx3)">
         <input type="checkbox" v-model="settings.detailedOutlineOnlyEmpty" @change="saveData()">只补空白
       </label>
+      <!-- 中文注释：短屏会隐藏上面那个勾选框，但设置照旧生效。覆盖模式必须有一个短屏也看得见的标记。 -->
+      <button v-if="settings.detailedOutlineOnlyEmpty === false" type="button"
+              @click="settings.detailedOutlineOnlyEmpty = true; saveData(); showToast('已改回「只补空白」，已有细纲不会被覆盖', 'success')"
+              class="text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0" style="background:var(--warn-soft);color:var(--warn)"
+              title="当前允许 AI 覆盖已有细纲。点此改回「只补空白」">允许覆盖 ✕</button>
       <div class="moyun-wb-mode-tabs ml-auto">
         <button @click="detailedOutlineViewMode='all'" :class="{active:detailedOutlineViewMode==='all'}">全部</button>
         <button @click="detailedOutlineViewMode='issues'" :class="{active:detailedOutlineViewMode==='issues'}">只看问题</button>
       </div>
-      <span class="moyun-do-range-hint text-[10px] w-full md:w-auto" style="color:var(--tx3)">生成时按批次写入，失败章节可重试。</span>
+      <span class="moyun-do-range-hint text-[10px] w-full md:w-auto" style="color:var(--tx3)">生成时按批次写入，失败章节可重试。细纲里写的字数不生效，正文长度只看写作页的目标字数。</span>
     </div>
     <div v-if="getDetailedOutlineRunSummary() || getDetailedOutlineQualitySummary()" class="px-4 py-1.5 text-[10px] shrink-0 flex flex-wrap gap-x-3 gap-y-1" style="border-bottom:1px solid var(--bd);background:var(--bg-card);color:var(--tx3)">
       <span v-if="getDetailedOutlineRunSummary()">{{ getDetailedOutlineRunSummary() }}</span>
@@ -1630,6 +1741,8 @@
         <div class="moyun-wb-stat"><span>结构齐</span><strong>{{ detailedOutlineWorkbenchStats.good }}</strong></div>
         <div class="moyun-wb-stat"><span>待补/过短</span><strong>{{ detailedOutlineWorkbenchStats.issues }}</strong></div>
       </div>
+      <div v-if="detailedOutlineDensityHint" class="rounded-2xl px-4 py-3 text-[11px] leading-relaxed mb-3"
+           style="background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);color:var(--tx2)" role="status">{{ detailedOutlineDensityHint }}</div>
       <div v-if="getDetailedOutlineFailedSummary()" class="moyun-wb-alert mb-3">
         <div>
           <div class="moyun-wb-alert-title">存在失败章节</div>
@@ -1668,9 +1781,14 @@
 
         <div v-if="longformWorkbenchView==='index'" class="space-y-2">
           <div class="moyun-lf-actions">
-            <button @click="syncChapterIndexFromDetailedOutlines()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--info-soft);color:var(--info)">从细纲整理索引</button>
+            <!-- 中文注释：这两个「整理/补齐」都是只填空字段、不覆盖已填内容。不写明的话，期待“以细纲为准刷新”的用户
+                 会以为按钮没生效。 -->
+            <button @click="syncChapterIndexFromDetailedOutlines()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--info-soft);color:var(--info)"
+                    title="按细纲补齐缺失的索引行与空字段；已填写的目标、标签不会被覆盖。整理后还会顺带把索引里的暗线标签补进暗线计划（同样只补空缺）">从细纲整理索引</button>
             <button @click="addChapterIndexDraft()" data-story-add-index class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)">+ 章节索引</button>
-            <button @click="syncForeshadowMatrixFromIndex()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--bg-inset);color:var(--tx2)">从索引补齐暗线</button>
+            <button @click="syncForeshadowMatrixFromIndex()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--bg-inset);color:var(--tx2)"
+                    title="按索引里的暗线标签补齐缺失的暗线计划；已有计划不会被改写">从索引补齐暗线</button>
+            <span class="text-[9px] w-full" style="color:var(--tx4)">「整理索引 / 补齐暗线」只补空缺，不会覆盖你已经填好的内容；「从细纲整理索引」会同时同步暗线计划，结果会写在提示里。</span>
             <button @click="generateDetailedOutlineFromChapterIndex()" :disabled="!!getDetailedOutlineAiDisabledReason('index')"
                     :title="getDetailedOutlineAiDisabledReason('index')"
                     class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--warn);color:white"
@@ -1820,6 +1938,16 @@
         </div>
       </section>
       <!-- 中文注释：细纲工具栏在手机端改为纵向/换行，避免生成按钮或批量按钮被挤出屏幕。 -->
+      <!-- 中文注释：章号只以位置为准；标题里残留的旧章号会让单章 AI 改写因章号对不上而整章丢弃，所以要显式暴露并给一键对齐。 -->
+      <div v-if="detailedOutlineNumberMismatches.length" class="rounded-xl px-3 py-2 mb-3 flex flex-col md:flex-row md:items-center gap-2"
+           style="background:var(--warn-soft);border:1px solid var(--warn)">
+        <div class="text-[11px] leading-relaxed flex-1" style="color:var(--warn)">
+          有 {{ detailedOutlineNumberMismatches.length }} 章的标题章号和实际位置不一致（如第{{ detailedOutlineNumberMismatches[0].positionNo }}位写着「第{{ detailedOutlineNumberMismatches[0].titleNo }}章」）。章号一律按位置计算，AI 改写这些章会因为章号对不上而失败。
+        </div>
+        <button type="button" @click="requestAlignDetailedOutlineTitleNumbers()"
+                class="text-[11px] px-3 py-1.5 rounded font-bold shrink-0" style="background:var(--warn);color:white"
+                title="只改标题里的「第N章」数字，标题其余文字和细纲正文逐字保留">一键对齐章号</button>
+      </div>
       <div v-if="chapterOutlines.length>0" class="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-3">
         <span class="text-[11px] font-bold" style="color:var(--tx3)">显示 {{ getVisibleChapterOutlineCount() }} / {{ chapterOutlines.length }} 章</span>
         <div class="flex gap-1.5 flex-wrap">
@@ -1848,6 +1976,10 @@
               <span class="moyun-do-index">{{ ci+1 }}</span>
               <div class="min-w-0">
                 <div class="text-sm font-bold text-truncate" style="color:var(--tx)">{{ co.title || '第'+(ci+1)+'章' }}</div>
+                <div v-if="getDetailedOutlineTitleNoHint(ci)" class="text-[9px] mt-0.5 font-bold" style="color:var(--warn)"
+                     :title="'本章实际是第' + (ci+1) + '章，标题里写的是第' + getDetailedOutlineTitleNoHint(ci) + '章'">
+                  ⚠ 标题写「第{{ getDetailedOutlineTitleNoHint(ci) }}章」，实际是第{{ ci+1 }}章
+                </div>
                 <div class="text-[9px] mt-0.5" style="color:var(--tx4)">
                   {{ (co.content||'').length }} 字
                   <span v-if="getChapterOutlineQuality(ci).missing.length"> · 待补 {{ getChapterOutlineQuality(ci).missing.slice(0,3).join('、') }}</span>
@@ -1883,13 +2015,20 @@
               <textarea v-model="co.aiInput" rows="2" placeholder="本章细纲修改/补写要求（例如：加强冲突、补环境、调整结尾钩子）..." class="textarea-field text-[10px]" style="resize:vertical"></textarea>
               <div class="moyun-do-toolbar">
                 <span class="text-[9px]" style="color:var(--tx3)">只作用于第{{ ci+1 }}章，不覆盖其他章节。</span>
+                <!-- 中文注释：单章 AI 一跑就禁掉所有章的按钮，原来所有章的提示都是同一句“本章细纲正在生成”，
+                     用户看不出是哪一章在跑、别的章为什么点不动。这里把正在处理的章号写进 title。 -->
                 <div class="flex gap-1.5">
-                  <button @click="aiRewriteChapterOutline(ci,'expand')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''">
+                  <button @click="aiRewriteChapterOutline(ci,'expand')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''"
+                          :title="getChapterOutlineAiButtonTitle(ci, 'expand')">
                     {{ outlineAiEditingIdx===ci && outlineAiMode==='expand' ? '补写中...' : 'AI补写本章' }}
                   </button>
-                  <button @click="aiRewriteChapterOutline(ci,'rewrite')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''">
+                  <button @click="aiRewriteChapterOutline(ci,'rewrite')" :disabled="!!getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)" :style="(getDetailedOutlineAiDisabledReason('chapter') || outlineAiEditingIdx>=0)?'opacity:.5':''"
+                          :title="getChapterOutlineAiButtonTitle(ci, 'rewrite')">
                     {{ outlineAiEditingIdx===ci && outlineAiMode==='rewrite' ? '修改中...' : 'AI修改本章' }}
                   </button>
+                  <button v-if="outlineAiEditingIdx===ci" @click="stopSingleDetailedOutlineRun()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--err);color:white" title="停止本章的 AI 处理（不写入结果）">⏸ 停止</button>
+                  <!-- 中文注释：单章 AI 是覆盖写回，这里给一次回到处理前的机会。 -->
+                  <button v-if="outlineAiEditingIdx<0 && canUndoChapterOutlineAi(ci)" @click="undoChapterOutlineAi(ci)" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" title="把本章细纲恢复成 AI 改写之前的内容">↶ 撤销AI改写</button>
                 </div>
               </div>
               <div v-if="getDetailedOutlineAiDisabledReason('chapter')" class="moyun-action-status" role="status">
@@ -1919,16 +2058,25 @@
     <div class="moyun-wb-operation moyun-do-footer shrink-0" style="padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
       <textarea v-model="doInput" data-story-footer-input placeholder="对细纲的补充要求..." rows="1" class="textarea-field text-sm" style="border-radius:10px;resize:none"></textarea>
       <div class="moyun-do-footer-actions flex flex-col md:flex-row md:justify-end gap-2">
+        <!-- 中文注释：顶栏失败条有 disabled 原因说明，底部这个按钮此前只是变半透明，用户不知要先停生成还是先配 API。 -->
         <button v-if="detailedOutlineRun.failedChapters.length>0" @click="retryFailedDetailedOutline()" :disabled="!!getDetailedOutlineAiDisabledReason('retry')"
                 class="text-sm px-4 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err-soft);color:var(--err)"
-                :style="getDetailedOutlineAiDisabledReason('retry')?'opacity:.5':''">
+                :style="getDetailedOutlineAiDisabledReason('retry')?'opacity:.5':''"
+                :title="getDetailedOutlineAiDisabledReason('retry') || ('重新生成失败的第' + detailedOutlineRun.failedChapters.join('、') + '章')">
           重试失败章节
         </button>
-        <button @click="generateDetailedOutline()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
+        <!-- 中文注释：生成中原来只是把按钮置灰显示“生成中...”，停止函数存在却没入口，只能靠关面板间接中止。 -->
+        <button v-if="isGeneratingDO" @click="stopDetailedOutlineRun()"
+                class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--err);color:white"
+                :title="detailedOutlineRun.currentRange ? ('正在生成 ' + detailedOutlineRun.currentRange + '，点此停止') : '停止细纲生成'">
+          ⏸ 停止生成{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
+        </button>
+        <button v-else @click="requestDetailedOutlineGeneration()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
                 :aria-describedby="getDetailedOutlineAiDisabledReason('generate') ? 'moyun-detailed-disabled-reason' : undefined"
+                :title="getDetailedOutlineAiDisabledReason('generate') || (settings.detailedOutlineOnlyEmpty === false ? '当前允许覆盖已有细纲，生成前会再确认一次' : '只补空白：已有内容的章节会被跳过')"
                 class="text-sm px-5 py-2 rounded-xl font-bold w-full md:w-auto" style="background:var(--warn);color:white"
                 :style="getDetailedOutlineAiDisabledReason('generate')?'opacity:.5':''">
-          <span v-if="isGeneratingDO" class="loading-spinner"></span>{{ isGeneratingDO ? (detailedOutlineRun.currentRange ? detailedOutlineRun.currentRange + '...' : '生成中...') : 'AI生成细纲' }}
+          AI生成细纲
         </button>
       </div>
       <div v-if="getDetailedOutlineAiDisabledReason('generate')" id="moyun-detailed-disabled-reason" class="moyun-action-status" role="status">
@@ -1968,6 +2116,7 @@
               <span v-if="isGeneratingCoverTags" class="loading-spinner"></span>{{ isGeneratingCoverTags ? '提取中...' : '🏷️ AI提词' }}
             </button>
             <button @click="generateCoverFromTags" :disabled="isGeneratingCover || !coverPromptTags"
+                    :title="!coverPromptTags ? '先填写封面关键词，或点左边的「AI提词」' : (isGeneratingCover ? '正在生成封面，请稍候' : '按关键词生成封面')"
                     class="text-[10px] px-3 py-1 rounded-full font-bold"
                     style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--bd)"
                     :style="(isGeneratingCover || !coverPromptTags)?'opacity:.5':''">
@@ -2030,7 +2179,9 @@
                   <div class="text-sm font-bold" style="color:var(--tx)">反推世界观与设定</div>
                   <div class="text-[11px]" style="color:var(--tx3)">根据当前正文自动补全主题、简介与世界观</div>
                 </div>
-                <button @click="inferInfiniteSettingsFromDraft('manual')" :disabled="isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim()" class="btn-ghost text-xs py-2 px-3" :style="(isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
+                <button @click="inferInfiniteSettingsFromDraft('manual')" :disabled="isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim()"
+                    :title="!infiniteDraft.trim() ? '先在上面粘贴或写入草稿正文' : (!writingGenerationReady ? '先在设置里配置正文模型的 API' : (isInferringInfiniteSettings ? '正在推断，请稍候' : '从草稿反推世界观与角色设定'))"
+                    class="btn-ghost text-xs py-2 px-3" :style="(isInferringInfiniteSettings||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
                   <span v-if="isInferringInfiniteSettings" class="loading-spinner"></span>{{ isInferringInfiniteSettings ? '反推中...' : '反推设定' }}
                 </button>
                 <div v-if="showInfiniteInferenceBubble" class="absolute left-3 right-3 bottom-full mb-2 p-3 rounded-xl text-xs flex flex-col md:flex-row md:items-center justify-between gap-2" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--info);box-shadow:var(--sh3)">
@@ -2049,7 +2200,9 @@
                   <option :value="500">500</option><option :value="800">800</option><option :value="1000">1000</option><option :value="1500">1500</option><option :value="2000">2000</option>
                 </select>
               </div>
-              <button @click="startInfiniteContinuation" :disabled="isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim()" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
+              <button @click="startInfiniteContinuation" :disabled="isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim()"
+                    :title="!infiniteDraft.trim() ? '先在上面粘贴或写入草稿正文' : (!writingGenerationReady ? '先在设置里配置正文模型的 API' : (isInfiniteGenerating ? '正在续写，请稍候' : '从当前草稿继续往下写'))"
+                    class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(isInfiniteGenerating||!writingGenerationReady||!infiniteDraft.trim())?'opacity:.5':''">
                 <span v-if="isInfiniteGenerating" class="loading-spinner"></span>{{ isInfiniteGenerating ? 'AI正在续写...' : 'AI续写' }}
               </button>
             </div>
@@ -2104,19 +2257,19 @@
               <!-- 版本导航 -->
               <template v-if="ch.versions&&ch.versions.length>0">
                 <span class="chapter-version-controls" @click.stop>
-                  <button @click.stop="switchVersion(idx,-1)" :disabled="(ch.activeVersionIdx||0)<=0"
+                  <button @click.stop="switchChapterVersionByTime(idx,'older')" :disabled="!canSwitchChapterVersion(ch,'older')"
                           class="chapter-version-button" style="background:var(--info-soft);color:var(--info)"
-                          :style="(ch.activeVersionIdx||0)<=0?'opacity:.3':''" title="切换到较新的稿件" aria-label="切换到较新的稿件">‹</button>
+                          :style="!canSwitchChapterVersion(ch,'older')?'opacity:.3':''" :title="getChapterVersionHint(ch,'older')" aria-label="往旧翻一稿">‹</button>
                   <span class="text-[10px] min-w-[72px] text-center font-bold px-2 py-1 rounded-full"
                         :style="(ch.activeVersionIdx||0)===0?'color:var(--ok);background:var(--ok-soft)':'color:var(--info);background:var(--info-soft)'">
-                    {{ (ch.activeVersionIdx||0)===0 ? '当前稿' : '历史稿 '+(ch.activeVersionIdx||0)+'/'+ch.versions.length }}
+                    {{ getChapterVersionLabel(ch) }}
                   </span>
-                  <button @click.stop="switchVersion(idx,1)" :disabled="(ch.activeVersionIdx||0)>=ch.versions.length"
+                  <button @click.stop="switchChapterVersionByTime(idx,'newer')" :disabled="!canSwitchChapterVersion(ch,'newer')"
                           class="chapter-version-button" style="background:var(--info-soft);color:var(--info)"
-                          :style="(ch.activeVersionIdx||0)>=ch.versions.length?'opacity:.3':''" title="切换到较早的历史稿" aria-label="切换到较早的历史稿">›</button>
+                          :style="!canSwitchChapterVersion(ch,'newer')?'opacity:.3':''" :title="getChapterVersionHint(ch,'newer')" aria-label="往新翻一稿">›</button>
                   <button @click.stop="deleteCurrentVersion(idx)" :disabled="(ch.activeVersionIdx||0)<=0"
                           class="chapter-version-button" style="background:var(--err-soft);color:var(--err)"
-                          :style="(ch.activeVersionIdx||0)<=0?'opacity:.3':''" title="删除当前历史稿" aria-label="删除当前历史稿">×</button>
+                          :style="(ch.activeVersionIdx||0)<=0?'opacity:.3':''" title="删除正在查看的这份旧稿" aria-label="删除正在查看的这份旧稿">×</button>
                 </span>
               </template>
               <span class="text-[11px]" style="color:var(--tx4)">{{ ch.wordCount||0 }}字</span>
@@ -2196,6 +2349,10 @@
                   <span class="font-art text-sm" style="color:var(--tx3)">第{{ idx+1 }}章</span>
                   <input v-model="ch.tempTitle" class="flex-1 text-base font-bold outline-none" style="background:transparent;color:var(--tx)" placeholder="章节标题">
                 </div>
+                <label class="flex flex-col gap-1 text-xs" :for="'chapter-story-time-'+(ch.id||idx)" style="color:var(--tx3)">
+                  <span>剧情时间 <span style="color:var(--tx4)">AI 与记忆可见，阅读正文不显示</span></span>
+                  <input :id="'chapter-story-time-'+(ch.id||idx)" v-model="ch.tempStoryTime" class="input-field text-sm" placeholder="例如：【云历三年九月初七·黄昏】">
+                </label>
                 <textarea v-model="ch.tempContent" rows="16"
                           class="textarea-field text-base leading-loose" style="min-height:300px"></textarea>
               </div>
@@ -2262,7 +2419,7 @@
                   <input v-model="ch.scenePrompt" @change="saveData()" placeholder="本章的特殊氛围/场景描述（可选）..."
                          class="input-field text-[10px] flex-1" style="height:26px;padding:0 8px;border-radius:6px">
                   <button v-if="ch.scenePrompt" @click="syncSceneToPlayline(ch.scenePrompt)" class="text-[9px] px-2 py-0.5 rounded shrink-0"
-                          style="background:var(--warn-soft);color:var(--warn)" title="同步到流水线场景词层">↑同步</button>
+                          style="background:var(--warn-soft);color:var(--warn)" title="把本章场景词同步到提示词流水线的“场景层”，供后续章节复用">↑同步到流水线</button>
                 </div>
               </div>
 
@@ -2273,17 +2430,20 @@
                   <button @click.stop="cancelChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-1.5">取消</button>
                 </template>
                 <template v-else>
-                  <button v-for="entry in (modUiHostSlots.chapterAction||[])" :key="getModUiEntryKey(entry)+'-'+idx" @click.stop="runModUiAction(entry, null, { chapterIndex: idx, chapter: ch })" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)">{{ entry.icon || '🧩' }} {{ entry.title }}</button>
-                  <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-1.5">编辑</button>
-                  <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-1.5">复制</button>
-                  <button @click.stop="deleteChapter(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--err-soft);color:var(--err)">删除</button>
-                  <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前章节内容保存为可切换的历史稿">保存历史稿</button>
-                  <button @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-1.5" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
-                  <button @click.stop="openAiEdit(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--warn-soft);color:var(--warn)">AI编辑</button>
-                  <button @click.stop="scrollChapterToStart(idx)" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)" aria-label="滚动到本章开头" title="滚动到本章开头">回到本章首</button>
-                  <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-1.5 rounded-md" style="background:var(--accent-soft);color:var(--accent)"
-                          :style="rewritingSummaryIdx===idx?'opacity:.5':''">{{ rewritingSummaryIdx===idx ? '生成中...' : '生成摘要' }}</button>
-
+                  <button v-for="entry in (modUiHostSlots.chapterAction||[])" :key="getModUiEntryKey(entry)+'-'+idx" @click.stop="runModUiAction(entry, null, { chapterIndex: idx, chapter: ch })" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)">{{ entry.icon || '🧩' }} {{ entry.title }}</button>
+                  <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">编辑</button>
+                  <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">复制</button>
+                  <button @click.stop="rerollChapter(idx)" :disabled="!ch.regenSnapshot" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--ok-soft);color:var(--ok)" :style="!ch.regenSnapshot?'opacity:.4;cursor:not-allowed':''" :title="ch.regenSnapshot?'用与首次生成完全相同的提示词与注入（含白鸟）重新生成本章，原稿转历史稿':'旧章或导入章没有可精确复现的注入快照，改用分支重写'">重新生成</button>
+                  <button @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
+                  <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
+                  <template v-if="ch._showMoreActions">
+                    <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前正文另存一份旧稿，之后可用章节标题右侧的 ‹ › 翻回">存为旧稿</button>
+                    <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)"
+                            :style="rewritingSummaryIdx===idx?'opacity:.5':''">{{ rewritingSummaryIdx===idx ? '生成中...' : '生成摘要' }}</button>
+                    <button @click.stop="openAiEdit(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--warn-soft);color:var(--warn)">AI编辑</button>
+                    <button @click.stop="scrollChapterToStart(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)" aria-label="滚动到本章开头" title="滚动到本章开头">回到本章首</button>
+                  </template>
+                  <button @click.stop="deleteChapter(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md ml-auto" style="background:var(--err-soft);color:var(--err)" title="删除本章（需二次确认）">删除</button>
                 </template>
               </div>
             </div>
@@ -2291,7 +2451,7 @@
         </div>
 
         <!-- 末尾插入线 -->
-        <div @click="insertChapterAt(visibleChapters.length)" class="insert-line" style="opacity:.3">
+        <div @click="insertChapterAt(visibleChapters.length)" class="insert-line">
           <div class="insert-line-bar"></div>
           <div class="insert-line-btn" style="border-style:dashed">+ 在此插入章节</div>
           <div class="insert-line-bar"></div>
@@ -2314,11 +2474,15 @@
                 <div class="flex items-center justify-center gap-4 text-xs" style="color:var(--tx3)">
                   <span>⏱ {{ genElapsed }}</span>
                   <span>📝 {{ genCharCount }} 字</span>
+                  <span v-if="streamReasoningCharCount>0">🧠 推演 {{ streamReasoningCharCount }} 字</span>
                   <span v-if="genRate>0">⚡ {{ genRate }} 字/秒</span>
                 </div>
                 <p class="text-[10px]" style="color:var(--tx4)">{{ getModelForModule('writing') || '未配置模型' }}</p>
                 <div v-if="genStalled" class="text-xs font-bold mt-2" style="color:var(--warn)">
                   ⚠ 超过15秒未收到数据，可能已断连
+                </div>
+                <div v-else-if="reasoningHeavyNoBody" class="text-xs mt-2 px-2" style="color:var(--warn)">
+                  模型仍在推演、尚未落笔正文；可继续等待，或停止后降低本章字数与参与上下文
                 </div>
               </div>
             </div>
@@ -2348,7 +2512,7 @@
               </summary>
               <div class="cot-stream-content" v-html="renderCotMarkdown(streamNativeThinking)"></div>
             </details>
-            <details v-if="settings.enableThinking && streamToolTimeline.length" class="cot-stream-box tool-timeline-box" open>
+            <details v-if="settings.enableThinking && streamToolTimeline.length && (streamCotContent || streamNativeThinking || streamContent)" class="cot-stream-box tool-timeline-box">
               <summary class="cot-stream-head">
                 <div class="cot-stream-title">
                   <span class="cot-stream-mark" aria-hidden="true"></span>
@@ -2383,17 +2547,23 @@
             <div class="flex items-center gap-3 mb-4">
               <span class="text-2xl">⚠</span>
               <div>
-                <b class="text-base" style="color:var(--tx)">生成中断</b>
-                <div class="text-[11px]" style="color:var(--tx3)">网络波动或超时，已保留已输出的内容</div>
+                <b class="text-base" style="color:var(--tx)">{{ interruptedIssue ? '输出待人工处理' : (interruptedThinkingOnly ? '本轮只产出了推演' : (interruptedBodyLooksLikeReasoning ? '这段内容像推演，不像正文' : '生成中断')) }}</b>
+                <div class="text-[11px] break-words" style="color:var(--tx3)">{{ interruptedIssue ? interruptedIssue.message : (interruptedThinkingOnly ? '正文尚未开始，推演内容已为你保留；可直接重新生成，或复制推演另作参考' : (interruptedBodyLooksLikeReasoning ? '内容已为你保留，但它通篇是分条推演；按它续写会污染后文，建议重新生成' : '网络波动或超时，已保留已输出的内容')) }}</div>
               </div>
             </div>
+            <div v-if="interruptedIssue && interruptedIssue.violations && interruptedIssue.violations.length" class="text-[11px] leading-5 p-3 rounded-lg mb-3 break-words" style="border:1px solid var(--warn);background:var(--warn-soft,rgba(245,158,11,.12));color:var(--tx)">
+              <div v-for="item in interruptedIssue.violations" :key="item.constraintId + '-' + item.anchor" class="mb-1 last:mb-0">硬边界：{{ item.rule }}（命中「{{ item.anchor }}」）</div>
+            </div>
+            <div v-if="interruptedThinkingOnly" class="text-[11px] mb-2" style="color:var(--tx3)">推演内容（{{ interruptedThinkingText.length }} 字）</div>
             <div class="prose text-sm p-3 rounded-lg max-h-[200px] overflow-y-auto mb-4"
                  style="border:1px solid var(--bd);background:var(--bg-inset)"
-                 v-html="renderMarkdown(interruptedContent)"></div>
-            <div class="flex gap-2 justify-end flex-wrap">
+                 v-html="renderMarkdown(interruptedThinkingOnly ? interruptedThinkingText : interruptedContent)"></div>
+            <div class="flex gap-2 justify-end flex-wrap interrupted-draft-actions">
               <button @click="discardInterrupted" class="btn-ghost text-xs px-4 py-2">放弃内容</button>
-              <button @click="saveInterruptedAsChapter" class="text-xs px-4 py-2 rounded-lg font-semibold" style="background:var(--warn);color:white">保存为章节</button>
-              <button @click="continueGeneration" class="btn-primary text-xs px-4 py-2">继续生成</button>
+              <button v-if="interruptedThinkingOnly" @click="copyInterruptedThinking" class="btn-ghost text-xs px-4 py-2">复制推演</button>
+              <button v-if="interruptedBodyLooksLikeReasoning" @click="copyInterruptedBody" class="btn-ghost text-xs px-4 py-2">复制内容</button>
+              <button v-if="!interruptedThinkingOnly" @click="saveInterruptedAsChapter" class="text-xs px-4 py-2 rounded-lg font-semibold" :class="interruptedBodyLooksLikeReasoning ? 'btn-ghost' : ''" :style="interruptedBodyLooksLikeReasoning ? {} : {background:'var(--warn)',color:'white'}">{{ interruptedBodyLooksLikeReasoning ? '仍要存为章节' : '保存为章节' }}</button>
+              <button v-if="interruptedCanContinue && !interruptedBodyLooksLikeReasoning" @click="continueGeneration" class="btn-primary text-xs px-4 py-2">继续生成</button>
             </div>
           </div>
         </transition>
@@ -2414,8 +2584,8 @@
             </button>
           </div>
           <div class="flex items-center justify-between gap-2 flex-wrap text-[10px]" style="color:var(--tx3)">
-            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[32px]">
-              <input type="checkbox" v-model="keepNextChapterPrompt" @change="saveNextChapterPromptPreference" class="accent-current">
+            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[44px]">
+              <input type="checkbox" v-model="keepNextChapterPrompt" @change="saveNextChapterPromptPreference" class="accent-current w-4 h-4">
               <span>生成成功后保留并复用</span>
             </label>
             <button v-if="!nextChapterPrompt && lastUsedNextChapterPrompt" type="button" @click="reuseLastNextChapterPrompt"
@@ -2443,7 +2613,10 @@
             <div class="flex items-center gap-2 flex-wrap justify-end">
               <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
               <button @click="openRealContextSafeView" class="btn-ghost text-xs py-2 px-3" title="查看当前准备发送的安全上下文与实际字符数">📄 真实上下文</button>
-              <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')" class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
+              <button @click="generateSuggestion" :disabled="isGeneratingSuggestion||!isModuleRequestReady('suggestion')"
+                  :title="!isModuleRequestReady('suggestion') ? '先在设置里配置「AI建议」模块的 API' : (isGeneratingSuggestion ? '正在思考，请稍候' : '让 AI 给出接下来的写作建议')"
+                  class="btn-ghost text-xs py-2 px-3" :style="(isGeneratingSuggestion||!isModuleRequestReady('suggestion'))?'opacity:.5':''"><span v-if="isGeneratingSuggestion" class="loading-spinner"></span>{{ isGeneratingSuggestion ? '思考中...' : 'AI建议' }}</button>
+              <button v-if="!writingGenerationReady&&!isGenerating" @click="openSettingsTab('api')" class="btn-ghost text-xs py-2 px-3" style="color:var(--warn);border-color:var(--warn)" title="前往连接中心配置并分配正文模型">去连接中心配置</button>
               <button @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
           </div>
@@ -2473,8 +2646,10 @@
         <div class="inline-flex p-1 rounded-full" style="background:var(--bg-inset);border:1px solid var(--bd)">
           <button type="button" class="text-xs py-1.5 px-3 rounded-full font-bold" style="background:var(--accent);color:white" aria-pressed="true">安全视图</button>
         </div>
-        <button @click="copyLastChapterContextText" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''">复制文本</button>
-        <button @click="copyLastChapterContextJson" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''">复制JSON</button>
+          <button @click="copyLastChapterContextText" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''"
+                  :title="!safeChapterContextMessages.length ? '还没有可复制的上下文：先生成一次正文' : '复制本次实际发给模型的上下文（已去除密钥）'">复制文本</button>
+          <button @click="copyLastChapterContextJson" class="btn-ghost text-xs py-2 px-3" :disabled="!safeChapterContextMessages.length" :style="!safeChapterContextMessages.length?'opacity:.45':''"
+                  :title="!safeChapterContextMessages.length ? '还没有可复制的上下文：先生成一次正文' : '按 messages 数组结构复制（已去除密钥）'">复制JSON</button>
         <button type="button" data-moyun-modal-close @click="showRealContextModal=false" class="moyun-icon-button font-black" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" aria-label="关闭真实上下文" title="关闭">×</button>
       </div>
     </div>
@@ -2538,14 +2713,14 @@
     </div>
     <transition name="snowwing-floating-panel">
     <div v-if="activeModFloatingPanelKey===getModUiEntryKey(entry)" class="snowwing-floating-panel mt-0 rounded-[22px] p-3 shadow-xl max-h-[76vh] overflow-y-auto" :style="Object.assign(getModFloatingPanelStyle(entry), getModFloatingPanelPlacementStyle('ui'))">
-      <button @pointerdown.stop.prevent="startModFloatingDrag($event, 'ui')" class="snowwing-floating-trigger-docked rounded-2xl flex items-center gap-1.5 shadow-lg text-left min-w-[142px] h-11 justify-start px-1.5 py-1 rounded-full overflow-hidden cursor-move select-none" :style="Object.assign({ touchAction:'none' }, getModFloatingTriggerStyle(entry))" title="拖拽移动白鸟工作台">
-        <span class="inline-flex items-center justify-center shrink-0 text-[13px] font-black" :style="getModFloatingTriggerMarkStyle(entry)" :aria-label="isSnowwingThemed(entry) ? '白鸟标识' : getModFloatingTriggerMark(entry)">{{ isSnowwingThemed(entry) ? '' : getModFloatingTriggerMark(entry) }}</span>
-        <span class="min-w-0 leading-none">
-          <span class="block font-black text-[11px] text-truncate">{{ getModFloatingTriggerLabel(entry) }}</span>
-          <span v-if="getModFloatingTriggerSubLabel(entry)" class="block text-[8px] font-bold tracking-[0.12em] text-truncate" :style="getModFloatingTriggerSubLabelStyle(entry)">{{ getModFloatingTriggerSubLabel(entry) }}</span>
-        </span>
-      </button>
-      <div class="flex items-start justify-between gap-3 mb-3" style="padding-left:152px;min-height:44px">
+      <div class="snowwing-floating-head flex items-start justify-between gap-3" style="min-height:44px" :style="getModFloatingHeadStyle(entry)">
+        <button @pointerdown.stop.prevent="startModFloatingDrag($event, 'ui')" class="snowwing-floating-trigger-docked rounded-2xl flex items-center gap-1.5 shadow-lg text-left min-w-[142px] h-11 justify-start px-1.5 py-1 rounded-full overflow-hidden cursor-move select-none" :style="Object.assign({ touchAction:'none' }, getModFloatingTriggerStyle(entry))" title="拖拽移动白鸟工作台">
+          <span class="inline-flex items-center justify-center shrink-0 text-[13px] font-black" :style="getModFloatingTriggerMarkStyle(entry)" :aria-label="isSnowwingThemed(entry) ? '白鸟标识' : getModFloatingTriggerMark(entry)">{{ isSnowwingThemed(entry) ? '' : getModFloatingTriggerMark(entry) }}</span>
+          <span class="min-w-0 leading-none">
+            <span class="block font-black text-[11px] text-truncate">{{ getModFloatingTriggerLabel(entry) }}</span>
+            <span v-if="getModFloatingTriggerSubLabel(entry)" class="block text-[8px] font-bold tracking-[0.12em] text-truncate" :style="getModFloatingTriggerSubLabelStyle(entry)">{{ getModFloatingTriggerSubLabel(entry) }}</span>
+          </span>
+        </button>
         <div class="min-w-0 pt-0.5">
           <div v-if="getModFloatingEyebrow(entry)" class="text-[9px] font-bold tracking-[0.18em] mb-0.5" :style="getModFloatingEyebrowStyle(entry)">{{ getModFloatingEyebrow(entry) }}</div>
           <div class="text-sm font-bold flex items-center gap-2"><span class="inline-flex items-center justify-center rounded-full text-[11px] font-bold" :style="getModHeaderMarkStyle(entry)">{{ getModEntryIcon(entry) }}</span><span class="truncate">{{ entry.title }}</span></div>
@@ -2717,27 +2892,36 @@
 
 <!-- 中文注释：MOD 独立弹窗宿主。弹窗只渲染 hostedViews 的安全组件，不接收 MOD HTML/JS。 -->
 <transition name="pop">
-  <div v-if="activeModModalKey" data-moyun-region="modal" data-moyun-modal="hosted-modal" role="dialog" aria-modal="true" aria-label="插件独立弹窗" class="fixed inset-0 z-[220] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
-    <div v-for="entry in getModHostedViews('modal')" v-show="activeModModalKey===getModHostedViewKey(entry)" :key="'hosted-modal-'+entry.mod.id+'-'+entry.view.id" data-moyun-modal-panel tabindex="-1" class="w-full max-h-[86vh] flex flex-col overflow-hidden rounded-t-2xl md:rounded-[18px]" :style="Object.assign(getModHostedModalStyle(entry), { maxHeight:'min(86vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))' })">
+  <div v-if="activeModModalKey" data-moyun-region="modal" data-moyun-modal="hosted-modal" role="dialog" aria-modal="true" :aria-labelledby="getActiveModHostedModalTitleId()" class="fixed inset-0 z-[220] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <div v-for="entry in getModHostedViews('modal')" v-show="activeModModalKey===getModHostedViewKey(entry)" :key="'hosted-modal-'+entry.mod.id+'-'+entry.view.id" data-moyun-modal-panel :data-moyun-hosted-modal-view="entry.view.id" tabindex="-1" class="w-full max-h-[86vh] flex flex-col overflow-hidden rounded-t-2xl md:rounded-[18px]" :style="Object.assign(getModHostedModalStyle(entry), { maxHeight:'min(86vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))' })">
       <div class="px-5 py-3 flex justify-between items-start gap-3 shrink-0" :style="getModHostedModalHeaderStyle(entry)">
         <div class="min-w-0">
           <div v-if="entry.view.badge" class="text-[9px] font-bold tracking-[0.18em] mb-1" :style="getModHostedHeaderMutedStyle(entry)">{{ entry.view.badge }}</div>
-          <h3 class="text-lg font-bold min-w-0 text-truncate flex items-center gap-2" :style="getModHostedTitleStyle(entry)"><span class="inline-flex items-center justify-center rounded-full text-[11px] shrink-0" :style="getModHostedMarkStyle(entry)">{{ getModHostedViewMark(entry) }}</span><span class="truncate">{{ entry.view.title }}</span></h3>
+          <h3 :id="'mod-hosted-modal-title-' + getModHostedViewKey(entry)" class="text-lg font-bold min-w-0 text-truncate flex items-center gap-2" :style="getModHostedTitleStyle(entry)"><span class="inline-flex items-center justify-center rounded-full text-[11px] shrink-0" :style="getModHostedMarkStyle(entry)">{{ getModHostedViewMark(entry) }}</span><span class="truncate">{{ entry.view.title }}</span></h3>
           <p class="text-xs mt-1" :style="getModHostedHeaderMutedStyle(entry)">{{ entry.view.desc || entry.mod.name }}</p>
         </div>
-        <button type="button" data-moyun-modal-close @click="activeModModalKey=''" class="moyun-icon-button shrink-0" :style="getModHostedCloseStyle(entry)" aria-label="关闭插件弹窗" title="关闭">
+        <button type="button" data-moyun-modal-close @click="closeModHostedModal" class="moyun-icon-button min-w-[44px] min-h-[44px] shrink-0" :style="getModHostedCloseStyle(entry)" aria-label="关闭插件弹窗" title="关闭">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
-      <div class="flex-1 overflow-y-auto p-5 space-y-3" :style="getModHostedModalBodyStyle(entry)">
-        <div v-for="component in getModHostedVisibleComponents(entry.mod, entry.view)" :key="component.id" class="rounded-lg p-3" :style="getModHostedComponentStyle(entry, component)">
+      <nav v-if="getModHostedQuickNavItems(entry).length" data-moyun-hosted-quick-nav aria-label="快速定位" class="moyun-hosted-quick-nav shrink-0" :style="getModHostedQuickNavStyle(entry)">
+        <div class="moyun-hosted-quick-nav-hint" aria-hidden="true">← 可左右滑动查看全部定位 →</div>
+        <div class="moyun-hosted-quick-nav-track">
+          <button v-for="item in getModHostedQuickNavItems(entry)" :key="item.targetId" type="button" class="moyun-hosted-quick-nav-item" :aria-label="item.ariaLabel" :aria-controls="item.targetId" :title="item.title" :style="getModHostedQuickNavButtonStyle(entry)" @click="scrollModHostedModalTo(entry, item)">{{ item.label }}</button>
+        </div>
+      </nav>
+      <div data-moyun-hosted-modal-body class="flex-1 overflow-y-auto p-5 space-y-3" :style="getModHostedModalBodyStyle(entry)">
+        <div v-for="component in getModHostedVisibleComponents(entry.mod, entry.view)" :key="component.id" :id="getModHostedQuickNavTargetId(entry, component)" :data-moyun-hosted-quick-nav-target="component.id || component.tableId || component.type" tabindex="-1" class="rounded-lg p-3" :style="getModHostedComponentStyle(entry, component)">
           <div v-if="component.title && component.type!=='collapsibleGroup'" class="text-xs font-bold mb-1" :style="getModHostedComponentTitleStyle(entry, component)">{{ component.title }}</div>
           <div v-if="component.type==='text'" class="text-xs leading-relaxed whitespace-pre-wrap" :style="getModHostedTextStyle(entry, component)">{{ component.text }}</div>
           <div v-else-if="component.type==='stat'" class="text-xs" :style="getModHostedTextStyle(entry, component)"><b class="text-lg mr-1" :style="getModHostedAccentStyle(entry)">{{ component.value }}</b>{{ component.text }}</div>
           <ul v-else-if="component.type==='list'" class="text-xs leading-relaxed space-y-1" :style="getModHostedListStyle(entry, component)">
             <li v-for="item in component.items" :key="String(item)">{{ item.label || item.title || item }}</li>
           </ul>
-          <button v-else-if="component.type==='button'" @click="runModHostedViewAction(entry.mod, entry.view, component)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, component)">{{ component.text || component.title || '执行动作' }}</button>
+          <template v-else-if="component.type==='button'">
+            <button @click="runModHostedViewAction(entry.mod, entry.view, component)" :disabled="isModActionDisabled(entry.mod, component.action, component.payload)" :title="getModActionDisabledReason(entry.mod, component.action, component.payload) || component.title || component.text || ''" :aria-describedby="getModActionDisabledReason(entry.mod, component.action, component.payload) ? getModHostedQuickNavTargetId(entry, component) + '-action-disabled-reason' : null" class="moyun-hosted-action text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, component)">{{ component.text || component.title || '执行动作' }}</button>
+            <div v-if="getModActionDisabledReason(entry.mod, component.action, component.payload)" :id="getModHostedQuickNavTargetId(entry, component) + '-action-disabled-reason'" role="status" class="mt-1 text-[10px] leading-relaxed break-words" style="color:#9a3412">暂不可执行：{{ getModActionDisabledReason(entry.mod, component.action, component.payload) }}</div>
+          </template>
           <details v-else-if="component.type==='collapsibleGroup'" class="mod-hosted-collapse mod-animated-details" v-bind="getModHostedCollapseAttrs(component)">
             <summary class="mod-hosted-collapse-summary" :style="getModHostedCollapseSummaryStyle(entry, component)">
               <span class="min-w-0 flex-1">
@@ -2752,20 +2936,28 @@
                 <div v-for="child in getModHostedVisibleChildComponents(entry.mod, component)" :key="child.id" class="rounded-md p-2.5" :style="getModHostedNestedComponentStyle(entry, child)">
                   <div v-if="child.title && !['button','collapsibleGroup'].includes(child.type)" class="text-xs font-bold mb-1" :style="getModHostedComponentTitleStyle(entry, child)">{{ child.title }}</div>
                   <div v-if="child.type==='text'" class="text-xs leading-relaxed whitespace-pre-wrap" :style="getModHostedTextStyle(entry, child)">{{ child.text }}</div>
-                  <button v-else-if="child.type==='button'" @click="runModHostedViewAction(entry.mod, entry.view, child)" class="text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, child)">{{ child.text || child.title || '执行动作' }}</button>
+                  <template v-else-if="child.type==='button'">
+                    <button @click="runModHostedViewAction(entry.mod, entry.view, child)" :disabled="isModActionDisabled(entry.mod, child.action, child.payload)" :title="getModActionDisabledReason(entry.mod, child.action, child.payload) || child.title || child.text || ''" :aria-describedby="getModActionDisabledReason(entry.mod, child.action, child.payload) ? getModHostedQuickNavTargetId(entry, child) + '-action-disabled-reason' : null" class="moyun-hosted-action text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, child)">{{ child.text || child.title || '执行动作' }}</button>
+                    <div v-if="getModActionDisabledReason(entry.mod, child.action, child.payload)" :id="getModHostedQuickNavTargetId(entry, child) + '-action-disabled-reason'" role="status" class="mt-1 text-[10px] leading-relaxed break-words" style="color:#9a3412">暂不可执行：{{ getModActionDisabledReason(entry.mod, child.action, child.payload) }}</div>
+                  </template>
                   <div v-else-if="child.type==='settingsForm'" :class="child.layout==='grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'">
                     <div v-for="field in getModVisibleSettingsFields(entry.mod, child)" :key="field.key" class="space-y-1">
                       <div class="flex items-center justify-between gap-2 min-w-0">
-                        <span class="text-[10px] font-bold min-w-0 truncate" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</span>
+                        <label :id="getModHostedFieldLabelId(entry.mod, child, field)" :for="getModHostedFieldInputId(entry.mod, child, field)" class="text-[10px] font-bold min-w-0 truncate" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</label>
+                        <span v-if="field.runtimeAvailable===false" class="text-[9px] font-bold shrink-0" style="color:#b45309">暂未启用</span>
                         <span v-if="child.showKeys!==false && !isSnowwingThemed(entry)" class="text-[9px] font-mono shrink-0 max-w-[52%] truncate text-right" style="color:var(--tx4)" :title="field.key">{{ field.key }}</span>
                       </div>
-                      <textarea v-if="field.type==='textarea'" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" rows="3" class="textarea-field text-xs"></textarea>
-                      <select v-else-if="field.type==='select'" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="select-field text-xs py-1">
+                      <textarea v-if="field.type==='textarea'" :id="getModHostedFieldInputId(entry.mod, child, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, child, field)" :disabled="field.runtimeAvailable===false" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" rows="3" class="textarea-field text-xs"></textarea>
+                      <select v-else-if="field.type==='select'" :id="getModHostedFieldInputId(entry.mod, child, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, child, field)" :disabled="field.runtimeAvailable===false" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="select-field text-xs py-1">
                         <option v-for="opt in field.options" :key="String(opt.value ?? opt)" :value="opt.value ?? opt">{{ opt.label ?? opt }}</option>
                       </select>
-                      <div v-else-if="field.type==='boolean'" @click="setModSettingValue(entry.mod.id, field.key, !field.value)" class="toggle-track" :class="field.value?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
-                      <input v-else-if="field.type==='number'" type="number" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, Number($event.target.value))" class="input-field text-xs" style="height:30px;padding:0 10px">
-                      <input v-else :type="getModSettingInputType(field)" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
+                      <button v-else-if="field.type==='boolean'" type="button" :id="getModHostedFieldInputId(entry.mod, child, field)" role="switch" :aria-checked="field.value ? 'true' : 'false'" :aria-labelledby="getModHostedFieldLabelId(entry.mod, child, field)" :disabled="field.runtimeAvailable===false" :title="field.runtimeAvailable===false ? '这个开关依赖的运行时能力当前不可用（MOD 未授予对应权限，或宿主未提供该能力）' : ''" @click="setModSettingValue(entry.mod.id, field.key, !field.value)" class="moyun-toggle-hitbox"><span class="toggle-track" :class="field.value?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+                      <div v-else-if="field.type==='range'" class="flex items-center gap-2 min-w-0" :title="field.rangeHint || field.desc">
+                        <input :id="getModHostedFieldInputId(entry.mod, child, field)" type="range" :min="field.min" :max="field.max" :step="field.step" :value="field.value" :aria-label="field.label" :aria-valuetext="formatModRangeValue(field)" :disabled="field.runtimeAvailable===false" @input="setModRangeSettingValue(entry.mod.id, field, $event.target.value)" class="moyun-hosted-range min-w-0 flex-1 accent-cyan-600" :style="field.reverse ? { direction:'rtl' } : {}">
+                        <output class="shrink-0 min-w-[4.75rem] text-right text-[10px] font-mono" :style="getModHostedFieldLabelStyle(entry)">{{ formatModRangeValue(field) }}</output>
+                      </div>
+                      <input v-else-if="field.type==='number'" :id="getModHostedFieldInputId(entry.mod, child, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, child, field)" :disabled="field.runtimeAvailable===false" type="number" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, Number($event.target.value))" class="input-field text-xs" style="height:30px;padding:0 10px">
+                      <input v-else :id="getModHostedFieldInputId(entry.mod, child, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, child, field)" :disabled="field.runtimeAvailable===false" :type="getModSettingInputType(field)" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
                       <div v-if="field.desc" class="text-[10px] leading-relaxed" :style="getModHostedFieldDescStyle(entry)">{{ field.desc }}</div>
                     </div>
                   </div>
@@ -2776,9 +2968,13 @@
                         <div class="text-[10px]" :style="getModHostedFineTextStyle(entry)">共 {{ getModHostedViewComponentData(entry.mod, child)?.models?.length || 0 }} 个模型</div>
                       </div>
                     </div>
+                    <div v-for="hint in [getModHostedModelListHint(entry.mod, child)]" :key="(child.id || 'modelList') + '-hint'" class="space-y-1">
+                      <div v-if="hint.updatedText" class="text-[10px]" :style="getModHostedFineTextStyle(entry)">列表抓取于 {{ hint.updatedText }}<span v-if="hint.stale">（已超过一天，可能过期，点「获取模型」刷新）</span></div>
+                      <div v-if="hint.missingSelected" class="text-[10px] rounded-md px-2 py-1.5 leading-relaxed" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a">当前模型 <b class="font-mono">{{ hint.selected }}</b> 不在下方列表里。列表只是上次抓取的缓存，不影响这个模型照常使用；点「获取模型」刷新即可看到它。</div>
+                    </div>
                     <div v-if="getModHostedViewComponentData(entry.mod, child)?.models?.length" class="max-h-44 overflow-y-auto rounded-lg" :style="getModHostedModelListFrameStyle(entry)">
-                      <button v-for="model in getModHostedViewComponentData(entry.mod, child).models" :key="model.id || model" @click="selectModHostedModel(entry.mod, child, model.id || model)" class="w-full px-3 py-2 text-left flex items-center justify-between gap-2" :style="getModHostedModelButtonStyle(entry, child, model)">
-                        <span class="truncate font-mono text-[11px]">{{ model.id || model }}</span>
+                      <button v-for="model in getModHostedViewComponentData(entry.mod, child).models" :key="model.id || model" @click="selectModHostedModel(entry.mod, child, model.id || model)" :aria-label="'选择模型 ' + (model.id || model)" :title="model.id || model" class="w-full px-3 py-2 text-left flex items-center justify-between gap-2" :style="getModHostedModelButtonStyle(entry, child, model)">
+                        <span class="truncate font-mono text-[11px]" :title="model.id || model">{{ model.id || model }}</span>
                         <span v-if="getModHostedViewComponentData(entry.mod, child).selected===(model.id || model)">✓</span>
                       </button>
                     </div>
@@ -2829,16 +3025,21 @@
           <div v-else-if="component.type==='settingsForm'" :class="component.layout==='grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'">
             <div v-for="field in getModVisibleSettingsFields(entry.mod, component)" :key="field.key" class="space-y-1">
               <div class="flex items-center justify-between gap-2 min-w-0">
-                <span class="text-[10px] font-bold min-w-0 truncate" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</span>
+                <label :id="getModHostedFieldLabelId(entry.mod, component, field)" :for="getModHostedFieldInputId(entry.mod, component, field)" class="text-[10px] font-bold min-w-0 truncate" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</label>
+                <span v-if="field.runtimeAvailable===false" class="text-[9px] font-bold shrink-0" style="color:#b45309">暂未启用</span>
                 <span v-if="component.showKeys!==false && !isSnowwingThemed(entry)" class="text-[9px] font-mono shrink-0 max-w-[52%] truncate text-right" style="color:var(--tx4)" :title="field.key">{{ field.key }}</span>
               </div>
-              <textarea v-if="field.type==='textarea'" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" rows="3" class="textarea-field text-xs"></textarea>
-              <select v-else-if="field.type==='select'" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="select-field text-xs py-1">
+              <textarea v-if="field.type==='textarea'" :id="getModHostedFieldInputId(entry.mod, component, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, component, field)" :disabled="field.runtimeAvailable===false" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" rows="3" class="textarea-field text-xs"></textarea>
+              <select v-else-if="field.type==='select'" :id="getModHostedFieldInputId(entry.mod, component, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, component, field)" :disabled="field.runtimeAvailable===false" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="select-field text-xs py-1">
                 <option v-for="opt in field.options" :key="String(opt.value ?? opt)" :value="opt.value ?? opt">{{ opt.label ?? opt }}</option>
               </select>
-              <div v-else-if="field.type==='boolean'" @click="setModSettingValue(entry.mod.id, field.key, !field.value)" class="toggle-track" :class="field.value?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
-              <input v-else-if="field.type==='number'" type="number" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, Number($event.target.value))" class="input-field text-xs" style="height:30px;padding:0 10px">
-              <input v-else :type="getModSettingInputType(field)" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
+              <button v-else-if="field.type==='boolean'" type="button" :id="getModHostedFieldInputId(entry.mod, component, field)" role="switch" :aria-checked="field.value ? 'true' : 'false'" :aria-labelledby="getModHostedFieldLabelId(entry.mod, component, field)" :disabled="field.runtimeAvailable===false" :title="field.runtimeAvailable===false ? '这个开关依赖的运行时能力当前不可用（MOD 未授予对应权限，或宿主未提供该能力）' : ''" @click="setModSettingValue(entry.mod.id, field.key, !field.value)" class="moyun-toggle-hitbox"><span class="toggle-track" :class="field.value?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+              <div v-else-if="field.type==='range'" class="flex items-center gap-2 min-w-0" :title="field.rangeHint || field.desc">
+                <input :id="getModHostedFieldInputId(entry.mod, component, field)" type="range" :min="field.min" :max="field.max" :step="field.step" :value="field.value" :aria-label="field.label" :aria-valuetext="formatModRangeValue(field)" :disabled="field.runtimeAvailable===false" @input="setModRangeSettingValue(entry.mod.id, field, $event.target.value)" class="moyun-hosted-range min-w-0 flex-1 accent-cyan-600" :style="field.reverse ? { direction:'rtl' } : {}">
+                <output class="shrink-0 min-w-[4.75rem] text-right text-[10px] font-mono" :style="getModHostedFieldLabelStyle(entry)">{{ formatModRangeValue(field) }}</output>
+              </div>
+              <input v-else-if="field.type==='number'" :id="getModHostedFieldInputId(entry.mod, component, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, component, field)" :disabled="field.runtimeAvailable===false" type="number" :value="field.value" @change="setModSettingValue(entry.mod.id, field.key, Number($event.target.value))" class="input-field text-xs" style="height:30px;padding:0 10px">
+              <input v-else :id="getModHostedFieldInputId(entry.mod, component, field)" :aria-labelledby="getModHostedFieldLabelId(entry.mod, component, field)" :disabled="field.runtimeAvailable===false" :type="getModSettingInputType(field)" :value="field.value" @input="setModSettingValue(entry.mod.id, field.key, $event.target.value)" @change="setModSettingValue(entry.mod.id, field.key, $event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
               <div v-if="field.desc" class="text-[10px] leading-relaxed" :style="getModHostedFieldDescStyle(entry)">{{ field.desc }}</div>
             </div>
           </div>
@@ -2862,13 +3063,13 @@
                 </div>
                 <div :class="component.layout==='cards' || component.variant==='foreshadowCards' ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'space-y-2'">
                   <div v-for="field in (getModHostedViewComponentData(entry.mod, component).schema?.fields||[])" :key="field.key" class="space-y-1" :class="getModHostedTableFieldClass(component, field)">
-                    <div class="text-[10px] font-bold" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</div>
-                    <textarea v-if="field.type==='textarea'" :value="row[field.key]" @input="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" rows="2" class="textarea-field text-xs" style="min-height:42px"></textarea>
-                    <select v-else-if="field.type==='select'" :value="row[field.key]" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" class="select-field text-xs py-1">
+                    <label :id="getModHostedTableFieldLabelId(entry.mod, component, row, rowIndex, field)" :for="getModHostedTableFieldInputId(entry.mod, component, row, rowIndex, field)" class="block text-[10px] font-bold" :style="getModHostedFieldLabelStyle(entry)">{{ field.label }}</label>
+                    <textarea v-if="field.type==='textarea'" :id="getModHostedTableFieldInputId(entry.mod, component, row, rowIndex, field)" :aria-labelledby="getModHostedTableFieldLabelId(entry.mod, component, row, rowIndex, field)" :value="row[field.key]" @input="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" rows="2" class="textarea-field text-xs" style="min-height:42px"></textarea>
+                    <select v-else-if="field.type==='select'" :id="getModHostedTableFieldInputId(entry.mod, component, row, rowIndex, field)" :aria-labelledby="getModHostedTableFieldLabelId(entry.mod, component, row, rowIndex, field)" :value="row[field.key]" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" class="select-field text-xs py-1">
                       <option v-for="opt in field.options" :key="String(opt.value ?? opt)" :value="opt.value ?? opt">{{ opt.label ?? opt }}</option>
                     </select>
-                    <div v-else-if="field.type==='boolean'" @click="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, !row[field.key])" class="toggle-track" :class="row[field.key]!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
-                    <input v-else :type="field.type==='number'?'number':(field.type==='date'?'date':'text')" :value="row[field.key]" @input="(field.type==='number'||field.type==='date') ? null : updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, field.type==='number'?Number($event.target.value):$event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
+                    <button v-else-if="field.type==='boolean'" type="button" :id="getModHostedTableFieldInputId(entry.mod, component, row, rowIndex, field)" role="switch" :aria-checked="row[field.key]!==false ? 'true' : 'false'" :aria-labelledby="getModHostedTableFieldLabelId(entry.mod, component, row, rowIndex, field)" @click="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, !row[field.key])" class="moyun-toggle-hitbox"><span class="toggle-track" :class="row[field.key]!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+                    <input v-else :id="getModHostedTableFieldInputId(entry.mod, component, row, rowIndex, field)" :aria-labelledby="getModHostedTableFieldLabelId(entry.mod, component, row, rowIndex, field)" :type="field.type==='number'?'number':(field.type==='date'?'date':'text')" :value="row[field.key]" @input="(field.type==='number'||field.type==='date') ? null : updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, $event.target.value)" @change="updateModTableCell(entry.mod, getModHostedViewComponentData(entry.mod, component).schema, row, field.key, field.type==='number'?Number($event.target.value):$event.target.value)" class="input-field text-xs" style="height:30px;padding:0 10px">
                   </div>
                 </div>
               </div>
@@ -2882,9 +3083,13 @@
                 <div class="text-[10px]" :style="getModHostedFineTextStyle(entry)">共 {{ getModHostedViewComponentData(entry.mod, component)?.models?.length || 0 }} 个模型</div>
               </div>
             </div>
+            <div v-for="hint in [getModHostedModelListHint(entry.mod, component)]" :key="(component.id || 'modelList') + '-hint'" class="space-y-1">
+              <div v-if="hint.updatedText" class="text-[10px]" :style="getModHostedFineTextStyle(entry)">列表抓取于 {{ hint.updatedText }}<span v-if="hint.stale">（已超过一天，可能过期，点「获取模型」刷新）</span></div>
+              <div v-if="hint.missingSelected" class="text-[10px] rounded-md px-2 py-1.5 leading-relaxed" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a">当前模型 <b class="font-mono">{{ hint.selected }}</b> 不在下方列表里。列表只是上次抓取的缓存，不影响这个模型照常使用；点「获取模型」刷新即可看到它。</div>
+            </div>
             <div v-if="getModHostedViewComponentData(entry.mod, component)?.models?.length" class="max-h-44 overflow-y-auto rounded-lg" :style="getModHostedModelListFrameStyle(entry)">
-              <button v-for="model in getModHostedViewComponentData(entry.mod, component).models" :key="model.id || model" @click="selectModHostedModel(entry.mod, component, model.id || model)" class="w-full px-3 py-2 text-left flex items-center justify-between gap-2" :style="getModHostedModelButtonStyle(entry, component, model)">
-                <span class="truncate font-mono text-[11px]">{{ model.id || model }}</span>
+              <button v-for="model in getModHostedViewComponentData(entry.mod, component).models" :key="model.id || model" @click="selectModHostedModel(entry.mod, component, model.id || model)" :aria-label="'选择模型 ' + (model.id || model)" :title="model.id || model" class="w-full px-3 py-2 text-left flex items-center justify-between gap-2" :style="getModHostedModelButtonStyle(entry, component, model)">
+                <span class="truncate font-mono text-[11px]" :title="model.id || model">{{ model.id || model }}</span>
                 <span v-if="getModHostedViewComponentData(entry.mod, component).selected===(model.id || model)">✓</span>
               </button>
             </div>
@@ -2898,7 +3103,7 @@
                   <select class="snowwing-memory-preset-select" :value="data.selected" @change="applyModMemoryPresetSelection(entry.mod, component, $event.target.value)">
                     <option v-for="preset in (data.presets || [])" :key="preset.id" :value="preset.id">{{ preset.custom ? '自定义 · ' + preset.label : preset.label }}</option>
                   </select>
-                  <div class="text-[10px]" style="color:#64748b">{{ data.selectedPreset?.summary || '切换档位会同步写入召回参数。' }}</div>
+                  <div class="text-[10px]" style="color:#64748b">{{ data.summary || '切换档位会同步写入召回参数。' }}</div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div class="snowwing-memory-preset-metric">
@@ -2968,7 +3173,7 @@
               <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div class="min-w-0">
                   <div class="text-[10px] font-bold" style="color:#0e7490;letter-spacing:0">白鸟记忆索引</div>
-                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ data.status || 'unavailable' }}</div>
+                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ formatSnowwingRuntimeStatus(data.status, '未就绪') }}</div>
                 </div>
                 <div class="px-3 py-1 rounded-full text-[10px] font-bold" :style="{background:data.stale?'#fff7ed':(data.ready?'#ecfeff':'#f1f5f9'),color:data.stale?'#9a3412':(data.ready?'#0e7490':'#64748b'),border:'1px solid ' + (data.stale?'#fed7aa':(data.ready?'#a5f3fc':'#cbd5e1'))}">{{ data.stale ? '待重建' : (data.ready ? '可召回' : '未就绪') }}</div>
               </div>
@@ -2987,7 +3192,7 @@
                 <div class="rounded-md p-2 min-w-0" style="background:#f8fafc;border:1px solid #dbeafe">
                   <div class="text-[10px] font-bold" style="color:#0e7490">更新时间</div>
                   <div class="break-words" style="color:#0f172a">{{ formatModAuditTime(data.updatedAt) }}</div>
-                  <div v-if="data.staleReason" class="text-[10px] break-words" style="color:#b45309">原因：{{ data.staleReason }}</div>
+                  <div v-if="data.staleReason" class="text-[10px] break-words" style="color:#b45309">原因：{{ formatSnowwingRuntimeReason(data.staleReason) }}</div>
                 </div>
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -3000,7 +3205,7 @@
                 <div class="rounded-md p-2 min-w-0" style="background:#ecfeff;border:1px solid #a5f3fc">
                   <div class="text-[10px] font-bold" style="color:#0e7490">分批进度</div>
                   <div class="break-words" style="color:#0f172a">{{ data.progress ? ((data.progress.current || 0) + ' / ' + (data.progress.total || 0)) : '已收束' }}</div>
-                  <div class="text-[10px]" style="color:#64748b">批量 {{ data.progress?.batchSize || '-' }} · {{ data.progress?.status || data.jobStatus || '完成' }}</div>
+                  <div class="text-[10px]" style="color:#64748b">批量 {{ data.progress?.batchSize || '-' }} · {{ formatSnowwingRuntimeStatus(data.progress?.status || data.jobStatus, '已完成') }}</div>
                 </div>
                 <div class="rounded-md p-2 min-w-0" style="background:#f8fafc;border:1px solid #dbeafe">
                   <div class="text-[10px] font-bold" style="color:#0e7490">原始浮点估算</div>
@@ -3016,7 +3221,7 @@
               <div v-if="data.activeJob" class="rounded-md p-2 text-[10px] space-y-1" style="background:#f8fbff;color:#334155;border:1px solid #cfe8fb">
                 <div class="font-bold" style="color:#0e7490">当前索引作业</div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-1.5">
-                  <span class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0">状态 {{ data.jobStatus || data.activeJob.status || '-' }}</span>
+                  <span class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0">状态 {{ formatSnowwingRuntimeStatus(data.jobStatus || data.activeJob.status, '未标状态') }}</span>
                   <span class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0">进度 {{ data.jobOffset || 0 }} / {{ data.jobTotal || 0 }}</span>
                   <span class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#0f172a;border:1px solid #e2e8f0">完成批次 {{ data.jobCompletedBatches || 0 }}</span>
                   <span class="px-2 py-1 rounded-md break-all" :style="{background:(data.jobFailedBatches||0)?'#fff7ed':'#fff',color:(data.jobFailedBatches||0)?'#9a3412':'#0f172a',border:'1px solid ' + ((data.jobFailedBatches||0)?'#fed7aa':'#e2e8f0')}">失败批次 {{ data.jobFailedBatches || 0 }}</span>
@@ -3036,7 +3241,7 @@
                 <div class="font-bold" style="color:#0e7490">最近索引趋势</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                   <div v-for="item in (data.indexHistory || []).slice(-6).reverse()" :key="item.id || item.createdAt" class="rounded-md px-2 py-1.5 min-w-0" style="background:#fff;border:1px solid #e2e8f0">
-                    <div class="font-bold break-all" style="color:#0f172a">{{ item.status || 'indexed' }} · {{ formatModAuditTime(item.createdAt) }}</div>
+                    <div class="font-bold break-all" style="color:#0f172a">{{ formatSnowwingRuntimeStatus(item.status, '已建立索引') }} · {{ formatModAuditTime(item.createdAt) }}</div>
                     <div style="color:#64748b">耗时 {{ item.durationMs || 0 }}ms · 记录 {{ item.records || 0 }} · 候选 {{ item.candidateRows || 0 }} · 新嵌入 {{ item.embeddedNew || 0 }} · 复用 {{ item.reused || 0 }}</div>
                     <div v-if="item.scope" style="color:#64748b">范围 {{ item.scope.chapterStart || '?' }}-{{ item.scope.chapterEnd || '?' }}<span v-if="(item.scope.tableIds||[]).length"> · 表 {{ item.scope.tableIds.length }}</span></div>
                   </div>
@@ -3064,25 +3269,38 @@
           </template>
           <template v-else-if="component.type==='memoryRecallPreview'">
             <div v-for="data in [getModHostedViewComponentData(entry.mod, component) || {}]" :key="(component.id || 'memoryRecallPreview') + '-audit'" class="snowwing-recall-audit text-xs leading-relaxed space-y-3" style="font-family:'Microsoft YaHei UI','PingFang SC','Segoe UI',Arial,sans-serif;color:#1f2937;border:1px solid #c7dff3;background:#f8fcff;border-radius:8px;padding:12px;box-shadow:0 10px 24px rgba(15,118,160,.10);min-width:0;overflow-wrap:anywhere">
+              <div class="rounded-md p-2.5 space-y-2" style="background:#ffffff;border:1px solid #bae6fd">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <label :for="getModHostedManualRecallInputId(entry.mod, component)" class="text-[11px] font-bold" style="color:#0f172a">手动检索记忆</label>
+                  <span class="text-[10px]" style="color:#64748b">{{ getModHostedManualRecallQuery(entry.mod, component).length }}/800</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <input :id="getModHostedManualRecallInputId(entry.mod, component)" type="text" maxlength="800" :value="getModHostedDraftValue(entry.mod, component, 'manualRecallQuery')" @input="setModHostedDraftValue(entry.mod, component, 'manualRecallQuery', $event.target.value)" @keydown.enter.prevent="runModHostedManualMemoryRecall(entry, component)" placeholder="输入人物、事件、地点或后半段线索" class="input-field text-xs min-w-0" style="min-height:44px;padding:0 10px" :aria-describedby="getModHostedManualRecallHelpId(entry.mod, component)">
+                  <button type="button" @click="runModHostedManualMemoryRecall(entry, component)" :disabled="isModHostedManualRecallRunning(entry.mod, component) || !getModHostedManualRecallQuery(entry.mod, component)" :title="!getModHostedManualRecallQuery(entry.mod, component) ? '先在左边输入要检索的关键词' : (isModHostedManualRecallRunning(entry.mod, component) ? '正在检索，请稍候' : '在记忆库里检索这个关键词')" class="moyun-hosted-action text-xs px-3 py-1.5 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, component)">{{ isModHostedManualRecallRunning(entry.mod, component) ? '检索中' : '检索记忆' }}</button>
+                </div>
+                <div :id="getModHostedManualRecallHelpId(entry.mod, component)" class="text-[10px] leading-relaxed" style="color:#64748b">仅按本次检索词做向量/字段匹配与排序；结果只写入审计候选，不会注入正文，也不会覆盖下一次正文生成前的主动召回快照。</div>
+              </div>
               <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div class="min-w-0">
                   <div class="text-[10px] font-bold" style="color:#0e7490;letter-spacing:0">白鸟召回审计</div>
                   <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ data.mode || '暂无' }}</div>
                 </div>
                 <div class="text-[10px] text-right min-w-0" style="color:#64748b">
-                  <div>注入 {{ (data.injectedRows || []).length }} 条 · 跳过 {{ (data.skippedRows || []).length }} 条</div>
+                  <div>{{ data.manualQuery ? '命中' : '注入' }} {{ data.injectedCount !== undefined ? data.injectedCount : (data.injectedRows || []).length }} 条 · 跳过 {{ data.skippedCount !== undefined ? data.skippedCount : (data.skippedRows || []).length }} 条</div>
                   <div>预算 {{ data.injectCharEstimate || 0 }} 字 · {{ formatModAuditTime(data.createdAt) }}</div>
                 </div>
               </div>
-              <div v-if="(data.routes || []).length" class="flex flex-wrap gap-1.5">
+              <div v-if="data.manualQuery" class="rounded-md px-2 py-1.5 text-[10px] break-words" style="background:#ecfeff;color:#155e75;border:1px solid #a5f3fc"><b>本次检索词：</b>{{ data.manualQuery }}</div>
+              <div v-if="data.manualQuery" class="rounded-md px-2 py-1.5 text-[10px] leading-relaxed" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0"><b>隔离候选：</b>本次结果只供核对相关记忆，未注入正文、未确认或改写主动召回快照。</div>
+              <div v-if="data.explain && (data.routes || []).length" class="flex flex-wrap gap-1.5">
                 <span v-for="route in data.routes" :key="route.id" class="px-2 py-1 rounded-md text-[10px]" style="background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc">{{ route.label || route.id }} · {{ route.chars || 0 }}</span>
               </div>
-              <div v-if="data.snapshotStage || data.snapshotRows" class="rounded-md p-2 text-[10px] flex flex-wrap gap-1.5" style="background:#f8fafc;color:#475569;border:1px solid #dbeafe">
+              <div v-if="!data.manualQuery && data.explain && (data.snapshotStage || data.snapshotRows)" class="rounded-md p-2 text-[10px] flex flex-wrap gap-1.5" style="background:#f8fafc;color:#475569;border:1px solid #dbeafe">
                 <span class="px-2 py-1 rounded-md" :style="{background:data.snapshotConfirmed?'#ecfdf5':'#fff7ed',color:data.snapshotConfirmed?'#047857':'#9a3412',border:'1px solid ' + (data.snapshotConfirmed?'#bbf7d0':'#fed7aa')}">{{ data.snapshotConfirmed ? '快照已确认' : '快照待确认' }}</span>
                 <span class="px-2 py-1 rounded-md" style="background:#fff;color:#475569;border:1px solid #e2e8f0">阶段 {{ data.snapshotStage || 'snapshot' }} · {{ data.snapshotRows || 0 }} 条</span>
                 <span v-if="data.snapshotConfirmedAt" class="px-2 py-1 rounded-md" style="background:#fff;color:#475569;border:1px solid #e2e8f0">{{ formatModAuditTime(data.snapshotConfirmedAt) }}</span>
               </div>
-              <div v-if="(data.injectedRows || []).length" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+              <div v-if="data.explain && (data.injectedRows || []).length" class="space-y-2 max-h-64 overflow-y-auto pr-1">
                 <div v-for="row in data.injectedRows" :key="row.tableId + row.rowId" class="rounded-md p-2 min-w-0" style="background:#ffffff;border:1px solid #dbeafe">
                   <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
                     <div class="min-w-0">
@@ -3098,13 +3316,17 @@
                     <span v-for="term in (row.matchedTerms || []).slice(0,4)" :key="'t-' + term" class="px-1.5 py-0.5 rounded text-[9px]" style="background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc">{{ term }}</span>
                     <span v-if="row.chapterNumber" class="px-1.5 py-0.5 rounded text-[9px]" style="background:#fff7ed;color:#9a3412;border:1px solid #fed7aa">第{{ row.chapterNumber }}章<span v-if="row.chapterDistance!==null && row.chapterDistance!==undefined"> · 距{{ row.chapterDistance }}</span></span>
                   </div>
+                  <div v-if="row.hitChunk" class="mt-2 rounded p-2 text-[10px] break-words" style="background:#f8fafc;color:#475569;border:1px solid #e2e8f0">
+                    <span class="font-bold" style="color:#0e7490">命中片段 第{{ (row.hitChunk.chunkIndex || 0) + 1 }}/{{ row.hitChunk.chunkCount || 1 }}片</span>
+                    <span v-if="row.hitChunk.preview"> · {{ row.hitChunk.preview }}</span>
+                  </div>
                   <div v-if="row.scoreBreakdown" class="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-1">
                     <span v-for="pair in getModAuditBreakdownPairs(row)" :key="pair.label" class="rounded px-1.5 py-1 text-[9px]" style="background:#f8fafc;color:#475569;border:1px solid #e2e8f0">{{ pair.label }} {{ pair.value }}</span>
                   </div>
                 </div>
               </div>
-              <div v-else class="text-center py-4 text-xs rounded-md" style="background:#f8fafc;color:#64748b;border:1px solid #dbeafe">暂无召回记录</div>
-              <div v-if="(data.skippedRows || []).length" class="space-y-1 max-h-40 overflow-y-auto pr-1">
+              <div v-else-if="data.explain" class="text-center py-4 text-xs rounded-md" style="background:#f8fafc;color:#64748b;border:1px solid #dbeafe">暂无召回记录</div>
+              <div v-if="data.explain && (data.skippedRows || []).length" class="space-y-1 max-h-40 overflow-y-auto pr-1">
                 <div class="text-[10px] font-bold" style="color:#0e7490">跳过明细</div>
                 <div v-for="row in (data.skippedRows || []).slice(0,8)" :key="'skip-' + row.tableId + row.rowId + row.reason" class="rounded-md p-2 min-w-0" style="background:#fffdf7;border:1px solid #fde68a">
                   <div class="flex flex-wrap justify-between gap-2 min-w-0">
@@ -3116,12 +3338,70 @@
               </div>
             </div>
           </template>
+          <template v-else-if="component.type==='memorySummaryStatus'">
+            <div v-for="data in [getModHostedViewComponentData(entry.mod, component) || {}]" :key="(component.id || 'memorySummaryStatus') + '-status'" class="snowwing-summary-audit text-xs leading-relaxed space-y-3" style="font-family:'Microsoft YaHei UI','PingFang SC','Segoe UI',Arial,sans-serif;color:#1f2937;border:1px solid #c7dff3;background:#f8fcff;border-radius:8px;padding:12px;box-shadow:0 10px 24px rgba(15,118,160,.10);min-width:0;overflow-wrap:anywhere">
+              <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
+                <div class="min-w-0">
+                  <div class="text-[10px] font-bold" style="color:#0e7490;letter-spacing:0">章节总结记忆</div>
+                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ formatSnowwingRuntimeStatus(data.status, '暂无记录') }}</div>
+                </div>
+                <div class="text-[10px] text-right min-w-0" style="color:#64748b">
+                  <div>分支 {{ data.branchId || 'main' }} · 保留近 {{ data.keepChapters || 0 }} 章</div>
+                  <div>{{ formatSnowwingSummaryDetail(data.detail) }} · 并发 {{ data.concurrency || 0 }} · 重试 {{ data.maxRetries || 0 }}</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <div class="rounded-md p-2 min-w-0" style="background:#ffffff;border:1px solid #dbeafe"><b class="block text-lg leading-none" style="color:#0f172a">{{ data.total || 0 }}</b><span class="text-[10px]" style="color:#64748b">已跟踪</span></div>
+                <div class="rounded-md p-2 min-w-0" style="background:#ecfdf5;border:1px solid #bbf7d0"><b class="block text-lg leading-none" style="color:#047857">{{ data.completed || 0 }}</b><span class="text-[10px]" style="color:#047857">完成</span></div>
+                <div class="rounded-md p-2 min-w-0" style="background:#fff7ed;border:1px solid #fed7aa"><b class="block text-lg leading-none" style="color:#9a3412">{{ data.pending || 0 }}</b><span class="text-[10px]" style="color:#9a3412">待处理</span></div>
+                <div class="rounded-md p-2 min-w-0" style="background:#fef2f2;border:1px solid #fecaca"><b class="block text-lg leading-none" style="color:#b91c1c">{{ data.failed || 0 }}</b><span class="text-[10px]" style="color:#b91c1c">失败</span></div>
+                <div class="rounded-md p-2 min-w-0" style="background:#fffbeb;border:1px solid #fde68a"><b class="block text-lg leading-none" style="color:#b45309">{{ data.interrupted || 0 }}</b><span class="text-[10px]" style="color:#b45309">已中断</span></div>
+                <div class="rounded-md p-2 min-w-0" style="background:#f8fafc;border:1px solid #e2e8f0"><b class="block text-lg leading-none" style="color:#475569">{{ data.stale || 0 }}</b><span class="text-[10px]" style="color:#64748b">需重整</span></div>
+              </div>
+              <div v-if="data.activeJob" class="rounded-md p-2 text-[10px]" style="background:#ecfeff;color:#155e75;border:1px solid #a5f3fc">
+                当前作业 {{ formatSnowwingRuntimeStatus(data.activeJob.status, '运行中') }} · {{ data.activeJob.completed || 0 }}/{{ data.activeJob.total || 0 }} 完成 · 失败 {{ data.activeJob.failed || 0 }} · 停止 {{ data.activeJob.cancelled || 0 }}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" @click="runModMemorySummaryQueueFromStatus(entry.mod)"
+                        :disabled="!data.enabled || data.status==='running' || !!data.activeJob"
+                        class="px-2.5 py-1.5 rounded-md text-[11px] font-bold"
+                        style="min-height:36px"
+                        :style="(!data.enabled || data.status==='running' || !!data.activeJob) ? 'background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0' : 'background:#0f172a;color:#ffffff;border:1px solid #0f172a'"
+                        :title="!data.enabled ? '请先开启章节总结记忆' : ((data.status==='running' || !!data.activeJob) ? '总结队列正在运行' : '整理所有待处理或需重整的旧章节')">整理待处理章节</button>
+                <button type="button" v-if="(data.failed || 0) + (data.interrupted || 0) > 0" @click="runModMemorySummaryQueueFromStatus(entry.mod, { retryFailed: true })"
+                        :disabled="!data.enabled || data.status==='running' || !!data.activeJob"
+                        class="px-2.5 py-1.5 rounded-md text-[11px] font-bold"
+                        style="min-height:36px"
+                        :style="(!data.enabled || data.status==='running' || !!data.activeJob) ? 'background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0' : 'background:#fff7ed;color:#9a3412;border:1px solid #fed7aa'"
+                        :title="!data.enabled ? '请先开启章节总结记忆' : ((data.status==='running' || !!data.activeJob) ? '总结队列正在运行，等它结束再重试' : '重试失败或中断的章节总结')">重试失败 {{ (data.failed || 0) + (data.interrupted || 0) }} 章</button>
+              </div>
+              <div v-if="(data.entries || []).length" class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                <div v-for="item in data.entries" :key="item.id" class="rounded-md p-2 min-w-0" style="background:#ffffff;border:1px solid #dbeafe">
+                  <div class="flex flex-wrap justify-between gap-2 min-w-0">
+                    <span class="font-bold break-words" style="color:#0f172a">{{ formatSnowwingSummaryChapterLabel(item) || item.sourceChapterId }}</span>
+                    <span class="text-[10px]" :style="{color:item.status==='completed'?'#047857':(item.status==='failed'?'#b91c1c':'#9a3412')}">{{ formatSnowwingRuntimeStatus(item.status, '待处理') }}</span>
+                  </div>
+                  <div class="mt-1 text-[10px] break-words" style="color:#64748b">{{ item.storyTime || '无原始时间戳' }} · {{ formatSnowwingSummaryDetail(item.detail, '未设置') }} · {{ item.summaryChars || 0 }} 字<span v-if="item.retryCount"> · 重试 {{ item.retryCount }}</span></div>
+                  <div v-if="item.error" class="mt-1 text-[10px] break-words" style="color:#b91c1c">{{ formatSnowwingRuntimeReason(item.error, item.error) }}</div>
+                  <div class="mt-1.5 flex justify-end">
+                    <button type="button" @click="forceModMemorySummaryChapter(entry.mod, item.sourceChapterId, formatSnowwingSummaryChapterLabel(item))"
+                            :disabled="data.status==='running' || !!data.activeJob"
+                            class="px-2 py-1 rounded-md text-[10px] font-bold"
+                            style="min-height:28px"
+                            :style="(data.status==='running' || !!data.activeJob) ? 'background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0' : 'background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc'"
+                            :title="(data.status==='running' || !!data.activeJob) ? '总结队列正在运行，先等它结束或点停止' : '按当前档位与提示词重新整理这一章的总结'">重新整理这章</button>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-4 text-xs rounded-md" style="background:#f8fafc;color:#64748b;border:1px solid #dbeafe">暂无需要保留的旧章节总结</div>
+            </div>
+          </template>
           <template v-else-if="component.type==='foreshadowLinkGraph'">
             <div v-for="data in [getModHostedViewComponentData(entry.mod, component) || {}]" :key="(component.id || 'foreshadowLinkGraph') + '-audit'" class="snowwing-foreshadow-graph text-xs leading-relaxed space-y-3" style="font-family:'Microsoft YaHei UI','PingFang SC','Segoe UI',Arial,sans-serif;color:#1f2937;border:1px solid #c7dff3;background:#f8fcff;border-radius:8px;padding:12px;box-shadow:0 10px 24px rgba(15,118,160,.10);min-width:0;overflow-wrap:anywhere">
               <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div class="min-w-0">
                   <div class="text-[10px] font-bold" style="color:#0e7490;letter-spacing:0">伏笔联动图谱</div>
-                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ data.status || '暂无' }}</div>
+                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ formatSnowwingRuntimeStatus(data.status, '暂无记录') }}</div>
                 </div>
                 <div class="text-[10px] text-right min-w-0" style="color:#64748b">
                   <div>伏笔 {{ data.poolCount || 0 }} 条 · 联动 {{ data.linkCount || 0 }} 条</div>
@@ -3132,7 +3412,7 @@
                 <div v-for="edge in data.edges" :key="edge.key" class="rounded-md p-2 min-w-0" style="background:#ffffff;border:1px solid #dbeafe">
                   <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="font-bold break-words" style="color:#0f172a">{{ edge.foreshadowTitle || edge.title || '未命名伏笔' }}</div>
-                    <span class="px-2 py-0.5 rounded-full text-[9px]" :style="edge.statusStyle || {}">{{ edge.statusLabel || edge.status || '未标状态' }}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[9px]" :style="edge.statusStyle || {}">{{ edge.statusLabel || formatSnowwingRuntimeStatus(edge.status, '未标状态') }}</span>
                   </div>
                   <div class="mt-1 text-[10px] break-words" style="color:#64748b">{{ edge.linkType || 'link' }} · {{ edge.linkedChapters || '未标章节' }}</div>
                   <div v-if="edge.linkedEntities" class="mt-1 text-[10px] break-words" style="color:#334155">实体：{{ edge.linkedEntities }}</div>
@@ -3144,7 +3424,7 @@
               <div v-if="(data.recoveryWindows || []).length" class="rounded-md p-2 text-[10px] space-y-1" style="background:#fff7ed;color:#9a3412;border:1px solid #fed7aa">
                 <div class="font-bold">回收窗口</div>
                 <div class="flex flex-wrap gap-1.5">
-                  <span v-for="item in data.recoveryWindows.slice(0, 10)" :key="item.key" class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#9a3412;border:1px solid #fed7aa">{{ item.foreshadowTitle || item.title }} · {{ item.windowType || 'touch' }} · {{ item.chapterStart || '?' }}-{{ item.chapterEnd || '?' }} · {{ item.targetStatusLabel || item.statusLabel || item.status || 'open' }}</span>
+                  <span v-for="item in data.recoveryWindows.slice(0, 10)" :key="item.key" class="px-2 py-1 rounded-md break-all" style="background:#fff;color:#9a3412;border:1px solid #fed7aa">{{ item.foreshadowTitle || item.title }} · {{ formatSnowwingRuntimeStatus(item.windowType, '待处理') }} · {{ item.chapterStart || '?' }}-{{ item.chapterEnd || '?' }} · {{ item.targetStatusLabel || item.statusLabel || formatSnowwingRuntimeStatus(item.status, '待处理') }}</span>
                 </div>
               </div>
             </div>
@@ -3231,7 +3511,7 @@
               <div class="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div class="min-w-0">
                   <div class="text-[10px] font-bold" style="color:#0e7490;letter-spacing:0">白鸟记忆治理</div>
-                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ data.status || 'empty' }}</div>
+                  <div class="text-xl font-bold leading-tight break-words" style="color:#0f172a">{{ formatSnowwingRuntimeStatus(data.status, '暂无记录') }}</div>
                 </div>
                 <div class="text-[10px] text-right min-w-0" style="color:#64748b">
                   <div>候选 {{ data.candidateCount || 0 }} 条 · 建议 {{ data.suggestionCount || 0 }} 条</div>
@@ -3270,7 +3550,7 @@
       </div>
       <div class="px-5 py-3 shrink-0 flex justify-between items-center gap-2" :style="Object.assign(getModHostedModalFooterStyle(entry), { paddingBottom:'calc(12px + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))' })">
         <span class="text-[10px]" :style="getModHostedFooterTextStyle(entry)">插件：{{ entry.mod.name }} · 独立弹窗</span>
-        <button data-moyun-modal-close @click="activeModModalKey=''" class="text-xs px-4 py-2 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, { tone:'primary', variant:'primary' })">关闭</button>
+        <button data-moyun-modal-close @click="closeModHostedModal" class="moyun-hosted-action text-xs px-4 py-2 rounded-lg font-bold" :style="getModHostedActionButtonStyle(entry, { tone:'primary', variant:'primary' })">关闭</button>
       </div>
     </div>
   </div>
@@ -3295,7 +3575,7 @@
             </button>
             <div class="paragraph-comment-title">{{ getActiveParagraphComments().length || 0 }}条评论</div>
 <!-- 中文注释：按钮控件，触发保存、生成、导入、打开弹窗或 MOD 白名单动作。 -->
-            <button @click="regenerateActiveParagraphComments" :disabled="isActiveParagraphCommentGenerating()" class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background:var(--accent-soft);color:var(--accent)">{{ isActiveParagraphCommentGenerating() ? '生成中' : '重生成' }}</button>
+            <button @click="regenerateActiveParagraphComments" :disabled="isActiveParagraphCommentGenerating()" :title="isActiveParagraphCommentGenerating() ? '正在生成段落评论，请稍候' : '丢掉现有评论，重新生成一轮'" class="text-xs px-3 py-1.5 rounded-lg font-bold" style="background:var(--accent-soft);color:var(--accent)">{{ isActiveParagraphCommentGenerating() ? '生成中' : '重生成' }}</button>
           </div>
           <div class="paragraph-comment-body">
             <div class="paragraph-comment-quote">{{ activeParagraphComment.paragraphText }}</div>
@@ -3316,7 +3596,7 @@
           <div class="paragraph-comment-actions">
             <div class="paragraph-comment-input">趣评千万条，你也来一条</div>
 <!-- 中文注释：按钮控件，触发保存、生成、导入、打开弹窗或 MOD 白名单动作。 -->
-            <button @click="regenerateActiveParagraphComments" :disabled="isActiveParagraphCommentGenerating()" class="btn-primary text-xs px-4 py-2">AI生成</button>
+            <button @click="regenerateActiveParagraphComments" :disabled="isActiveParagraphCommentGenerating()" :title="isActiveParagraphCommentGenerating() ? '正在生成段落评论，请稍候' : '为当前段落生成评论'" class="btn-primary text-xs px-4 py-2">AI生成</button>
           </div>
         </div>
       </div>
@@ -3417,6 +3697,7 @@
         <template v-if="confirmCfg.choices?.length">
           <button v-for="choice in confirmCfg.choices" :key="choice.id" @click="execConfirmChoice(choice.id)"
                   :disabled="choice.requiresSelection && !confirmCfg.selectedValue"
+                  :title="(choice.requiresSelection && !confirmCfg.selectedValue) ? ('先在上面的「' + (confirmCfg.selectLabel || '改绑目标') + '」里选一项') : (choice.title || '')"
                   class="flex-1 min-w-[108px] py-2 rounded-lg text-sm font-semibold"
                   :style="getConfirmChoiceButtonStyle(choice, confirmCfg)">{{ choice.label }}</button>
         </template>
@@ -3510,6 +3791,7 @@
               <input type="file" accept="image/*" data-book-cover-file class="sr-only" @change="handleBookCoverFile">
             </label>
             <button type="button" @click="removeBookEditorCover" :disabled="!bookEditorDraft.coverImage"
+                    :title="!bookEditorDraft.coverImage ? '这本书当前没有封面可删除' : '删除封面（保存后生效）'"
                     class="btn-ghost min-h-[44px] px-4 text-sm disabled:opacity-40">删除封面</button>
           </div>
           <p class="text-[10px] leading-relaxed" style="color:var(--tx3)">支持常见图片格式，单张不超过 8 MB；图片只保存在当前浏览器的本机存档中。</p>
@@ -3562,7 +3844,7 @@
        data-moyun-initial-focus="[data-web-update-ack]" role="dialog" aria-modal="true" aria-labelledby="moyun-web-update-title"
        class="fixed inset-0 z-[250] flex items-center justify-center p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="dismissWebUpdateAnnouncement">
-    <section data-moyun-modal-panel tabindex="-1" class="relative isolate z-[1] w-full max-w-md max-h-[calc(100dvh-2rem)] md:max-h-[min(760px,calc(100dvh-2rem))] overflow-hidden rounded-2xl flex flex-col" style="background:var(--bg-card);opacity:1;box-shadow:var(--sh3)">
+    <section data-moyun-modal-panel tabindex="-1" class="relative isolate z-[1] w-full max-w-2xl max-h-[calc(100dvh-2rem)] md:max-h-[min(880px,calc(100dvh-2rem))] overflow-hidden rounded-2xl flex flex-col" style="background:var(--bg-card);opacity:1;box-shadow:var(--sh3)">
       <div class="px-5 py-4 flex items-start justify-between gap-3" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
         <div class="min-w-0">
           <div class="text-[10px] font-bold tracking-[0.16em]" style="color:var(--accent)">{{ webUpdateAnnouncement.badge }}</div>
@@ -3919,7 +4201,8 @@
           <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-ghost text-sm px-4 py-2">取消</button>
           <button @click="handleNewBookConfirm" class="btn-ghost text-sm px-4 py-2" title="不调用 AI，主题和书名都可以留空">仅创建空书</button>
           <button @click="startOneKeyGeneration" :disabled="!newBookForm.theme||!oneKeyGenerationReady"
-                  class="btn-primary text-sm px-5 py-2" :style="(!newBookForm.theme||!oneKeyGenerationReady)?'opacity:.5':''">🚀 开始生成</button>
+                  class="btn-primary text-sm px-5 py-2" :style="(!newBookForm.theme||!oneKeyGenerationReady)?'opacity:.5':''"
+                  :title="!newBookForm.theme ? '先填写上面的「主题/题材」' : (!oneKeyGenerationReady ? '还没有可用的写作模型：到「全局设置 → 连接中心」添加配置并分配给正文模块' : '按当前设定一次生成设定、大纲与开篇')">🚀 开始生成</button>
         </template>
         <template v-else-if="oneKeyPhase==='generating'">
           <button @click="interruptOneKey" class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--warn);color:white">⏸ 中断（保留已生成内容）</button>
@@ -3956,7 +4239,8 @@
       <div class="px-5 pb-5 flex justify-end gap-2">
         <button type="button" data-moyun-modal-close @click="requestCloseAiCharacterModal" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">取消</button>
         <button @click="generateAiCharacter()" :disabled="!aiCharDesc||isGeneratingChar"
-                class="btn-primary text-sm px-5 py-2" :style="(!aiCharDesc||isGeneratingChar)?'opacity:.5':''"><span v-if="isGeneratingChar" class="loading-spinner"></span>生成角色</button>
+                class="btn-primary text-sm px-5 py-2" :style="(!aiCharDesc||isGeneratingChar)?'opacity:.5':''"
+                :title="isGeneratingChar ? '正在生成角色，请等待本次请求完成' : (!aiCharDesc ? '先在上面写一句角色描述' : '按描述生成角色草案')"><span v-if="isGeneratingChar" class="loading-spinner"></span>生成角色</button>
       </div>
     </div>
   </div>
@@ -3997,8 +4281,8 @@
       </div>
       <div class="px-5 pb-5 flex justify-end gap-2">
         <button type="button" data-moyun-modal-close @click="requestCloseCharPreview" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">取消</button>
-        <button @click="generateAiCharacter()" :disabled="isGeneratingChar" class="btn-ghost text-sm px-4 py-2">重新生成</button>
-        <button @click="confirmAiCharacter()" :disabled="isGeneratingChar" class="btn-primary text-sm px-5 py-2">确认添加</button>
+        <button @click="generateAiCharacter()" :disabled="isGeneratingChar" :title="isGeneratingChar ? '正在生成角色，请等本次请求结束' : '丢掉这份预览，按原描述重新生成'" class="btn-ghost text-sm px-4 py-2">重新生成</button>
+        <button @click="confirmAiCharacter()" :disabled="isGeneratingChar" :title="isGeneratingChar ? '正在生成角色，请等本次请求结束' : '进入字段审阅，确认后才写入角色表'" class="btn-primary text-sm px-5 py-2">确认添加</button>
       </div>
     </div>
   </div>
@@ -4029,6 +4313,7 @@
       <div class="px-5 pb-5 flex justify-end gap-2">
         <button type="button" data-moyun-modal-close @click="requestCloseBatchCharacterModal" :disabled="isGeneratingBatch" class="btn-ghost text-sm px-4 py-2">取消</button>
         <button @click="generateBatchCharacters()" :disabled="isGeneratingBatch||!isModuleRequestReady('character')"
+                :title="!isModuleRequestReady('character') ? '先在设置里配置「角色」模块的 API' : (isGeneratingBatch ? '正在批量生成，请稍候' : '按上面的数量和要求生成角色草案')"
                 class="text-sm px-5 py-2 rounded-lg font-semibold" style="background:var(--warn);color:white"
                 :style="(isGeneratingBatch||!isModuleRequestReady('character'))?'opacity:.5':''"><span v-if="isGeneratingBatch" class="loading-spinner"></span>开始生成</button>
       </div>
@@ -4123,8 +4408,10 @@
       <div class="px-4 md:px-5 py-3 flex items-center justify-end gap-2 flex-wrap shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(12px + env(safe-area-inset-bottom))">
         <template v-if="characterDraftReview.status==='review'">
           <button type="button" data-moyun-modal-close @click="requestCloseCharacterDraftReview" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">放弃草案</button>
-          <button type="button" @click="applyCharacterAiDraft({onlyFill:true})" :disabled="characterDraftCounts.safe===0 || characterDraftReview.status==='applying'" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">全部仅补空应用</button>
-          <button type="button" data-character-draft-apply @click="applyCharacterAiDraft()" :disabled="characterDraftCounts.accepted===0 || characterDraftReview.status==='applying'" class="btn-primary text-sm px-5 py-2" style="min-height:44px"><span v-if="characterDraftReview.status==='applying'" class="loading-spinner"></span>应用已接受 {{ characterDraftCounts.accepted }} 项</button>
+          <button type="button" @click="applyCharacterAiDraft({onlyFill:true})" :disabled="characterDraftCounts.safe===0 || characterDraftReview.status==='applying'" class="btn-ghost text-sm px-4 py-2" style="min-height:44px"
+                  :title="characterDraftCounts.safe===0 ? '本次候选里没有「只补空白」的项：要么字段本来就有内容，要么关系没指向稳定角色' : (characterDraftReview.status==='applying' ? '正在写入角色，请稍候' : '只写入新增和补空类候选，不覆盖已有内容')">全部仅补空应用</button>
+          <button type="button" data-character-draft-apply @click="applyCharacterAiDraft()" :disabled="characterDraftCounts.accepted===0 || characterDraftReview.status==='applying'" class="btn-primary text-sm px-5 py-2" style="min-height:44px"
+                  :title="characterDraftCounts.accepted===0 ? '还没有勾选任何候选项：替换已有内容的候选默认是拒绝状态，需要手动勾选' : (characterDraftReview.status==='applying' ? '正在写入角色，请稍候' : '把已勾选的候选写入角色')"><span v-if="characterDraftReview.status==='applying'" class="loading-spinner"></span>应用已接受 {{ characterDraftCounts.accepted }} 项</button>
         </template>
         <template v-else-if="characterDraftReview.status!=='generating'">
           <button type="button" data-moyun-modal-close data-character-draft-primary @click="requestCloseCharacterDraftReview" class="btn-primary text-sm px-5 py-2" style="min-height:44px">关闭</button>
@@ -4433,8 +4720,12 @@
             <div v-if="expandedConnectionProfileId===profile.id" class="pt-2 space-y-2" style="border-top:1px solid var(--bd)">
               <div class="text-[10px] break-all" style="color:var(--tx3)">地址：{{ profile.baseUrl || '未填写' }}</div>
               <div class="text-[10px]" style="color:var(--tx3)">默认模型：{{ profile.defaultModel || '未填写' }}</div>
-              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="deriveConnectionProfile(profile.id)" :disabled="!getConnectionProfileStatus(profile).ok" class="px-2 py-1 rounded text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2)" title="复用当前协议、地址与本机密钥，新建独立模型配置">派生模型</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
+              <div class="flex flex-wrap gap-2"><button type="button" @click="setDefaultConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">设为默认</button><button type="button" @click="deriveConnectionProfile(profile.id)" :disabled="!getConnectionProfileStatus(profile).ok" class="px-2 py-1 rounded text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2)" :title="!getConnectionProfileStatus(profile).ok ? ('这个配置还不可用（' + getConnectionProfileStatus(profile).label + '），先补齐地址、密钥和默认模型') : '复用当前协议、地址与本机密钥，新建独立模型配置'">派生模型</button><button type="button" @click="duplicateConnectionProfile(profile.id);saveDataNow('复制 API 配置');showToast('已复制配置，密钥未复制','success')" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">复制</button><button type="button" @click="toggleConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--bd);color:var(--tx2)">{{ profile.enabled ? '停用' : '启用' }}</button><button type="button" @click="deleteConnectionProfile(profile.id)" class="px-2 py-1 rounded text-[10px]" style="border:1px solid var(--err);color:var(--err)">删除</button></div>
             </div>
+          </div>
+          <div class="p-3 rounded-xl text-[10px] leading-relaxed flex items-center justify-between gap-2" style="background:var(--bg-inset);border:1px dashed var(--bd);color:var(--tx3)">
+            <span>配好模型后，别忘了到「上下文」页签底部，为正文 / 大纲 / 总结等模块分别分配模型。</span>
+            <button type="button" @click="activeSettingsTab='context'" class="btn-ghost text-[10px] px-2 py-1 shrink-0" style="color:var(--accent)">去分配模块 →</button>
           </div>
         </div>
 
@@ -4517,12 +4808,6 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><br><span class="text-[10px]" style="color:var(--tx3)">每章AI生成的模拟评论条数</span></div>
-            <input type="number" v-model.number="settings.commentCount" @change="saveData()" min="3" max="20"
-                   class="input-field text-center" style="width:80px;height:32px">
-          </div>
-
           <div class="divider"></div>
 
           <div class="flex items-center justify-between py-2">
@@ -4530,16 +4815,32 @@
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
+
+          <div class="divider"></div>
+
           <div class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">书评随正文生成</span><br><span class="text-[10px]" style="color:var(--tx3)">书评与正文合并为一次API调用，节省费用</span></div>
-            <div @click="settings.commentInline=!settings.commentInline;saveData()"
-                 class="toggle-track" :class="settings.commentInline?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
-          </div>
-		  
-          <div class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">书评团功能</span></div>
+            <div class="pr-3">
+              <span class="text-sm font-bold" style="color:var(--tx)">书评团功能</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">总开关，默认关闭。开启后：正文右上角出现「书评团」入口（吃瓜群众 / 十年老书虫 / 金牌主编三人格点评全书），章节底部出现「生成本章书评」，并且每写完一章会自动为该章生成模拟读者评论——这些都会各自发起真实模型调用。</span>
+            </div>
             <div @click="settings.enableReviewer=!settings.enableReviewer;saveData()"
-                 class="toggle-track" :class="settings.enableReviewer?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+                 class="toggle-track shrink-0" :class="settings.enableReviewer?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+            <div class="pr-3">
+              <span class="text-sm font-bold" style="color:var(--tx)">书评随正文生成</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '本章评论与正文合并为一次 API 调用，节省费用' : '需先开启上方「书评团功能」才会生效' }}</span>
+            </div>
+            <div @click="settings.enableReviewer ? (settings.commentInline=!settings.commentInline, saveData()) : showToast('请先开启上方「书评团功能」','info')"
+                 class="toggle-track shrink-0" :class="settings.commentInline?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+            <div class="pr-3">
+              <span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '每章自动生成的模拟读者评论条数' : '需先开启上方「书评团功能」才会生效' }}</span>
+            </div>
+            <input type="number" v-model.number="settings.commentCount" @change="saveData()" min="3" max="20" :disabled="!settings.enableReviewer"
+                   class="input-field text-center shrink-0" style="width:80px;height:32px">
           </div>
 
           <div class="flex items-center justify-between py-2">
@@ -4556,16 +4857,17 @@
           <div class="divider"></div>
           <div class="divider"></div>
           <label class="label">AI 生成字数控制</label>
-          <div class="text-[10px] mb-3" style="color:var(--tx4)">字数为参考值，AI实际输出可能略有偏差</div>
+          <div class="text-[10px] mb-3" style="color:var(--tx4)">字数为参考值，AI实际输出可能略有偏差。这几项只管各自那份文本有多长，都<b>不影响正文长度</b>；正文字数在写作页的「本章目标字数」里设。</div>
           <div class="space-y-2">
             <div class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">大纲字数</span>
-              <input type="number" v-model.number="settings.aiWordCount_outline" @change="saveData()" min="500" max="10000" step="500" class="input-field text-center" style="width:80px;height:30px">
+              <input type="number" v-model.number="settings.aiWordCount_outline" @change="saveData()" min="500" max="10000" step="500" class="input-field text-center" style="width:80px;height:30px" title="大纲文本本身的长度，不是正文字数">
             </div>
             <div class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">细纲字数</span>
-              <input type="number" v-model.number="settings.aiWordCount_detailedOutline" @change="saveData()" min="500" max="20000" step="500" class="input-field text-center" style="width:80px;height:30px">
+              <input type="number" v-model.number="settings.aiWordCount_detailedOutline" @change="saveData()" min="500" max="20000" step="500" class="input-field text-center" style="width:80px;height:30px" title="全部细纲文本合计的长度，会按本批章数平摊；不是正文字数">
             </div>
+            <div class="text-[10px] -mt-1 mb-1 leading-relaxed" style="color:var(--tx4)">细纲字数是<b>所有章细纲合计</b>的长度，生成时按本批章数平摊。它和正文字数无关：细纲里若出现「字数控制在X字」，写作时会被忽略。</div>
             <div class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">建议字数</span>
               <input type="number" v-model.number="settings.aiWordCount_suggestion" @change="saveData()" min="30" max="500" step="10" class="input-field text-center" style="width:80px;height:30px">
@@ -4616,7 +4918,7 @@
         <div v-show="activeSettingsTab==='editable'" id="settings-panel-editable" role="tabpanel" aria-labelledby="settings-tab-editable" class="space-y-4">
           <!-- 中文注释：把分散在各模块里的可编辑配置集中到一个页签，方便不懂代码的用户统一修改。 -->
           <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
-            <div class="text-xs font-bold mb-2" style="color:var(--tx)">书籍设定（集中编辑）</div>
+            <div class="text-xs font-bold mb-2" style="color:var(--tx)">书籍设定（集中修改书名/简介/世界观/负面词）</div>
             <div class="space-y-2">
               <input v-model="novel.title" @change="saveData()" placeholder="书名" class="input-field text-xs">
               <textarea v-model="novel.synopsis" @change="saveData()" rows="3" placeholder="作品简介" class="textarea-field text-xs"></textarea>
@@ -4758,7 +5060,7 @@
                     </div>
                     <div v-for="(mod, modi) in modPacks" :key="mod.id" class="card overflow-hidden">
                       <div class="flex items-center gap-2 px-3 py-2" style="border-bottom:1px solid var(--bd)">
-                        <button type="button" @click="mod.enabled=!mod.enabled;saveData()"
+                        <button type="button" @click="toggleModEnabled(mod)"
                              class="w-5 h-5 p-0 rounded shrink-0 flex items-center justify-center text-xs border cursor-pointer"
                              :style="mod.enabled?'background:var(--ok);color:white;border-color:var(--ok)':'background:var(--bg-inset);color:var(--tx4);border-color:var(--bd)'"
                              :aria-pressed="mod.enabled ? 'true' : 'false'" :aria-label="(mod.enabled ? '停用插件：' : '启用插件：') + (mod.name || '未命名插件')" :title="mod.enabled ? '停用插件' : '启用插件'">
@@ -4813,7 +5115,7 @@
                             <input :value="fkey" @change="renameModFeature(mod, fkey, $event.target.value)" placeholder="功能Key" class="input-field text-[9px] font-mono" style="height:24px;padding:0 6px">
                             <input v-model="feature.title" @change="saveData()" placeholder="显示名" class="input-field text-[9px]" style="height:24px;padding:0 6px">
                             <div @click="feature.enabled=!feature.enabled;saveData()" class="w-5 h-5 rounded flex items-center justify-center text-[8px] cursor-pointer" :style="feature.enabled!==false?'background:var(--ok);color:white':'background:var(--bg-card);color:var(--tx4);border:1px solid var(--bd)'">{{ feature.enabled!==false ? '✓' : '' }}</div>
-                            <button @click="deleteModFeature(mod, fkey)" class="text-[9px]" style="color:var(--err)" :aria-label="'删除 MOD 功能：'+(feature.title || fkey)" title="删除 MOD 功能">✕</button>
+                            <button @click="deleteModFeature(mod, fkey)" class="text-[9px] moyun-compact-tap" style="color:var(--err)" :aria-label="'删除 MOD 功能：'+(feature.title || fkey)" title="删除 MOD 功能">✕</button>
                           </div>
                           <div v-if="!Object.keys(mod.features||{}).length" class="text-[9px]" style="color:var(--tx4)">没有声明功能时，该 MOD 会作为纯规则包使用。</div>
                         </div>
@@ -4949,6 +5251,7 @@
                               </div>
                               <div class="flex gap-1 shrink-0 flex-wrap justify-end">
                                 <button @click="runModWorkflow(mod, flow)" :disabled="isModWorkflowRunning(mod, flow)" class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background:var(--accent-soft);color:var(--accent)">{{ isModWorkflowRunning(mod, flow) ? '运行中' : '运行' }}</button>
+                                <button v-if="canResumeModWorkflow(mod, flow)" @click="resumeModWorkflow(mod, flow)" :disabled="isModWorkflowRunning(mod, flow)" :title="isModWorkflowRunning(mod, flow) ? '这个流程正在运行，请等它结束' : '从上次失败的那一步继续，不重跑已完成的步骤'" class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">从失败步骤继续</button>
                                 <button @click="clearModWorkflowRuns(mod, flow)" class="text-[8px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)">清空</button>
                               </div>
                             </div>
@@ -5097,7 +5400,7 @@
                               <select v-model="rule.position" @change="saveData()" class="select-field text-[9px] py-0" style="height:22px">
                                 <option v-for="pos in MOD_RULE_POSITIONS" :key="pos.key" :value="pos.key">{{ pos.name }}</option>
                               </select>
-                              <button @click="mod.rules.splice(ri,1);saveData()" class="text-[9px]" style="color:var(--err)" :aria-label="'删除 MOD 规则：'+(rule.name || (ri+1))" title="删除 MOD 规则">✕</button>
+                              <button @click="mod.rules.splice(ri,1);saveData()" class="text-[9px] moyun-compact-tap" style="color:var(--err)" :aria-label="'删除 MOD 规则：'+(rule.name || (ri+1))" title="删除 MOD 规则">✕</button>
                             </div>
                             <textarea v-model="rule.content" @change="saveData()" rows="2"
                                       placeholder="规则内容..." class="textarea-field text-[10px]" style="min-height:40px"></textarea>
@@ -5314,7 +5617,9 @@
           <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
           <div v-if="getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" role="alert" class="text-[10px] leading-relaxed" style="color:var(--err)">{{ getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl) }}</div>
           <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel" class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
+          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel"
+        :title="!connectionProfileDraft.defaultModel ? '先填写左边的「默认模型」，或用下面的「获取模型列表」挑一个' : (connectionProfileTesting ? '正在验证，请稍候' : '用当前协议、地址和密钥验证这个模型是否可用')"
+        class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
@@ -5325,7 +5630,7 @@
           <div v-if="connectionProfileDraftError && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileDraftError }}</div>
           <div v-if="connectionProfileTestResult.detail" class="text-[10px]" :style="connectionProfileTestResult.status==='ok'?'color:var(--ok)':'color:var(--tx3)'">连接：{{ connectionProfileTestResult.detail }}</div>
           <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
-          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
+          <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" :title="connectionProfileTesting ? '正在测试连接，等结果出来再保存' : '保存这份 API 配置（密钥只留在本机）'" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
         </div>
       </div>
 
@@ -5411,6 +5716,7 @@
           <template v-if="aiEditPhase==='select'">
             <button type="button" data-moyun-modal-close @click="requestCloseAiEditModal" :disabled="isAiEditing" class="btn-ghost text-xs px-4 py-2">取消</button>
             <button @click="executeAiEdit" :disabled="isAiEditing||aiEditParagraphs.filter(p=>p.selected).length===0"
+                    :title="aiEditParagraphs.filter(p=>p.selected).length===0 ? '先勾选要改写的段落（上面每段左侧的复选框）' : (isAiEditing ? '正在改写，请稍候' : '按上面的指令改写已勾选的段落')"
                     class="btn-primary text-xs px-5 py-2" :style="isAiEditing?'opacity:.5':''">
               {{ isAiEditing ? 'AI修改中...' : 'AI修改' }}
             </button>
@@ -5597,7 +5903,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=300ad27fa477"></script>
+<script src="./assets/js/moyun.js?v=46d3b81ba63f"></script>
 <!-- PART_1_END -->
 </body>
 </html>
