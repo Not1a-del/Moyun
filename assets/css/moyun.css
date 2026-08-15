@@ -688,17 +688,21 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-event-fields.three{grid-template-columns:minmax(0,1fr) 150px 170px}
 .moyun-event-fields .full{grid-column:1 / -1}
 .moyun-event-link-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.moyun-event-check-list{max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:9px;background:var(--bg-inset)}
-.moyun-event-check-list label{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--tx2);cursor:pointer}
-.moyun-event-check-list label:last-of-type{border-bottom:0}
-.moyun-event-check-list input{width:17px;height:17px;accent-color:var(--accent);flex:0 0 auto}
+.moyun-pick-list,.moyun-event-check-list{max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:9px;background:var(--bg-card)}
+.moyun-pick-list label,.moyun-event-check-list label{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--tx2);cursor:pointer}
+.moyun-pick-list label:last-of-type,.moyun-event-check-list label:last-of-type{border-bottom:0}
+.moyun-pick-list label:has(input:checked),.moyun-event-check-list label:has(input:checked){background:var(--accent-soft);color:var(--tx)}
+.moyun-pick-list input,.moyun-event-check-list input{width:17px;height:17px;accent-color:var(--accent);flex:0 0 auto}
+.moyun-pick-empty{padding:14px 12px;text-align:center;font-size:11px;line-height:1.55;color:var(--tx4)}
+.moyun-pick-meta{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.moyun-preview-empty{min-height:72px;display:flex;align-items:center;justify-content:center;padding:14px 16px;border:1px dashed var(--bd);border-radius:12px;background:transparent;text-align:center;font-size:12px;line-height:1.65;color:var(--tx4)}
 .moyun-event-jumps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
 .moyun-event-jump,.moyun-event-return{
   min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:9px;
   border:1px solid color-mix(in srgb,var(--accent) 30%,var(--bd));background:var(--bg-card);color:var(--accent);font-size:10px;font-weight:800;
 }
 .moyun-event-jump:hover,.moyun-event-return:hover{background:var(--accent-soft);border-color:var(--accent)}
-.moyun-event-empty{padding:36px 16px;text-align:center;border:1px dashed var(--bd);border-radius:11px;background:var(--bg-inset);font-size:11px;line-height:1.6;color:var(--tx4)}
+.moyun-event-empty{padding:36px 16px;text-align:center;border:1px dashed var(--bd);border-radius:11px;background:transparent;font-size:11px;line-height:1.6;color:var(--tx4)}
 .moyun-lf-panel{padding:10px;display:flex;flex-direction:column;gap:10px}
 .moyun-lf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .moyun-lf-title{font-size:11px;font-weight:900;color:var(--tx2)}
@@ -807,9 +811,10 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-character-delete{width:30px;height:30px;flex:0 0 30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:var(--err-soft);color:var(--err);font-size:16px;font-weight:800}
 .moyun-character-empty{padding:10px 0;text-align:center;font-size:11px;color:var(--tx4)}
 .moyun-character-association-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.moyun-character-check-list{max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:8px;background:var(--bg-inset)}
+.moyun-character-check-list{max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:8px;background:var(--bg-card)}
 .moyun-character-check-list label{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 10px;border-bottom:1px solid var(--bd);font-size:11px;color:var(--tx2);cursor:pointer}
 .moyun-character-check-list label:last-of-type{border-bottom:0}
+.moyun-character-check-list label:has(input:checked){background:var(--accent-soft);color:var(--tx)}
 .moyun-character-check-list input{width:16px;height:16px;accent-color:var(--accent);flex:0 0 auto}
 .moyun-character-mobile-picker{position:sticky;top:0;z-index:3;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:0 0 10px;background:var(--bg)}
 .moyun-character-mobile-picker select{width:100%}
@@ -1238,6 +1243,29 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   /* 底栏的「本章目标字数」「生成章节数」是写正文前最常改的两个下拉，此前只有 28px。 */
   [data-moyun-region="composer"] select{min-height:44px}
 }
+[data-moyun-modal="web-update-announcement"] .moyun-announce-stack{display:flex;flex-direction:column;gap:10px}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-lead{
+  margin:0;padding:12px 14px;border-radius:12px;background:var(--accent-soft);
+  color:var(--tx2);font-size:13px;line-height:1.7;font-weight:600
+}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-group{
+  display:flex;flex-direction:column;gap:4px;margin:6px 0 2px;padding-top:12px;border-top:1px solid var(--bd)
+}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-group:first-of-type{padding-top:2px;border-top:0}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-group-title{
+  margin:0;font-size:11px;font-weight:900;letter-spacing:.18em;color:var(--accent)
+}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-group-desc{
+  margin:0;font-size:12px;line-height:1.65;color:var(--tx3)
+}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item{
+  margin:0;padding:12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--bg)
+}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item[data-announce-tone="extra"]{border-left:3px solid var(--warn)}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item[data-announce-tone="new"]{border-left:3px solid var(--accent)}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item[data-announce-tone="fix"]{border-left:3px solid var(--ok)}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item h4{margin:0;font-size:13px;line-height:1.45;font-weight:800;color:var(--tx)}
+[data-moyun-modal="web-update-announcement"] .moyun-announce-item p{margin:6px 0 0;font-size:13px;line-height:1.7;color:var(--tx2)}
 /* 只放一个窄符号的按钮（✕ 删除示例台词/角色关系/MOD 条目、角色卡展开收起、白鸟浮窗关闭）
    宽度完全由字宽决定，实测移动端只有 8px；桌面保留紧凑尺寸，移动端统一抬到 44px。 */
 .moyun-char-card-toggle{min-width:36px;min-height:36px}

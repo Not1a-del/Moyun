@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=cda0a2ebf142">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=b0bf5f925f9f">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -706,9 +706,9 @@
         <div><span class="text-sm font-bold" style="color:var(--tx)">打开大纲工作台</span><br><span class="text-[10px]" style="color:var(--tx3)">在右侧大屏编辑故事大纲</span></div>
         <div aria-hidden="true" class="toggle-track" :class="showOutlineInMain?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
       </button>
-      <button v-if="showOutlineInMain && !isMobile" type="button" @click="toggleOutlineSplitScreen()" :aria-pressed="splitScreen" data-moyun-entry="outline-split"
+      <button v-if="!isMobile" type="button" @click="toggleOutlineSplitScreen()" :aria-pressed="splitScreen" data-moyun-entry="outline-split"
               class="card moyun-entry-card p-3 flex items-center justify-between">
-        <div><span class="text-sm font-bold" style="color:var(--tx)">左右分栏</span><br><span class="text-[10px]" style="color:var(--tx3)">同时看大纲和正文</span></div>
+        <div><span class="text-sm font-bold" style="color:var(--tx)">左右分栏</span><br><span class="text-[10px]" style="color:var(--tx3)">大纲或细纲打开时与正文并排；关掉工作台后仍记住这个选择</span></div>
         <div aria-hidden="true" class="toggle-track" :class="splitScreen?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
       </button>
       <!-- 细纲入口 -->
@@ -1239,17 +1239,17 @@
               <div class="moyun-event-link-grid">
                 <div>
                   <div class="label">参与角色</div>
-                  <div class="moyun-event-check-list" data-story-event-character-list><label v-for="character in structuredCharacters" :key="character.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('character',character.id)" @change="toggleStoryBibleEventAssociation('character',character.id)"><span>{{ character.name || '未命名角色' }}</span></label><div v-if="!structuredCharacters.length" class="moyun-event-empty">尚无角色。</div></div>
+                  <div class="moyun-event-check-list" data-moyun-pick="event-characters" data-story-event-character-list><label v-for="character in structuredCharacters" :key="character.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('character',character.id)" @change="toggleStoryBibleEventAssociation('character',character.id)"><span>{{ character.name || '未命名角色' }}</span></label><div v-if="!structuredCharacters.length" class="moyun-event-empty">尚无角色。</div></div>
                   <div v-if="getStoryBibleEventLinkedCharacters(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="character in getStoryBibleEventLinkedCharacters(selectedStoryBibleEvent)" :key="character.id" type="button" @click="openStoryBibleEventCharacter(character.id)" class="moyun-event-jump">打开 {{ character.name || '未命名角色' }}</button></div>
                 </div>
                 <div>
                   <div class="label">关联世界资料</div>
-                  <div class="moyun-event-check-list" data-story-event-entry-list><label v-for="entry in storyBibleEntries" :key="entry.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('entry',entry.id)" @change="toggleStoryBibleEventAssociation('entry',entry.id)"><span>{{ entry.name || '未命名条目' }}</span></label><div v-if="!storyBibleEntries.length" class="moyun-event-empty">尚无资料条目。</div></div>
+                  <div class="moyun-event-check-list" data-moyun-pick="event-entries" data-story-event-entry-list><label v-for="entry in storyBibleEntries" :key="entry.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('entry',entry.id)" @change="toggleStoryBibleEventAssociation('entry',entry.id)"><span>{{ entry.name || '未命名条目' }}</span></label><div v-if="!storyBibleEntries.length" class="moyun-event-empty">尚无资料条目。</div></div>
                   <div v-if="getStoryBibleEventLinkedEntries(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="entry in getStoryBibleEventLinkedEntries(selectedStoryBibleEvent)" :key="entry.id" type="button" @click="openStoryBibleEventEntry(entry.id)" class="moyun-event-jump">打开 {{ entry.name || '未命名条目' }}</button></div>
                 </div>
                 <div>
                   <div class="label">关联正文章节</div>
-                  <div class="moyun-event-check-list" data-story-event-chapter-list><label v-for="chapter in chapters" :key="chapter.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('chapter',chapter.id)" @change="toggleStoryBibleEventAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!chapters.length" class="moyun-event-empty">尚无章节。</div></div>
+                  <div class="moyun-event-check-list" data-moyun-pick="event-chapters" data-story-event-chapter-list><label v-for="chapter in chapters" :key="chapter.id"><input type="checkbox" :checked="isStoryBibleEventAssociationLinked('chapter',chapter.id)" @change="toggleStoryBibleEventAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!chapters.length" class="moyun-event-empty">尚无章节。</div></div>
                   <div v-if="getStoryBibleEventLinkedChapters(selectedStoryBibleEvent).length" class="moyun-event-jumps"><button v-for="chapter in getStoryBibleEventLinkedChapters(selectedStoryBibleEvent)" :key="chapter.id" type="button" @click="openStoryBibleEventChapter(chapter.id)" class="moyun-event-jump">定位 {{ getCharacterChapterLabel(chapter.id) }}</button></div>
                 </div>
               </div>
@@ -1293,12 +1293,38 @@
                 <label class="card p-3 block"><span class="label">上下文策略</span><select v-model="selectedStoryBibleEntry.contextPolicy" @change="touchSelectedStoryBibleEntry" class="select-field"><option value="auto">自动候选</option><option value="always">全局规则</option><option value="pinned">策略钉选</option><option value="never">不进入</option></select><div class="text-[10px] mt-2" style="color:var(--tx4)">影响安全预览，以及正文续写、AI 建议、全书大纲和细纲生成的实际注入。</div></label>
               </div>
               <div class="card p-3 space-y-4">
-                <div><div class="label mb-1">关联资料条目</div><div class="text-[10px] mb-2" style="color:var(--tx4)">可多选；关联项可成为一跳候选，仍受上下文模式与预算控制。</div><select v-model="selectedStoryBibleEntry.links" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="item in storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id)" :key="item.id" :value="item.id">{{ item.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(item.type) }}</option></select></div>
-                <div><div class="label mb-1">关联角色</div><div class="text-[10px] mb-2" style="color:var(--tx4)">使用现有角色 ID；角色改名或重排不会断开。</div><select v-model="selectedStoryBibleEntry.characterIds" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></div>
                 <div>
-                  <div class="label mb-1">关联细纲</div>
-                  <div class="text-[10px] mb-2" style="color:var(--tx4)">使用稳定细纲 ID；正文续写和 AI 建议按目标章选取，全书大纲不会误读单章关联。</div>
-                  <select v-model="selectedStoryBibleEntry.outlineIds" @change="touchSelectedStoryBibleEntry" multiple size="4" class="select-field text-xs w-full"><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ outline.title || '未命名细纲' }}</option></select>
+                  <div class="moyun-pick-meta"><div class="label mb-0">关联资料条目</div><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (selectedStoryBibleEntry.links||[]).length }}</span></div>
+                  <div class="text-[10px] mb-2" style="color:var(--tx4)">点选即可多选。关联项可成为一跳候选，仍受上下文模式与预算控制。</div>
+                  <div class="moyun-pick-list" data-moyun-pick="entry-links" role="group" aria-label="关联资料条目">
+                    <label v-for="item in storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id)" :key="item.id">
+                      <input type="checkbox" :checked="isStoryBibleIdPicked(selectedStoryBibleEntry.links, item.id)" @change="toggleStoryBibleIdPick(selectedStoryBibleEntry, 'links', item.id, touchSelectedStoryBibleEntry)">
+                      <span>{{ item.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(item.type) }}</span>
+                    </label>
+                    <div v-if="storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id).length===0" class="moyun-pick-empty">还没有其他资料条目可关联。</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="moyun-pick-meta"><div class="label mb-0">关联角色</div><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (selectedStoryBibleEntry.characterIds||[]).length }}</span></div>
+                  <div class="text-[10px] mb-2" style="color:var(--tx4)">点选即可多选。使用现有角色 ID；角色改名或重排不会断开。</div>
+                  <div class="moyun-pick-list" data-moyun-pick="entry-characters" role="group" aria-label="关联角色">
+                    <label v-for="character in structuredCharacters" :key="character.id">
+                      <input type="checkbox" :checked="isStoryBibleIdPicked(selectedStoryBibleEntry.characterIds, character.id)" @change="toggleStoryBibleIdPick(selectedStoryBibleEntry, 'characterIds', character.id, touchSelectedStoryBibleEntry)">
+                      <span>{{ character.name || '未命名角色' }}</span>
+                    </label>
+                    <div v-if="!structuredCharacters.length" class="moyun-pick-empty">还没有角色可关联。</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="moyun-pick-meta"><div class="label mb-0">关联细纲</div><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (selectedStoryBibleEntry.outlineIds||[]).length }}</span></div>
+                  <div class="text-[10px] mb-2" style="color:var(--tx4)">点选即可多选。使用稳定细纲 ID；正文续写和 AI 建议按目标章选取，全书大纲不会误读单章关联。</div>
+                  <div class="moyun-pick-list" data-moyun-pick="entry-outlines" role="group" aria-label="关联细纲">
+                    <label v-for="outline in chapterOutlines" :key="outline.id">
+                      <input type="checkbox" :checked="isStoryBibleIdPicked(selectedStoryBibleEntry.outlineIds, outline.id)" @change="toggleStoryBibleIdPick(selectedStoryBibleEntry, 'outlineIds', outline.id, touchSelectedStoryBibleEntry)">
+                      <span>{{ outline.title || '未命名细纲' }}</span>
+                    </label>
+                    <div v-if="!chapterOutlines.length" class="moyun-pick-empty">还没有细纲可关联。</div>
+                  </div>
                   <div v-if="getStoryBibleEntryLinkedOutlines(selectedStoryBibleEntry).length" class="moyun-c3-jump-list">
                     <button v-for="outline in getStoryBibleEntryLinkedOutlines(selectedStoryBibleEntry)" :key="outline.id" type="button" @click="requestOpenDetailedOutline(outline.id,'storyBible')" class="moyun-c3-jump-chip">打开 {{ getDetailedOutlineLabel(outline.id) }}</button>
                   </div>
@@ -1322,7 +1348,7 @@
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <section class="card p-4 space-y-4">
               <div><div class="text-sm font-black" style="color:var(--tx)">预览目标与预算</div><div class="text-[11px] mt-1" style="color:var(--tx3)">使用细纲稳定 ID；改名或重排不会把钉选串到别章。</div></div>
-              <label class="block"><span class="label">目标细纲</span><select :value="storyBible.context.selectedOutlineId" @change="setStoryBibleContextTargetOutline($event.target.value)" class="select-field w-full"><option value="">全书默认（不指定细纲）</option><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ outline.title || '未命名细纲' }}</option></select></label>
+              <label class="block"><span class="label">目标细纲（单选）</span><select :value="storyBible.context.selectedOutlineId" @change="setStoryBibleContextTargetOutline($event.target.value)" class="select-field w-full" data-moyun-pick="context-target-outline"><option value="">全书默认（不指定细纲）</option><option v-for="outline in chapterOutlines" :key="outline.id" :value="outline.id">{{ outline.title || '未命名细纲' }}</option></select></label>
               <div v-if="chapterOutlines.length===0" class="text-[11px] rounded-xl px-3 py-2" style="background:var(--warn-soft);color:var(--warn)">尚无细纲。可以先配置全书默认钉选；创建细纲后再建立本章追加项。</div>
               <div class="grid grid-cols-2 gap-3">
                 <div class="rounded-xl p-3" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="text-[10px]" style="color:var(--tx4)">世界资料预算</div><div class="text-sm font-black mt-1" :style="storyBibleContextPreview.world.overflow?'color:var(--err)':'color:var(--tx)'">{{ storyBibleContextPreview.world.used }} / {{ storyBibleContextPreview.world.budget===null?'不限':storyBibleContextPreview.world.budget }} 字</div></div>
@@ -1340,8 +1366,26 @@
             <section class="card p-4 space-y-4">
               <div><div class="text-sm font-black" style="color:var(--tx)">全书默认钉选</div><div class="text-[11px] mt-1" style="color:var(--tx3)">适合每章都要关注的资料；与条目的“全局规则”策略分别保存。</div></div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <label class="block"><span class="label">资料条目</span><select v-model="storyBible.context.pinnedEntryIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id" :value="entry.id">{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</option></select></label>
-                <label class="block"><span class="label">角色</span><select v-model="storyBible.context.pinnedCharacterIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
+                <div>
+                  <div class="moyun-pick-meta"><span class="label mb-0">资料条目</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (storyBible.context.pinnedEntryIds||[]).length }}</span></div>
+                  <div class="moyun-pick-list" data-moyun-pick="context-pinned-entries" role="group" aria-label="全书默认钉选资料条目">
+                    <label v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id">
+                      <input type="checkbox" :checked="isStoryBibleIdPicked(storyBible.context.pinnedEntryIds, entry.id)" @change="toggleStoryBibleIdPick(storyBible.context, 'pinnedEntryIds', entry.id, touchStoryBibleContext)">
+                      <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</span>
+                    </label>
+                    <div v-if="storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可钉选的资料条目。</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="moyun-pick-meta"><span class="label mb-0">角色</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (storyBible.context.pinnedCharacterIds||[]).length }}</span></div>
+                  <div class="moyun-pick-list" data-moyun-pick="context-pinned-characters" role="group" aria-label="全书默认钉选角色">
+                    <label v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id">
+                      <input type="checkbox" :checked="isStoryBibleIdPicked(storyBible.context.pinnedCharacterIds, character.id)" @change="toggleStoryBibleIdPick(storyBible.context, 'pinnedCharacterIds', character.id, touchStoryBibleContext)">
+                      <span>{{ character.name || '未命名角色' }}</span>
+                    </label>
+                    <div v-if="structuredCharacters.filter(item=>item&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可钉选的角色。</div>
+                  </div>
+                </div>
               </div>
             </section>
           </div>
@@ -1349,14 +1393,32 @@
           <section v-if="storyBible.context.selectedOutlineId && activeStoryBibleOutlinePack" class="card p-4 space-y-4">
             <div><div class="text-sm font-black" style="color:var(--tx)">本细纲追加钉选 · {{ storyBibleContextPreview.targetOutline?.title || '未命名细纲' }}</div><div class="text-[11px] mt-1" style="color:var(--tx3)">只保存在当前细纲的上下文包中；切换细纲后使用各自独立的选择。</div></div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label class="block"><span class="label">追加资料条目</span><select v-model="activeStoryBibleOutlinePack.pinnedEntryIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id" :value="entry.id">{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</option></select></label>
-              <label class="block"><span class="label">追加角色</span><select v-model="activeStoryBibleOutlinePack.pinnedCharacterIds" @change="touchStoryBibleContext" multiple size="5" class="select-field text-xs w-full"><option v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
+              <div>
+                <div class="moyun-pick-meta"><span class="label mb-0">追加资料条目</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (activeStoryBibleOutlinePack.pinnedEntryIds||[]).length }}</span></div>
+                <div class="moyun-pick-list" data-moyun-pick="outline-pinned-entries" role="group" aria-label="本细纲追加钉选资料条目">
+                  <label v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id">
+                    <input type="checkbox" :checked="isStoryBibleIdPicked(activeStoryBibleOutlinePack.pinnedEntryIds, entry.id)" @change="toggleStoryBibleIdPick(activeStoryBibleOutlinePack, 'pinnedEntryIds', entry.id, touchStoryBibleContext)">
+                    <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</span>
+                  </label>
+                  <div v-if="storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可追加的资料条目。</div>
+                </div>
+              </div>
+              <div>
+                <div class="moyun-pick-meta"><span class="label mb-0">追加角色</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (activeStoryBibleOutlinePack.pinnedCharacterIds||[]).length }}</span></div>
+                <div class="moyun-pick-list" data-moyun-pick="outline-pinned-characters" role="group" aria-label="本细纲追加钉选角色">
+                  <label v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id">
+                    <input type="checkbox" :checked="isStoryBibleIdPicked(activeStoryBibleOutlinePack.pinnedCharacterIds, character.id)" @change="toggleStoryBibleIdPick(activeStoryBibleOutlinePack, 'pinnedCharacterIds', character.id, touchStoryBibleContext)">
+                    <span>{{ character.name || '未命名角色' }}</span>
+                  </label>
+                  <div v-if="structuredCharacters.filter(item=>item&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可追加的角色。</div>
+                </div>
+              </div>
             </div>
           </section>
 
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <section class="space-y-3 min-w-0">
-              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">世界资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">全局规则与手动钉选不会因预算静默消失。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.world.items.length }} 项</span></div>
+            <section class="space-y-3 min-w-0" data-moyun-preview="world">
+              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">世界资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">预览结果，不是输入。全局规则与手动钉选不会因预算静默消失。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.world.items.length }} 项</span></div>
               <article v-for="item in storyBibleContextPreview.world.items" :key="item.kind+':'+item.id" class="card p-3 space-y-2">
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   <div class="min-w-0"><div class="text-xs font-black text-truncate" style="color:var(--tx)">{{ item.name }}</div><div class="flex flex-wrap gap-1 mt-1"><span class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" v-for="source in item.sources" :key="source">{{ source }}</span></div></div>
@@ -1365,11 +1427,11 @@
                 <div class="flex items-center justify-between gap-2 text-[10px]"><span :style="item.status==='overflow'?'color:var(--err)':item.status==='downgraded'?'color:var(--warn)':(item.status==='ignored'||item.status==='excluded-budget')?'color:var(--tx4)':'color:var(--ok)'">{{ getStoryBibleContextStatusLabel(item.status) }}</span><span style="color:var(--tx4)">{{ item.charCount ? item.charCount+' 字' : '未计入' }}<template v-if="item.sourceTruncated"> · 已按现有上限截断</template></span></div>
                 <div v-if="item.safeExcerpt" class="text-[11px] leading-relaxed rounded-xl px-3 py-2" style="background:var(--bg-inset);color:var(--tx3);white-space:pre-wrap">{{ item.safeExcerpt }}</div>
               </article>
-              <div v-if="storyBibleContextPreview.world.items.length===0" class="card text-center py-8 text-xs" style="color:var(--tx4)">当前没有世界资料候选。</div>
+              <div v-if="storyBibleContextPreview.world.items.length===0" class="moyun-preview-empty" data-moyun-preview-empty="world">当前没有世界资料候选。这是预览结果，不是输入框。</div>
             </section>
 
-            <section class="space-y-3 min-w-0">
-              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">角色资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">仅使用角色档案白名单字段，不显示角色写作提示词。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.character.items.length }} 项</span></div>
+            <section class="space-y-3 min-w-0" data-moyun-preview="character">
+              <div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">角色资料候选</div><div class="text-[10px] mt-1" style="color:var(--tx4)">预览结果，不是输入。仅使用角色档案白名单字段，不显示角色写作提示词。</div></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ storyBibleContextPreview.character.items.length }} 项</span></div>
               <article v-for="item in storyBibleContextPreview.character.items" :key="item.kind+':'+item.id" class="card p-3 space-y-2">
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   <div class="min-w-0"><div class="text-xs font-black text-truncate" style="color:var(--tx)">{{ item.name }}</div><div class="flex flex-wrap gap-1 mt-1"><span class="text-[9px] px-1.5 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)" v-for="source in item.sources" :key="source">{{ source }}</span></div></div>
@@ -1378,7 +1440,7 @@
                 <div class="flex items-center justify-between gap-2 text-[10px]"><span :style="item.status==='overflow'?'color:var(--err)':item.status==='downgraded'?'color:var(--warn)':(item.status==='ignored'||item.status==='excluded-budget')?'color:var(--tx4)':'color:var(--ok)'">{{ getStoryBibleContextStatusLabel(item.status) }}</span><span style="color:var(--tx4)">{{ item.charCount ? item.charCount+' 字' : '未计入' }}</span></div>
                 <div v-if="item.safeExcerpt" class="text-[11px] leading-relaxed rounded-xl px-3 py-2" style="background:var(--bg-inset);color:var(--tx3);white-space:pre-wrap">{{ item.safeExcerpt }}</div>
               </article>
-              <div v-if="storyBibleContextPreview.character.items.length===0" class="card text-center py-8 text-xs" style="color:var(--tx4)">当前没有角色资料候选。可在上方钉选角色，或让资料条目关联角色。</div>
+              <div v-if="storyBibleContextPreview.character.items.length===0" class="moyun-preview-empty" data-moyun-preview-empty="character">当前没有角色资料候选。可在上方钉选角色，或让资料条目关联角色。这是预览结果，不是输入框。</div>
             </section>
           </div>
         </div>
@@ -1521,10 +1583,10 @@
           <section v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-section" data-character-section="associations">
             <div class="moyun-character-section-head"><div><h3>章节与细纲关联</h3><p>底层只保存稳定 ID；改名和重排不会改变关联对象。</p></div></div>
             <div class="moyun-character-association-grid">
-              <div data-character-field="chapterIds"><div class="label">正文章节</div><div class="moyun-character-check-list"><label v-for="chapter in visibleChapters" :key="chapter.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('chapter',chapter.id)" @change="toggleSelectedCharacterAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!visibleChapters.length" class="moyun-character-empty">尚无章节。</div></div></div>
+              <div data-character-field="chapterIds"><div class="label">正文章节</div><div class="moyun-character-check-list" data-moyun-pick="character-chapters"><label v-for="chapter in visibleChapters" :key="chapter.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('chapter',chapter.id)" @change="toggleSelectedCharacterAssociation('chapter',chapter.id)"><span>{{ getCharacterChapterLabel(chapter.id) }}</span></label><div v-if="!visibleChapters.length" class="moyun-character-empty">尚无章节。</div></div></div>
               <div data-character-field="outlineIds">
                 <div class="label">稳定细纲</div>
-                <div class="moyun-character-check-list"><label v-for="outline in chapterOutlines" :key="outline.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('outline',outline.id)" @change="toggleSelectedCharacterAssociation('outline',outline.id)"><span>{{ getCharacterOutlineLabel(outline.id) }}</span></label><div v-if="!chapterOutlines.length" class="moyun-character-empty">尚无细纲。</div></div>
+                <div class="moyun-character-check-list" data-moyun-pick="character-outlines"><label v-for="outline in chapterOutlines" :key="outline.id"><input type="checkbox" :checked="isSelectedCharacterAssociationLinked('outline',outline.id)" @change="toggleSelectedCharacterAssociation('outline',outline.id)"><span>{{ getCharacterOutlineLabel(outline.id) }}</span></label><div v-if="!chapterOutlines.length" class="moyun-character-empty">尚无细纲。</div></div>
                 <div v-if="getSelectedCharacterLinkedOutlines().length" class="moyun-c3-jump-list">
                   <button v-for="outline in getSelectedCharacterLinkedOutlines()" :key="outline.id" type="button" @click="requestOpenDetailedOutline(outline.id,'character')" class="moyun-c3-jump-chip">打开 {{ getDetailedOutlineLabel(outline.id) }}</button>
                 </div>
@@ -1553,6 +1615,7 @@
 
   <!-- ═════ 大纲面板（主内容区） ═════ -->
   <div v-if="showOutlineInMain"
+       data-moyun-workbench="outline"
        class="moyun-workbench flex flex-col h-full shrink-0 z-10"
        :style="splitScreen
          ? 'width:50%;border-right:1px solid var(--bd)'
@@ -1679,6 +1742,7 @@
 
   <!-- ═════ 细纲面板（主内容区） ═════ -->
   <div v-if="showDetailedOutlineInMain"
+      data-moyun-workbench="detailed-outline"
       class="moyun-workbench flex flex-col h-full shrink-0 z-10"
       :style="splitScreen
         ? 'width:50%;border-right:1px solid var(--bd)'
@@ -3853,12 +3917,18 @@
         </div>
         <button type="button" data-moyun-modal-close @click="dismissWebUpdateAnnouncement" class="moyun-icon-button shrink-0" style="background:var(--bg-card);color:var(--tx3);border:1px solid var(--bd)" aria-label="关闭更新公告" title="关闭">×</button>
       </div>
-      <div class="px-5 py-5 text-sm leading-7 space-y-4 overflow-y-auto" style="color:var(--tx)">
-        <p class="font-medium" style="color:var(--tx2)">{{ webUpdateAnnouncement.message }}</p>
-        <section v-for="section in webUpdateAnnouncement.sections" :key="section.key" class="space-y-1">
-          <h4 class="text-xs font-bold" style="color:var(--tx)">{{ section.title }}</h4>
-          <p style="color:var(--tx2)">{{ section.body }}</p>
-        </section>
+      <div class="px-5 py-5 overflow-y-auto moyun-announce-stack" style="color:var(--tx)">
+        <p class="moyun-announce-lead">{{ webUpdateAnnouncement.message }}</p>
+        <template v-for="section in webUpdateAnnouncement.sections" :key="section.key">
+          <div v-if="section.kind==='group'" class="moyun-announce-group">
+            <h4 class="moyun-announce-group-title">{{ section.title }}</h4>
+            <p v-if="section.body" class="moyun-announce-group-desc">{{ section.body }}</p>
+          </div>
+          <article v-else class="moyun-announce-item" :data-announce-tone="section.tone || ''">
+            <h4>{{ section.title }}</h4>
+            <p v-if="section.body">{{ section.body }}</p>
+          </article>
+        </template>
         <section v-if="webUpdateAnnouncement.supportLink" class="pt-4 space-y-3" style="border-top:1px solid var(--bd)">
           <h4 class="text-sm font-bold" style="color:var(--tx)">{{ webUpdateAnnouncement.supportLink.title }}</h4>
           <p class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.body }}</p>
@@ -4462,7 +4532,7 @@
             </button>
             <button type="button" class="moyun-c3-picker-view" @click="openDetailedOutlinePinnedItem(item.kind,item.id)">查看档案</button>
           </div>
-          <div v-if="filteredDetailedOutlinePinCandidates.length===0" class="card text-center py-10 px-4 text-xs" style="color:var(--tx4)">{{ detailedOutlinePinSearch ? '没有匹配结果。' : (detailedOutlinePinKind==='character' ? '没有可钉选人物；“不进入上下文”的人物不会显示。' : '没有可钉选的已启用资料；草稿、归档和“不进入上下文”的资料不会显示。') }}</div>
+          <div v-if="filteredDetailedOutlinePinCandidates.length===0" class="moyun-preview-empty">{{ detailedOutlinePinSearch ? '没有匹配结果。' : (detailedOutlinePinKind==='character' ? '没有可钉选人物；“不进入上下文”的人物不会显示。' : '没有可钉选的已启用资料；草稿、归档和“不进入上下文”的资料不会显示。') }}</div>
         </div>
       </div>
 
@@ -5903,7 +5973,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=46d3b81ba63f"></script>
+<script src="./assets/js/moyun.js?v=4e3daad5ab70"></script>
 <!-- PART_1_END -->
 </body>
 </html>

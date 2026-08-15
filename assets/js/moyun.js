@@ -46,39 +46,45 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-08-15-1635-0815-update',
+  id: 'web-2026-08-15-1905-0815-update',
   badge: '网页更新',
   title: '0815更新',
-  publishedAt: '2026-08-15 16:35',
-  message: '相对当前线上版本（2026-07-31），下面只写这一轮网页改动：先列新增，再列修复。',
+  publishedAt: '2026-08-15 19:05',
+  message: '相对 2026-07-31 的线上版，下面按「本轮追加 / 新增 / 修复」列出网页改动。今晚补上了创作设定勾选和左右分栏，所以请再看一遍。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'new-reroll', title:'新增：单章重掷', body:'章节新增「重掷本章」。可以原样复用上一次的输入重新生成，也可以改用当前配置重新生成。旧稿只在新稿成功写回后才转为历史稿。' }),
-    Object.freeze({ key:'new-runaway', title:'新增：失控保护与用量提示', body:'正文流式生成超过目标字数约 2.5 倍会中止，并保留已经写出的草稿。本轮用量会记到生成日志；若被截断，提示里会带上本轮 token。' }),
-    Object.freeze({ key:'new-thinking-panel', title:'新增：只产出推演时的中断面板', body:'如果这一轮只产出了推演、正文还没开始，会单独留下推演内容，关掉页面再打开也还在，可以复制。没有正文时不会假装可以「继续生成」。' }),
-    Object.freeze({ key:'new-summary-one', title:'新增：单章重新整理总结', body:'章节总结增加「重新整理这章」：确认后只跑这一章，不会把整批总结重来一遍。' }),
-    Object.freeze({ key:'new-outline-review', title:'新增：大纲修订审阅', body:'大纲 AI 修订不再直接覆盖。可以先看差异再接受；接受后能逐字撤销。不想现在处理可以稍后审阅。待审时侧栏只读，并有待审标记。' }),
-    Object.freeze({ key:'new-detailed-outline', title:'新增：细纲对齐、密度提示与改写撤销', body:'细纲增加一键对齐章号、每章篇幅与正文目标字数的密度提示，以及单章 AI 改写后的撤销。' }),
-    Object.freeze({ key:'new-character', title:'新增：角色删除与字段 AI 停止', body:'角色工作台内置删除入口，会先说明引用影响。字段 AI 在运行中可以停止。' }),
-    Object.freeze({ key:'new-disabled', title:'新增：禁用按钮会说明原因', body:'点不了的按钮会告诉你缺什么，例如没开连接、空书、没选模型。空书时总结、查找全部替换、生成角色、一键开始生成不再是无声的死按钮。' }),
-    Object.freeze({ key:'new-mobile', title:'新增：手机侧栏左右滚与触控区域', body:'侧栏页签可以左右滚，滚到右端后还能滚回来。底栏下拉、窄删除、角色卡展开都补到可点的高度。控制台浮窗的关闭按钮和拖拽把手固定在顶部，滚到底也能关掉，并支持 Esc。' }),
-    Object.freeze({ key:'new-retry', title:'新增：连接被掐会重试', body:'主请求还没读到任何流内容时，短暂的连接失败会自动重试；手动停止不会重试。只产出推演、需要补正文的那一次请求也走重试。流读到一半失败则保留中断草稿。' }),
-    Object.freeze({ key:'new-builtin-prompts', title:'新增：系统内置提示词可编辑', body:'打开 NSFW 模式后，设定页会出现「系统内置提示词」。NSFW 系统核心、校准对话、读者讨论、一键开书和生图模板都可以展开修改，也能恢复默认。' }),
-    Object.freeze({ key:'fix-stop', title:'修复：停止或断线不再抹掉内容', body:'生成中途点停止、连接被掐、看门狗拦住时，已经出现的正文会留下来当中断草稿，不会再整段蒸发。' }),
-    Object.freeze({ key:'fix-draft', title:'修复：不再丢稿，切书切版本先问你', body:'章节还在编辑时切换书籍、切换历史稿或恢复快照，会先问你保留还是放弃。版本操作在未保存修改时也会拦住。切书后重新打开，草稿会回到原来那一章。' }),
-    Object.freeze({ key:'fix-archive', title:'修复：中断草稿进备份，旧存档读得更全', body:'中断草稿（含推演）会跟着备份和快照一起存取。更早的书架格式打开时，章节、草稿和记忆落点会尽量读全。' }),
-    Object.freeze({ key:'fix-tabs', title:'修复：多标签不再互相覆盖整本', body:'两个标签同时打开同一本时，后写入的一侧会先做版本校验、应急备份，并让你选择保留哪一边。' }),
-    Object.freeze({ key:'fix-reroll-dup', title:'修复：重掷失败不再留下重复空历史稿', body:'只有新稿成功写回，旧稿才会归档。中途失败不会再堆一串空的历史稿。' }),
-    Object.freeze({ key:'fix-thinking-body', title:'修复：推演不会再写成正文，流式不再越写越重复', body:'模型把正文写进推理通道时，会尝试救回可见正文，而不是把推演原文塞进章节。流式解析不再把同一段字反复追加。工具时间线默认折叠，推演、思考和工具可以同时在。' }),
-    Object.freeze({ key:'fix-chapter-clean', title:'修复：章首裸章号、标题前冒号、自检行当标题', body:'正文开头单独一行的裸章号会剥掉。标题前多余的冒号、破折号会清掉。模型自检那一套「正文语言 / 字数检查 / 问题」不会再被当成章节标题。' }),
-    Object.freeze({ key:'fix-stream-outline', title:'修复：流式换行被吞、大纲细纲压死字数、书名提取错位', body:'流式输出里的换行不会再被吞掉半行。大纲和细纲不再用「按多少字写」去压正文。一键生成时也不会再把错位的书名写进章节标题。' }),
-    Object.freeze({ key:'fix-memory', title:'修复：记忆检索与总结语言', body:'向量索引和章节总结不再互相挤掉。中文正文按中文检索词去记、去找。总结钉在与正文一致的语言，超长硬切也不会切在单词中间。召回被跳过或查询失败会明确说明，不再静默。' }),
-    Object.freeze({ key:'fix-summary-range', title:'修复：插章删章后总结区间章号乱移', body:'区间总结按覆盖集合收缩章号，而不是把端点胡乱平移。' }),
-    Object.freeze({ key:'fix-outline-mismatch', title:'修复：细纲章号错配会写到错误的一章', body:'细纲章号按实际位置计算；对不上的卡片会标明。关掉「只补空白」也不会再静默覆盖已有内容。删除相关条目会先确认。' }),
-    Object.freeze({ key:'fix-search', title:'修复：有分支不再跳错章', body:'查找结果按章节身份跳转，不再拿全书下标去点当前视图的第 N 章。命中如果在别的分支，列表会标明当前看不见，并提示先切到对应分支。' }),
-    Object.freeze({ key:'fix-version', title:'修复：历史稿改为左旧右新', body:'章节历史稿翻页改为左边更旧、右边更新，列表按时间排。切版本不会抹掉保存时间。' }),
-    Object.freeze({ key:'fix-review', title:'修复：书评默认关闭看起来像坏了', body:'书评总开关默认关闭是有意的，并补了说明。子项收在总开关下面，总开关关闭时子项置灰禁用。' }),
-    Object.freeze({ key:'fix-darkline', title:'修复：暗线同步静默失败、设定串书', body:'暗线回收计划按主线章号维护，支线不会自动改写共享计划。同步失败会说明。设定工作台的事件、角色和预览对齐当前书，不会串到另一本。' }),
-    Object.freeze({ key:'howto', title:'怎么用上这一轮', body:'点「我知道了」后，这条公告不会再弹。若本地还有未关闭的旧标签，建议只留一个标签写同一本书。' })
+    Object.freeze({ key:'group-extra', kind:'group', title:'本轮追加', body:'今晚刚收口的界面改动，请优先看这两条。' }),
+    Object.freeze({ key:'extra-picks', tone:'extra', title:'创作设定改成勾选列表', body:'资料关联、全书钉选、本细纲追加钉选不再是看起来像输入框的多选框。现在是勾选列表：可以同时勾多项，再点一次即可取消。目标细纲仍是单选下拉。事件参与角色、角色出场章节、细纲「管理活跃资料」同样可以取消勾选。' }),
+    Object.freeze({ key:'extra-split', tone:'extra', title:'左右分栏在桌面常驻', body:'大纲页的「左右分栏」不再只在打开大纲时出现。细纲同样左右分栏，所以这个开关一直留在桌面侧栏。大纲和细纲互切会记住你的选择；关掉工作台后开关还在。手机端仍是全屏，不提供分栏。' }),
+    Object.freeze({ key:'group-new', kind:'group', title:'新增', body:'这一轮网页新加上的能力。' }),
+    Object.freeze({ key:'new-reroll', tone:'new', title:'单章重掷', body:'章节新增「重掷本章」。可以原样复用上一次的输入重新生成，也可以改用当前配置重新生成。旧稿只在新稿成功写回后才转为历史稿。' }),
+    Object.freeze({ key:'new-runaway', tone:'new', title:'失控保护与用量提示', body:'正文流式生成超过目标字数约 2.5 倍会中止，并保留已经写出的草稿。本轮用量会记到生成日志；若被截断，提示里会带上本轮 token。' }),
+    Object.freeze({ key:'new-thinking-panel', tone:'new', title:'只产出推演时的中断面板', body:'如果这一轮只产出了推演、正文还没开始，会单独留下推演内容，关掉页面再打开也还在，可以复制。没有正文时不会假装可以「继续生成」。' }),
+    Object.freeze({ key:'new-summary-one', tone:'new', title:'单章重新整理总结', body:'章节总结增加「重新整理这章」：确认后只跑这一章，不会把整批总结重来一遍。' }),
+    Object.freeze({ key:'new-outline-review', tone:'new', title:'大纲修订审阅', body:'大纲 AI 修订不再直接覆盖。可以先看差异再接受；接受后能逐字撤销。不想现在处理可以稍后审阅。待审时侧栏只读，并有待审标记。' }),
+    Object.freeze({ key:'new-detailed-outline', tone:'new', title:'细纲对齐、密度提示与改写撤销', body:'细纲增加一键对齐章号、每章篇幅与正文目标字数的密度提示，以及单章 AI 改写后的撤销。' }),
+    Object.freeze({ key:'new-character', tone:'new', title:'角色删除与字段 AI 停止', body:'角色工作台内置删除入口，会先说明引用影响。字段 AI 在运行中可以停止。' }),
+    Object.freeze({ key:'new-disabled', tone:'new', title:'禁用按钮会说明原因', body:'点不了的按钮会告诉你缺什么，例如没开连接、空书、没选模型。空书时总结、查找全部替换、生成角色、一键开始生成不再是无声的死按钮。' }),
+    Object.freeze({ key:'new-mobile', tone:'new', title:'手机侧栏左右滚与触控区域', body:'侧栏页签可以左右滚，滚到右端后还能滚回来。底栏下拉、窄删除、角色卡展开都补到可点的高度。控制台浮窗的关闭按钮和拖拽把手固定在顶部，滚到底也能关掉，并支持 Esc。' }),
+    Object.freeze({ key:'new-retry', tone:'new', title:'连接被掐会重试', body:'主请求还没读到任何流内容时，短暂的连接失败会自动重试；手动停止不会重试。只产出推演、需要补正文的那一次请求也走重试。流读到一半失败则保留中断草稿。' }),
+    Object.freeze({ key:'new-builtin-prompts', tone:'new', title:'系统内置提示词可编辑', body:'打开 NSFW 模式后，设定页会出现「系统内置提示词」。NSFW 系统核心、校准对话、读者讨论、一键开书和生图模板都可以展开修改，也能恢复默认。' }),
+    Object.freeze({ key:'group-fix', kind:'group', title:'修复', body:'这一轮已经对上的旧问题。' }),
+    Object.freeze({ key:'fix-stop', tone:'fix', title:'停止或断线不再抹掉内容', body:'生成中途点停止、连接被掐、看门狗拦住时，已经出现的正文会留下来当中断草稿，不会再整段蒸发。' }),
+    Object.freeze({ key:'fix-draft', tone:'fix', title:'不再丢稿，切书切版本先问你', body:'章节还在编辑时切换书籍、切换历史稿或恢复快照，会先问你保留还是放弃。版本操作在未保存修改时也会拦住。切书后重新打开，草稿会回到原来那一章。' }),
+    Object.freeze({ key:'fix-archive', tone:'fix', title:'中断草稿进备份，旧存档读得更全', body:'中断草稿（含推演）会跟着备份和快照一起存取。更早的书架格式打开时，章节、草稿和记忆落点会尽量读全。' }),
+    Object.freeze({ key:'fix-tabs', tone:'fix', title:'多标签不再互相覆盖整本', body:'两个标签同时打开同一本时，后写入的一侧会先做版本校验、应急备份，并让你选择保留哪一边。' }),
+    Object.freeze({ key:'fix-reroll-dup', tone:'fix', title:'重掷失败不再留下重复空历史稿', body:'只有新稿成功写回，旧稿才会归档。中途失败不会再堆一串空的历史稿。' }),
+    Object.freeze({ key:'fix-thinking-body', tone:'fix', title:'推演不会再写成正文，流式不再越写越重复', body:'模型把正文写进推理通道时，会尝试救回可见正文，而不是把推演原文塞进章节。流式解析不再把同一段字反复追加。工具时间线默认折叠，推演、思考和工具可以同时在。' }),
+    Object.freeze({ key:'fix-chapter-clean', tone:'fix', title:'章首裸章号、标题前冒号、自检行当标题', body:'正文开头单独一行的裸章号会剥掉。标题前多余的冒号、破折号会清掉。模型自检那一套「正文语言 / 字数检查 / 问题」不会再被当成章节标题。' }),
+    Object.freeze({ key:'fix-stream-outline', tone:'fix', title:'流式换行被吞、大纲细纲压死字数、书名提取错位', body:'流式输出里的换行不会再被吞掉半行。大纲和细纲不再用「按多少字写」去压正文。一键生成时也不会再把错位的书名写进章节标题。' }),
+    Object.freeze({ key:'fix-memory', tone:'fix', title:'记忆检索与总结语言', body:'向量索引和章节总结不再互相挤掉。中文正文按中文检索词去记、去找。总结钉在与正文一致的语言，超长硬切也不会切在单词中间。召回被跳过或查询失败会明确说明，不再静默。' }),
+    Object.freeze({ key:'fix-summary-range', tone:'fix', title:'插章删章后总结区间章号乱移', body:'区间总结按覆盖集合收缩章号，而不是把端点胡乱平移。' }),
+    Object.freeze({ key:'fix-outline-mismatch', tone:'fix', title:'细纲章号错配会写到错误的一章', body:'细纲章号按实际位置计算；对不上的卡片会标明。关掉「只补空白」也不会再静默覆盖已有内容。删除相关条目会先确认。' }),
+    Object.freeze({ key:'fix-search', tone:'fix', title:'有分支不再跳错章', body:'查找结果按章节身份跳转，不再拿全书下标去点当前视图的第 N 章。命中如果在别的分支，列表会标明当前看不见，并提示先切到对应分支。' }),
+    Object.freeze({ key:'fix-version', tone:'fix', title:'历史稿改为左旧右新', body:'章节历史稿翻页改为左边更旧、右边更新，列表按时间排。切版本不会抹掉保存时间。' }),
+    Object.freeze({ key:'fix-review', tone:'fix', title:'书评默认关闭看起来像坏了', body:'书评总开关默认关闭是有意的，并补了说明。子项收在总开关下面，总开关关闭时子项置灰禁用。' }),
+    Object.freeze({ key:'fix-darkline', tone:'fix', title:'暗线同步静默失败、设定串书', body:'暗线回收计划按主线章号维护，支线不会自动改写共享计划。同步失败会说明。设定工作台的事件、角色和预览对齐当前书，不会串到另一本。' }),
+    Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'点「我知道了」后，这条公告不会再弹。若本地还有未关闭的旧标签，建议只留一个标签写同一本书。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -1969,6 +1975,21 @@ createApp({
       if (!entry) return;
       entry.updatedAt = Date.now();
       touchStoryBible();
+    }
+
+    function isStoryBibleIdPicked(list, id) {
+      return normalizeStoryBibleIdList(list).includes(String(id || ''));
+    }
+
+    function toggleStoryBibleIdPick(owner, field, id, onChange) {
+      if (!owner || typeof owner !== 'object' || Array.isArray(owner) || !field) return;
+      const key = String(id || '');
+      if (!key) return;
+      if (!Array.isArray(owner[field])) owner[field] = [];
+      const excluded = field === 'links' ? String(owner.id || '') : '';
+      const current = normalizeStoryBibleIdList(owner[field], excluded);
+      owner[field] = current.includes(key) ? current.filter(item => item !== key) : current.concat([key]);
+      if (typeof onChange === 'function') onChange();
     }
 
     function setStoryBibleEntryStringList(entry, field, text) {
@@ -34498,6 +34519,7 @@ function getWritingModelLabel() {
       storyBibleEntryTypeOptions, storyBibleEntrySearch, storyBibleEntryFilter, selectedStoryBibleEntryId,
       storyBibleEntries, filteredStoryBibleEntries, selectedStoryBibleEntry, getStoryBibleEntryTypeLabel,
       selectStoryBibleEntry, setStoryBibleWorkbenchSection, addStoryBibleEntry, touchSelectedStoryBibleEntry, setStoryBibleEntryStringList,
+      isStoryBibleIdPicked, toggleStoryBibleIdPick,
       requestDeleteStoryBibleEntry, activeStoryBibleOutlinePack, storyBibleContextPreview,
       storyBibleEventScopeOptions:STORY_BIBLE_EVENT_SCOPES, storyBibleEventSearch, storyBibleEventScopeFilter, storyBibleEventVisibilityFilter,
       storyBibleEventSortDirection, selectedStoryBibleEventId, storyBibleEventReturnTargetId,
