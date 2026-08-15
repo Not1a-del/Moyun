@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=9f9e99b91ccb">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=d6e29ea05057">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -23,7 +23,7 @@
     <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
   </div>
 </div>
-<div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode, 'workbench-immersive-mode': workbenchImmersiveMode}">
+<div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
      Toast 通知
@@ -52,7 +52,7 @@
 <!-- ════════════════════════════════════════════
      移动端顶部导航栏
      ════════════════════════════════════════════ -->
-<div v-show="!immersiveMode && !workbenchImmersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
+<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
      style="background:var(--bg-sidebar);border-bottom:1px solid var(--bd)">
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -83,7 +83,7 @@
 <!-- ════════════════════════════════════════════
      侧边栏（桌面端固定 / 移动端抽屉）
      ════════════════════════════════════════════ -->
-<aside v-show="!immersiveMode && !workbenchImmersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
+<aside v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
        :class="[mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
        :style="isMobile ? 'width:83%;max-width:384px' : 'width:384px;min-width:384px'"
        style="background:var(--bg-sidebar);border-right:1px solid var(--bd)">
@@ -1099,7 +1099,7 @@
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
 <div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div v-show="!immersiveMode && !workbenchImmersiveMode" class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
+  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
@@ -1118,7 +1118,7 @@
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
         <span class="moyun-wb-pill">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }} 项项目承诺</span>
         <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="关闭设定工作台" aria-label="关闭设定工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -1477,7 +1477,7 @@
         <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span>
         <button type="button" @click="openRelationshipGraph" class="btn-ghost text-xs px-3 py-2">关系图</button>
         <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="关闭角色工作台" aria-label="关闭角色工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -1643,7 +1643,7 @@
         </template>
         <button v-else-if="canUndoOutlineRevisionApply" @click="undoOutlineRevisionApply" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)" title="把大纲退回接受修订之前，并让这批修订重新进入审阅">撤销接受</button>
         <button type="button" class="moyun-wb-back-writing" @click="outlineRevisions.length>0 ? deferOutlineRevisions() : requestCloseOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -1767,7 +1767,7 @@
       </div>
       <div class="moyun-wb-header-actions">
         <button type="button" class="moyun-wb-back-writing" @click="requestCloseDetailedOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭细纲面板" aria-label="关闭细纲面板">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
       </div>
@@ -6015,7 +6015,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=b54ca79ecf06"></script>
+<script src="./assets/js/moyun.js?v=799eca6edacf"></script>
 <!-- PART_1_END -->
 </body>
 </html>

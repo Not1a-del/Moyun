@@ -864,15 +864,6 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 }
 .moyun-mobile-header-spacer{height:var(--moyun-mobile-header-height);flex:0 0 auto;min-height:var(--moyun-mobile-header-height)}
 .moyun-main-shell,.moyun-main-body{min-height:0}
-.workbench-immersive-mode .moyun-main-shell{height:100%;min-height:100%;}
-.workbench-immersive-mode .moyun-main-body{height:100%;min-height:0;}
-.workbench-immersive-mode .moyun-workbench{inset:0!important;height:100%!important;min-height:0!important;}
-.workbench-immersive-mode .moyun-character-main,
-.workbench-immersive-mode .moyun-wb-scroll{
-  min-height:0;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:contain;
-}
 .moyun-wb-back-writing{
   display:inline-flex;align-items:center;justify-content:center;
   min-height:36px;padding:0 10px;border-radius:8px;
@@ -889,10 +880,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   flex:0 0 32px;overflow:hidden;
 }
 .moyun-composer-icon-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:767px), (max-width:1023px) and (max-height:560px){
-  .workbench-immersive-mode .moyun-main-shell{height:100dvh!important;min-height:100dvh!important;}
-  .workbench-immersive-mode .moyun-main-body{height:100%!important;min-height:0!important;}
-  .workbench-immersive-mode .moyun-workbench{top:0!important;right:0!important;bottom:0!important;left:0!important;height:100%!important;}
+@media(max-width:767px){
   .moyun-workbench{
     top:0!important;
     bottom:0!important;
@@ -946,9 +934,8 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-darkline-tool-btn{min-height:38px;height:38px;padding:0 10px}
   .moyun-check-item{min-height:52px;padding:10px 11px}
   .moyun-action-status{justify-content:space-between;min-height:30px}
-  .moyun-character-index{display:none!important}
-  .moyun-character-main{min-height:0;height:100%;padding:10px 10px calc(22px + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom,0px));overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;}
-  .moyun-character-mobile-picker{display:grid!important}
+  .moyun-character-main{padding:10px 10px calc(22px + env(safe-area-inset-bottom))}
+  .moyun-character-mobile-picker{display:grid}
   .moyun-character-mobile-picker button,.moyun-character-mobile-picker select{min-height:44px}
   .moyun-character-editor{gap:10px}
   .moyun-character-editor-head{align-items:flex-start}
@@ -979,7 +966,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   .moyun-event-editor-head{align-items:flex-start}
   .moyun-story-bible-mobile-nav button,.moyun-event-toolbar button,[data-story-event-create],.moyun-event-editor-head button{min-height:44px}
 }
-@media(max-width:767px), (max-width:1023px) and (max-height:560px){
+@media(max-width:767px){
 .moyun-vv-short .moyun-workbench .moyun-wb-header{padding:6px 10px;min-height:44px;align-items:center}
 .moyun-vv-short .moyun-workbench .moyun-wb-kicker,.moyun-vv-short .moyun-workbench .moyun-wb-subtitle,.moyun-vv-short .moyun-workbench .moyun-wb-pill{display:none}
 .moyun-vv-short .moyun-workbench .moyun-wb-title{font-size:14px}
@@ -1904,7 +1891,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     <div class="moyun-loader-status">铺纸入墨 · 正在加载</div>
   </div>
 </div>
-<div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode, 'workbench-immersive-mode': workbenchImmersiveMode}">
+<div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
 
 <!-- ════════════════════════════════════════════
      Toast 通知
@@ -1933,7 +1920,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      移动端顶部导航栏
      ════════════════════════════════════════════ -->
-<div v-show="!immersiveMode && !workbenchImmersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
+<div v-show="!immersiveMode" data-moyun-region="mobile-header" class="moyun-mobile-header md:hidden fixed top-0 left-0 right-0 flex items-center justify-between px-2 z-40"
      style="background:var(--bg-sidebar);border-bottom:1px solid var(--bd)">
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -1964,7 +1951,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <!-- ════════════════════════════════════════════
      侧边栏（桌面端固定 / 移动端抽屉）
      ════════════════════════════════════════════ -->
-<aside v-show="!immersiveMode && !workbenchImmersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
+<aside v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
        :class="[mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
        :style="isMobile ? 'width:83%;max-width:384px' : 'width:384px;min-width:384px'"
        style="background:var(--bg-sidebar);border-right:1px solid var(--bd)">
@@ -2980,7 +2967,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
      主内容区包裹层（Part 3 填充详细内容）
      ════════════════════════════════════════════ -->
 <div class="moyun-main-shell flex-1 h-full flex flex-col overflow-hidden" style="background:var(--bg)">
-  <div v-show="!immersiveMode && !workbenchImmersiveMode" class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
+  <div class="moyun-mobile-header-spacer md:hidden" data-moyun-header-spacer aria-hidden="true"></div>
   <div class="moyun-main-body flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
   <!-- 大纲/细纲面板占位（Part 3 填充） -->
 
@@ -2999,7 +2986,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
         <span class="moyun-wb-pill">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }} 项项目承诺</span>
         <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="关闭设定工作台" aria-label="关闭设定工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -3358,7 +3345,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span>
         <button type="button" @click="openRelationshipGraph" class="btn-ghost text-xs px-3 py-2">关系图</button>
         <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="关闭角色工作台" aria-label="关闭角色工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -3524,7 +3511,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
         </template>
         <button v-else-if="canUndoOutlineRevisionApply" @click="undoOutlineRevisionApply" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)" title="把大纲退回接受修订之前，并让这批修订重新进入审阅">撤销接受</button>
         <button type="button" class="moyun-wb-back-writing" @click="outlineRevisions.length>0 ? deferOutlineRevisions() : requestCloseOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button v-if="outlineRevisions.length===0" @click="requestCloseOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭大纲面板" aria-label="关闭大纲面板">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
@@ -3648,7 +3635,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
       </div>
       <div class="moyun-wb-header-actions">
         <button type="button" class="moyun-wb-back-writing" @click="requestCloseDetailedOutlineWorkbench()" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
-        <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="退出工作台并回到正文" aria-label="退出工作台并回到正文">
+        <button @click="requestCloseDetailedOutlineWorkbench()" class="moyun-wb-icon-btn" title="关闭细纲面板" aria-label="关闭细纲面板">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
       </div>
@@ -11624,7 +11611,6 @@ createApp({
         }
       }
       if (e.key === 'Escape' && immersiveMode.value) { toggleImmersive(); return; }
-      if (e.key === 'Escape' && workbenchImmersiveMode.value) { requestCloseActiveWorkbench(); return; }
       // 桌面浮窗不是模态，原来 Esc 完全管不到它；面板内容很高时关闭按钮会被滚走，Esc 是最自然的退路。
       // 正在输入框里打字时不响应，免得把没提交的内容连面板一起关掉。
       if (e.key === 'Escape' && !isMobile.value && activeModFloatingPanelKey.value) {
@@ -11636,10 +11622,7 @@ createApp({
       }
     }
 
-    // Treat a short, narrow landscape viewport as mobile so workbenches do not
-    // collapse into a desktop two-column layout on a phone held sideways.
-    const isCompactViewport = () => window.innerWidth < 768 || (window.innerWidth < 1024 && window.innerHeight <= 560);
-    const isMobile = ref(isCompactViewport());
+    const isMobile = ref(window.innerWidth < 768);
     const currentTab = ref('bookshelf');
     const sidebarTabs = [
       {id:'bookshelf',name:'书架'},{id:'settings',name:'设定'},
@@ -33816,21 +33799,6 @@ function getModHubPermissionLabels(mod) {
 
     /* ═══ 细纲系统 ═══ */
     const showDetailedOutlineInMain = ref(false);
-    const workbenchImmersiveMode = computed(() => Boolean(
-      isMobile.value && (
-        showStoryBibleWorkbench.value
-        || showCharacterWorkbench.value
-        || showOutlineInMain.value
-        || showDetailedOutlineInMain.value
-      )
-    ));
-
-    function requestCloseActiveWorkbench() {
-      if (showStoryBibleWorkbench.value) { closeStoryBibleWorkbench(); return; }
-      if (showCharacterWorkbench.value) { closeCharacterWorkbench(); return; }
-      if (showOutlineInMain.value) { requestCloseOutlineWorkbench(); return; }
-      if (showDetailedOutlineInMain.value) { requestCloseDetailedOutlineWorkbench(); }
-    }
     // chapterOutlines 已在 Part 2 定义
     const isGeneratingDO = ref(false);
     watch(isGeneratingDO, (running, wasRunning) => {
@@ -42323,7 +42291,7 @@ function getWritingModelLabel() {
       const visualHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight || 0));
       const visualOffsetTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
       const viewportDelta = Math.max(0, Math.round(window.innerHeight - visualHeight - visualOffsetTop));
-      const mobileViewport = isCompactViewport();
+      const mobileViewport = window.innerWidth < 768;
       // 中文注释：软键盘会显著压缩 visualViewport；它不是浏览器底栏，不应只截断为 120px 的安全区。
       const keyboardOpen = mobileViewport && viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
       let bottom = 0;
@@ -42349,7 +42317,7 @@ function getWritingModelLabel() {
     }
 
     function handleResize() {
-      isMobile.value = isCompactViewport();
+      isMobile.value = window.innerWidth < 768;
       if (!isMobile.value) mobileSidebarOpen.value = false;
       updateMobileBrowserBottomInset();
       nextTick(updateSidebarTabScrollState);
@@ -42499,7 +42467,7 @@ function getWritingModelLabel() {
       // ── Part 1: 核心数据 ──
       novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats,
-      mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, workbenchImmersiveMode, handleKeydown,
+      mobileSidebarOpen, isMobile, currentTab, sidebarTabs, sidebarTabsScroller, canScrollSidebarTabsRight, canScrollSidebarTabsLeft, updateSidebarTabScrollState, selectSidebarTab, scrollSidebarTabsForward, scrollSidebarTabsBack, tabSliderStyle, immersiveMode, toggleImmersive, handleKeydown,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
       projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement,
