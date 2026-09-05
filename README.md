@@ -64,7 +64,10 @@ Moyun/
 └── docs/
     ├── DEPLOYMENT.md       # GitHub Pages 更新与部署说明
     ├── ONLINE_VERSION_USER_GUIDE.md
-    └── ONLINE_VERSION_COMPLETE_DEVELOPER_GUIDE.md
+    ├── ONLINE_VERSION_COMPLETE_DEVELOPER_GUIDE.md
+    ├── UPDATE_LOG.md        # 版本更新日志与回滚参考
+    ├── TEST_REPORT.md       # 历史测试报告、当前门禁与已知风险
+    └── HANDOFF.md           # 下一位开发者/AI 的接手说明
 ```
 
 `source/moyun.single.html` 是网页版唯一业务源；构建器将其中的样式和逻辑拆分为真实的 CSS 与 JavaScript 资产。它不属于已冻结的离线交付线。修改源文件后运行 `npm run build`，不要直接修改生成的 `index.html` 或 `assets/` 文件。

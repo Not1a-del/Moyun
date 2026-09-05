@@ -1,7 +1,9 @@
 {
   "name": "moyun-web",
+  "version": "0.0.10",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-static-site.cjs"
+    "build": "node scripts/build-static-site.cjs",
+    "regress": "node scripts/regression-check.cjs"
   }
 }

@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=d6e29ea05057">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=ccaaffe6c95d">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -600,7 +600,7 @@
                       </template>
                     </select>
                     <input v-model="rel.type" @change="saveData()" placeholder="关系类型" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:60px">
-                    <input v-model="rel.attitude" @change="saveData()" placeholder="态度描述" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:80px">
+                    <input v-model="rel.attitude" @change="saveData()" maxlength="30" placeholder="态度描述（30字内）" class="input-field text-[10px] flex-1" style="height:24px;padding:0 6px;min-width:80px">
                     <button @click="confirmRemoveRelationship(char,ri)" class="text-[10px] shrink-0 moyun-compact-tap" style="color:var(--err)" :aria-label="'删除'+(char.name || '未命名角色')+'的第'+(ri+1)+'条关系'" title="删除角色关系">✕</button>
                   </div>
                 </div>
@@ -915,6 +915,7 @@
             <span v-if="isGeneratingPipelineBatch" class="loading-spinner"></span>{{ isGeneratingPipelineBatch ? '批量中...' : '一键AI填充' }}
           </button>
         </div>
+        <div v-if="isGeneratingPipelineBatch && aiSupplementSegmentProgress" class="text-[10px] mb-2 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</div>
         <!-- 中文注释：提示词流水线支持上下移动显示/注入顺序，实际读取按 key 识别，避免重排后语义错位。 -->
         <div class="text-[10px] mb-3" style="color:var(--tx4)">系统提示词按以下顺序拼装，每层可独立开关、编辑和上下移动；关闭的层不会注入。</div>
 
@@ -1117,6 +1118,9 @@
         <button v-if="detailedOutlineReturnTarget.outlineId" type="button" @click="returnToDetailedOutlineFromWorkbench" class="moyun-c3-return-btn">← 返回 {{ getDetailedOutlineLabel(detailedOutlineReturnTarget.outlineId) }}</button>
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
         <span class="moyun-wb-pill">{{ storyBibleFoundationStats.projectFilled }}/{{ storyBibleFoundationStats.projectTotal }} 项项目承诺</span>
+        <div class="flex flex-col items-end"><button type="button" @click="aiSupplementStoryBible" :disabled="isAiSupplementingStoryBible" class="moyun-wb-back-writing" :style="isAiSupplementingStoryBible?'opacity:.55':''" title="让 AI 阅读当前大纲、细纲、角色和资料后补充空白字段">{{ isAiSupplementingStoryBible ? '补充中…' : 'AI补充' }}</button>
+        <span v-if="isAiSupplementingStoryBible && workbenchAiStreamPreview" class="moyun-wb-pill" role="status" aria-live="polite">流式：{{ workbenchAiStreamPreview.slice(-36) }}</span>
+        <span v-if="isAiSupplementingStoryBible && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</span></div>
         <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button type="button" @click="closeStoryBibleWorkbench" class="moyun-wb-icon-btn" title="关闭设定工作台" aria-label="关闭设定工作台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -1183,9 +1187,9 @@
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div>
               <div class="text-base font-black" style="color:var(--tx)">事件时间线</div>
-              <div class="text-xs mt-1" style="color:var(--tx3)">按作者定义的时间与顺序整理世界历史和故事主线；事件不会自动进入创作请求。</div>
+              <div class="text-xs mt-1" style="color:var(--tx3)">按作者定义的时间与顺序整理世界历史和故事主线；每章正文完成后会自动记录，并作为下一章的辅助记忆。</div>
             </div>
-            <button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap" data-story-event-create>＋ 新建事件</button>
+            <div class="flex flex-col items-end"><div class="flex items-center gap-2"><button type="button" @click="openStoryEventRangePrompt()" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2.5 whitespace-nowrap" :style="isAiSupplementingStoryBible?'opacity:.55':''" data-story-event-ai-full>{{ isAiSupplementingStoryBible ? '补充中…' : '全文时间线补充' }}</button><button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap" data-story-event-create>＋ 新建事件</button></div><span v-if="isAiSupplementingStoryBible && storyEventSupplementProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ storyEventSupplementProgress }}</span></div>
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2" data-story-event-stats>
@@ -1207,12 +1211,20 @@
 
           <div class="moyun-event-layout">
             <aside class="card p-3 space-y-3 h-fit min-w-0" data-story-event-index>
-              <div class="flex items-center justify-between gap-2"><div class="text-xs font-black" style="color:var(--tx)">纵向时间线</div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ filteredStoryBibleEvents.length }} 项</span></div>
-              <div v-if="filteredStoryBibleEvents.length" class="moyun-event-timeline">
+              <div class="flex items-center justify-between gap-2"><div class="flex items-center gap-2 min-w-0"><div class="text-xs font-black shrink-0" style="color:var(--tx)">纵向时间线</div>
+                <button type="button" v-if="filteredStoryBibleEvents.length" @click="storyEventTimelineExpanded=!storyEventTimelineExpanded" class="btn-ghost text-[10px] px-2 py-1" :aria-expanded="String(storyEventTimelineExpanded)" data-story-event-collapse>{{ storyEventTimelineExpanded ? '折叠列表' : '展开列表' }}</button></div><span class="text-[10px] px-2 py-1 rounded-full" style="background:var(--accent-soft);color:var(--accent)">{{ filteredStoryBibleEvents.length }} 项</span></div>
+              <div v-if="filteredStoryBibleEvents.length" class="moyun-event-timeline" :class="{ 'is-folded': !storyEventTimelineExpanded }">
+                <template v-if="storyEventTimelineExpanded">
                 <button v-for="event in filteredStoryBibleEvents" :key="event.id" type="button" @click="selectStoryBibleEvent(event.id)" class="moyun-event-node" :data-story-event-id="event.id" :aria-pressed="selectedStoryBibleEventId===event.id">
                   <span class="moyun-event-node-head"><span class="moyun-event-node-order">{{ getStoryBibleEventOrderLabel(event) }}</span><span class="moyun-event-node-time">{{ event.timeText || '时间待定' }}</span></span>
                   <span class="moyun-event-node-title">{{ event.title || '未命名事件' }}</span>
                   <span class="moyun-event-node-meta"><span class="moyun-event-badge">{{ getStoryBibleEventScopeLabel(event.scope) }}</span><span>{{ event.readerVisible?'读者可见':'仅作者' }}</span><span>{{ getStoryBibleEventAssociationCount(event) }} 个关联</span></span>
+                </button>
+                </template>
+                <button v-else type="button" @click="storyEventTimelineExpanded=true" class="moyun-event-node" data-story-event-folded-summary>
+                  <span class="moyun-event-node-head"><span class="moyun-event-node-order">折叠中</span><span class="moyun-event-node-time">{{ filteredStoryBibleEvents.length }} 项</span></span>
+                  <span class="moyun-event-node-title">时间线已折叠，点击展开</span>
+                  <span class="moyun-event-node-meta"><span class="moyun-event-badge">{{ selectedStoryBibleEvent ? '已选中：' + (selectedStoryBibleEvent.title || '未命名事件') : '右侧继续编辑选中事件' }}</span></span>
                 </button>
               </div>
               <div v-else class="moyun-event-empty">没有匹配事件。可新建事件，或调整搜索和筛选条件。</div>
@@ -1221,14 +1233,14 @@
             <section v-if="selectedStoryBibleEvent" class="card p-4 moyun-event-editor" data-story-event-editor>
               <div class="moyun-event-editor-head">
                 <div class="min-w-0"><div class="text-sm font-black" style="color:var(--tx)">事件档案</div><div class="text-[10px] mt-1" style="color:var(--tx4)">稳定 ID：{{ selectedStoryBibleEvent.id }} · 更新 {{ formatStoryBibleEventTime(selectedStoryBibleEvent.updatedAt) }}</div></div>
-                <button type="button" @click="requestDeleteStoryBibleEvent(selectedStoryBibleEvent.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))" data-story-event-delete>删除事件</button>
+                <div class="flex flex-col items-end"><div class="flex items-center gap-2"><button type="button" @click="aiSupplementStoryBibleEvent(selectedStoryBibleEvent)" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2" :style="isAiSupplementingStoryBible?'opacity:.55':''">{{ isAiSupplementingStoryBible ? '补充中…' : 'AI填充' }}</button><button type="button" @click="requestDeleteStoryBibleEvent(selectedStoryBibleEvent.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))" data-story-event-delete>删除事件</button></div><span v-if="isAiSupplementingStoryBible && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</span></div>
               </div>
 
               <div class="moyun-event-fields three">
-                <label><span class="label">事件标题</span><input v-model="selectedStoryBibleEvent.title" @change="touchSelectedStoryBibleEvent" class="input-field" placeholder="发生了什么？" data-story-event-title></label>
+                <label><span class="label">事件标题</span><input v-model="selectedStoryBibleEvent.title" @change="touchSelectedStoryBibleEvent" class="input-field" maxlength="120" placeholder="发生了什么？（建议 20 字以内）" data-story-event-title></label>
                 <label><span class="label">人工排序值</span><input v-model.number="selectedStoryBibleEvent.sortOrder" @change="touchSelectedStoryBibleEvent" type="number" step="any" class="input-field" placeholder="可留空" data-story-event-order></label>
                 <label><span class="label">事件范围</span><select v-model="selectedStoryBibleEvent.scope" @change="touchSelectedStoryBibleEvent" class="select-field" data-story-event-scope><option v-for="scope in storyBibleEventScopeOptions" :key="scope.id" :value="scope.id">{{ scope.label }}</option></select></label>
-                <label class="full"><span class="label">时间文本</span><input v-model="selectedStoryBibleEvent.timeText" @change="touchSelectedStoryBibleEvent" class="input-field" placeholder="例如：帝国历 317 年冬 / 故事开始前三天" data-story-event-time></label>
+                <label class="full"><span class="label">时间文本</span><input v-model="selectedStoryBibleEvent.timeText" @change="touchSelectedStoryBibleEvent" class="input-field" maxlength="40" placeholder="例如：帝国历 317 年冬 / 故事开始前三天" data-story-event-time></label>
               </div>
 
               <div class="moyun-event-fields">
@@ -1273,16 +1285,16 @@
               <input v-model="storyBibleEntrySearch" class="input-field text-xs" placeholder="搜索名称、标签、摘要…">
               <select v-model="storyBibleEntryFilter" class="select-field text-xs w-full"><option value="all">全部类型</option><option v-for="item in storyBibleEntryTypeOptions" :key="item.id" :value="item.id">{{ item.label }}</option></select>
               <button v-for="entry in filteredStoryBibleEntries" :key="entry.id" type="button" @click="selectStoryBibleEntry(entry.id)" class="w-full text-left p-2.5 rounded-xl" :style="selectedStoryBibleEntryId===entry.id?'background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)':'background:var(--bg-card);border:1px solid var(--bd)'">
-                <div class="flex items-center justify-between gap-2"><div class="text-xs font-bold text-truncate" style="color:var(--tx)">{{ entry.name || '未命名条目' }}</div><span class="text-[9px] shrink-0" style="color:var(--tx4)">{{ getStoryBibleEntryTypeLabel(entry.type) }}</span></div>
+                <div class="flex items-center justify-between gap-2"><div class="text-xs font-bold text-truncate" style="color:var(--tx)">{{ entry.name || '未命名条目' }}</div><span class="text-[9px] shrink-0" style="color:var(--tx4)">{{ getStoryBibleEntryTypeLabel(entry) }}</span></div>
                 <div v-if="entry.summary" class="text-[10px] mt-1.5 line-clamp-2" style="color:var(--tx3)">{{ entry.summary }}</div>
               </button>
               <div v-if="filteredStoryBibleEntries.length===0" class="text-center py-5 text-[11px] leading-relaxed" style="color:var(--tx4)">没有匹配条目。可新建，或调整筛选条件。</div>
             </aside>
             <section v-if="selectedStoryBibleEntry" class="space-y-4 min-w-0">
-              <div class="flex flex-col md:flex-row md:items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">条目档案</div><div class="text-xs mt-1" style="color:var(--tx3)">所有关联均使用稳定 ID，改名或调整排序不会断开关系。</div></div><button type="button" @click="requestDeleteStoryBibleEntry(selectedStoryBibleEntry.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))">删除条目</button></div>
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">条目档案</div><div class="text-xs mt-1" style="color:var(--tx3)">所有关联均使用稳定 ID，改名或调整排序不会断开关系。</div></div><div class="flex flex-col items-end"><div class="flex gap-2"><button type="button" @click="aiSupplementStoryBibleEntry(selectedStoryBibleEntry)" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2">{{ isAiSupplementingStoryBible ? '补充中…' : 'AI补充' }}</button><button type="button" @click="requestDeleteStoryBibleEntry(selectedStoryBibleEntry.id)" class="btn-ghost text-xs px-3 py-2" style="color:var(--err);border-color:color-mix(in srgb,var(--err) 35%,var(--bd))">删除条目</button></div><span v-if="isAiSupplementingStoryBible && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</span></div></div>
               <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_170px_140px] gap-3">
                 <label class="card p-3 block"><span class="label">名称</span><input v-model="selectedStoryBibleEntry.name" @change="touchSelectedStoryBibleEntry" class="input-field" placeholder="条目名称"></label>
-                <label class="card p-3 block"><span class="label">类型</span><select v-model="selectedStoryBibleEntry.type" @change="touchSelectedStoryBibleEntry" class="select-field"><option v-for="item in storyBibleEntryTypeOptions" :key="item.id" :value="item.id">{{ item.label }}</option></select></label>
+                <label class="card p-3 block"><span class="label">类型</span><select v-model="selectedStoryBibleEntry.type" @change="touchSelectedStoryBibleEntry" class="select-field"><option v-for="item in storyBibleEntryTypeOptions" :key="item.id" :value="item.id">{{ item.label }}</option></select><input v-if="selectedStoryBibleEntry.type==='custom'" v-model="selectedStoryBibleEntry.customTypeName" @change="touchSelectedStoryBibleEntry" class="input-field mt-2" maxlength="40" placeholder="自定义类别名称"></label>
                 <label class="card p-3 block"><span class="label">重要度</span><select v-model="selectedStoryBibleEntry.importance" @change="touchSelectedStoryBibleEntry" class="select-field"><option value="core">核心</option><option value="normal">常规</option><option value="minor">次要</option></select></label>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1302,7 +1314,7 @@
                   <div class="moyun-pick-list" data-moyun-pick="entry-links" role="group" aria-label="关联资料条目">
                     <label v-for="item in storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id)" :key="item.id">
                       <input type="checkbox" :checked="isStoryBibleIdPicked(selectedStoryBibleEntry.links, item.id)" @change="toggleStoryBibleIdPick(selectedStoryBibleEntry, 'links', item.id, touchSelectedStoryBibleEntry)">
-                      <span>{{ item.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(item.type) }}</span>
+                      <span>{{ item.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(item) }}</span>
                     </label>
                     <div v-if="storyBibleEntries.filter(item=>item.id!==selectedStoryBibleEntry.id).length===0" class="moyun-pick-empty">还没有其他资料条目可关联。</div>
                   </div>
@@ -1373,8 +1385,8 @@
                   <div class="moyun-pick-meta"><span class="label mb-0">资料条目</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (storyBible.context.pinnedEntryIds||[]).length }}</span></div>
                   <div class="moyun-pick-list" data-moyun-pick="context-pinned-entries" role="group" aria-label="全书默认钉选资料条目">
                     <label v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id">
-                      <input type="checkbox" :checked="isStoryBibleIdPicked(storyBible.context.pinnedEntryIds, entry.id)" @change="toggleStoryBibleIdPick(storyBible.context, 'pinnedEntryIds', entry.id, touchStoryBibleContext)">
-                      <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</span>
+                      <input type="checkbox" :checked="isStoryBibleContextItemChecked('entry', entry.id, storyBible.context)" @change="toggleStoryBibleContextItem('entry', entry.id, storyBible.context)">
+                      <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry) }}</span>
                     </label>
                     <div v-if="storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可钉选的资料条目。</div>
                   </div>
@@ -1383,7 +1395,7 @@
                   <div class="moyun-pick-meta"><span class="label mb-0">角色</span><span class="text-[10px]" style="color:var(--tx4)">多选 · 已选 {{ (storyBible.context.pinnedCharacterIds||[]).length }}</span></div>
                   <div class="moyun-pick-list" data-moyun-pick="context-pinned-characters" role="group" aria-label="全书默认钉选角色">
                     <label v-for="character in structuredCharacters.filter(item=>item&&item.contextPolicy!=='never')" :key="character.id">
-                      <input type="checkbox" :checked="isStoryBibleIdPicked(storyBible.context.pinnedCharacterIds, character.id)" @change="toggleStoryBibleIdPick(storyBible.context, 'pinnedCharacterIds', character.id, touchStoryBibleContext)">
+                      <input type="checkbox" :checked="isStoryBibleContextItemChecked('character', character.id, storyBible.context)" @change="toggleStoryBibleContextItem('character', character.id, storyBible.context)">
                       <span>{{ character.name || '未命名角色' }}</span>
                     </label>
                     <div v-if="structuredCharacters.filter(item=>item&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可钉选的角色。</div>
@@ -1401,7 +1413,7 @@
                 <div class="moyun-pick-list" data-moyun-pick="outline-pinned-entries" role="group" aria-label="本细纲追加钉选资料条目">
                   <label v-for="entry in storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never')" :key="entry.id">
                     <input type="checkbox" :checked="isStoryBibleIdPicked(activeStoryBibleOutlinePack.pinnedEntryIds, entry.id)" @change="toggleStoryBibleIdPick(activeStoryBibleOutlinePack, 'pinnedEntryIds', entry.id, touchStoryBibleContext)">
-                    <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry.type) }}</span>
+                    <span>{{ entry.name || '未命名条目' }} · {{ getStoryBibleEntryTypeLabel(entry) }}</span>
                   </label>
                   <div v-if="storyBibleEntries.filter(item=>item.status==='active'&&item.contextPolicy!=='never').length===0" class="moyun-pick-empty">没有可追加的资料条目。</div>
                 </div>
@@ -1474,7 +1486,7 @@
       <div class="moyun-wb-header-actions">
         <button v-if="detailedOutlineReturnTarget.outlineId" type="button" @click="returnToDetailedOutlineFromWorkbench" class="moyun-c3-return-btn">← 返回 {{ getDetailedOutlineLabel(detailedOutlineReturnTarget.outlineId) }}</button>
         <button v-if="storyBibleEventReturnTargetId" type="button" @click="returnToStoryBibleEvent" class="moyun-event-return">← 返回事件</button>
-        <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span>
+        <span class="moyun-wb-pill">{{ characterWorkbenchStats.total }} 人 · {{ characterWorkbenchStats.relations }} 条关系</span><span v-if="isAiSupplementingStoryBible && workbenchAiStreamPreview" class="moyun-wb-pill" role="status" aria-live="polite">流式：{{ workbenchAiStreamPreview.slice(-36) }}</span>
         <button type="button" @click="openRelationshipGraph" class="btn-ghost text-xs px-3 py-2">关系图</button>
         <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-back-writing" title="关闭并回到正文" aria-label="关闭并回到正文">回正文</button>
         <button type="button" @click="closeCharacterWorkbench" class="moyun-wb-icon-btn" title="关闭角色工作台" aria-label="关闭角色工作台">
@@ -1510,8 +1522,10 @@
         <div v-if="selectedWorkbenchCharacter" class="moyun-character-editor">
           <div class="moyun-character-editor-head">
             <div class="min-w-0"><div class="text-base font-black text-truncate" style="color:var(--tx)">{{ selectedWorkbenchCharacter.name || '未命名角色' }}</div><div class="text-xs mt-1" style="color:var(--tx3)">更改自动保存；改名和排序不会改变关系或出场关联。</div></div>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="flex flex-col items-end shrink-0"><div class="flex flex-wrap items-center justify-end gap-2">
+              <button type="button" @click="aiSupplementSelectedCharacter(selectedWorkbenchCharacter)" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2" :style="isAiSupplementingStoryBible?'opacity:.55':''">{{ isAiSupplementingStoryBible ? '补充中…' : 'AI补充' }}</button>
               <button type="button" @click="currentTab='characters';closeCharacterWorkbench()" class="btn-ghost text-xs px-3 py-2">查看原卡</button>
+              <span v-if="isAiSupplementingStoryBible && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</span>
               <!-- 中文注释：工作台里能深度编辑档案/关系/状态，却唯独删不掉角色，必须退出去侧栏底部找。
                    这里复用侧栏那套带引用影响说明的删除确认流。 -->
               <button type="button" @click="removeSelectedWorkbenchCharacter()" class="text-xs px-3 py-2 rounded-lg font-bold shrink-0" style="background:var(--err-soft);color:var(--err)" title="删除这个角色（会列出引用影响并二次确认）">删除角色</button>
@@ -1578,7 +1592,7 @@
               <div class="moyun-character-fields three">
                 <label><span class="label">关联角色</span><select v-model="rel.targetId" @change="touchSelectedCharacterWorkbench" class="select-field"><option value="">选择角色</option><option v-for="other in structuredCharacters.filter(item=>item.id!==selectedWorkbenchCharacter.id)" :key="other.id" :value="other.id">{{ other.name || '未命名' }}</option></select></label>
                 <label><span class="label">关系类型</span><input v-model="rel.type" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="盟友、师徒、对手..."></label>
-                <label data-character-field="relationshipState"><span class="label">当前态</span><input v-model="rel.attitude" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="信任、疏离、试探..."></label>
+                <label data-character-field="relationshipState"><span class="label">当前态</span><input v-model="rel.attitude" @change="touchSelectedCharacterWorkbench" class="input-field" maxlength="30" placeholder="信任、疏离、试探…（30字内）"></label>
                 <label class="full" data-character-field="changeReason"><span class="label">变化原因</span><textarea v-model="rel.changeReason" @change="touchSelectedCharacterWorkbench" rows="2" class="textarea-field" placeholder="关系为何处于当前状态？"></textarea></label>
               </div>
             </div>
@@ -1678,7 +1692,28 @@
             </template>
           </div>
           <!-- 普通编辑模式 -->
-          <textarea v-else v-model="novel.outline" @change="saveData()" data-story-target="outline"
+          <div v-if="isGeneratingOutline && outlineStreamPreview" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold mb-1" style="color:var(--info)">正在流式生成大纲…</div><div class="whitespace-pre-wrap">{{ outlineStreamPreview }}</div></div>
+          <div v-if="isGeneratingDO && outlineStreamPreview" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold mb-1" style="color:var(--info)">正在流式生成细纲…（第 {{ detailedOutlineRun.batchIndex }}/{{ detailedOutlineRun.batchTotal }} 批：{{ detailedOutlineRun.currentRange }}）</div><div class="whitespace-pre-wrap">{{ outlineStreamPreview }}</div></div>
+          <div v-if="!outlineRevisions.length && !activeVolumeEditor && novelVolumesBoardMinimized" class="moyun-volume-board moyun-volume-board-minimized mb-2 p-2 rounded-xl flex items-center gap-2" style="background:var(--bg-inset);border:1px solid var(--bd)" data-moyun-volume-board-minimized>
+            <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="btn-ghost text-[10px] px-2 py-1 shrink-0" :aria-expanded="String(!novelVolumesBoardMinimized)" aria-label="展开卷纲板">展开卷纲</button>
+            <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="flex-1 min-w-0 text-left" :title="'共 ' + novelVolumes.length + ' 卷；点击展开卷纲板'">
+              <span class="block text-[10px] font-black" style="color:var(--tx)">卷纲已整体收起 · {{ novelVolumes.length }} 卷</span>
+              <span class="block text-[10px] truncate mt-0.5" style="color:var(--tx3)">{{ novelVolumes.map(vol => vol.title + '（第' + vol.startChapter + '-' + vol.endChapter + '章）').join(' · ') }}</span>
+            </button>
+          </div>
+          <div v-if="!outlineRevisions.length && !activeVolumeEditor && !novelVolumesBoardMinimized" class="moyun-volume-board mb-3 p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <div class="flex items-center justify-between gap-2 mb-2"><div><span class="text-xs font-black" style="color:var(--tx)">卷纲（必选·分层写作边界）</span><div class="text-[10px] mt-0.5" style="color:var(--tx3)">AI 会读取并使用已有卷纲；作者仍可随时编辑与调整。</div></div><div class="flex items-center gap-1.5"><button v-if="novelVolumes.length" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="toggleNovelVolumesBoardMinimized()" :aria-pressed="novelVolumesBoardMinimized" title="收起后只留一条摘要行，大纲文本回到中部正常位置">整体收起</button><button v-if="novelVolumes.length" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="toggleAllNovelVolumes" :aria-pressed="novelVolumesCollapsed">{{ novelVolumesCollapsed ? '展开全部' : '收起全部' }}</button><button type="button" class="btn-primary text-[10px] px-2 py-1" @click="addNovelVolume">＋新增卷</button></div></div>
+            <div v-if="!novelVolumes.length" class="text-[10px]" style="color:var(--tx4)">尚未建立卷纲；生成大纲时会自动建立“第一卷”作为默认边界。</div>
+            <div v-else class="moyun-volume-list">
+              <div v-for="(vol,vi) in novelVolumes" :key="vol.id" class="moyun-volume-card p-2 mb-2 rounded-lg" :class="{'is-collapsed':isNovelVolumeCollapsed(vol)}" style="background:var(--bg-card);border:1px solid var(--bd)">
+                <div class="flex items-center gap-2"><button type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="toggleNovelVolumeCollapsed(vol)" :aria-expanded="String(!isNovelVolumeCollapsed(vol))" :aria-label="(isNovelVolumeCollapsed(vol)?'展开':'收起')+vol.title">{{ isNovelVolumeCollapsed(vol) ? '展开' : '收起' }}</button><strong class="text-[11px] truncate">{{ vol.title }}</strong><input v-model="vol.title" @change="saveData()" class="input-field text-[10px] flex-1 min-w-0" aria-label="卷标题"><button type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="removeNovelVolume(vi)" style="color:var(--err)">删除</button></div>
+                <div v-show="!isNovelVolumeCollapsed(vol)" class="moyun-volume-summary flex items-center gap-2 min-w-0 mt-1 text-[10px]"><span>章节</span><input type="number" v-model.number="vol.startChapter" min="1" class="input-field" style="width:58px"><span>至</span><input type="number" v-model.number="vol.endChapter" min="1" class="input-field" style="width:58px"><button type="button" class="input-field flex-1 min-w-0 text-left truncate" @click="openVolumeEditor(vol)" :aria-label="'放大编辑'+vol.title+'框架摘要'" title="点击放大编辑卷纲摘要">{{ vol.summary || '点击填写/放大卷纲摘要' }}</button></div>
+              </div>
+            </div>
+          </div>
+          <div v-if="activeVolumeEditor" class="moyun-volume-editor flex-1 flex flex-col gap-3 p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="flex items-center justify-between gap-2"><div><div class="text-sm font-black" style="color:var(--tx)">编辑{{ activeVolumeEditor.title }}</div><div class="text-[10px]" style="color:var(--tx3)">收起后返回大纲文本；修改会自动保存。</div></div><button type="button" class="btn-ghost text-xs px-3 py-2" @click="closeVolumeEditor">收起卷纲</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-2"><label class="text-xs" style="color:var(--tx2)">卷名<input :value="activeVolumeEditor.title" @input="updateVolumeField(activeVolumeEditor,'title',$event.target.value)" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">起始章<input type="number" :value="activeVolumeEditor.startChapter" @change="updateVolumeField(activeVolumeEditor,'startChapter',$event.target.value)" min="1" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">结束章<input type="number" :value="activeVolumeEditor.endChapter" @change="updateVolumeField(activeVolumeEditor,'endChapter',$event.target.value)" min="1" class="input-field mt-1"></label></div><textarea :value="activeVolumeEditor.summary" @input="updateVolumeField(activeVolumeEditor,'summary',$event.target.value)" class="textarea-field flex-1 text-sm" placeholder="填写本卷框架摘要…" aria-label="卷纲框架摘要"></textarea></div>
+          <div v-if="novelVolumes.length && !activeVolumeEditor && !novelVolumesBoardMinimized" class="flex flex-wrap gap-2 mb-2"><button v-for="vol in novelVolumes" :key="'edit-'+vol.id" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="openVolumeEditor(vol)">放大编辑{{ vol.title }}</button></div>
+          <textarea v-if="!activeVolumeEditor" v-model="novel.outline" @change="saveData()" data-story-target="outline"
                     placeholder="在此编写大纲，或在下方用 AI 生成..."
                     class="flex-1 w-full min-h-[340px] outline-none resize-none text-base leading-loose"
                     style="background:transparent;color:var(--tx2);border:none"></textarea>
@@ -1737,7 +1772,9 @@
                   class="btn-primary moyun-wb-ai-compact" :style="getOutlineAiDisabledReason()?'opacity:.5':''">
             {{ novel.outline ? 'AI修改大纲' : 'AI生成大纲' }}
           </button>
+          <button v-if="!isGeneratingOutline" type="button" @click="aiSupplementOutline()" :disabled="!!getOutlineAiDisabledReason()" class="btn-ghost moyun-wb-ai-compact" title="只补充大纲中的空白结构，不覆盖已有内容">AI补充</button>
         </div>
+        <div v-if="isGeneratingOutline && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</div>
         </div>
       </div>
       <textarea v-model="outlineInput" placeholder="输入对大纲的修改意见；未提及内容会要求AI保留..." rows="2"
@@ -2032,7 +2069,12 @@
       </div>
       <!-- 逐章细纲 -->
       <div class="space-y-2">
-        <div v-for="(co,ci) in chapterOutlines" :key="co.id" v-show="shouldShowChapterOutlineCard(ci)"
+        <template v-for="(co,ci) in chapterOutlines" :key="co.id">
+        <div v-if="shouldShowChapterOutlineCard(ci) && (ci===0 || String(getVolumeForChapter(ci+1)?.id || '') !== String(getVolumeForChapter(ci)?.id || ''))" class="moyun-do-volume-divider px-3 py-2 rounded-xl" style="background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--bd));color:var(--accent)">
+          <div class="text-xs font-black">{{ getVolumeForChapter(ci+1)?.title || '未分卷章节' }}</div>
+          <div class="text-[10px] mt-0.5" style="color:var(--tx3)">{{ getVolumeForChapter(ci+1)?.summary || '本章尚未关联卷纲；请在大纲工作台维护卷纲边界。' }}</div>
+        </div>
+        <div v-show="shouldShowChapterOutlineCard(ci)"
              class="card moyun-do-card overflow-hidden" data-story-target="detail-outline" :data-chapter-no="ci+1" :data-target-id="co.id"
              :style="getChapterOutlineRunStatus(ci)==='failed'
                ? 'border-left:3px solid var(--err)'
@@ -2056,6 +2098,7 @@
                 </div>
                 <div class="text-[9px] mt-0.5" style="color:var(--tx4)">
                   {{ (co.content||'').length }} 字
+                  <span v-if="getVolumeForChapter(ci+1)"> · {{ getVolumeForChapter(ci+1).title }}</span>
                   <span v-if="getChapterOutlineQuality(ci).missing.length"> · 待补 {{ getChapterOutlineQuality(ci).missing.slice(0,3).join('、') }}</span>
                 </div>
               </div>
@@ -2118,6 +2161,7 @@
 
           </div>
         </div>
+        </template>
       </div>
       <div v-if="chapterOutlines.length>0 && detailedOutlineViewMode==='issues' && getVisibleChapterOutlineCount()===0" class="text-center py-10" style="color:var(--tx3)">
         <p class="text-sm font-bold">当前没有待补或失败章节</p>
@@ -2146,15 +2190,18 @@
                 :title="detailedOutlineRun.currentRange ? ('正在生成 ' + detailedOutlineRun.currentRange + '，点此停止') : '停止细纲生成'">
           ⏸ 停止{{ detailedOutlineRun.currentRange ? '（' + detailedOutlineRun.currentRange + '）' : '' }}
         </button>
-        <button v-else @click="requestDetailedOutlineGeneration()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
+          <button v-else @click="requestDetailedOutlineGeneration()" :disabled="!!getDetailedOutlineAiDisabledReason('generate')"
                 data-moyun-detailed-ai
                 :aria-describedby="getDetailedOutlineAiDisabledReason('generate') ? 'moyun-detailed-disabled-reason' : undefined"
                 :title="getDetailedOutlineAiDisabledReason('generate') || (settings.detailedOutlineOnlyEmpty === false ? '当前允许覆盖已有细纲，生成前会再确认一次' : '只补空白：已有内容的章节会被跳过')"
-                class="moyun-wb-ai-compact" style="background:var(--warn);color:white"
+                class="btn-primary moyun-wb-ai-compact"
                 :style="getDetailedOutlineAiDisabledReason('generate')?'opacity:.5':''">
-          AI生成细纲
-        </button>
+            AI生成细纲
+          </button>
+          <button v-if="!isGeneratingDO" type="button" @click="reverseGenerateDetailedOutlinesFromChapters" class="btn-ghost moyun-wb-ai-compact" title="完整读取正文、大纲、角色和资料后反向生成细纲">从正文反向生成</button>
+          <button v-if="!isGeneratingDO" type="button" @click="aiSupplementDetailedOutlines" class="btn-ghost moyun-wb-ai-compact" title="仅补充空白细纲字段，已有内容不覆盖">AI补充空白</button>
       </div>
+      <div v-if="isGeneratingDO && aiSupplementSegmentProgress" class="text-[10px] mt-1 text-right whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</div>
       <div v-if="getDetailedOutlineAiDisabledReason('generate')" id="moyun-detailed-disabled-reason" class="moyun-action-status" role="status">
         <span>{{ getDetailedOutlineAiDisabledReason('generate') }}</span>
         <button v-if="getDetailedOutlineAiDisabledActionLabel('generate')" type="button" @click="resolveDetailedOutlineAiDisabledAction('generate')">{{ getDetailedOutlineAiDisabledActionLabel('generate') }}</button>
@@ -2460,7 +2507,7 @@
                       <div class="text-xs leading-relaxed" style="color:var(--tx)">{{ comment.content }}</div>
                       <div class="flex items-center justify-between mt-1 text-[9px]" style="color:var(--tx4)">
                         <span>{{ comment.time || '刚刚' }} · IP: {{ comment.location || '未知' }}</span>
-                        <span @click.stop="likeComment(idx, cIdx)" class="cursor-pointer" :style="comment.isLiked ? 'color:var(--err)' : ''">♥ {{ comment.likes || 0 }}</span>
+                        <button type="button" @click.stop="likeComment(idx, cIdx)" class="btn-ghost text-[10px] px-2 py-1" :style="comment.isLiked ? 'color:var(--err)' : ''" :aria-label="'点赞评论，当前'+(comment.likes || 0)+'个赞'">♥ {{ comment.likes || 0 }}</button>
                       </div>
                       <div v-if="comment.replies && comment.replies.length > 0" class="mt-2 p-2 rounded-lg space-y-2" style="background:var(--bg-inset)">
                         <div v-for="(reply, rIdx) in comment.replies" :key="rIdx" class="flex gap-2">
@@ -2471,7 +2518,7 @@
                             <div class="text-[11px]" style="color:var(--tx2)">{{ reply.content }}</div>
                             <div class="flex items-center justify-between mt-0.5 text-[8px]" style="color:var(--tx4)">
                               <span>{{ reply.time || '刚刚' }}</span>
-                              <span @click.stop="likeReply(idx, cIdx, rIdx)" class="cursor-pointer" :style="reply.isLiked ? 'color:var(--err)' : ''">♥ {{ reply.likes || 0 }}</span>
+                              <button type="button" @click.stop="likeReply(idx, cIdx, rIdx)" class="btn-ghost text-[10px] px-2 py-1" :style="reply.isLiked ? 'color:var(--err)' : ''" :aria-label="'点赞回复，当前'+(reply.likes || 0)+'个赞'">♥ {{ reply.likes || 0 }}</button>
                             </div>
                           </div>
                         </div>
@@ -2651,10 +2698,10 @@
         <div class="moyun-composer-card rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
              style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
           <div class="moyun-composer-prompt-row flex gap-1 items-end w-full">
-            <textarea v-model="nextChapterPrompt" placeholder="下一章剧情走向..." rows="1"
+            <textarea ref="composerPromptRef" v-model="nextChapterPrompt" @input="keepComposerFocus" placeholder="下一章剧情走向..." rows="1"
                       data-moyun-composer-prompt
                       class="textarea-field text-sm flex-1" style="border-radius:10px;resize:vertical;min-height:36px;max-height:800px"
-                      @input="autosizeComposerPrompt($event)"
+                      @input="autosizeComposerPrompt($event);restoreComposerPromptCaret($event)"
                       @focus="autosizeComposerPrompt($event)"
                       @blur="autosizeComposerPrompt($event)"></textarea>
             <button @click="showFullscreenInput=true" class="p-2 shrink-0 md:hidden" style="color:var(--tx3)" title="全屏输入" aria-label="全屏输入">
@@ -3934,6 +3981,43 @@
   </div>
 </transition>
 
+<!-- v0.0.10 补充轮 S1：全文时间线补充的章节范围选择弹窗（页面内弹窗，替代直接执行） -->
+<transition name="pop">
+  <div v-if="showStoryEventRangePrompt" data-moyun-region="modal" data-moyun-modal="story-event-range"
+       data-moyun-initial-focus="[data-story-event-range-from]" role="dialog" aria-modal="true" aria-labelledby="moyun-story-event-range-title"
+       class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
+       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
+    <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl"
+          style="background:var(--bg-card);box-shadow:var(--sh3)" @submit.prevent="execStoryEventRangePrompt">
+      <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
+        <div>
+          <h3 id="moyun-story-event-range-title" class="text-lg font-bold" style="color:var(--tx)">全文时间线补充</h3>
+          <p class="text-xs mt-1" style="color:var(--tx3)">选择要阅读的章节范围：AI 将逐章阅读所选正文并按顺序插入事件时间线。</p>
+        </div>
+        <button type="button" data-moyun-modal-close @click="cancelStoryEventRangePrompt" class="moyun-icon-button shrink-0" style="color:var(--tx3)" aria-label="关闭范围选择" title="关闭">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="p-5 flex items-end gap-3">
+        <label class="flex-1">
+          <span class="label mb-1">起始章</span>
+          <input type="number" v-model.number="storyEventRangeCfg.from" data-story-event-range-from min="1" class="input-field text-sm w-full">
+        </label>
+        <span class="pb-2.5 text-sm" style="color:var(--tx3)">至</span>
+        <label class="flex-1">
+          <span class="label mb-1">结束章</span>
+          <input type="number" v-model.number="storyEventRangeCfg.to" min="1" class="input-field text-sm w-full">
+        </label>
+      </div>
+      <div class="px-5 pb-5 text-[10px] leading-relaxed" style="color:var(--tx4)">补充完成后事件将按章号顺序重新排序；每批 3 章依次阅读，长范围耗时较长，可随时停止。</div>
+      <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <button type="button" data-moyun-modal-close @click="cancelStoryEventRangePrompt" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
+        <button type="submit" class="btn-primary flex-1 min-h-[44px] text-sm">开始补充</button>
+      </div>
+    </form>
+  </div>
+</transition>
+
 <!-- 首次欢迎说明：说明内容与“关于”页共用，已读记录只保存在当前浏览器。 -->
 <transition name="pop">
   <div v-if="showWebUpdateAnnouncement" data-moyun-region="modal" data-moyun-modal="web-update-announcement"
@@ -4492,7 +4576,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <label><span class="label">目标角色</span><select v-model="item.relationTargetId" @change="refreshCharacterDraftRelationItem(item,target)" class="select-field text-xs" style="min-height:44px"><option value="">请选择目标角色</option><option v-for="option in getCharacterDraftRelationOptions(target)" :key="option.id" :value="option.id">{{ option.label }}</option></select></label>
                     <label><span class="label">关系类型</span><input v-model="item.relationshipType" class="input-field text-xs" style="min-height:44px" placeholder="盟友、对手、师徒..."></label>
-                    <label><span class="label">当前态/态度</span><input v-model="item.relationshipAttitude" class="input-field text-xs" style="min-height:44px" placeholder="当前态度描述"></label>
+                    <label><span class="label">当前态/态度</span><input v-model="item.relationshipAttitude" class="input-field text-xs" style="min-height:44px" maxlength="30" placeholder="当前态度描述（30字内）"></label>
                   </div>
                 </template>
                 <template v-else>
@@ -4949,6 +5033,11 @@
             <div @click="toggleStream()"
                  class="toggle-track" :class="settings.streamEnabled!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
+
+          <div class="flex items-center justify-between py-2 gap-3">
+            <div class="pr-3"><span class="text-sm font-bold" style="color:var(--tx)">首字超时</span><br><span class="text-[10px]" style="color:var(--tx3)">仅当正文仍为 0 字时计时；已有输出后会继续等待</span></div>
+            <label class="flex items-center gap-1 shrink-0"><input type="number" v-model.number="settings.noOutputTimeoutSec" @change="settings.noOutputTimeoutSec=normalizeNoOutputTimeout(settings.noOutputTimeoutSec);saveData()" min="1" max="3600" step="1" class="input-field text-xs py-1 text-center" style="width:78px" aria-label="首字超时时间"><span class="text-xs" style="color:var(--tx3)">秒</span></label>
+          </div>
 		  
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">显示思维链</span><br><span class="text-[10px]" style="color:var(--tx3)">展示AI的思考过程（如DeepSeek的推理）</span></div>
@@ -4968,7 +5057,7 @@
               <span class="text-xs" style="color:var(--tx2)">细纲字数</span>
               <input type="number" v-model.number="settings.aiWordCount_detailedOutline" @change="saveData()" min="500" max="20000" step="500" class="input-field text-center" style="width:80px;height:30px" title="全部细纲文本合计的长度，会按本批章数平摊；不是正文字数">
             </div>
-            <div class="text-[10px] -mt-1 mb-1 leading-relaxed" style="color:var(--tx4)">细纲字数是<b>所有章细纲合计</b>的长度，生成时按本批章数平摊。它和正文字数无关：细纲里若出现「字数控制在X字」，写作时会被忽略。</div>
+            <div class="text-[10px] -mt-1 mb-1 leading-relaxed" style="color:var(--tx4)">细纲字数是<b>所有章细纲合计</b>的长度，生成时按本批章数平摊。默认按细纲:正文≈1:4~1:5（每1000字细纲生成4000-5000字正文，取中值1:4.5）自动推算每章预算；手动改动此值后将固定使用该值（改回 3000 恢复自动比例）。细纲里若出现「字数控制在X字」，写作时会被忽略。</div>
             <div class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">建议字数</span>
               <input type="number" v-model.number="settings.aiWordCount_suggestion" @change="saveData()" min="30" max="500" step="10" class="input-field text-center" style="width:80px;height:30px">
@@ -5568,9 +5657,8 @@
             <div class="flex gap-3 items-center">
               <div>
                 <label class="label">每章图片</label>
-                <select v-model.number="imageCountPerChapter" @change="saveData()" class="select-field text-xs" style="width:80px">
-                  <option :value="1">1张</option><option :value="2">2张</option><option :value="3">3张</option><option :value="4">4张</option><option :value="5">5张</option><option :value="6">6张</option>
-                </select>
+                <input type="number" min="1" max="20" step="1" v-model.number="imageCountPerChapter" @change="imageCountPerChapter=normalizeImageCount(imageCountPerChapter);saveData()" class="input-field text-xs" style="width:80px" aria-label="每章图片数量">
+                <div class="text-[9px] mt-1" style="color:var(--tx4)">可自定义 1-20 张</div>
               </div>
               <div>
                 <label class="label">图片比例</label>
@@ -5626,7 +5714,7 @@
                     <div class="flex-1">
                       <label class="text-[9px] font-bold" style="color:var(--tx3)">NAI模型</label>
                       <select v-model="getActiveProfile().model" @change="saveData()" class="select-field text-[10px] w-full mt-0.5">
-                        <optgroup label="NAI 4.5"><option value="nai-diffusion-4-5-full">NAI4.5 完整版</option><option value="nai-diffusion-4-5-curated">NAI4.5 精选版</option></optgroup>
+                        <optgroup label="NAI 5"><option value="nai-diffusion-5-full">NAI5 完整版</option></optgroup><optgroup label="NAI 4.5"><option value="nai-diffusion-4-5-full">NAI4.5 完整版</option><option value="nai-diffusion-4-5-curated">NAI4.5 精选版</option></optgroup>
                         <optgroup label="NAI 4"><option value="nai-diffusion-4-full">NAI4 完整版</option></optgroup>
                         <optgroup label="NAI 3"><option value="nai-diffusion-3">NAI3 标准</option></optgroup>
                       </select>
@@ -5999,12 +6087,13 @@
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     </div>
-    <textarea v-model="nextChapterPrompt" placeholder="在这里输入下一章的剧情走向、场景描述、人物互动等..."
+    <textarea ref="fullscreenInputRef" v-model="nextChapterPrompt" placeholder="在这里输入下一章的剧情走向、场景描述、人物互动等..."
               class="flex-1 p-4 text-base outline-none resize-none"
               style="background:transparent;color:var(--tx);line-height:1.8;border:none"
+              @input="restoreComposerPromptCaret($event)"
               autofocus></textarea>
     <div class="px-4 py-3 flex justify-end gap-2 shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-      <button @click="nextChapterPrompt=''" class="btn-ghost text-xs px-4 py-2">清空</button>
+      <button @click="clearNextChapterPrompt" class="btn-ghost text-xs px-4 py-2">清空</button>
       <button type="button" data-moyun-modal-close @click="showFullscreenInput=false" class="btn-primary text-sm px-6 py-2">完成</button>
     </div>
   </div>
@@ -6015,7 +6104,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=799eca6edacf"></script>
+<script src="./assets/js/moyun.js?v=43c8cc00c4cb"></script>
 <!-- PART_1_END -->
 </body>
 </html>
