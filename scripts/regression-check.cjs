@@ -52,7 +52,11 @@ const anchors = [
   ['req2 设定补充流式', 'const bibleFiller = createWorkbenchStreamFiller'],
   ['req2 条目补充流式', 'const entryFiller = createWorkbenchStreamFiller'],
   ['req2 角色补充流式', 'const charFiller = createWorkbenchStreamFiller'],
-  ['req2 细纲流式预览', 'isGeneratingDO && outlineStreamPreview'],
+  // v0.0.11 修复3：细纲预览区不再展示原始流文本（改为落卡），锚点同步为新进度条结构；
+  // 流式落卡函数本身由 v11-stream-unit 验证，此处锚点确认预览条仍在且含落卡说明。
+  ['req2 细纲流式预览', 'v-if="isGeneratingDO"'],
+  ['req2 细纲流式落卡说明', 'AI 每输出一章标题，对应章节卡片会立即出现并流式填入正文'],
+  ['req2 细纲流式落卡函数', 'function applyDetailedOutlineStreamDelta'],
   ['req5 章行格式样例', "第M章：本章一句话大纲（不超过40字）"],
   ['req5 章行解析', "lastUpdate.chapterLines.push('第' + no + '章：' + text)"],
   ['S4 比例预算 1:4.5', 'const doPerChapterRatio = Math.max(200, Math.round(Number(wordCountTarget.value) / 4.5))'],

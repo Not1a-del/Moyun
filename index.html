@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=ccaaffe6c95d">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=3ef4df46e9dc">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -1192,6 +1192,11 @@
             <div class="flex flex-col items-end"><div class="flex items-center gap-2"><button type="button" @click="openStoryEventRangePrompt()" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2.5 whitespace-nowrap" :style="isAiSupplementingStoryBible?'opacity:.55':''" data-story-event-ai-full>{{ isAiSupplementingStoryBible ? '补充中…' : '全文时间线补充' }}</button><button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap" data-story-event-create>＋ 新建事件</button></div><span v-if="isAiSupplementingStoryBible && storyEventSupplementProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ storyEventSupplementProgress }}</span></div>
           </div>
 
+          <!-- v0.0.11 新功能6：事件时间线自动补录开关，默认开启；关闭后正文生成不再自动写入时间线。参考既有 toggle-track 样式，PC/移动端通排。 -->
+          <div class="flex items-center justify-between py-1" data-story-event-auto-toggle>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
+            <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录"><div class="toggle-thumb"></div></div>
+          </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2" data-story-event-stats>
             <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">全部事件</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.total }}</strong></div>
             <div class="card p-3"><div class="text-[10px]" style="color:var(--tx3)">世界历史</div><strong class="text-lg" style="color:var(--tx)">{{ storyBibleEventStats.world }}</strong></div>
@@ -1529,7 +1534,7 @@
               <!-- 中文注释：工作台里能深度编辑档案/关系/状态，却唯独删不掉角色，必须退出去侧栏底部找。
                    这里复用侧栏那套带引用影响说明的删除确认流。 -->
               <button type="button" @click="removeSelectedWorkbenchCharacter()" class="text-xs px-3 py-2 rounded-lg font-bold shrink-0" style="background:var(--err-soft);color:var(--err)" title="删除这个角色（会列出引用影响并二次确认）">删除角色</button>
-            </div>
+            </div></div>
           </div>
           <div class="moyun-character-levels" role="radiogroup" aria-label="角色档案档位" aria-describedby="moyun-character-level-help">
             <button v-for="level in [{id:'sketch',label:'速写'},{id:'regular',label:'常规'},{id:'core',label:'核心'}]" :key="level.id" type="button" role="radio" :data-character-level="level.id" :aria-checked="selectedWorkbenchCharacter.profileLevel===level.id" @click="setSelectedCharacterProfileLevel(level.id)">{{ level.label }}</button>
@@ -1693,7 +1698,8 @@
           </div>
           <!-- 普通编辑模式 -->
           <div v-if="isGeneratingOutline && outlineStreamPreview" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold mb-1" style="color:var(--info)">正在流式生成大纲…</div><div class="whitespace-pre-wrap">{{ outlineStreamPreview }}</div></div>
-          <div v-if="isGeneratingDO && outlineStreamPreview" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold mb-1" style="color:var(--info)">正在流式生成细纲…（第 {{ detailedOutlineRun.batchIndex }}/{{ detailedOutlineRun.batchTotal }} 批：{{ detailedOutlineRun.currentRange }}）</div><div class="whitespace-pre-wrap">{{ outlineStreamPreview }}</div></div>
+          <!-- v0.0.11 修复3：细纲流式文字现在按章节标题直接落进下方各章卡片，这里只保留批进度提示，不再整段重复粘贴原文。 -->
+          <div v-if="isGeneratingDO" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold" style="color:var(--info)">正在流式生成细纲…（第 {{ detailedOutlineRun.batchIndex }}/{{ detailedOutlineRun.batchTotal }} 批：{{ detailedOutlineRun.currentRange }}）</div><div class="text-[10px] mt-1" style="color:var(--tx3)">AI 每输出一章标题，对应章节卡片会立即出现并流式填入正文。</div></div>
           <div v-if="!outlineRevisions.length && !activeVolumeEditor && novelVolumesBoardMinimized" class="moyun-volume-board moyun-volume-board-minimized mb-2 p-2 rounded-xl flex items-center gap-2" style="background:var(--bg-inset);border:1px solid var(--bd)" data-moyun-volume-board-minimized>
             <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="btn-ghost text-[10px] px-2 py-1 shrink-0" :aria-expanded="String(!novelVolumesBoardMinimized)" aria-label="展开卷纲板">展开卷纲</button>
             <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="flex-1 min-w-0 text-left" :title="'共 ' + novelVolumes.length + ' 卷；点击展开卷纲板'">
@@ -4918,6 +4924,11 @@
         <div v-show="activeSettingsTab==='context'" id="settings-panel-context" role="tabpanel" aria-labelledby="settings-tab-context" class="space-y-4">
           <!-- 中文注释：上下文省 token 配置直接影响正文生成请求，可按模型窗口大小选择是否发送全文/摘要/长期总结。 -->
           <div class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <!-- v0.0.11 新功能6：自动补录开关同步放进设置-上下文页，与事件工作台入口共用同一 settings.autoTimelineSupplement。 -->
+            <div class="flex items-center justify-between py-1">
+              <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
+              <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录" data-settings-auto-timeline><div class="toggle-thumb"></div></div>
+            </div>
             <div class="flex items-center justify-between py-1">
               <div><span class="text-sm font-bold" style="color:var(--tx)">省 token 模式</span><br><span class="text-[10px]" style="color:var(--tx3)">自动收紧全文章数和单章截断长度，适合小上下文模型</span></div>
               <div @click="settings.contextCompactMode=!settings.contextCompactMode;saveData()"
@@ -6104,7 +6115,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=43c8cc00c4cb"></script>
+<script src="./assets/js/moyun.js?v=5ee10cd431bd"></script>
 <!-- PART_1_END -->
 </body>
 </html>

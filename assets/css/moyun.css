@@ -462,6 +462,24 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
   box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;
 }
 .img-tool-btn:hover{background:rgba(20,20,20,.88)}
+/* v0.0.11 新功能5：正文图片右下角重试按钮——PC 端仅悬停出现，手机端常驻；小尺寸、半透明、不遮挡画面主体。 */
+.img-retry{
+  position:absolute;right:8px;bottom:8px;z-index:3;
+  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:999px;
+  font-size:13px;line-height:1;
+  background:rgba(20,20,20,.42);color:rgba(255,255,255,.92);
+  border:1px solid rgba(255,255,255,.3);
+  box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;
+  opacity:0;transition:opacity .15s,background .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.img-wrap:hover .img-retry,.img-retry:focus-visible{opacity:1}
+.img-retry:hover{background:rgba(20,20,20,.6)}
+@media (hover:none){
+  .img-retry{opacity:.78}
+  .img-retry:hover{background:rgba(20,20,20,.6)}
+}
 .img-loading-tip,.img-error-tip{
   padding:28px 16px;text-align:center;font-size:12px;
   color:var(--tx3);line-height:1.7;

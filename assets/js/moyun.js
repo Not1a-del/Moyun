@@ -67,6 +67,25 @@ const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
 const WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY = 'moyun_web_update_announcement_seen';
 const MOYUN_FIRST_RUN_GUIDE_SEEN_KEY = 'moyun_first_run_guide_seen';
 function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+// v0.0.11 修复7：百万字级大书的存档序列化优化。
+// 原保存路径在每次存档时对全书数据做两轮完整深拷贝（syncBookData 先 deepClone 一份进 books，
+// buildLibrarySnapshot 再 deepClone 一份进快照），随后 JSON.stringify 又把同一份数据再序列化一次。
+// 百万字书 = 每次保存瞬时多占 3 倍内存，Chrome 在反复防抖保存后内存峰值飙升导致崩溃。
+// 快照的最终去向只是 JSON.stringify（DB.set 序列化写入），中间那层“深拷贝再序列化”纯属浪费；
+// 这里提供浅结构展开 + 引用共享的轻量快照，序列化结果与深拷贝完全一致（值层面等价），
+// 但避免了大对象图的整体复制。运行时数据仍只存在一份，不引入跨书引用问题（书数据在 syncBookData 里仍深拷贝隔离）。
+function snapshotForSerialize(o, depth = 0) {
+  if (o === null || typeof o !== 'object') return o;
+  if (depth > 12) { try { return JSON.parse(JSON.stringify(o)); } catch { return o; } }
+  if (Array.isArray(o)) {
+    const arr = new Array(o.length);
+    for (let i = 0; i < o.length; i++) arr[i] = snapshotForSerialize(o[i], depth + 1);
+    return arr;
+  }
+  const out = {};
+  for (const k of Object.keys(o)) out[k] = snapshotForSerialize(o[k], depth + 1);
+  return out;
+}
 function escapeRegExp(text) { return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 const MOYUN_THINK_TAGS = [
   { open: '<' + 'think>', close: '</' + 'think>' },
@@ -5439,7 +5458,9 @@ function copyLastChapterContextText() {
         contextMaxOutlineChars: 8000,
         outlineRequestMode: 'auto',
         detailedOutlineBatchSize: 5,
-        detailedOutlineOnlyEmpty: true
+        detailedOutlineOnlyEmpty: true,
+        // v0.0.11 新功能6：事件时间线自动补录开关，默认开启；关闭后正文生成/重写不再自动写入事件时间线。
+        autoTimelineSupplement: true
       };
       Object.keys(defaults).forEach(key => {
         if (settings.value[key] === undefined || settings.value[key] === null || settings.value[key] === '') settings.value[key] = defaults[key];
@@ -5448,6 +5469,8 @@ function copyLastChapterContextText() {
       settings.value.noOutputTimeoutSec = normalizeNoOutputTimeout(settings.value.noOutputTimeoutSec);
       settings.value.detailedOutlineBatchSize = Math.min(10, Math.max(1, Number(settings.value.detailedOutlineBatchSize) || 5));
       if (settings.value.detailedOutlineOnlyEmpty === undefined) settings.value.detailedOutlineOnlyEmpty = true;
+      // v0.0.11 新功能6：旧存档补上自动补录默认值（默认开），保证升级后行为与全新安装一致。
+      if (settings.value.autoTimelineSupplement === undefined) settings.value.autoTimelineSupplement = true;
       if (settings.value.contextCompactMode) {
         settings.value.contextFullChapters = Math.min(Number(settings.value.contextFullChapters) || 1, 2);
         settings.value.contextSummaryChapters = Math.min(Number(settings.value.contextSummaryChapters) || 0, 6);
@@ -5717,51 +5740,54 @@ function copyLastChapterContextText() {
     /* ═══ 存储 ═══ */
     function buildLibrarySnapshot() {
       syncBookData();
+      // v0.0.11 修复7：快照只用于 JSON.stringify 写入，改用轻量展开代替 deepClone，
+      // 消除百万字级大书每次保存的双份深拷贝内存峰值（deepClone 会整体复制再丢弃）。
+      const snap = v => snapshotForSerialize(v);
       return {
         version: 6,
         timestamp: Date.now(),
         // 核心数据
-        novel: deepClone(novel.value),
-        chapters: deepClone(chapters.value),
-        characters: deepClone(structuredCharacters.value),
-        books: deepClone(books.value),
+        novel: snap(novel.value),
+        chapters: snap(chapters.value),
+        characters: snap(structuredCharacters.value),
+        books: snap(books.value),
         currentBookId: currentBookId.value,
-        settings: deepClone(settings.value),
+        settings: snap(settings.value),
         // 凭据只保存到独立私有 DB key，普通库快照与导出数据不携带 API Key。
-        connectionCenter: deepClone(connectionCenter.value),
+        connectionCenter: snap(connectionCenter.value),
         // 分支
-        branchList: deepClone(branchList.value),
+        branchList: snap(branchList.value),
         activeBranchId: activeBranchId.value,
         // 章节设置
         wordCountTarget: wordCountTarget.value,
         // NSFW
-        nsfwSettings: deepClone(nsfwSettings.value),
+        nsfwSettings: snap(nsfwSettings.value),
         nsfwSystemPrompt: String(nsfwSystemPrompt.value || ''),
         nsfwInjectionPrompt: String(nsfwInjectionPrompt.value || ''),
         discussionPrompt: String(discussionPrompt.value || ''),
         oneKeySystemPrompt: String(oneKeySystemPrompt.value || ''),
         // 提示词流水线
-        promptPipeline: deepClone(promptPipeline.value),
+        promptPipeline: snap(promptPipeline.value),
         // 预设与文风
-        presets: deepClone(presets.value),
-        writingStyles: deepClone(writingStyles.value),
+        presets: snap(presets.value),
+        writingStyles: snap(writingStyles.value),
         currentWritingStyleId: currentWritingStyleId.value,
         // MOD
-        modPacks: deepClone(modPacks.value),
-        installedThemePacks: deepClone(installedThemePacks.value),
+        modPacks: snap(modPacks.value),
+        installedThemePacks: snap(installedThemePacks.value),
         activeThemePackId: activeThemePackId.value,
         // 中文注释：插件私有数据独立保存，避免共创插件把运行时缓存混入主程序字段。
-        modPrivateData: deepClone(modPrivateData.value),
+        modPrivateData: snap(modPrivateData.value),
         // 环境氛围
         atmosphereEnabled: atmosphereEnabled.value,
         atmospherePrompt: atmospherePrompt.value,
         // 大纲
-        outlineRevisions: deepClone(outlineRevisions.value),
-        chapterOutlines: deepClone(chapterOutlines.value),
-        chapterIndexDrafts: deepClone(chapterIndexDrafts.value),
-        foreshadowMatrix: deepClone(foreshadowMatrix.value),
+        outlineRevisions: snap(outlineRevisions.value),
+        chapterOutlines: snap(chapterOutlines.value),
+        chapterIndexDrafts: snap(chapterIndexDrafts.value),
+        foreshadowMatrix: snap(foreshadowMatrix.value),
         // 总结
-        summaries: deepClone(summaries.value),
+        summaries: snap(summaries.value),
         // 生图
         imageGenEnabled: imageGenEnabled.value, naiCallMode: naiCallMode.value, coverImage: coverImage.value,
         imageGenKey: imageGenKey.value,
@@ -5769,19 +5795,19 @@ function copyLastChapterContextText() {
         avatarPromptTemplate: avatarPromptTemplate.value,
         imageSize: imageSize.value,
         imageCountPerChapter: imageCountPerChapter.value,
-        imageProfiles: deepClone(imageProfiles.value),
+        imageProfiles: snap(imageProfiles.value),
         activeProfileId: activeProfileId.value,
         // AI建议
         suggestionPersona: suggestionPersona.value,
         // 书评
-        reviewPersonas: deepClone(reviewPersonas.value),
+        reviewPersonas: snap(reviewPersonas.value),
         // 搜索历史
         searchHistory: searchHistory.value,
-        dialogueTypes: deepClone(dialogueTypes.value),
+        dialogueTypes: snap(dialogueTypes.value),
   // 世界观模板
         worldTemplates: worldTemplates.filter(t => t.isCustom),
         // 自动总结与文风
-        autoSummaryConfig: deepClone(autoSummaryConfig.value),
+        autoSummaryConfig: snap(autoSummaryConfig.value),
         activeStyleIds: activeStyleIds.value,
       };
     }
@@ -8524,10 +8550,19 @@ function cleanAIResponse(text) {
     });
 
     // 中文注释：统一清洗 AI 返回的角色字段，兼容字符串/数组两种写法，避免单角色生成和一键完善各写一套解析逻辑。
-    function normalizeStringList(value, maxLen = 12) {
+    // v0.0.11 修复：台词示例曾被按顿号/逗号逐词拆成碎句（“你、以为、逃得掉”三行）。台词必须保持完整句子，
+    // 只按换行与句末标点分句；顿号/逗号不再作为台词分隔符。性格标签仍是短词列表，保留顿号/逗号拆分。
+    function normalizeStringList(value, maxLen = 12, mode = 'tags') {
       let list = [];
       if (Array.isArray(value)) list = value;
-      else if (typeof value === 'string') list = value.split(/[、,，\n]+/);
+      else if (typeof value === 'string') {
+        if (mode === 'dialogues') {
+          // 台词模式：按换行拆，再按句末标点（。！？!?…）把多句台词拆成整句；逗号/顿号绝不拆句。
+          list = value.split(/\r?\n+/).flatMap(line => String(line).split(/(?<=[。！？!?…])\s*/));
+        } else {
+          list = value.split(/[、,，\n]+/);
+        }
+      }
       return Array.from(new Set(list.map(v => String(v || '').trim()).filter(Boolean))).slice(0, maxLen);
     }
 
@@ -8536,7 +8571,8 @@ function cleanAIResponse(text) {
       const data = raw && typeof raw === 'object' ? raw : {};
       const rels = Array.isArray(data.relationships) ? data.relationships : [];
       const tags = normalizeStringList(data.personalityTags || data.tags, 10);
-      const lines = normalizeStringList(data.exampleDialogues || data.dialogues || data.examples, 8);
+      // v0.0.11：台词走整句模式，杜绝按顿号/逗号逐词拆句。
+      const lines = normalizeStringList(data.exampleDialogues || data.dialogues || data.examples, 8, 'dialogues');
       return {
         name: String(data.name || '').trim() || '未命名',
         desc: String(data.desc || data.description || '').trim(),
@@ -8718,7 +8754,8 @@ function cleanAIResponse(text) {
           const proposedRaw = getCharacterDraftProposedValue(target.rawPayload, normalized, def.key);
           const currentRaw = current ? current[def.key] : (def.fieldType === 'list' ? [] : '');
           if (def.fieldType === 'list') {
-            const proposedList = normalizeStringList(proposedRaw, def.maxLen || 12);
+            // v0.0.11：台词示例走整句模式，禁止把逗号/顿号拆成碎词。
+            const proposedList = normalizeStringList(proposedRaw, def.maxLen || 12, def.key === 'exampleDialogues' ? 'dialogues' : 'tags');
             const currentList = Array.isArray(currentRaw) ? currentRaw.map(value => String(value || '').trim()).filter(Boolean) : [];
             const additions = proposedList.filter(value => !currentList.includes(value));
             if (!additions.length) return;
@@ -9068,7 +9105,8 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
             if (!CHARACTER_DRAFT_FIELD_DEFS.some(def => def.key === item.fieldKey)) return;
             if (item.fieldType === 'list') {
               const maxLen = item.fieldKey === 'personalityTags' ? 10 : 8;
-              const additions = normalizeStringList(item.editValue, maxLen);
+              // v0.0.11：台词示例按整句合并，逗号/顿号不再拆句。
+              const additions = normalizeStringList(item.editValue, maxLen, item.fieldKey === 'exampleDialogues' ? 'dialogues' : 'tags');
               if (!additions.length) throw new Error(item.label + '候选为空');
               const current = Array.isArray(character[item.fieldKey]) ? character[item.fieldKey] : [];
               character[item.fieldKey] = Array.from(new Set(current.map(String).concat(additions)));
@@ -26493,7 +26531,8 @@ function getModHubPermissionLabels(mod) {
           novel.value.outline = raw;
           saveData(); showToast('大纲生成完成' + (changedVolumes ? '；已同步 ' + changedVolumes + ' 卷卷纲' : '') + (result.fallbackUsed ? '（已自动切换请求方式）' : ''), 'success');
         }
-        outlineInput.value = '';
+        // v0.0.11 修复4：发送后保留输入内容，用户可核对上一条要求、手动删除或再次发送。
+        // 原来成功后直接 outlineInput.value=''，用户无法确认上一次输入了什么。
       } catch (e) {
         if (isOutlineAbortError(e, controller.signal)) showToast(String(currentBookId.value || '') === sourceBookId ? '已停止大纲生成' : '已取消原书大纲生成', 'info');
         else showToast('失败: ' + e.message, 'error');
@@ -26755,6 +26794,55 @@ function getModHubPermissionLabels(mod) {
       });
     }
 
+    // v0.0.11 修复3：细纲流式落卡——AI 每输出一个章节标题行就立即建/展开对应细纲卡片，
+    // 后续文字增量流进该卡片，而不是等整批结束后才一次性合并。
+    // 中文注释：流式中 AI 还没输出下一章标题时，最后一张卡的正文是“进行中”状态；
+    // 结束时 parseGeneratedDetailedOutlines + mergeGeneratedDetailedOutlines 仍做最终定稿，
+    // 流式期间只做展示，不覆盖已有内容（onlyEmpty 逻辑在最终合并时仍然生效）。
+    function ensureStreamedChapterCard(chapterNo, title) {
+      const no = Math.max(1, Number(chapterNo) || 0);
+      if (!no) return null;
+      const list = chapterOutlines.value;
+      if (!Array.isArray(list)) { chapterOutlines.value = []; }
+      while (chapterOutlines.value.length < no) {
+        chapterOutlines.value.push({id:uid(), title:'第'+(chapterOutlines.value.length+1)+'章', content:'', isExpanded:false});
+      }
+      const card = chapterOutlines.value[no - 1];
+      if (!card) return null;
+      if (card.title === '第'+no+'章' && title && title !== '第'+no+'章') card.title = title;
+      card.isExpanded = true;
+      return card;
+    }
+
+    function applyDetailedOutlineStreamDelta(full, batch, onlyEmpty) {
+      const text = cleanAIResponse(String(full || ''));
+      if (!text.trim()) return;
+      const lines = text.split(/\r?\n/);
+      const headerIndexes = [];
+      lines.forEach((line, idx) => { if (isDetailedOutlineHeaderLine(line)) headerIndexes.push(idx); });
+      if (!headerIndexes.length) return;
+      let lastCard = null;
+      headerIndexes.forEach((startIdx, i) => {
+        const sectionLines = lines.slice(startIdx, (headerIndexes[i + 1] ?? lines.length));
+        const parsed = parseDetailedOutlineHeader(sectionLines[0], batch[0] + i);
+        if (!batch.includes(Number(parsed.chapterNo))) return;
+        const card = ensureStreamedChapterCard(parsed.chapterNo, parsed.title);
+        if (!card) return;
+        // 中文注释：流式展示前先确认该章不是“只补空白要跳过”的已有章节，避免把旧细纲当场顶掉。
+        if (onlyEmpty && card._streamed !== true && String(card.content || '').trim().length > 0) return;
+        card._streamed = true;
+        card.content = sectionLines.join('\n').trim();
+        lastCard = card;
+      });
+      // 中文注释：正在输出中的最后一张卡可能还没有下一个标题行，把未成段的尾部文字也补进去。
+      if (lastCard) {
+        const lastHeaderIdx = headerIndexes[headerIndexes.length - 1];
+        const nextHeaderIdx = lines.findIndex((line, idx) => idx > lastHeaderIdx && isDetailedOutlineHeaderLine(line));
+        const tail = lines.slice(lastHeaderIdx + 1, nextHeaderIdx === -1 ? lines.length : nextHeaderIdx).join('\n');
+        if (tail.trim()) lastCard.content = cleanAIResponse((lastCard.content || '') + '\n' + tail).trim();
+      }
+    }
+
     // 中文注释：细纲安全合并策略——已有非空细纲默认保留，只填补空白章节或追加缺失章节，防止新生成结果覆盖旧细纲。
     function mergeGeneratedDetailedOutlines(nextOutlines, options = {}) {
       const merged = Array.isArray(chapterOutlines.value) ? chapterOutlines.value.slice() : [];
@@ -26919,7 +27007,7 @@ function getModHubPermissionLabels(mod) {
         };
         target.content = parsed.content || raw;
         target.isExpanded = true;
-        target.aiInput = '';
+        // v0.0.11 修复4：单章细纲要求发送后保留，不再自动清空；用户核对后可手动删除或再次发送。
         const q = analyzeDetailedOutlineQuality(target.content);
         setChapterOutlineRunState(targetChapterNo, q.status === 'short' ? 'short' : 'written');
         saveData();
@@ -27095,7 +27183,12 @@ function getModHubPermissionLabels(mod) {
               expectedEnd: batch[batch.length - 1],
               expectedChapters: batch,
               preferStream: true,
-              onTextDelta: (_delta, full) => { outlineStreamPreview.value = cleanAIResponse(full || ''); },
+              // v0.0.11 修复3：批量细纲从“整批结束后才一次性写入”改为流式落卡——
+              // AI 输出标题行时立即建卡，正文按块流进对应卡片。
+              onTextDelta: (_delta, full) => {
+                outlineStreamPreview.value = cleanAIResponse(full || '');
+                try { applyDetailedOutlineStreamDelta(full, batch, onlyEmpty); } catch (streamErr) { console.warn('[细纲] 流式落卡跳过一次增量:', streamErr); }
+              },
               targetChars: Math.max(600, Math.round(totalWordTarget * (batch.length / Math.max(1, target.length)))),
               signal: controller.signal
             });
@@ -27107,6 +27200,8 @@ function getModHubPermissionLabels(mod) {
             const got = new Set(nextOutlines.map(item => Number(item.chapterNo)));
             const missing = batch.filter(no => !got.has(no));
             const stats = mergeGeneratedDetailedOutlines(nextOutlines, { onlyEmpty });
+            // 中文注释：流式落卡用的临时标记不落库存档，批次定稿后立即清掉。
+            batch.forEach(no => { const streamed = chapterOutlines.value[no - 1]; if (streamed) delete streamed._streamed; });
             detailedOutlineRun.value.written += stats.filled;
             detailedOutlineRun.value.skipped += stats.skipped;
             stats.writtenChapters.forEach(no => {
@@ -27141,7 +27236,7 @@ function getModHubPermissionLabels(mod) {
           showToast('细纲部分完成：写入' + detailedOutlineRun.value.written + '章，失败' + detailedOutlineRun.value.failed + '章，可重试失败章节', 'error');
         } else {
           showToast('细纲生成完成：写入' + detailedOutlineRun.value.written + '章，保留旧细纲' + detailedOutlineRun.value.skipped + '章', 'success');
-          doInput.value = '';
+          // v0.0.11 修复4：补充要求发送后保留，方便核对上一条输入；用户可手动删除或再次发送。
         }
       } catch (e) {
         if (isOutlineAbortError(e, controller.signal)) {
@@ -27157,6 +27252,8 @@ function getModHubPermissionLabels(mod) {
         }
       } finally {
         if (parentSignal) parentSignal.removeEventListener('abort', relayParentAbort);
+        // v0.0.11 修复3：无论正常结束还是中途停止，都把流式落卡的临时标记清掉，避免存档里残留内部字段。
+        (chapterOutlines.value || []).forEach(card => { if (card && card._streamed) delete card._streamed; });
         if (activeDetailedOutlineRunId === runId) {
           const shouldClose = closeDetailedOutlineAfterStop;
           activeDetailedOutlineRunId = 0;
@@ -27230,6 +27327,8 @@ function getModHubPermissionLabels(mod) {
             + 'onclick="window._imgPreview && window._imgPreview(this.src)" '
             + 'onerror="this.parentElement.style.display=\'none\'" '
             + 'onload="window._cacheImg && window._cacheImg(this)">'
+            // v0.0.11 新功能5：右下角重试按钮，走全局 data-img-action 委托；点击后先二次确认再重新生成。
+            + '<button type="button" class="img-retry" data-img-action="retry-regen" data-cache-key="' + cacheKey + '" data-tag="' + tag.replace(/"/g, '&quot;') + '" title="重新生成这张图" aria-label="重新生成这张图">↻</button>'
             + '</div>';
         });
       } else {
@@ -27319,6 +27418,19 @@ function getModHubPermissionLabels(mod) {
         const tag = btn.dataset.tag || '';
         if (btn.dataset.imgAction === 'regen') regenerateInlineImage(cacheKey, tag);
         if (btn.dataset.imgAction === 'edit') editInlineImagePrompt(cacheKey, tag);
+        // v0.0.11 新功能5：右下角重试按钮先弹二次确认，用户确认后才真正发起重新生成。
+        if (btn.dataset.imgAction === 'retry-regen') {
+          const preview = String(tag).length > 40 ? (String(tag).slice(0, 40) + '…') : (tag || '（空）');
+          openConfirm({
+            title: '重新生成这张图片？',
+            message: '将按原提示词重新生成，当前图片会被替换，且不保留旧图副本。',
+            impactLines: ['提示词：' + preview, '会消耗一次生图额度'],
+            choices: [
+              { id: 'cancel', label: '取消' },
+              { id: 'confirm', label: '重新生成', tone: 'danger' }
+            ]
+          }, actionId => { if (actionId === 'confirm') regenerateInlineImage(cacheKey, tag); });
+        }
       });
     }
 
@@ -35115,6 +35227,11 @@ function getWritingModelLabel() {
         if (fallback) events.push(fallback + '。');
       }
       const bible = ensureStoryBible(); if (!Array.isArray(bible.world.events)) bible.world.events = [];
+      // v0.0.11 新功能6：事件时间线自动补录由 settings.autoTimelineSupplement 控制（默认开）。
+      // 中文注释：开关在运行时即时读取，上一章开、下一章关这类交错操作各自按当次状态生效，
+      // 不会因为任务开始时读过一次旧值而误写或漏写；关闭时跳过事件补录，角色状态/资料命中等其余记忆同步不受影响。
+      const autoTimelineOn = settings.value.autoTimelineSupplement !== false;
+      if (!autoTimelineOn) events.length = 0;
       // 正文结束后只对命中的空资料字段做保守填充，已有作者内容永不覆盖。
       (bible.world.entries || []).forEach(entry => {
         const entryName = String(entry?.name || '').trim();
@@ -35126,6 +35243,14 @@ function getWritingModelLabel() {
       });
       events.forEach(summary => { const normalizedSummary = summary.trim(); const exists = bible.world.events.some(e => e?.chapterNo === chapterNo && String(e.summary || e.title || '').trim() === normalizedSummary); if (!exists) bible.world.events.push(normalizeStoryBibleEvent({ id:'evt_' + uid(), scope:'story', chapterNo, chapterIds:chapter?.id ? [chapter.id] : [], timeText:'第' + chapterNo + '章', title:normalizedSummary.slice(0, 120), summary:normalizedSummary, result:normalizedSummary, characterIds:structuredCharacters.value.filter(c => c?.name && normalizedSummary.includes(c.name)).map(c => c.id), readerVisible:true, createdAt:Date.now() }, new Set())); });
       bible.updatedAt = Date.now();
+    }
+
+    // v0.0.11 新功能6：自动补录开关的计算属性与切换函数；事件工作台与设置-上下文页两处 UI 共用同一状态。
+    const autoTimelineSupplementOn = computed(() => settings.value.autoTimelineSupplement !== false);
+    function toggleAutoTimelineSupplement() {
+      settings.value.autoTimelineSupplement = !(settings.value.autoTimelineSupplement !== false);
+      saveData();
+      showToast(settings.value.autoTimelineSupplement !== false ? '已开启事件时间线自动补录' : '已关闭自动补录：之后生成的正文不再自动写入事件时间线', settings.value.autoTimelineSupplement !== false ? 'success' : 'info');
     }
 
 
@@ -35475,6 +35600,8 @@ function getWritingModelLabel() {
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, normalizePromptPipeline, buildFullSystemPrompt: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt,
+      // v0.0.11 新功能6：事件时间线自动补录开关。
+      autoTimelineSupplementOn, toggleAutoTimelineSupplement,
       // ── Part 2: 文风 ──
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──

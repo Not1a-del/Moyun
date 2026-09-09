@@ -1,9 +1,10 @@
 {
   "name": "moyun-web",
-  "version": "0.0.10",
+  "version": "0.0.12",
   "private": true,
   "scripts": {
     "build": "node scripts/build-static-site.cjs",
-    "regress": "node scripts/regression-check.cjs"
+    "audit": "node scripts/structure-audit.cjs",
+    "regress": "node scripts/regression-check.cjs && node scripts/structure-audit.cjs"
   }
 }
