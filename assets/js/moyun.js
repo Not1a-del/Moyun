@@ -2965,6 +2965,8 @@ createApp({
       noOutputTimeoutSec: 45,
       enableReviewer: false, enableThinking: true,
       commentInline: false,
+      // v0.0.13 req2：二轮补写开关，默认开启；关闭后首轮字数不足不再自动追加第二次请求。
+      secondRoundSupplementEnabled: true,
       moduleModels: {
         writing: '', settings: '', character: '', imagetext: '',
         outline: '', suggestion: '', review: '', summary: '',
@@ -2975,7 +2977,8 @@ createApp({
     /* ═══ 连接中心 G1：配置档案、私有凭据与兼容迁移 ═══ */
     const CONNECTION_CENTER_VERSION = 3;
     const CONNECTION_CREDENTIALS_DB_KEY = 'connection_credentials_v1';
-    const CONNECTION_MODULE_KEYS = ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
+    // v0.0.13 req2：新增 supplement（续写补写）模块 key，供二轮补写选择专用模型；未分配时自动跟随正文模块。
+    const CONNECTION_MODULE_KEYS = ['writing','supplement','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
     const PROVIDER_TEMPLATES = Object.freeze([
       { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
       { id:'kimi-open-platform', name:'Kimi 开放平台', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true, defaultBaseUrl:'https://api.moonshot.cn/v1' },
@@ -3105,6 +3108,12 @@ createApp({
 
     function getModuleRouteProfileId(moduleKey) {
       return String(connectionCenter.value.moduleRoutes?.[String(moduleKey || '')]?.profileId || '');
+    }
+
+    // v0.0.13 req2：续写补写模块「跟随正文模块」时在 UI 上显示实际跟随的配置。
+    function getSupplementFollowProfile() {
+      const resolved = resolveModuleConnection('supplement');
+      return resolved?.profile || getEffectiveDefaultConnectionProfile();
     }
 
     function setModuleRouteProfile(moduleKey, profileId) {
@@ -5114,6 +5123,14 @@ createApp({
     function toggleBuiltinSystemPrompt(key) {
       builtinSystemPromptExpanded.value = Object.assign({}, builtinSystemPromptExpanded.value, { [key]: !builtinSystemPromptExpanded.value[key] });
     }
+    // v0.0.13 req4：NSFW 模式下「系统内置提示词」分区只渲染 NSFW 专属两张卡；
+    // 其余卡片的存储与编辑逻辑不动，仅通过下方两个视图函数调整展示位置。
+    function getNsfwOnlyBuiltinPromptCards() {
+      return builtinSystemPromptCards.filter(card => card.key === 'nsfwCore' || card.key === 'nsfwPrelude');
+    }
+    function getNonNsfwBuiltinPromptCards() {
+      return builtinSystemPromptCards.filter(card => card.key !== 'nsfwCore' && card.key !== 'nsfwPrelude');
+    }
     function restoreBuiltinSystemPrompt(key) {
       const card = builtinSystemPromptCards.find(item => item.key === key);
       openConfirm({
@@ -6183,53 +6200,61 @@ function copyLastChapterContextText() {
     }
 
     /* 同步当前书籍数据到books数组 */
+    // v0.0.13 req1（内存优化）：这里过去对每个字段做 deepClone（JSON.parse(JSON.stringify())）。
+    // 百万字书 = chapters 一项就几 MB；每次保存（含 2 秒防抖）都把整本书再复制一份，
+    // 老书架多书共存时 books 数组里每本书都常驻一份完整深拷贝，内存翻倍且 JSON.parse 峰值更高。
+    // 实际消费方只有两类：a) buildLibrarySnapshot → JSON.stringify（只需可序列化的引用快照，
+    // snapshotForSerialize 已提供，值层面等价）；b) 切书时 loadBook 深拷贝出的运行态与 books 隔离。
+    // 因此这里改为浅结构展开 + 叶子引用共享的轻量快照：写库结果与 deepClone 完全等价，
+    // 但不再为整本书制造第二份常驻内存。切书后 loadBook 拿到的仍是独立副本，不会产生跨书引用。
     function syncBookData() {
       if (!books.value.length || !currentBookId.value) return;
       repairDanglingCharacterReferences();
       const idx = books.value.findIndex(b => b.id === currentBookId.value);
       if (idx >= 0) {
         const bk = books.value[idx];
+        const snap = v => snapshotForSerialize(v);
         syncInterruptedDraftToCurrentBook();
-        bk.novel = deepClone(novel.value);
-        bk.chapters = deepClone(chapters.value);
-        bk.characters = deepClone(structuredCharacters.value);
+        bk.novel = snap(novel.value);
+        bk.chapters = snap(chapters.value);
+        bk.characters = snap(structuredCharacters.value);
         // 中文注释：未打开过工作台的旧书保持没有 storyBible 字段；已存在或已打开的书才保存结构。
         if (storyBible.value) {
           repairStoryBibleReferences();
-          bk.storyBible = deepClone(storyBible.value);
+          bk.storyBible = snap(storyBible.value);
         }
         bk.title = novel.value.title || '无题';
         bk.lastModified = Date.now();
         bk.wordCount = totalWordCount.value;
-        bk.branchList = deepClone(branchList.value);
+        bk.branchList = snap(branchList.value);
         bk.activeBranchId = activeBranchId.value;
-        bk.chapterOutlines = deepClone(chapterOutlines.value);
-        bk.chapterIndexDrafts = deepClone(chapterIndexDrafts.value);
-        bk.foreshadowMatrix = deepClone(foreshadowMatrix.value);
-        bk.outlineRevisions = deepClone(outlineRevisions.value);
-        bk.activeStyleIds = deepClone(activeStyleIds.value);
+        bk.chapterOutlines = snap(chapterOutlines.value);
+        bk.chapterIndexDrafts = snap(chapterIndexDrafts.value);
+        bk.foreshadowMatrix = snap(foreshadowMatrix.value);
+        bk.outlineRevisions = snap(outlineRevisions.value);
+        bk.activeStyleIds = snap(activeStyleIds.value);
         // 主 API 模型属于全局设置，不再写入每本书的 localSettings，避免切书/加载旧书时覆盖当前选择。
         if (bk.localSettings && Object.prototype.hasOwnProperty.call(bk.localSettings, 'model')) {
           delete bk.localSettings.model;
         }
         bk.coverImage = coverImage.value;
 		// ═══ 预设相关：每本书独立存储 ═══
-        bk.promptPipeline = deepClone(promptPipeline.value);
-        bk.presets = deepClone(presets.value);
-        bk.writingStyles = deepClone(writingStyles.value);
+        bk.promptPipeline = snap(promptPipeline.value);
+        bk.presets = snap(presets.value);
+        bk.writingStyles = snap(writingStyles.value);
         bk.currentWritingStyleId = currentWritingStyleId.value;
-        bk.modPacks = deepClone(modPacks.value);
-        bk.installedThemePacks = deepClone(installedThemePacks.value);
+        bk.modPacks = snap(modPacks.value);
+        bk.installedThemePacks = snap(installedThemePacks.value);
         bk.activeThemePackId = activeThemePackId.value;
         // 中文注释：每本书单独保存插件私有数据，防止不同作品之间的插件缓存互相污染。
-        bk.modPrivateData = deepClone(modPrivateData.value);
+        bk.modPrivateData = snap(modPrivateData.value);
         bk.atmosphereEnabled = atmosphereEnabled.value;
         bk.atmospherePrompt = atmospherePrompt.value;
         bk.narrativePerson = narrativePerson.value;
-        bk.nsfwSettings = deepClone(nsfwSettings.value);
-        bk.dialogueTypes = deepClone(dialogueTypes.value);
-        bk.personalityTagPresets = deepClone(personalityTagPresets.value);
-        bk.summaries = deepClone(summaries.value);
+        bk.nsfwSettings = snap(nsfwSettings.value);
+        bk.dialogueTypes = snap(dialogueTypes.value);
+        bk.personalityTagPresets = snap(personalityTagPresets.value);
+        bk.summaries = snap(summaries.value);
 
       }
     }
@@ -6398,7 +6423,7 @@ function copyLastChapterContextText() {
           normalizeContextSettings();
           // 确保新增的模块模型key存在（兼容旧数据）
           if (!settings.value.moduleModels) settings.value.moduleModels = {};
-          ['writing','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'].forEach(k => {
+          ['writing','supplement','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'].forEach(k => {
             if (settings.value.moduleModels[k] === undefined) settings.value.moduleModels[k] = '';
           });
           if (data.connectionCenter) connectionCenter.value = normalizeConnectionCenter(data.connectionCenter);
@@ -6450,7 +6475,8 @@ function copyLastChapterContextText() {
           // 生图
           if (data.imageGenEnabled !== undefined) imageGenEnabled.value = data.imageGenEnabled;
           if (data.imageGenKey) imageGenKey.value = data.imageGenKey;
-          if (data.naiCallMode) naiCallMode.value = data.naiCallMode;
+          // v0.0.13 req3：默认渠道已是「增强」(rphub)；旧存档只要显式记录过渠道（包括 canary）都视为用户选择，按原值恢复。
+          if (data.naiCallMode === 'canary' || data.naiCallMode === 'rphub') naiCallMode.value = data.naiCallMode;
           if (data.coverImage) coverImage.value = data.coverImage;
           if (data.imagePromptTemplate) imagePromptTemplate.value = data.imagePromptTemplate;
           if (data.avatarPromptTemplate) avatarPromptTemplate.value = data.avatarPromptTemplate;
@@ -6752,7 +6778,9 @@ function copyLastChapterContextText() {
       if (!title) { bookEditorError.value = '书名不能为空'; return false; }
       if (title.length > 60) { bookEditorError.value = '书名不能超过 60 个字符'; return false; }
 
-      const originalBook = deepClone(book);
+      // v0.0.13 req1（内存优化）：回滚副本只在保存失败时整体放回 books（只读用途），
+      // 引用快照与 deepClone 在值层面等价，不再为整本书（含全部章节）复制第二份。
+      const originalBook = snapshotForSerialize(book);
       const originalCurrentTitle = novel.value.title;
       const originalCurrentCover = coverImage.value;
       if (id === String(currentBookId.value || '')) {
@@ -7417,7 +7445,9 @@ function copyLastChapterContextText() {
 
     /* ═══ 模块模型分配（旧版能力整合） ═══ */
     const moduleModelConfig = [
+      // v0.0.13 req2：新增 supplement（续写补写）模块，用于二轮补写选择专用模型。
       { key:'writing', name:'正文生成', desc:'章节正文续写、AI编辑、改标题、生成摘要' },
+      { key:'supplement', name:'续写补写', desc:'二轮字数补充等追加续写请求；跟随正文可命中缓存，指定专用模型则按所选模型调用' },
       { key:'settings', name:'设定模块', desc:'设定补全、世界观、一键开书设定' },
       { key:'character', name:'角色模块', desc:'角色生成、标签、台词、关系' },
       { key:'imagetext', name:'封面/立绘', desc:'封面和角色立绘的标签提取（文本API）' },
@@ -7450,8 +7480,25 @@ function copyLastChapterContextText() {
       }
       const center = normalizeConnectionCenter(connectionCenter.value);
       const route = center.moduleRoutes[key] || { profileId:'' };
-      const hasExplicitRoute = !!String(route.profileId || '').trim();
+      let hasExplicitRoute = !!String(route.profileId || '').trim();
       const routeId = hasExplicitRoute ? String(route.profileId).trim() : '';
+      // v0.0.13 req2：supplement（续写补写）模块未分配时自动跟随 writing（正文）模块的配置，
+      // 与首轮请求保持同源，厂商侧前缀缓存才能命中；显式分配后才使用自己的配置。
+      if (!hasExplicitRoute && key === 'supplement') {
+        const writingRouteId = String(center.moduleRoutes?.writing?.profileId || '').trim();
+        if (writingRouteId) {
+          const writingProfile = center.profiles.find(item => item.id === writingRouteId) || null;
+          if (writingProfile) {
+            const writingApiKey = getConnectionCredential(writingProfile.id);
+            const writingBase = getApiBaseUrl(writingProfile.baseUrl);
+            const writingAdapterOk = isConnectionProfileAdapterSupported(writingProfile) && writingProfile.adapterId;
+            if (writingProfile.enabled && writingProfile.defaultModel && writingBase && writingApiKey && writingAdapterOk && writingProfile.lastTest?.status === 'ok') {
+              const writingUrl = (writingProfile.adapterId === 'anthropic-messages' || writingProfile.adapterId === 'gemini-generate') ? writingBase : writingBase + '/chat/completions';
+              return { ok:true, source:'connection-center', profile:writingProfile, model:writingProfile.defaultModel, apiKey:writingApiKey, baseUrl:writingProfile.baseUrl };
+            }
+          }
+        }
+      }
       const profile = hasExplicitRoute ? (center.profiles.find(item => item.id === routeId) || null) : getEffectiveDefaultConnectionProfile(center);
       if (hasExplicitRoute && !profile) {
         return { ok:false, reason:'模块“' + key + '”绑定的 API 配置不存在', source:'connection-center', profile:null };
@@ -9044,9 +9091,12 @@ function cleanAIResponse(text) {
       }
       const onlyFill = options.onlyFill === true;
       characterDraftReview.value.status = 'applying';
-      const previousCharacters = deepClone(structuredCharacters.value);
-      const previousStoryBible = deepClone(storyBible.value);
-      const previousBooks = deepClone(books.value);
+      // v0.0.13 req1（内存优化）：撤销快照只用于失败时整体回滚（只读），不需要可变深拷贝；
+      // books.value 里还包含全部书稿的 chapters，deepClone 会在百万字书架上整架复制。
+      // 引用快照在值层面与 deepClone 等价，回滚赋值后同样恢复原内容。
+      const previousCharacters = snapshotForSerialize(structuredCharacters.value);
+      const previousStoryBible = snapshotForSerialize(storyBible.value);
+      const previousBooks = snapshotForSerialize(books.value);
       const previousSelectedCharacterId = selectedWorkbenchCharacterId.value;
       let commitStarted = false;
       try {
@@ -9327,7 +9377,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       {id:'rp5',name:'抗八股文风',content:'<writing_style>\n使用日式轻小说文风，长短句结合，用日常用语。\n禁止比喻手法（如xxx像xxx），减少人称代词。\n善用沉浸式旁白与丰富的对话描写。\n断绝定式修辞、定式词组、定式句式。\n绝不输出已出现过的结构和情节。\n开场白和前文只用于理解剧情事实，不作为文风模板。\n</writing_style>',enabled:false,applyTo:['writing'],isBuiltin:true,_expanded:false},
       {id:'rp_antirepeat',name:'防重复',content:'<anti_repetition>\n避免任何类型的重复，规避潜在的相似性：\n- 全面禁止使用比喻修辞，全程保持纯粹白描手法\n- 断绝任何定式修辞、定式词组、定式句式\n- 绝不输出已出现过的结构和情节，创造新的句子结构和语言模式\n- 避免使用相同或相似的描述（尤其是输出的开头和结尾）\n- 确保文本结构、句式风格的多样性\n- 始终保持情节的新鲜感\n</anti_repetition>',enabled:true,applyTo:['writing'],isBuiltin:true,_expanded:false},
       // 中文注释：融合可泛化反馈，把禁句、禁排比和完整性要求写入主文件可编辑预设；不保留“热度1.2”“{user}”等平台化表达。
-      {id:'rp6',name:'禁止规则',content:'<prohibited_content>\n禁止输出的形式或内容：\n- 过于华丽和文学性的修辞、意象和比喻手法\n- 过于机械的人设演绎\n- 过长或大段的文学性环境描写\n- 任何形式的道歉或截断输出\n- 任何形式的数数、罗列数字、计算时间的行为\n- 禁止输出无意义重复废话，禁止用同义反复拖长段落。\n- 禁止句型："不是……是……"、"不是……，不是……，是……"、"不是……而是……"、"比起……更……"等对比句型或类似变体。\n- 禁止出现"X个字"、"几个字"等报告式字数表达。\n- 严厉禁止排比句堆叠，避免连续三句以上同结构句式。\n- 禁止词汇：因为用力、泛白、麝香、囊袋、淫靡、翕、肥美、肉团\n</prohibited_content>',enabled:true,applyTo:['writing'],isBuiltin:true,_expanded:false},
+      {id:'rp6',name:'禁止规则',content:'<prohibited_content>\n禁止输出的形式或内容：\n- 过于华丽和文学性的修辞、意象和比喻手法\n- 过于机械的人设演绎\n- 过长或大段的文学性环境描写\n- 任何形式的道歉或截断输出\n- 任何形式的数数、罗列数字、计算时间的行为\n- 禁止输出无意义重复废话，禁止用同义反复拖长段落。\n- 禁止句型："不是……是……"、"不是……，不是……，是……"、"不是……而是……"、"比起……更……"等对比句型或类似变体。\n- 禁止出现"X个字"、"几个字"等报告式字数表达。\n- 严厉禁止排比句堆叠，避免连续三句以上同结构句式。\n- 禁止词汇：因为用力、泛白、麝香、囊袋、淫靡、翕、肥美、肉团\n- 禁止输出道歉、规则说明、创作分析、总结或截断提示，直接给出规定格式与剧情正文。\n- 禁止把场景写成逐秒镜头清单，连续罗列停步、转身、抬眼、皱眉、手指、发丝、衣摆、光线和脚步等微动作。\n- 禁止在细节已经表达情绪后，再用"显然""其实""不难看出""像是在""仿佛在"等旁白替读者解释同一件事。\n- 禁止使用"一抹""弧度""不容置疑""不易察觉""难以察觉""微不可察""几不可察""生理性""极其"及"指尖、指节或指关节发白"等固定过滤表达。\n- 禁止刻板轻小说口癖、无缘由的嘴硬模板，以及脱离人物身份和关系阶段的脸红、结巴、撒娇、臣服或暧昧反应。\n- 禁止为了显得细腻而反复扫视身体、服饰或景物；禁止用无关环境变化反复烘托旁白已经说破的情绪。\n- 禁止"不是……而是／是／像是"式总结、"像……又像……"式摇摆比拟，以及连续使用同一种句式或动作报幕。正常的说话人提示、破折号和短段落可以使用，但不得形成重复模板。\n</prohibited_content>',enabled:true,applyTo:['writing'],isBuiltin:true,_expanded:false},
       // 中文注释：内置“防数字化沉浸”预设，用户可在预设面板直接编辑内容，用于减少正文里编号、清单和报告式数字表达。
       {id:'rp_anti_number_immersion',name:'防数字化沉浸',content:'<anti_number_immersion>\n正文必须保持小说沉浸感，禁止把叙事写成报告、清单或攻略。\n- 禁止在正文叙事中使用“第一、第二、第三”“1、2、3”“①②③”等编号推进情节。\n- 禁止用项目符号、列表、小标题拆分正文场景；剧情必须自然流动。\n- 禁止频繁用精确数字解释动作、距离、时间、次数、百分比，除非该数字是剧情事实且必须出现。\n- 时间、距离、数量优先改写为自然感受，例如“片刻后”“隔着几步”“许多人”“很久以前”。\n- 正文人物对话必须流畅、有条理、有自身思考方式，禁止断气式短句堆叠。\n- 角色不得 OOC；行为、语言、动机必须符合既定身份、性格和信息边界。\n- 可以在剧情摘要、书评、设定整理中结构化表达，但正文区域必须避免数字化破坏代入感。\n</anti_number_immersion>',enabled:true,applyTo:['writing'],isBuiltin:true,_expanded:false},
       {id:'bp1',name:'防全知',content:'AI在写作时严禁预知未发生的事件。角色只能知道自己经历过或被告知的信息。保持信息的不对称性。',enabled:false,applyTo:['writing'],isBuiltin:true,_expanded:false},
@@ -24302,14 +24352,25 @@ function getModHubPermissionLabels(mod) {
         result[idx].applyTo = Array.isArray(result[idx].applyTo) ? result[idx].applyTo : deepClone(def.applyTo || ['writing']);
         if (!result[idx].content) result[idx].content = def.content;
         // 中文注释：禁止规则早期版本没有 v2.2.5 的报告腔、对比句、排比补丁；只在缺少关键词时追加，不强行覆盖用户已编辑内容。
+        // v0.0.13 req4：追加用户提供的 7 条新禁止规则（镜头清单/旁白解释/过滤表达/口癖/扫视/句式报幕），同样只补缺失项，避免重复。
         if (def.id === 'rp6') {
           let content = String(result[idx].content || '');
           const patchLines = [];
           if (!content.includes('报告式字数')) patchLines.push('- 禁止出现"X个字"、"几个字"等报告式字数表达。');
           if (!content.includes('禁止句型')) patchLines.push('- 禁止句型："不是……是……"、"不是……而是……"、"比起……更……"等对比句型或类似变体。');
           if (!content.includes('排比句堆叠')) patchLines.push('- 严厉禁止排比句堆叠，避免连续三句以上同结构句式。');
+          const rp6NewRules = [
+            { keyword: '逐秒镜头清单', line: '- 禁止把场景写成逐秒镜头清单，连续罗列停步、转身、抬眼、皱眉、手指、发丝、衣摆、光线和脚步等微动作。' },
+            { keyword: '替读者解释同一件事', line: '- 禁止在细节已经表达情绪后，再用"显然""其实""不难看出""像是在""仿佛在"等旁白替读者解释同一件事。' },
+            { keyword: '固定过滤表达', line: '- 禁止使用"一抹""弧度""不容置疑""不易察觉""难以察觉""微不可察""几不可察""生理性""极其"及"指尖、指节或指关节发白"等固定过滤表达。' },
+            { keyword: '刻板轻小说口癖', line: '- 禁止刻板轻小说口癖、无缘由的嘴硬模板，以及脱离人物身份和关系阶段的脸红、结巴、撒娇、臣服或暧昧反应。' },
+            { keyword: '反复扫视身体', line: '- 禁止为了显得细腻而反复扫视身体、服饰或景物；禁止用无关环境变化反复烘托旁白已经说破的情绪。' },
+            { keyword: '动作报幕', line: '- 禁止"不是……而是／是／像是"式总结、"像……又像……"式摇摆比拟，以及连续使用同一种句式或动作报幕。正常的说话人提示、破折号和短段落可以使用，但不得形成重复模板。' }
+          ];
+          rp6NewRules.forEach(rule => { if (!content.includes(rule.keyword)) patchLines.push(rule.line); });
           if (patchLines.length) {
-            const patch = '\n【v2.2.5补充】\n' + patchLines.join('\n') + '\n';
+            const patchLabel = patchLines.length > 3 ? '\n【规则补充】\n' : '\n【v2.2.5补充】\n';
+            const patch = patchLabel + patchLines.join('\n') + '\n';
             content = content.includes('</prohibited_content>') ? content.replace('</prohibited_content>', patch + '</prohibited_content>') : content + patch;
             result[idx].content = content;
           }
@@ -29039,7 +29100,8 @@ function getWritingModelLabel() {
 
     const imageGenEnabled = ref(false);
     const imageGenKey = ref('');
-    const naiCallMode = ref('canary'); // 'canary' | 'rphub'
+    const naiCallMode = ref('rphub'); // v0.0.13 req3：默认渠道改为「增强」(rphub)；Canary 保留为手动选项。旧存档里用户自己保存过的选择仍按原值加载。
+    // 'canary' | 'rphub'
 
     function getNaiBaseUrl() {
       if (naiCallMode.value === 'rphub' && imageGenKey.value.toUpperCase().startsWith('STA1N')) {
@@ -30587,10 +30649,22 @@ function getWritingModelLabel() {
         const contract = getChapterLengthContract(generationContext.wordCountTarget);
         const currentWords = getCleanWordCount(baseText);
         if (currentWords > contract.targetWords) return { text:'', skipped:true };
+        // v0.0.13 req2：全局设置里的「二轮补写」开关（默认开启）。关闭后直接跳过第二次请求，首轮内容照常落盘。
+        if (settings.value.secondRoundSupplementEnabled === false) {
+          console.info('[Generate] 二轮补写已被全局设置关闭，保留首轮正文:', { firstRoundWords: currentWords, target: contract.targetWords });
+          showToast('首轮正文约 ' + currentWords + ' 字（目标 ' + contract.targetWords + ' 字）；二轮补写已在全局设置中关闭，直接保留首轮内容', 'info');
+          return { text:'', skippedBySwitch:true };
+        }
         const needed = Math.max(120, contract.targetWords - currentWords + 80);
+        // v0.0.13 req2：进入二轮补写前先弹窗告知用户（本轮会额外发起一次付费请求）。
+        showToast('首轮正文约 ' + currentWords + ' 字，未达目标 ' + contract.targetWords + ' 字，正在进入二轮补写（将追加一次请求）', 'info');
+        // v0.0.13 req2 缓存命中优化：二轮不再整包重发 msgs（那样输入前缀与首轮不同，厂商侧 prompt 缓存无法命中、
+        // 输入还要按全新 token 再计一次费）。改为在首轮 wire messages 之后原样追加一条续写指令：
+        // 请求前缀与首轮逐字节一致，支持前缀缓存计费的服务商会直接命中缓存，只按新增的少量输入 token 计费。
         const supplementMessages = msgs.concat([{ role:'user', content:'【二轮字数补充】首轮正文只有约 ' + currentWords + ' 字，未达到用户要求的 ' + contract.targetWords + ' 字。请从现有正文最后一个自然断点继续补写约 ' + needed + ' 字，只输出可直接接续的正文段落，不要标题、摘要、评论、解释或重复已有内容；必须继续遵守本请求中的大纲、细纲、角色和资料设定，不得引入未授权重大事件。' }]);
         let appended = '';
-        const result = await fetchAdapterCompletion(generationRequest, supplementMessages, {
+        const supplementRequest = resolveSupplementRequest();
+        const result = await fetchAdapterCompletion(supplementRequest, supplementMessages, {
           stream:true,
           temperature:0.8,
           maxTokens:getChapterGenerationMaxTokens(generationContext.wordCountTarget, { attempt:1 }),
@@ -30600,7 +30674,19 @@ function getWritingModelLabel() {
         appended = cleanAIResponse(result?.text || appended);
         streamContent.value = cleanAIResponse(baseText + (appended ? '\n' + appended : ''));
         genCharCount.value = getCleanWordCount(streamContent.value);
-        return { text: appended, skipped:false };
+        return { text: appended, skipped:false, model: supplementRequest.model };
+      }
+
+      // v0.0.13 req2：二轮补写的请求配置。默认与首轮同一配置（保证 messages 前缀一致才能命中厂商缓存）；
+      // 用户在「模块 API 配置分配」里为「续写补写」单独指定模型时，切换为该模型并提示可能影响缓存命中。
+      function resolveSupplementRequest() {
+        const dedicated = getModuleRequestConfig('supplement');
+        if (dedicated.ok && dedicated.model && dedicated.model !== generationRequest.model) {
+          console.info('[Generate] 二轮补写使用专用模型:', { supplementModel: dedicated.model, firstRoundModel: generationRequest.model });
+          showToast('二轮补写已切换到专用模型：' + dedicated.model + '（模型或配置与首轮不同时，厂商侧可能无法命中前缀缓存）', 'info');
+          return dedicated;
+        }
+        return generationRequest;
       }
 
       if (snowwingCotContext.enabled && isSnowwingRuntimeAuditFlagEnabled('SNOWWING_ENABLE_COT_PREFLIGHT') && !isSnowwingRuntimeAuditFlagEnabled('SNOWWING_DISABLE_COT_PREFLIGHT')) {
@@ -30896,16 +30982,21 @@ function getWritingModelLabel() {
         }
 
         // 严格按用户目标字数检查：首轮不超过目标时自动二轮流式补充，计时器和 streamContent 在整个过程保持运行。
+        // v0.0.13 req2：受全局设置「二轮补写」开关控制；开关关闭时 requestShortfallSupplement 直接返回 skippedBySwitch。
         const firstRoundWords = getCleanWordCount(fullText);
         const lengthContract = getChapterLengthContract(generationContext.wordCountTarget);
         let supplementAttempted = false;
         if (firstRoundWords <= lengthContract.targetWords) {
-          supplementAttempted = true;
           try {
             streamContent.value = fullText;
             const supplement = await requestShortfallSupplement(fullText);
-            if (supplement.text) fullText = cleanAIResponse(fullText + '\n' + supplement.text);
-            console.info('[Generate] 二轮字数补充完成:', { firstRoundWords, finalWords:getCleanWordCount(fullText), target:lengthContract.targetWords });
+            if (supplement.skippedBySwitch) {
+              // 开关关闭：不视为“已尝试二轮”，后续提示与门禁下限都按纯首轮口径处理。
+            } else {
+              supplementAttempted = true;
+              if (supplement.text) fullText = cleanAIResponse(fullText + '\n' + supplement.text);
+              console.info('[Generate] 二轮字数补充完成:', { firstRoundWords, finalWords:getCleanWordCount(fullText), target:lengthContract.targetWords, supplementModel: supplement.model || generationRequest.model });
+            }
           } catch (supplementError) {
             if (supplementError?.name === 'AbortError') throw supplementError;
             console.warn('[Generate] 二轮字数补充失败，保留首轮正文:', supplementError);
@@ -32575,38 +32666,41 @@ function getWritingModelLabel() {
     function saveSnapshot(reason) {
       syncBookData();
       const currentBook = books.value.find(b => b.id === currentBookId.value) || {};
+      // v0.0.13 req1（内存优化）：快照最终去向是 JSON.stringify 写库，与存档同路；
+      // deepClone 在这里同样只是“深拷贝再序列化”的白费峰值，统一换成轻量引用快照。
+      const snapClone = v => snapshotForSerialize(v);
       const snap = {
         id: uid(), bookId: currentBookId.value, bookName: novel.value.title || '',
         reason: reason || '手动保存', timestamp: Date.now(),
         data: JSON.stringify({
           // 中文注释：快照用于恢复当前书的完整创作状态，不只保存正文、角色和基础设定。
-          novel: deepClone(novel.value),
-          storyBible: storyBible.value ? deepClone(storyBible.value) : null,
-          chapters: deepClone(chapters.value),
-          characters: deepClone(structuredCharacters.value),
-          branchList: deepClone(branchList.value),
+          novel: snapClone(novel.value),
+          storyBible: storyBible.value ? snapClone(storyBible.value) : null,
+          chapters: snapClone(chapters.value),
+          characters: snapClone(structuredCharacters.value),
+          branchList: snapClone(branchList.value),
           activeBranchId: activeBranchId.value,
-          chapterOutlines: deepClone(chapterOutlines.value),
-          chapterIndexDrafts: deepClone(chapterIndexDrafts.value),
-          foreshadowMatrix: deepClone(foreshadowMatrix.value),
-          summaries: deepClone(summaries.value),
+          chapterOutlines: snapClone(chapterOutlines.value),
+          chapterIndexDrafts: snapClone(chapterIndexDrafts.value),
+          foreshadowMatrix: snapClone(foreshadowMatrix.value),
+          summaries: snapClone(summaries.value),
           coverImage: coverImage.value,
-          promptPipeline: deepClone(promptPipeline.value),
-          presets: deepClone(presets.value),
-          writingStyles: deepClone(writingStyles.value),
+          promptPipeline: snapClone(promptPipeline.value),
+          presets: snapClone(presets.value),
+          writingStyles: snapClone(writingStyles.value),
           currentWritingStyleId: currentWritingStyleId.value,
-          modPacks: deepClone(modPacks.value),
+          modPacks: snapClone(modPacks.value),
           // 中文注释：快照也保存插件私有数据，恢复时可以还原插件运行状态。
-          modPrivateData: deepClone(modPrivateData.value),
+          modPrivateData: snapClone(modPrivateData.value),
           atmosphereEnabled: atmosphereEnabled.value,
           atmospherePrompt: atmospherePrompt.value,
-          nsfwSettings: deepClone(nsfwSettings.value),
+          nsfwSettings: snapClone(nsfwSettings.value),
           nsfwSystemPrompt: String(nsfwSystemPrompt.value || ''),
           nsfwInjectionPrompt: String(nsfwInjectionPrompt.value || ''),
           discussionPrompt: String(discussionPrompt.value || ''),
           oneKeySystemPrompt: String(oneKeySystemPrompt.value || ''),
-          dialogueTypes: deepClone(dialogueTypes.value),
-          bookMeta: deepClone(currentBook)
+          dialogueTypes: snapClone(dialogueTypes.value),
+          bookMeta: snapClone(currentBook)
         }),
         chapterCount: chapters.value.length,
         wordCount: totalWordCount.value
@@ -33070,37 +33164,40 @@ function getWritingModelLabel() {
       await saveDataNow('全量备份导出前保存');
       try {
         showToast('正在打包全量备份...', 'info');
+        // v0.0.13 req1（内存优化）：全量备份的 data 唯一去向是下面的 JSON.stringify，
+        // deepClone 在这里只制造“深拷贝再序列化”的双份峰值；引用快照结果与 deepClone 完全等价。
+        const exClone = v => snapshotForSerialize(v);
         const data = {
           _type: 'moyun_full_book_backup',
           _exportVersion: 7,
           _exportMode: 'full-backup',
           _exportDate: new Date().toISOString(),
-          novel: deepClone(novel.value),
-          storyBible: storyBible.value ? deepClone(storyBible.value) : null,
-          chapters: deepClone(chapters.value).map(ch => Object.assign({}, ch, { isExpanded: false, isEditing: false, contentHeight: 0 })),
-          characters: deepClone(structuredCharacters.value),
-          branchList: deepClone(branchList.value),
+          novel: exClone(novel.value),
+          storyBible: storyBible.value ? exClone(storyBible.value) : null,
+          chapters: exClone(chapters.value).map(ch => Object.assign({}, ch, { isExpanded: false, isEditing: false, contentHeight: 0 })),
+          characters: exClone(structuredCharacters.value),
+          branchList: exClone(branchList.value),
           activeBranchId: activeBranchId.value,
-          chapterOutlines: deepClone(chapterOutlines.value),
-          chapterIndexDrafts: deepClone(chapterIndexDrafts.value),
-          foreshadowMatrix: deepClone(foreshadowMatrix.value),
-          summaries: deepClone(summaries.value),
+          chapterOutlines: exClone(chapterOutlines.value),
+          chapterIndexDrafts: exClone(chapterIndexDrafts.value),
+          foreshadowMatrix: exClone(foreshadowMatrix.value),
+          summaries: exClone(summaries.value),
           coverImage: coverImage.value,
-          promptPipeline: deepClone(promptPipeline.value),
-          presets: deepClone(presets.value),
-          writingStyles: deepClone(writingStyles.value),
+          promptPipeline: exClone(promptPipeline.value),
+          presets: exClone(presets.value),
+          writingStyles: exClone(writingStyles.value),
           currentWritingStyleId: currentWritingStyleId.value,
-          modPacks: deepClone(modPacks.value),
+          modPacks: exClone(modPacks.value),
           modPrivateData: buildSanitizedModPrivateDataForExport(),
           atmosphereEnabled: atmosphereEnabled.value,
           atmospherePrompt: atmospherePrompt.value,
-          nsfwSettings: deepClone(nsfwSettings.value),
+          nsfwSettings: exClone(nsfwSettings.value),
           nsfwSystemPrompt: String(nsfwSystemPrompt.value || ''),
           nsfwInjectionPrompt: String(nsfwInjectionPrompt.value || ''),
           discussionPrompt: String(discussionPrompt.value || ''),
           oneKeySystemPrompt: String(oneKeySystemPrompt.value || ''),
-          dialogueTypes: deepClone(dialogueTypes.value),
-          imageProfiles: deepClone(imageProfiles.value),
+          dialogueTypes: exClone(dialogueTypes.value),
+          imageProfiles: exClone(imageProfiles.value),
           activeProfileId: activeProfileId.value,
           // 中文注释：「停止生成」保留下来的中断草稿可能有几千字，原来不在全量备份里，
           // 用户按提示导出备份再恢复，恰好把这份还没落章的正文丢了。只进全量备份，不进干净分享稿。
@@ -35253,6 +35350,15 @@ function getWritingModelLabel() {
       showToast(settings.value.autoTimelineSupplement !== false ? '已开启事件时间线自动补录' : '已关闭自动补录：之后生成的正文不再自动写入事件时间线', settings.value.autoTimelineSupplement !== false ? 'success' : 'info');
     }
 
+    // v0.0.13 req2：二轮补写开关切换。默认开启；关闭后首轮字数不足不再追加第二次请求。
+    function toggleSecondRoundSupplement() {
+      settings.value.secondRoundSupplementEnabled = !(settings.value.secondRoundSupplementEnabled !== false);
+      saveData();
+      showToast(settings.value.secondRoundSupplementEnabled !== false
+        ? '已开启二轮补写：首轮字数不足时自动追加第二次请求'
+        : '已关闭二轮补写：首轮字数不足将直接落盘，不再追加请求', settings.value.secondRoundSupplementEnabled !== false ? 'success' : 'info');
+    }
+
 
     /* ═══════════════════════════════════════════
        场景词跟随章节
@@ -35546,7 +35652,7 @@ function getWritingModelLabel() {
       connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
-      isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
+      isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getNsfwOnlyBuiltinPromptCards, getNonNsfwBuiltinPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
       // ── Part 1: 基本操作 ──
       saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, returnToWritingSurface, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
@@ -35602,6 +35708,8 @@ function getWritingModelLabel() {
       regenerateInlineImage, editInlineImagePrompt,
       // v0.0.11 新功能6：事件时间线自动补录开关。
       autoTimelineSupplementOn, toggleAutoTimelineSupplement,
+      // v0.0.13 req2：二轮补写开关。
+      toggleSecondRoundSupplement,
       // ── Part 2: 文风 ──
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──
@@ -35701,7 +35809,7 @@ function getWritingModelLabel() {
       // ── Part 6: 设置面板 ──
       activeSettingsTab, settingsTabs,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, getSupplementFollowProfile, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

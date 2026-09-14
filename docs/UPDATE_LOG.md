@@ -19,6 +19,7 @@
 | v0.0.10 | 2026-09-03 | `ecb4fc5` | 热更新：事件时间线UI修复、工作台逐字段流式回填、事件AI逐章阅读全文、卷纲逐章大纲、细纲按正文比例、回归脚本；同日补充轮（见下）不改版本号 | `temp/v0.0.9-v010-work` |
 | v0.0.11 | 2026-09-08 | `a718e05` | 角色工作台双端渲染核验、台词整句识别、细纲流式落卡、改写要求保留、生图重试按钮、事件时间线自动补录开关、百万字序列化瘦身 | `temp/v0.0.11-work`（基线 `backup/v0.0.11-base-60f5921`） |
 | v0.0.12 | 2026-09-09 | `c08a2c0` | 模板结构审计上线（structure-audit）、AGENTS 结构排障手册、v0.0.10 工作台错位根因闭环 | `temp/v0.0.12-structure-audit`（基线 `cc9a8f3`） |
+| v0.0.13 | 2026-09-14 | 本轮提交 | 大书内存优化（保存链路引用快照）、二轮补写开关+专用模型+缓存命中、生图默认渠道增强、NSFW 预设分组与禁止规则合并 | `temp/v0.0.13-work`（基线 `2e3e75a` = v0.0.12 交付） |
 
 ## v0.0.10 补充轮上线公告（同日第二次追加，仅公告内容，版本号不变）
 
@@ -131,6 +132,41 @@
 - `buildChapterMessages` 新增 `storyTimeOutputRule`：前文上下文（已有 `formatSnowwingChapterStoryTimeContext` 注入“剧情时间（独立元数据）”行）中存在上一章剧情时间时，要求模型先读取上一章时间、结合本章正文推进时间，并在标题行前单独一行输出本章时间，格式固定 `【历法或相对时间·时段】` 且须含日期数字或“当日/翌日”锚点，整行 ≤40 字。
 - 新书/无时间线时不注入该规则，避免凭空造历法。
 - `parseChapter` 既有时间行剥离逻辑负责识别该行，章节保存与重掷路径写入 `storyTime`，编辑模式“剧情时间”字段继续有效。
+
+## v0.0.13：大书内存优化、二轮补写控制、生图默认渠道、NSFW 预设分组
+
+分支：`temp/v0.0.13-work`（基于 v0.0.12 交付 `2e3e75a`）。本轮按用户四项需求逐项修改，全部业务改动集中在 `source/moyun.single.html`，`package.json` 版本号提升为 `0.0.13`，构建后同步生成产物。页面内更新公告本轮未涉及（AGENTS 规定公告只记录四位日期数字）。
+
+### ① 内存优化：大书不再在每次保存时整本深拷贝
+
+- 根因定位：`syncBookData`（每次保存含 2 秒防抖都执行）对当前书全部 17 个字段做 `deepClone`（`JSON.parse(JSON.stringify())`），百万字书的 `chapters` 一项就是几 MB——`books` 数组里每本书常驻一份完整深拷贝，内存翻倍，且每次保存还有一遍"深拷贝再序列化"的白费峰值（v0.0.11 只优化了 `buildLibrarySnapshot`，漏了这一层）。
+- 修复：`syncBookData`、`saveSnapshot`（快照写库）、`performExportBookFullBackup`（全量备份导出）、角色草案应用回滚快照（`previousCharacters/previousStoryBible/previousBooks`）、`saveBookEditor` 回滚副本，全部改用 v0.0.11 引入的 `snapshotForSerialize`（浅结构展开+叶子引用共享，>12 层回退 JSON 深拷贝）。这些消费方要么只做 `JSON.stringify`，要么只读回滚，引用快照在值层面与 deepClone 完全等价。
+- 刻意保留的 deepClone：`loadBook`（切书/加载时运行态与 `books[]` 的隔离副本——保留隔离语义）；MOD/插件运行态、连接中心导入等操作型路径。
+- 收益：小书不再因保存链路多占一倍内存；大书每次保存少制造一份整本书的临时深拷贝峰值。实测（CDP）：引用快照与运行态值完全相等（`snapEqual=true`），顶层容器独立防止运行态原地写穿。
+
+### ② 二轮补写：开关 + 专用模型选择 + 前缀缓存命中
+
+- 全局设置 → 上下文新增「二轮补写」开关（`settings.secondRoundSupplementEnabled`，默认开启，锚点 `data-settings-second-round-toggle`），含警示文案「按次进行付费调用的用户请谨慎选择」。关闭后首轮字数不足直接落盘，不再追加第二次请求，toast 提示原因。
+- 进入二轮前 toast 告知「首轮正文约 X 字，未达目标 Y 字，正在进入二轮补写（将追加一次请求）」。
+- 模块 API 配置分配新增「续写补写」（`supplement`）模块（`CONNECTION_MODULE_KEYS`/`moduleModelConfig` 同步）：默认"跟随正文模块（可命中缓存）"——`resolveModuleConnection` 对未显式分配的 supplement 内联复用 writing 模块配置（含可用性检查：启用/默认模型/地址/密钥/适配器/lastTest ok）；显式分配专用模型后按该模型调用并 toast 提示可能影响缓存命中。
+- 缓存命中优化：二轮请求改为 `msgs.concat([追加指令])`——请求前缀与首轮逐字节一致，支持前缀缓存计费的服务商直接命中缓存，只按新增输入 token 计费（原实现是独立请求，输入重复计费且缓存不命中）。专用模型与首轮不同时如实提示。
+
+### ③ 生图默认渠道 Canary → 增强
+
+- `naiCallMode` 初始值 `ref('canary')` → `ref('rphub')`（增强）。
+- 加载条件收紧为显式值判定：`data.naiCallMode === 'canary' || data.naiCallMode === 'rphub'` 才恢复存档值——旧档案里用户明确保存过的 Canary 选择继续生效，新档案/未保存过的得到增强默认；后续手动切换不受影响。
+
+### ④ NSFW 预设分组 + 禁止规则合并（无重复）
+
+- NSFW 模式开启后「系统内置提示词」分区只渲染 NSFW 系统核心与 NSFW 校准对话两张卡（`getNsfwOnlyBuiltinPromptCards()`）；讨论/一键开书/插图/立绘四张卡移入下方新增的「其余系统内置提示词」分区（带「预设」徽标，`getNonNsfwBuiltinPromptCards()`，锚点 `data-moyun-builtin-prompts-secondary`）。卡片结构、编辑（`setBuiltinSystemPrompt`）、字数统计、恢复默认与原面板完全一致，仅展示位置调整，存储代码位置不变。
+- rp6「禁止规则」默认内容追加用户提供的 7 条新规则（道歉/规则说明/镜头清单/旁白解释/固定过滤表达/刻板口癖/反复扫视/句式报幕）；`normalizeBuiltinPresets` 的 rp6 补丁块改为按关键词只补缺失项（`rp6NewRules` 6 项逐条 `includes` 判定），旧书升级只追加不覆盖用户编辑，不产生重复条目；补丁标签按条数自动区分（>3 条用「规则补充」）。
+- 验收实测：默认 rp6 含全部 7 条新规则关键词（`missing=[]`）；加载 v0.0.12 时代的旧存档（无新规则）后补丁只追加缺失项。
+
+### 已知问题与回滚
+
+- 回滚位置：分支 `temp/v0.0.13-work`（基线 `2e3e75a` = v0.0.12 完整交付）；`git checkout 2e3e75a` 即可回到 v0.0.12 状态。
+- 二轮补写的缓存命中是请求结构层面的保证（前缀逐字节一致）；实际计费折扣取决于服务商是否支持前缀缓存，无法离线验证。
+- 内存优化对"已写完的大书"的效果：打开书时 `loadBook` 深拷贝仍保留（隔离语义），优化的是保存链路不再叠加第二份整本副本。
 
 ## v0.0.12：模板结构审计上线——v0.0.10 工作台错位根因闭环 + 防复发机制
 

@@ -32,20 +32,24 @@ Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节�
 - v0.0.11 大纲/单章细纲/批量细纲发送后输入框不再自动清空；唯一清空入口是用户显式点“放弃修改”（`discardDetailedOutlineNavigationDraft`）。不要把“发送成功后清输入”加回去。
 - v0.0.11 正文图片重试按钮：`.img-retry`（30px、半透明、PC 悬停显示/触屏常驻）+ `data-img-action="retry-regen"` 全局委托 → 二次确认 → `regenerateInlineImage(cacheKey, tag)`。新增图片操作时复用同一委托机制。
 - v0.0.11 事件时间线自动补录开关：`settings.autoTimelineSupplement`（默认 true），门控在 `updateStoryMemoryFromChapter`（运行时即时读取，交错开/关各自生效）；UI 两处共用：事件工作台 `data-story-event-auto-toggle`、设置-上下文页 `data-settings-auto-timeline`，切换函数 `toggleAutoTimelineSupplement`。
-- v0.0.11 大书序列化：`buildLibrarySnapshot` 用 `snapshotForSerialize`（浅结构展开、叶子引用共享、>12 层回退 JSON 深拷贝）代替 `deepClone`；其消费方只允许 `JSON.stringify` 或只读，不得在快照对象上做会写回运行时的变更。`syncBookData` 仍走 `deepClone` 保持跨书隔离。
+- v0.0.11 大书序列化：`buildLibrarySnapshot` 用 `snapshotForSerialize`（浅结构展开、叶子引用共享、>12 层回退 JSON 深拷贝）代替 `deepClone`；其消费方只允许 `JSON.stringify` 或只读，不得在快照对象上做会写回运行时的变更。
+- v0.0.13 保存链路瘦身：`syncBookData`（每次保存含 2s 防抖）、`saveSnapshot`、`performExportBookFullBackup`、角色草案回滚快照、`saveBookEditor` 回滚副本全部改用 `snapshotForSerialize`（值等价+叶子共享）；`loadBook` 的 deepClone 保留（运行态与 `books[]` 隔离，勿删）。给 books 里塞新字段时在 `syncBookData` 用 `snap()` 包装即可，不要改回 `deepClone`。
+- v0.0.13 二轮补写：`settings.secondRoundSupplementEnabled`（默认 true）门控 `requestShortfallSupplement`（关闭返回 `skippedBySwitch`，不计入"已尝试二轮"）；设置-上下文页开关锚点 `data-settings-second-round-toggle`、切换函数 `toggleSecondRoundSupplement`。`CONNECTION_MODULE_KEYS` 新增 `supplement`：未显式分配时 `resolveModuleConnection` 内联跟随 writing 配置（含可用性检查），`getSupplementFollowProfile` 供 UI 显示；二轮消息走 `msgs.concat` 保持与首轮前缀逐字节一致以命中厂商缓存——改这块时不要重建消息数组，只能往后追加。
+- v0.0.13 生图默认渠道：`naiCallMode` 默认 `rphub`（增强），加载条件只认显式 `'canary'|'rphub'` 存档值；不要放宽为 `if (data.naiCallMode)`，否则旧档案缺失字段时会误恢复 Canary。
+- v0.0.13 NSFW 预设分组：`builtinSystemPromptCards` 数组不变，展示用 `getNsfwOnlyBuiltinPromptCards()`（nsfwCore/nsfwPrelude）与 `getNonNsfwBuiltinPromptCards()`（discussion/oneKey/image/avatar，渲染在 `data-moyun-builtin-prompts-secondary` 分区）两个视图函数；编辑/恢复默认仍走原函数。rp6 新规则补丁在 `normalizeBuiltinPresets` 里按关键词 `includes` 只补缺失项，勿改成整段覆盖。
 - v0.0.12 结构审计：`npm run audit`（`scripts/structure-audit.cjs`）静态解析模板区（`#app` 到 `</body>`，剥 script/注释），断言标签栈平衡（跨层闭合即 FAIL）、全部 `v-else`/`v-else-if` 与前一兄弟 `v-if` 配对（img 等 void 标签计入兄弟）、`moyun-character-editor-head` 开闭平衡且与 `moyun-character-levels` 同级、`transition`/`transition-group`/`template` 开闭一致。`npm run regress` 已串联该审计；改模板后必须先过审计再交付（AGENTS.md 硬规）。
 - v0.0.12 历史教训（防复发）：v0.0.10 `038b967` 在 editor-head 里把单行按钮区拆成两层嵌套 flex 时少写 1 个 `</div>`，浏览器把后续兄弟全部吞进 flex 行，卡片挤成 26~30px 竖条，而文档总宽不变——横向溢出检测恒绿、功能点击恒绿，照常上线（线上 v0.0.10 至今带病）。任何"拆嵌套行"的模板改动，改完必须数闭合；遇"卡片挤细条/面板变窄/空态同屏"先跑 `npm run audit`，再查 CDP 运行时 DOM，最后才查 CSS（长文本撑宽、MOD 污染都是相似表象的错误方向）。
 - 所有本地数据通过既有保存逻辑持久化；不要在测试中写入真实作品或 API Key。
 
 ## 版本和分支规则
 
-当前文档版本：`v0.0.12`。
+当前文档版本：`v0.0.13`。
 
 接手下一轮时：
 
 1. 先读取 `AGENTS.md`（含 v0.0.12 新增的"结构级坑与精准排障手册"一节）、本文件、[UPDATE_LOG.md](./UPDATE_LOG.md) 和 [TEST_REPORT.md](./TEST_REPORT.md)。
 2. 检查 `git status --short --branch`，确认没有覆盖用户未提交的修改。
-3. 从上一稳定版本创建临时分支，例如 `temp/v0.0.12-v013-work`，再开始任何源码修改。
+3. 从上一稳定版本创建临时分支，例如 `temp/v0.0.13-v014-work`，再开始任何源码修改。
 4. 每轮只把最后一位加 1，并在完成测试后更新日志和检测报告。
 5. 需要回滚时使用对应分支/提交；不要使用 `git reset --hard` 或删除用户数据。
 

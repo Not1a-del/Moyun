@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=3ef4df46e9dc">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=71b2849c1838">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -305,12 +305,15 @@
       </div>
 
       <!-- 系统内置提示词：仅在 NSFW 模式打开后出现，分模块可编辑、可展开。 -->
+      <!-- v0.0.13 req4：NSFW 开启后这里只展示 NSFW 系统核心与 NSFW 校准对话两张卡；
+           其余内置提示词（讨论/一键开书/插图/立绘）仍保存在原代码位置，仅把展示位置挪到「预设」分类下，
+           由下方「其余系统内置提示词」区块渲染，编辑与恢复默认能力不变。 -->
       <div v-if="novel.isAdultMode" data-moyun-builtin-prompts class="space-y-2">
         <div>
           <div class="text-sm font-bold" style="color:var(--tx)">系统内置提示词</div>
-          <div class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">包含 NSFW、讨论、一键开书和生图模板。输入框保存完整原文，不截断；修改后直接参与对应 AI 请求。</div>
+          <div class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">NSFW 模式下只展示 NSFW 专属提示词；其余系统内置提示词已移至「自定义预设指令」下方的「其余系统内置提示词」分区。</div>
         </div>
-        <div v-for="card in builtinSystemPromptCards" :key="card.key"
+        <div v-for="card in getNsfwOnlyBuiltinPromptCards()" :key="card.key"
              class="rounded-xl overflow-hidden" :data-moyun-builtin-prompt="card.key"
              :data-moyun-nsfw-system-core="card.key==='nsfwCore' ? 'true' : null"
              style="background:var(--bg-card);border:1px solid var(--bd)">
@@ -328,6 +331,39 @@
                       :rows="card.rows" class="textarea-field text-[11px] font-mono" style="line-height:1.55"
                       :aria-label="card.title"
                       :data-moyun-nsfw-system-prompt="card.key==='nsfwCore' ? 'true' : null"></textarea>
+            <div class="flex justify-end">
+              <button type="button" @click="restoreBuiltinSystemPrompt(card.key)" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--accent-soft);color:var(--accent)">恢复默认</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- v0.0.13 req4：其余系统内置提示词（讨论/一键开书/插图/立绘）在 NSFW 模式下的展示位置。
+           代码存储位置不变（仍走 builtinSystemPromptCards / getBuiltinSystemPrompt），仅展示分类调整；
+           可编辑、字数统计、恢复默认与原面板完全一致。 -->
+      <div v-if="novel.isAdultMode" data-moyun-builtin-prompts-secondary class="space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="text-sm font-bold" style="color:var(--tx)">其余系统内置提示词</div>
+          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background:var(--accent-soft);color:var(--accent)">预设</span>
+        </div>
+        <div class="text-[10px] leading-relaxed" style="color:var(--tx3)">讨论、一键开书、插图和角色立绘模板已归入「预设」分类。输入框保存完整原文；修改后直接参与对应 AI 请求。</div>
+        <div v-for="card in getNonNsfwBuiltinPromptCards()" :key="card.key"
+             class="rounded-xl overflow-hidden" :data-moyun-builtin-prompt="card.key"
+             :data-moyun-builtin-prompt-secondary="card.key"
+             style="background:var(--bg-card);border:1px solid var(--bd)">
+          <div class="flex items-center gap-2 px-3 py-2.5" :style="isBuiltinSystemPromptExpanded(card.key)?'border-bottom:1px solid var(--bd)':''">
+            <span class="text-[9px] font-black tracking-wide px-1.5 py-0.5 rounded shrink-0"
+                  :style="card.badge==='NSFW' ? 'background:var(--err);color:#fff' : 'background:var(--accent-soft);color:var(--accent)'">{{ card.badge }}</span>
+            <span class="text-xs font-bold flex-1 min-w-0" style="color:var(--tx)">{{ card.title }}</span>
+            <span class="text-[10px] shrink-0" style="color:var(--tx4)">{{ (getBuiltinSystemPrompt(card.key)||'').length }}字</span>
+            <button type="button" class="text-[10px] font-bold shrink-0" style="color:var(--accent)" @click="toggleBuiltinSystemPrompt(card.key)">{{ isBuiltinSystemPromptExpanded(card.key) ? '收起' : '展开' }}</button>
+          </div>
+          <div v-if="isBuiltinSystemPromptExpanded(card.key)" class="px-3 py-2.5 space-y-2">
+            <div class="text-[10px] leading-relaxed" style="color:var(--tx4)">{{ card.desc }}</div>
+            <textarea :value="getBuiltinSystemPrompt(card.key)" @input="setBuiltinSystemPrompt(card.key, $event.target.value)" @change="saveData()"
+                      :rows="card.rows" class="textarea-field text-[11px] font-mono" style="line-height:1.55"
+                      :aria-label="card.title"
+                      :data-moyun-builtin-prompt-secondary="card.key"></textarea>
             <div class="flex justify-end">
               <button type="button" @click="restoreBuiltinSystemPrompt(card.key)" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--accent-soft);color:var(--accent)">恢复默认</button>
             </div>
@@ -4957,6 +4993,17 @@
               </div>
             </div>
           </div>
+          <!-- v0.0.13 req2：二轮补写全局开关。默认开启；关闭后首轮字数不足直接落盘，不再追加第二次请求。 -->
+          <div class="flex items-center justify-between py-2" data-settings-second-round-toggle>
+            <div>
+              <span class="text-sm font-bold" style="color:var(--tx)">二轮补写</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">开启后：首轮正文未达目标字数时自动发起第二轮补写请求</span><br>
+              <span class="text-[10px]" style="color:var(--warn)">按次进行付费调用的用户请谨慎选择</span>
+            </div>
+            <div @click="toggleSecondRoundSupplement()" class="toggle-track" role="switch"
+                 :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
+                 :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          </div>
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
             <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
@@ -5102,8 +5149,8 @@
               <div class="text-[9px] mb-2" style="color:var(--tx4)">{{ mod.desc }}</div>
               <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" value="" :checked="getModuleRouteProfileId(mod.key)===''" @change="setModuleRouteProfile(mod.key,'')">
-                <span class="text-[10px]" style="color:var(--tx)">跟随默认配置</span>
-                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ getConnectionProfileDisplay(getEffectiveDefaultConnectionProfile()) }}</span>
+                <span class="text-[10px]" style="color:var(--tx)">{{ mod.key==='supplement' ? '跟随正文模块（可命中缓存）' : '跟随默认配置' }}</span>
+                <span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ mod.key==='supplement' ? getConnectionProfileDisplay(getSupplementFollowProfile()) : getConnectionProfileDisplay(getEffectiveDefaultConnectionProfile()) }}</span>
               </label>
               <label v-for="profile in getAssignableConnectionProfiles()" :key="profile.id" class="flex items-center gap-2 p-2 mt-1 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" :value="profile.id" :checked="getModuleRouteProfileId(mod.key)===profile.id" @change="setModuleRouteProfile(mod.key, profile.id)">
@@ -6115,7 +6162,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=5ee10cd431bd"></script>
+<script src="./assets/js/moyun.js?v=06182d5b5266"></script>
 <!-- PART_1_END -->
 </body>
 </html>

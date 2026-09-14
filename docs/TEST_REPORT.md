@@ -108,6 +108,34 @@ git diff --check
 - 本轮浏览器检查使用本机已有 Edge 以 `--headless=new --remote-debugging-port=9222` 启动（无下载、无新依赖），配合项目 `.ui-check/` 下的只读 CDP 客户端脚本执行普通用户级点击/输入；页面数据为临时空书与测试角色/事件/卷，未触碰用户真实作品。
 - 临时静态预览服务（Node 内置 http，端口 `4173`）与调试用 Edge 将在交付后停止；`.ui-check/` 为未跟踪草稿目录，不提交。
 
+## 当前 v0.0.13 验证（分支 `temp/v0.0.13-work`，基线 `2e3e75a`）
+
+本轮四项需求全部落地在 `source/moyun.single.html`，`package.json` 升为 `0.0.13`，构建产物同步更新（js 指纹 `06182d5b5266` / css `71b2849c1838`）。
+
+### 构建与静态门禁
+
+- `npm run build` 通过；`node --check assets/js/moyun.js` 通过；`git diff --check` 通过。
+- `npm run audit`（结构审计，AGENTS 硬规）：9 项全 PASS——标签平衡 0 跨层/0 多余/0 残留、154 处 v-else/v-else-if 配对全对、editor-head 6 开 6 闭且与 levels 同级、transition 31/31、transition-group 1/1、template 51/51。
+- `npm run regress`（回归套件）：构建 + 语法 + 锚点 + 单元断言 + 比例抽样全部 PASS。
+
+### 浏览器冒烟+回归（PC 1280×900 + 移动 390×844，本机 Edge headless + CDP 用户级操作）
+
+- **req2 开关**：新档案首启 `secondRoundSupplementEnabled=true`（默认开）；设置面板「上下文」页开关可见、含「按次进行付费调用的用户请谨慎选择」警示；点 switch 翻转为 false、再点恢复 true；关闭后 `requestShortfallSupplement` 走 `skippedBySwitch` 分支不再发请求。移动 390 上开关可见（344px 宽）、可操作。
+- **req2 模块**：`CONNECTION_MODULE_KEYS` 含 `supplement`；`moduleModelConfig` 有「续写补写」条目；`moduleRoutes.supplement` 存在；路由 UI 对 supplement 显示「跟随正文模块（可命中缓存）」并展示实际跟随的 writing 配置；二轮请求 `msgs.concat` 前缀与首轮逐字节一致（结构层面保证缓存可命中）。
+- **req3 默认渠道**：全新档案 `naiCallMode='rphub'`（增强）；GUI 点 Canary + 防抖落盘 + 重载后仍为 `canary`（用户显式选择保留）；还原为增强后 `rphub`。
+- **req4 分组**：NSFW 开启后「系统内置提示词」只含 `nsfwCore`/`nsfwPrelude` 两卡；「其余系统内置提示词」分区（带预设徽标）含 `discussion`/`oneKey`/`image`/`avatar` 四卡，卡片可展开可编辑（与原卡片同结构同函数）；移动 390 上同样正确渲染。
+- **req4 规则**：默认 rp6「禁止规则」含全部 7 条新规则关键词（`missing=[]`，731 字）；保存→重载后新规则仍在（`normalizeBuiltinPresets` 只补缺失项，不覆盖不重复）。
+- **req1 往返**：GUI 插章 → 编辑输入 106 字标记文本 → 保存 → 防抖落盘 → 强制重载：书籍数 1→1、章节数 1→1、章节数 11→11、标记文本完整保留（`hasMarker=true`）、rp6 新规则仍在、NSFW 状态与开关状态均保持。引用快照值等价实测 `snapEqual=true`、顶层容器独立（`topIndependent=true`）。
+- **双端溢出与控制台**：PC 1280 与移动 390 `documentElement.scrollWidth` 均 ≤ 视口宽（390=390，无横向溢出）；全流程 console error 0 条。
+- 测试数据：临时空书 + 1 个测试章节，均可在下次会话被正常覆盖；未配置任何真实 API，未发送真实请求。
+
+### 已知问题与限制
+
+- 缓存命中的实际计费折扣依赖服务商是否支持前缀缓存（DeepSeek/Kimi/GLM 等主流厂商支持），离线环境只能验证"请求前缀逐字节一致"的结构保证，无法验证账单。
+- `loadBook` 深拷贝保留（运行态隔离语义），大书"打开瞬间"的内存峰值来自这一层+Vue 响应式包装，本轮优化的是保存链路与常驻 `books[]` 副本。
+- 内存微基准在 headless 环境受 GC 时机影响，heap 瞬时读数不稳定；本轮以"值等价 + 顶层独立 + 保存/重载往返完整"作为验收证据。
+- 测试用 Edge headless 与 4173 静态服务交付前停止；`.ui-check/` 草稿目录不提交。
+
 ## 当前 v0.0.12 验证（分支 `temp/v0.0.12-structure-audit`，基线 `cc9a8f3`）
 
 本轮为测试与防复发轮：`source/moyun.single.html` 零改动，新增 `scripts/structure-audit.cjs` 与 AGENTS.md 排障手册，重新构建产物。
