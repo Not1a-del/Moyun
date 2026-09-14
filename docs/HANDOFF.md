@@ -55,9 +55,9 @@ Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节�
 
 ## 上传与公告规则（2026-09-14 起）
 
-- 用户 `yydcm-129` 已是上游 `Not1a-del/Moyun` 的协作者（写权限，2026-09-14 只读核验 `permissions.push=true` + collaborators 204）。交付默认**只做本地提交**，不推 fork、不提 PR、不推上游。
-- 只有用户明确要求上传时才上传（AGENTS 硬规：上传前必须经过用户同意，且上传需要更新网页内的更新公告）。历史遗留：PR#5（v0.0.13，fork 分支 `v0.0.13-work`）仍处于打开状态，由上游决定合并与否，不主动催促或改动。
-- 页面内更新公告是单份覆盖式常量 `WEB_UPDATE_ANNOUNCEMENT`（source/moyun.single.html ~8099）：换新 id 即对已读旧公告的老用户重弹；标题只记录四位数字日期（如「0914更新」），不展示版本号；全新浏览器先弹 `MOYUN_FIRST_RUN_GUIDE` 再弹公告。写公告时用 `tone:'new'/'extra'/'fix'` 区分条目边色，`kind:'group'` 做分组头。
+- 用户 `yydcm-129` 已是上游 `Not1a-del/Moyun` 的协作者（写权限，2026-09-14 只读核验 `permissions.push=true` + collaborators 204）。**上传流程改为直接推上游 main，不再走 PR**（2026-09-14 用户指令）；无上传指令时交付默认只做本地提交。
+- 只有用户明确要求上传时才上传（AGENTS 硬规：上传前必须经过用户同意，且上传需要更新网页内的更新公告）。上游 main 推送用 `upstream` 远端（`https://github.com/Not1a-del/Moyun`）+ `.ui-check/.gh-token`；先 fetch upstream/main、rebase/merge 后再推，推送前必过 `npm run audit` 与浏览器公告验证。
+- 页面内更新公告是单份覆盖式常量 `WEB_UPDATE_ANNOUNCEMENT`（source/moyun.single.html ~8099）：换新 id 即对已读旧公告的老用户重弹；标题只记录四位数字日期（如「0914更新」），不展示版本号；全新浏览器先弹 `MOYUN_FIRST_RUN_GUIDE` 再弹公告。写公告时用 `tone:'new'/'extra'/'fix'` 区分条目边色，`kind:'group'` 做分组头；计费相关表述只写「计费以服务商为准」，不做折扣解释。
 
 ## 标准验证
 

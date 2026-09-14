@@ -110,24 +110,25 @@ git diff --check
 
 ## 当前 v0.0.13 公告轮验证（2026-09-14 追加，分支 `temp/v0.0.13-work`，基线 `31ae428`）
 
-本轮仅替换 `WEB_UPDATE_ANNOUNCEMENT` 常量（旧 0810 补充轮 → 0914 更新）并同步用户在 AGENTS.md 补充的上传规则一行；`package.json` 版本号不变（0.0.13），不推送、不提 PR。
+本轮仅替换 `WEB_UPDATE_ANNOUNCEMENT` 常量（旧 0810 补充轮 → 0914 更新）并同步用户在 AGENTS.md 补充的上传规则一行；`package.json` 版本号不变（0.0.13）。计费文案按用户口径改为「计费以服务商为准」（不做缓存折扣解释）。按用户明确指令，本轮完成后直接推送上游 `Not1a-del/Moyun` main（不再走 PR）。
 
 ### 构建与静态门禁
 
-- `npm run build` 通过（js 指纹 `f0b80365883d` / css `71b2849c1838`）；`node --check assets/js/moyun.js` 通过。
+- `npm run build` 通过（js 指纹最终 `4d1e0d9ac3d1` / css `71b2849c1838`）；`node --check assets/js/moyun.js` 通过。
 - `npm run audit`（结构审计，AGENTS 硬规）：9 项全 PASS（标签平衡 0/0/0、154 处 v-else 配对全对、editor-head 6 开 6 闭同级、transition 31/31、transition-group 1/1、template 51/51）。
-- `npm run regress` 全链 PASS（构建+语法+既有全部锚点与单元断言+版本 0.0.13 校验）。
+- `npm run regress` 全链 PASS（构建+语法+既有全部锚点与单元断言+版本 0.0.13 校验；计费文案修改后复跑 build/node-check/audit 亦全 PASS）。
 
 ### 浏览器公告验证（本机 Edge headless + CDP，PC + 移动 390×844）
 
-- PC 全新档案路径 13/13 PASS：先弹新手说明（「欢迎来到 Moyun」）→ 点「开始使用」后立刻弹「0914更新」公告；四条条目齐全（大书保存更省内存/续写后自动补写/生图调用模式默认/预设分组整理）；正文不出现版本号（0.0.13 检测 false）、不含旧 0810 公告内容；无横向溢出（750/750）；点「我知道了」关闭、刷新不再弹、localStorage 写入新 id `web-2026-09-14-2145-0914-update`；console error 0 条。
+- PC 全新档案路径 13/13 PASS（文案修改后复跑）：先弹新手说明（「欢迎来到 Moyun」）→ 点「开始使用」后立刻弹「0914更新」公告；四条条目齐全（大书保存更省内存/续写后自动补写/生图调用模式默认/预设分组整理）；正文不出现版本号（0.0.13 检测 false）、不含旧 0810 公告内容；无横向溢出（750/750）；点「我知道了」关闭、刷新不再弹、localStorage 写入新 id `web-2026-09-14-2145-0914-update`；console error 0 条。
 - 老用户路径 2/2 PASS：注入已读旧公告 id（`web-2026-09-03-2230-0810-supplement-update`）后刷新，直接弹「0914更新」而非新手说明；关闭后已读键更新为新 id；console error 0 条。
-- 移动端 390×844 全新档案 6/6 PASS：新手说明→0914 公告连续弹出；无横向溢出（504/504）；面板在视口内（left=16、宽 472）；「我知道了」按钮 432×46（≥44px 高可点）；console error 0 条。
+- 移动端 390×844 全新档案 6/6 PASS（文案修改后复跑）：新手说明→0914 公告连续弹出；无横向溢出（504/504）；面板在视口内（left=16、宽 472）；「我知道了」按钮 432×46（≥44px 高可点）；console error 0 条。复跑时顺手加固了验证脚本：跳过 Vue 挂载前的原始 mustache 文本，避免把 `{{ webUpdateAnnouncement.title }}` 当标题。
 
 ### 其他检查
 
-- GitHub 权限只读检查：`GET /repos/Not1a-del/Moyun` 返回 `permissions.push=true`（token 身份 `yydcm-129`），`GET /repos/Not1a-del/Moyun/collaborators/yydcm-129` 返回 204——用户已确认获得上游仓库写权限（协作者）。本轮及以后默认本地提交，不经用户明确要求不上传。
-- 测试用 Edge headless 与 4173 静态服务已停止（端口已释放）；`.ui-check/` 草稿目录不提交。
+- GitHub 权限只读检查：`GET /repos/Not1a-del/Moyun` 返回 `permissions.push=true`（token 身份 `yydcm-129`），`GET /repos/Not1a-del/Moyun/collaborators/yydcm-129` 返回 204——用户已确认获得上游仓库写权限（协作者）。
+- 上传授权：用户本轮明确指令「将现在已经有公告的版本推送上去……直接推上游，不走PR了……现在就去推送到github上」，满足 AGENTS「上传前必须经过用户同意 + 上传需要更新网页内的更新公告」两条硬规。
+- 测试用 Edge headless 与 4173 静态服务已停止（端口已确认释放）；`.ui-check/` 草稿目录不提交。
 
 ## 当前 v0.0.13 验证（分支 `temp/v0.0.13-work`，基线 `2e3e75a`）
 
