@@ -46,19 +46,19 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-03-2230-0810-supplement-update',
+  id: 'web-2026-09-14-2145-0914-update',
   badge: '网页更新',
-  title: '0810更新·补充',
-  publishedAt: '2026-09-03 22:30',
-  message: '0810 更新的补充轮：事件时间线、AI 补充进度和细纲比例四项改动。点「我知道了」后，这条不会再弹。',
+  title: '0914更新',
+  publishedAt: '2026-09-14 21:45',
+  message: '0914 更新：大书保存瘦身、续写后自动补写开关、生图默认渠道与预设分组整理四项改动。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
     Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'四项改动，全部在原有页面上生效。' }),
-    Object.freeze({ key:'extra-timeline-button', tone:'extra', title:'事件时间线「全文时间线补充」', body:'事件时间线顶栏的「AI补充」改名「全文时间线补充」。点击后不再立刻开始，而是先弹出选择框，让你指定补充第几章到第几章；确认后只阅读所选范围的章节全文再生成。空书或范围不对时会先提示，不会误跑。' }),
-    Object.freeze({ key:'extra-timeline-order', tone:'extra', title:'时间线填对后再排序', body:'补充时要求 AI 先把每条事件的时间写准（发生在该章正文的开头、中段还是结尾，当日还是翌日、过了几天），再按章号顺序重新排列整条时间线；没有章号的事件保持在末尾。' }),
-    Object.freeze({ key:'extra-progress', tone:'new', title:'AI 补充显示「已补充到第几段」', body:'所有带 AI 补充按钮的地方（设定、条目、角色、事件、大纲、细纲、提示词流水线），连接确认并开始输出后，按钮下方会出现一行小字进度：按已填字段、批次或章数显示「已补充到第 X/Y 段」。任务结束或失败后提示自动消失。' }),
-    Object.freeze({ key:'extra-ratio', tone:'new', title:'细纲比例改为 1:4~1:5', body:'细纲不再按固定 6% 估算，改用实测比例：每 1000 字细纲负责生成 4000-5000 字正文（取中值 1:4.5），例如 2500 字正文的章节细纲约 556 字。手动改过「细纲字数」设置的仍按你的设置值，改回 3000 即恢复自动比例。' }),
+    Object.freeze({ key:'mem-save', tone:'fix', title:'大书保存更省内存', body:'自动保存不再把整本书（含全部章节）额外复制一份，百万字级大书反复保存时的内存峰值明显下降，长时间写作更不容易卡顿或崩溃。已存档数据不受影响。' }),
+    Object.freeze({ key:'supplement-switch', tone:'new', title:'续写后自动补写：新增开关与独立模型', body:'「设置 → 上下文」新增「续写后自动补写」开关，默认开启；按次进行付费调用的用户请谨慎选择，关闭后续写不再自动补写缺口。补写可在连接中心单独选模型；补写请求会尽量复用续写的上下文，缓存命中时按缓存价计费，更省钱。' }),
+    Object.freeze({ key:'nai-default', tone:'extra', title:'生图调用模式默认改为「增强」', body:'NAI 生图的默认渠道改为「增强」；已选过渠道的浏览器不受影响，仍按你的设置走。' }),
+    Object.freeze({ key:'nsfw-presets', tone:'new', title:'预设分组整理与禁止规则合并', body:'开启 R18 后，NSFW 专属预设集中展示在提示词流水线上方，其余预设移到下方「预设」区，找起来更清楚。rp6 预设合并 7 条禁止规则，旧存档会自动补齐缺失的规则，不重复添加。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。点周围空白或按 Esc 都关不掉。细纲比例如需固定 1:4 或 1:5 而非中值，请在反馈中说明。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。自动补写开关担心计费的话，随时可以在设置里关掉。' })
   ]),
   acknowledge: '我知道了'
 });
