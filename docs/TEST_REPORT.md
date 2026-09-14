@@ -128,7 +128,10 @@ git diff --check
 
 - GitHub 权限只读检查：`GET /repos/Not1a-del/Moyun` 返回 `permissions.push=true`（token 身份 `yydcm-129`），`GET /repos/Not1a-del/Moyun/collaborators/yydcm-129` 返回 204——用户已确认获得上游仓库写权限（协作者）。
 - 上传授权：用户本轮明确指令「将现在已经有公告的版本推送上去……直接推上游，不走PR了……现在就去推送到github上」，满足 AGENTS「上传前必须经过用户同意 + 上传需要更新网页内的更新公告」两条硬规。
-- 测试用 Edge headless 与 4173 静态服务已停止（端口已确认释放）；`.ui-check/` 草稿目录不提交。
+- 网络与推送过程：github.com 443 初期直连不通，`api.github.com` 一直可达；用户开启本地代理（127.0.0.1:7890）后为 git 配置 `http.https://github.com.proxy` 定向代理（仅对 github.com 生效）。fetch upstream 成功后发现上游 main 比本地多 2 个纯 merge 提交（PR#2/PR#4 的合并节点，内容已全部在本地），`merge --no-ff` 无冲突合并为 `d8b52e5`，合并后 `npm run build`+`node --check`+`npm run audit` 全 PASS、公告 id/计费口径/版本号在合并产物中确认无误，浏览器公告验证 PC 13/13 + 移动 6/6 复跑 PASS 后才推送。
+- 直接推送结果：`main` `25f736c → d8b52e5`（快进合并，无 force）；PR#5 已关闭（已被直接推送取代）。Pages 构建期间曾出现一次 `conclusion:failure` 的 Actions 部署记录（同一 commit 的重试记录），随后重触发构建成功（status=built）。
+- 线上部署验证：线上 `index.html`（644858 字节）、`moyun.js`（2050090 字节）、`moyun.css`（112174 字节）与本地构建 md5 逐一相同；无头 Edge 直连 https://not1a-del.github.io/Moyun/ 实测 6/6 PASS——全新档案先新手说明后「0914更新」，老用户（已读旧 0810 公告 id）直接弹新公告，四条条目齐全、含「计费以服务商为准」、不展示版本号、console error 0 条。
+- 测试用 Edge headless 已停止；`.ui-check/` 草稿目录不提交。
 
 ## 当前 v0.0.13 验证（分支 `temp/v0.0.13-work`，基线 `2e3e75a`）
 
