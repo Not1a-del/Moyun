@@ -1007,8 +1007,11 @@ createApp({
           const value = extractStreamFieldValue(text, field.names);
           if (value === null) return;
           const prev = seen.get(field.key) || '';
-          if (value.length > prev.length) { seen.set(field.key, value); onField(field.key, value); }
+          // 未完成的 JSON 只供流式预览。业务入口在完整解析成功后才填字段，
+          // 避免第一个字符占满空字段，也避免失败时留下无法撤回的半截资料。
+          if (value.length > prev.length) seen.set(field.key, value);
         });
+        if (seen.size) aiSupplementSegmentProgress.value = '正在接收第 ' + seen.size + '/' + fields.length + ' 段，完整校验后填入';
       };
     }
 
@@ -2186,11 +2189,7 @@ createApp({
           aiSupplementSegmentProgress.value = '已补充到第 ' + done + '/6 段（项目承诺与世界观）';
         });
         const result = await fetchAdapterCompletion(request, [{ role:'user', content:prompt }], { stream:true, temperature:0.25, onTextDelta: bibleFiller });
-        let parsed = {};
-        const rawAi = cleanAIResponse(getAdapterCompletionText(result)).replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-        const jsonStart = rawAi.indexOf('{'), jsonEnd = rawAi.lastIndexOf('}');
-        if (jsonStart >= 0 && jsonEnd > jsonStart) parsed = JSON.parse(rawAi.slice(jsonStart, jsonEnd + 1));
-        if (!parsed || typeof parsed !== 'object') throw new Error('AI 返回不是有效 JSON');
+        const parsed = parseAiStructuredJson(getAdapterCompletionText(result), 'object');
         const project = parsed?.project && typeof parsed.project === 'object' ? parsed.project : {};
         let changed = 0;
         Object.keys(bible.project || {}).forEach(key => {
@@ -2246,7 +2245,7 @@ createApp({
           aiSupplementSegmentProgress.value = '已补充到第 ' + done + '/2 段（摘要与详情）';
         });
         const result = await fetchAdapterCompletion(request, [{ role:'user', content:prompt }], { stream:true, temperature:0.25, onTextDelta: entryFiller });
-        const raw = cleanAIResponse(getAdapterCompletionText(result)); const a = raw.indexOf('{'), b = raw.lastIndexOf('}'); const parsed = a >= 0 && b > a ? JSON.parse(raw.slice(a,b+1)) : {};
+        const raw = cleanAIResponse(getAdapterCompletionText(result)); const parsed = parseAiStructuredJson(raw, 'object');
         if (!String(entry.summary || '').trim() && String(parsed.summary || '').trim()) entry.summary = String(parsed.summary).trim();
         if (!String(entry.details || '').trim() && String(parsed.details || '').trim()) entry.details = String(parsed.details).trim();
         if ((!Array.isArray(entry.aliases) || !entry.aliases.length) && Array.isArray(parsed.aliases)) entry.aliases = normalizeStoryBibleTextList(parsed.aliases);
@@ -2351,7 +2350,7 @@ createApp({
             var arrText = '[' + raw.slice(ja, jb + 1) + ']';
           } else { var arrText = raw.slice(a, b + 1); }
           let items = [];
-          try { items = JSON.parse(arrText); } catch (e) { items = []; }
+          items = parseAiStructuredJson(arrText, 'array');
           if (!Array.isArray(items)) items = [items];
           items.forEach(item => {
             if (!item || typeof item !== 'object') return;
@@ -2434,7 +2433,7 @@ createApp({
           aiSupplementSegmentProgress.value = '已补充到第 ' + done + '/8 段（角色档案）';
         });
         const result = await fetchAdapterCompletion(request, [{ role:'user', content:prompt }], { stream:true, temperature:0.2, onTextDelta: charFiller });
-        const raw = cleanAIResponse(getAdapterCompletionText(result)); const a = raw.indexOf('{'), b = raw.lastIndexOf('}'); const parsed = a >= 0 && b > a ? JSON.parse(raw.slice(a,b+1)) : {};
+        const raw = cleanAIResponse(getAdapterCompletionText(result)); const parsed = parseAiStructuredJson(raw, 'object');
         if (!String(character.desc || '').trim() && String(parsed.desc || '').trim()) character.desc = String(parsed.desc).trim();
         if (!character.profile) character.profile = {};
         ['currentState','publicGoal','realNeed','fear','innerConflict'].forEach(key => { if (!String(character.profile[key] || '').trim() && String(parsed[key] || '').trim()) character.profile[key] = String(parsed[key]).trim(); });
@@ -2949,6 +2948,9 @@ createApp({
     }
 
     /* ═══ 设置 ═══ */
+    const aiTextStreams = ref([]);
+    let aiTextStreamSequence = 0;
+    function dismissAiTextStream(id) { aiTextStreams.value = aiTextStreams.value.filter(item => item.id !== id); }
     const settings = ref({
       apiUrl: '', apiKey: '', model: '',
       contextFullChapters: 3, contextSummaryChapters: 10,
@@ -2967,6 +2969,7 @@ createApp({
       commentInline: false,
       // v0.0.13 req2：二轮补写开关，默认开启；关闭后首轮字数不足不再自动追加第二次请求。
       secondRoundSupplementEnabled: true,
+      geminiReplyInTool: null, // null=随实际模型自动，boolean=用户手动选择，跨重启保留
       moduleModels: {
         writing: '', settings: '', character: '', imagetext: '',
         outline: '', suggestion: '', review: '', summary: '',
@@ -3331,7 +3334,7 @@ createApp({
           if (resp.ok) { const data = await resp.json(); count = Array.isArray(data?.data) ? data.data.length : 0; }
         } else {
           const request = { ok:true, adapterId, url:getApiBaseUrl(draft.baseUrl), apiKey:key, model:String(draft.defaultModel || '') };
-          const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'连接测试：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16 });
+          const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'连接测试：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16, replyInTool:false });
           resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
         }
         if (!resp.ok) throw new Error('API ' + resp.status);
@@ -3356,7 +3359,7 @@ createApp({
         const adapterId = String(draft.adapterId || '');
         const baseUrl = getApiBaseUrl(draft.baseUrl);
         const request = { ok:true, adapterId, url:(adapterId === 'openai-chat' || adapterId === 'openai-compatible') ? (baseUrl + '/chat/completions') : baseUrl, apiKey:key, model:String(draft.defaultModel || '').trim() };
-        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16 });
+        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16, replyInTool:false });
         const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
         if (!resp.ok) throw new Error('API ' + resp.status);
         connectionProfileModelTestResult.value = { status:'ok', model:request.model, at:Date.now(), detail:'模型验证通过：' + request.model };
@@ -7086,7 +7089,7 @@ function copyLastChapterContextText() {
       .then(result => {
         if (!isBookScopedAiRunCurrent(run)) return;
         const raw = getAdapterCompletionText(result);
-        const dt = JSON.parse(raw);
+        const dt = parseAiStructuredJson(raw, 'object');
         dt.id = dt.id || uid();
         dt.isCustom = true;
         dialogueTypes.value.push(dt);
@@ -7658,11 +7661,237 @@ function copyLastChapterContextText() {
       return source;
     }
 
+    // v0.0.14：工具只搬运正文，不改变服务端拒绝、过滤、限长结果。
+    function isGeminiReplyEnabled(request = {}) {
+      const saved = settings.value.geminiReplyInTool;
+      return typeof saved === 'boolean' ? saved : /gemini/i.test(String(request.model || ''));
+    }
+    function isGeminiReplySwitchOn() { return isGeminiReplyEnabled(getModuleRequestConfig('writing')); }
+    function toggleGeminiReply() {
+      settings.value.geminiReplyInTool = !isGeminiReplySwitchOn(); saveData();
+      showToast(settings.value.geminiReplyInTool ? '已开启 Gemini 抗截断：通过工具流式接收正文' : '已关闭 Gemini 抗截断', 'info');
+    }
+    function resetGeminiReplyAuto() { settings.value.geminiReplyInTool = null; saveData(); }
+    function getReplyOutputTool() {
+      return { type:'function', function:{ name:'output_reply',
+        description:'将本次回复交给聊天界面显示。遵守现有输出规则，正文及需要附带的面板、图片标记、变量更新块等全部放入 content，不在普通消息中重复输出。检索工具返回结果后，只传新增回复内容。',
+        parameters:{ type:'object', properties:{ content:{ type:'string', description:'本次回复的原文，保留原有格式；作为 JSON 字符串正确转义。' } }, required:['content'], additionalProperties:false }
+      } };
+    }
+    function aiTransportError(message, code, partialText = '') { return Object.assign(new Error(message), { code, partialText, retryable:false }); }
+    function createReplyToolDecoder() {
+      const calls = new Map(); let position = null, closed = false, output = '';
+      const invalid = () => aiTransportError('输出正文工具参数无效：应为仅含 content 字符串的 JSON 对象', 'tool-format', output);
+      function accept(parts, snapshot = false) {
+        for (const [ordinal, part] of (parts || []).entries()) {
+          const index = part.index ?? ordinal;
+          if (!Number.isInteger(index) || index < 0 || (part.type && part.type !== 'function')) throw invalid();
+          let call = calls.get(index);
+          if (!call) { call = { id:'', name:'', arguments:'' }; calls.set(index, call); }
+          if (part.id && call.id && part.id !== call.id) throw aiTransportError('API 返回冲突的工具调用 ID', 'tool-id', output);
+          call.id = part.id || call.id;
+          for (const key of ['name','arguments']) {
+            const value = part.function?.[key]; if (value == null) continue;
+            if (typeof value !== 'string') throw invalid();
+            if (snapshot) { if (!value.startsWith(call[key])) throw invalid(); call[key] = value; }
+            else call[key] += value;
+          }
+        }
+        if (calls.size > 1) throw aiTransportError('API 返回多个或混合工具调用，不能当成单一正文', 'tool-multiple', output);
+        const call = [...calls.values()][0];
+        if (!call || call.name !== 'output_reply' || closed) return '';
+        const source = call.arguments;
+        if (position === null) { const header = /^\s*\{\s*"content"\s*:\s*"/.exec(source); if (!header) return ''; position = header[0].length; }
+        let text = '', lastPosition = position;
+        while (position < source.length) {
+          const char = source[position];
+          if (char === '"') { position++; closed = true; break; }
+          if (char.charCodeAt(0) < 32) throw invalid();
+          let size = 1;
+          if (char === '\\') {
+            const escaped = source[position + 1]; if (!escaped) break;
+            if (escaped === 'u') { const digits = source.slice(position + 2, position + 6); if (/[^\da-f]/i.test(digits)) throw invalid(); if (digits.length < 4) break; size = 6; }
+            else { if (!'"\\/bfnrt'.includes(escaped)) throw invalid(); size = 2; }
+          }
+          lastPosition = position;
+          text += size === 1 ? char : JSON.parse('"' + source.slice(position, position + size) + '"'); position += size;
+        }
+        if (!closed && /[\uD800-\uDBFF]$/.test(text)) { position = lastPosition; text = text.slice(0, -1); }
+        output += text; return text;
+      }
+      function finish() {
+        const call = [...calls.values()][0]; if (!call) return { text:output, empty:true };
+        if (call.name !== 'output_reply') throw aiTransportError('API 返回未请求或不完整的工具名称', 'tool-name', output);
+        let parsed;
+        try { parsed = JSON.parse(call.arguments); }
+        catch {
+          if (position === null || (closed && call.arguments.slice(position).trim())) throw invalid();
+          throw aiTransportError('工具回复尚未完整接收；已收到的内容保留为预览，请检查限长或网络', 'tool-incomplete', output);
+        }
+        if (!parsed || typeof parsed.content !== 'string' || Object.keys(parsed).length !== 1 || !parsed.content.startsWith(output)) throw invalid();
+        if (closed && !/^\s*}\s*$/.test(call.arguments.slice(position))) throw invalid();
+        const tail = parsed.content.slice(output.length); output = parsed.content; return { text:output, tail, empty:false };
+      }
+      return { accept, finish, get text() { return output; }, get size() { return calls.size; } };
+    }
+    async function* readAiWirePayloads(response, signal, onActivity = () => {}) {
+      if (!response.body) throw aiTransportError('API 没有返回响应体', 'empty-body');
+      const reader = response.body.getReader(), decoder = new TextDecoder();
+      const cancelRead = () => { reader.cancel().catch(() => {}); };
+      signal?.addEventListener('abort', cancelRead, {once:true});
+      let buffer = '', eventLines = [], mode = '', ended = false; const queue = [];
+      function dispatch() {
+        if (!eventLines.length) return; const raw = eventLines.join('\n'); eventLines = [];
+        if (raw.trim() === '[DONE]') { ended = true; return; } if (!raw.trim()) return;
+        try { queue.push(JSON.parse(raw)); } catch { throw aiTransportError('API 流式事件 JSON 损坏，不能当成完整输出', 'sse-json'); }
+      }
+      function line(value) {
+        if (ended) return;
+        if (!value.trim()) dispatch();
+        else if (value.startsWith('data:')) {
+          let complete = eventLines.join('\n').trim() === '[DONE]';
+          try { JSON.parse(eventLines.join('\n')); complete = true; } catch {}
+          if (complete) dispatch(); if (!ended) eventLines.push(value.slice(5).replace(/^ /, ''));
+        } else if (!/^(?:event:|id:|retry:|:)/.test(value)) throw aiTransportError('API 返回无法识别的流式数据', 'sse-line');
+      }
+      try {
+        while (!ended) {
+          if (signal?.aborted) throw signal.reason || new DOMException('请求已停止','AbortError');
+          const chunk = await reader.read();
+          onActivity();
+          if (signal?.aborted) throw signal.reason || new DOMException('请求已停止','AbortError');
+          buffer += chunk.done ? decoder.decode() : decoder.decode(chunk.value, { stream:true });
+          if (!mode && buffer.trim()) {
+            const trimmed = buffer.trimStart();
+            if (/^[\[{]/.test(trimmed)) mode = 'json';
+            else if (/^(?:data:|event:|id:|retry:|:)/.test(trimmed)) mode = 'sse';
+            else if (trimmed.length > 32 || chunk.done) throw aiTransportError('API 响应既不是 JSON 也不是 SSE', 'wire-format');
+          }
+          if (mode === 'sse') {
+            const lines = buffer.split(/\r\n|\n|\r(?!$)/); buffer = lines.pop(); for (const value of lines) line(value);
+            if (chunk.done && !ended) { line(buffer.replace(/\r$/, '')); dispatch(); }
+            while (queue.length) yield queue.shift();
+          }
+          if (chunk.done) {
+            if (mode === 'json') {
+              let payload; try { payload = JSON.parse(buffer); } catch { throw aiTransportError('API 响应 JSON 不完整或格式错误', 'wire-json'); }
+              if (Array.isArray(payload)) { for (const value of payload) yield value; } else yield payload;
+            }
+            break;
+          }
+        }
+      } catch (error) {
+        if (error?.name === 'TypeError') throw aiTransportError('网络连接中断，已收到的内容保留为预览：' + sanitizeApiErrorDetail(error.message), 'network-read');
+        throw error;
+      } finally { signal?.removeEventListener('abort',cancelRead); try { await reader.cancel(); } catch {} reader.releaseLock(); }
+    }
+    function assertAiWirePayload(data) {
+      const message = extractAiResponseErrorMessage(data);
+      if (data?.error || message) {
+        const status = Number(data?.error?.code || data?.status) || 0;
+        throw Object.assign(aiTransportError('API' + (status ? ' ' + status : '') + ': ' + sanitizeApiErrorDetail(message || '服务端返回错误'), 'api-payload'), { status });
+      }
+      const reason = String(getAiResponseFinishReason(data) || data?.candidates?.[0]?.finishReason || data?.delta?.stop_reason || '');
+      const refusal = data?.choices?.[0]?.delta?.refusal || data?.choices?.[0]?.message?.refusal || data?.promptFeedback?.blockReason;
+      if (refusal || /content_filter|refusal|SAFETY|BLOCKLIST|PROHIBITED|RECITATION|SPII/i.test(reason)) throw aiTransportError('API 已拒绝或过滤本次输出（' + (reason || 'refusal') + '），未按成功结果保存', 'api-refusal');
+      return reason;
+    }
+    async function fetchAiAdapterResponse(init) {
+      const controller = new AbortController(), parentSignal = init.signal;
+      let idleTimer;
+      const touch = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => controller.abort(new DOMException('API 长时间没有响应，请检查网络或调整超时时间','TimeoutError')), normalizeNoOutputTimeout(settings.value.noOutputTimeoutSec) * 1000); };
+      const abort = () => controller.abort(parentSignal?.reason || new DOMException('请求已停止','AbortError'));
+      if (parentSignal?.aborted) abort(); else parentSignal?.addEventListener('abort',abort,{once:true});
+      const cleanup = () => { clearTimeout(idleTimer); parentSignal?.removeEventListener('abort',abort); };
+      init = { ...init, signal:controller.signal };
+      const send = () => { touch(); return fetch(init.url, { method:'POST', headers:init.headers, body:JSON.stringify(init.body), signal:init.signal }); };
+      let response;
+      try { response = await send(); } catch (error) { cleanup(); throw error; }
+      if (!response.ok) { cleanup(); return response; }
+      const active = init.replyInTool === true, adapter = init.adapterId;
+      async function* decoded() {
+        let current = response;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const tool = createReplyToolDecoder(), plainState = {}; let plain = '', reasoning = '', finishReason = '', received = false;
+          for await (const data of readAiWirePayloads(current, init.signal, touch)) {
+            received = true; finishReason = assertAiWirePayload(data) || finishReason;
+            if (!active) { yield data; continue; }
+            let parts = [], snapshot = false;
+            if (adapter === 'gemini-generate') {
+              const nativeParts = data?.candidates?.[0]?.content?.parts || [];
+              parts = nativeParts.filter(p => p.functionCall).map((p,index) => ({ index, function:{ name:p.functionCall.name, arguments:JSON.stringify(p.functionCall.args || {}) } })); snapshot = true;
+              plain += nativeParts.filter(p => !p.thought).map(p => p.text || '').join(''); reasoning += nativeParts.filter(p => p.thought).map(p => p.text || '').join('');
+            } else if (adapter === 'anthropic-messages') {
+              if (data.type === 'content_block_start' && data.content_block?.type === 'tool_use') parts = [{ index:data.index, id:data.content_block.id, function:{ name:data.content_block.name, arguments:Object.keys(data.content_block.input || {}).length ? JSON.stringify(data.content_block.input) : '' } }];
+              else if (data.type === 'content_block_delta' && data.delta?.type === 'input_json_delta') parts = [{ index:data.index, function:{ arguments:data.delta.partial_json } }];
+              else if (Array.isArray(data.content)) { parts = data.content.filter(p => p.type === 'tool_use').map((p,index) => ({ index, id:p.id, function:{ name:p.name, arguments:JSON.stringify(p.input) } })); snapshot = true; plain += data.content.filter(p => p.type === 'text').map(p => p.text || '').join(''); }
+              plain += data.delta?.text || ''; reasoning += data.delta?.thinking || '';
+            } else {
+              const choice = data?.choices?.[0] || {}, message = choice.delta || choice.message || {};
+              parts = message.tool_calls || []; snapshot = !choice.delta;
+              plain += extractAiStreamTextDelta(data, plainState); reasoning += extractNativeReasoningFromPayload(data) || '';
+            }
+            const text = tool.accept(parts, snapshot);
+            if (adapter === 'gemini-generate') yield { ...data, candidates:[{ ...(data.candidates?.[0] || {}), content:{ parts:[...(data?.candidates?.[0]?.content?.parts || []).filter(p => p.thought), { text }] } }] };
+            else if (adapter === 'anthropic-messages') {
+              if (text) yield { type:'content_block_delta', delta:{ type:'text_delta', text } };
+              if (data.delta?.type === 'thinking_delta') yield data;
+              if (data.type === 'message_delta' || data.type === 'message_start') yield data;
+            } else {
+              const choice = data?.choices?.[0] || {}, original = choice.delta || choice.message || {};
+              const { tool_calls, content, ...metadata } = original;
+              yield { ...data, choices:[{ ...choice, message:undefined, delta:{ ...metadata, content:text } }] };
+            }
+          }
+          if (isAiFinishReasonTruncated(finishReason)) throw aiTransportError('AI 输出已达到长度上限；已收到的内容保留为预览，未当作完整结果保存', 'output-truncated', tool.text || plain);
+          if (!active) { if (!received) throw aiTransportError('API 未返回有效模型响应', 'empty-response'); return; }
+          const final = tool.finish(), fallback = !final.text.trim() ? plain : final.tail || '';
+          if (!final.text.trim() && !plain.trim()) {
+            if (!tool.size && !reasoning.trim() && !isAiFinishReasonTruncated(finishReason) && attempt < 3 && !init.signal?.aborted) {
+              showToast('Gemini 工具空回，正在重试（' + (attempt + 1) + '/3，可能额外计费）', 'info');
+              current = await send(); if (!current.ok) throw await createApiResponseError(current, 'API'); continue;
+            }
+            throw aiTransportError('API 未返回工具正文，可能为空回或站点不支持工具，请检查模型和开关', 'empty-tool');
+          }
+          if (fallback) {
+            if (adapter === 'gemini-generate') yield { candidates:[{ content:{ parts:[{ text:fallback }] } }] };
+            else if (adapter === 'anthropic-messages') yield { type:'content_block_delta', delta:{ type:'text_delta', text:fallback } };
+            else yield { choices:[{ delta:{ content:fallback } }] };
+          }
+          return;
+        }
+      }
+      if (init.stream) {
+        const iterator = decoded(), encoder = new TextEncoder();
+        return new Response(new ReadableStream({
+          async pull(streamController) { try { const next = await iterator.next(); if (next.done) { cleanup(); streamController.close(); } else streamController.enqueue(encoder.encode('data: ' + JSON.stringify(next.value) + '\n\n')); } catch (error) { cleanup(); streamController.error(error); } },
+          async cancel() { controller.abort(new DOMException('请求已停止','AbortError')); try { await iterator.return(); } finally { cleanup(); } }
+        }), { headers:{ 'content-type':'text/event-stream' } });
+      }
+      const values = []; try { for await (const data of decoded()) values.push(data); } finally { cleanup(); }
+      if (values.length !== 1) throw aiTransportError('非流式接口返回多个响应，请启用流式输出', 'wire-multiple');
+      return new Response(JSON.stringify(values[0]), { headers:{ 'content-type':'application/json' } });
+    }
+
     function buildAdapterRequest(request, messages, options = {}) {
       const adapterId = getAdapterIdForRequest(request);
       if (!request?.ok) throw new Error(request?.reason || 'API 配置不可用');
       if (!isSupportedRequestAdapter(adapterId)) throw new Error('未知或未实现的 API 协议：' + adapterId);
-      const stream = options.stream === true;
+      if ((messages || []).some(item => /JSON/i.test(String(item?.content || '')))) {
+        messages = messages.map(item => ({ ...item }));
+        const target = [...messages].reverse().find(item => item.role === 'user');
+        const jsonInstruction = '\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。';
+        if (target && !String(target.content || '').includes(jsonInstruction)) target.content = String(target.content || '') + jsonInstruction;
+      }
+      const replyInTool = options.replyInTool ?? isGeminiReplyEnabled(request);
+      const stream = options.stream === true || replyInTool;
+      if (replyInTool) {
+        messages = (Array.isArray(messages) ? messages : []).map(item => ({ ...item }));
+        const target = [...messages].reverse().find(item => item.role === 'user');
+        const instruction = '\n\n需通过 output_reply 工具提交回复，不要用普通正文代替工具调用。保持当前任务要求的原始格式；若要求 JSON，content 内也必须是合法 JSON，字符串内双引号和换行必须正确转义。';
+        if (target) { if (!String(target.content || '').includes(instruction)) target.content = String(target.content || '') + instruction; }
+        else messages.push({ role:'user', content:instruction.trim() });
+      }
       const temperature = options.omitTemperature === true ? undefined : (options.temperature ?? 0.7);
       const headers = { 'Content-Type':'application/json' };
       let body;
@@ -7687,12 +7916,27 @@ function copyLastChapterContextText() {
         if (temperature !== undefined) body.temperature = temperature;
         if (options.maxTokens) body.max_tokens = Number(options.maxTokens);
       }
-      return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal };
+      if (replyInTool) {
+        const tool = getReplyOutputTool().function;
+        if (adapterId === 'gemini-generate') {
+          const { additionalProperties, ...parameters } = tool.parameters;
+          body.tools = [{ functionDeclarations:[{ name:tool.name, description:tool.description, parameters }] }];
+          body.toolConfig = { functionCallingConfig:{ mode:'ANY', allowedFunctionNames:[tool.name] } };
+        } else if (adapterId === 'anthropic-messages') {
+          body.tools = [{ name:tool.name, description:tool.description, input_schema:tool.parameters }];
+          body.tool_choice = { type:'tool', name:tool.name, disable_parallel_tool_use:true };
+        } else {
+          body.tools = [getReplyOutputTool()];
+          body.tool_choice = { type:'function', function:{ name:tool.name } };
+          body.parallel_tool_calls = false;
+        }
+      }
+      return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal, stream, replyInTool, wireMessages:messages };
     }
 
     function extractAdapterText(data, adapterId) {
       if (adapterId === 'anthropic-messages') return (Array.isArray(data?.content) ? data.content : []).filter(item => item?.type === 'text').map(item => String(item.text || '')).join('');
-      if (adapterId === 'gemini-generate') return (data?.candidates?.[0]?.content?.parts || []).map(item => String(item?.text || '')).join('');
+      if (adapterId === 'gemini-generate') return (data?.candidates?.[0]?.content?.parts || []).filter(item => !item.thought).map(item => String(item?.text || '')).join('');
       return extractAiTextFromResponse(data);
     }
 
@@ -7706,7 +7950,7 @@ function copyLastChapterContextText() {
         return { text, finishReason:data.type === 'message_delta' ? String(data.delta?.stop_reason || '') : '' };
       }
       if (adapterId === 'gemini-generate') {
-        const text = (data.candidates || []).flatMap(item => item?.content?.parts || []).map(item => String(item?.text || '')).join('');
+        const text = (data.candidates || []).slice(0,1).flatMap(item => item?.content?.parts || []).filter(item => !item.thought).map(item => String(item?.text || '')).join('');
         return { text, finishReason:String(data.candidates?.[0]?.finishReason || '') };
       }
       return { text:extractAiStreamTextDelta(data, state), finishReason:getAiResponseFinishReason(data) };
@@ -7714,7 +7958,7 @@ function copyLastChapterContextText() {
 
     async function readAdapterResponse(resp, request, options = {}) {
       const adapterId = getAdapterIdForRequest(request);
-      if (options.stream !== true) {
+      if (!resp.headers.get('content-type')?.includes('text/event-stream')) {
         const data = await resp.json();
         if (adapterId === 'openai-chat' || adapterId === 'openai-compatible') {
           const parts = extractAiResponseParts(data);
@@ -7724,55 +7968,58 @@ function copyLastChapterContextText() {
       }
       const reader = resp.body.getReader();
       const dec = new TextDecoder();
-      let buf = '', full = '', finishReason = '';
+      let buf = '', full = '', finishReason = '', nativeThinking = '';
       const streamTextState = {};
       const consumeAdapterStreamLine = line => {
         const raw = String(line || '').replace(/^data:\s*/, '').trim();
         if (!raw || raw === '[DONE]') return;
-        try {
-          const part = parseAdapterStreamEvent(JSON.parse(raw), adapterId, streamTextState);
+        {
+          const data = JSON.parse(raw);
+          assertAiWirePayload(data);
+          nativeThinking += extractNativeReasoningFromPayload(data) || '';
+          const part = parseAdapterStreamEvent(data, adapterId, streamTextState);
           if (part.text) {
             full += part.text;
             if (typeof options.onTextDelta === 'function') options.onTextDelta(part.text, full);
           }
           if (part.finishReason) finishReason = part.finishReason;
-        } catch {}
+        }
       };
-      while (true) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        buf += dec.decode(chunk.value, { stream:true });
-        const lines = buf.split(/\r?\n/); buf = lines.pop() || '';
-        lines.forEach(consumeAdapterStreamLine);
-      }
-      buf += dec.decode();
-      if (buf.trim()) consumeAdapterStreamLine(buf);
-      return { text:cleanAIResponse(full), rawText:full, finishReason, partial:false };
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          buf += dec.decode(chunk.value, { stream:true });
+          const lines = buf.split(/\r?\n/); buf = lines.pop() || '';
+          lines.forEach(consumeAdapterStreamLine);
+        }
+        buf += dec.decode();
+        if (buf.trim()) consumeAdapterStreamLine(buf);
+      } finally { try { await reader.cancel(); } catch {} reader.releaseLock(); }
+      if (isAiFinishReasonTruncated(finishReason)) throw aiTransportError('AI 输出达到长度上限，已收到的内容仅供预览，未当作完整结果写入', 'output-truncated', full);
+      return { text:cleanAIResponse(full), rawText:full, nativeThinking, finishReason, truncated:false, partial:false };
     }
 
     async function fetchAdapterCompletion(request, messages, options = {}) {
-      const timeoutMs = normalizeNoOutputTimeout(settings?.value?.noOutputTimeoutSec) * 1000;
-      const localController = new AbortController();
-      const parentSignal = options.signal;
-      const relay = () => { try { localController.abort(parentSignal?.reason || new DOMException('请求已停止','AbortError')); } catch { localController.abort(); } };
-      if (parentSignal) { if (parentSignal.aborted) relay(); else parentSignal.addEventListener('abort', relay, { once:true }); }
-      let hasText = false;
-      let timer = setTimeout(() => { if (!hasText && !localController.signal.aborted) { try { localController.abort(new DOMException('生成超时，请重试或调整超时时间','TimeoutError')); } catch { localController.abort(); } } }, timeoutMs);
-      const onTextDelta = (delta, full) => { if (String(delta || full || '').length) { hasText = true; if (timer) { clearTimeout(timer); timer = null; } } if (typeof options.onTextDelta === 'function') options.onTextDelta(delta, full); };
+      const preview = typeof options.onTextDelta !== 'function' ? { id:++aiTextStreamSequence, model:request.model, text:'', length:0, error:'' } : null;
+      if (preview) aiTextStreams.value.push(preview);
+      const onTextDelta = (delta, full) => {
+        if (preview) { const item = aiTextStreams.value.find(item => item.id === preview.id); if (item) { item.text = String(full || '').slice(-12000); item.length = String(full || '').length; } }
+        if (typeof options.onTextDelta === 'function') options.onTextDelta(delta, full);
+      };
       try {
-        const effectiveOptions = Object.assign({}, options, { signal:localController.signal, onTextDelta });
-        const init = buildAdapterRequest(request, messages, effectiveOptions);
-        const resp = await fetch(init.url, { method:'POST', headers:init.headers, body:JSON.stringify(init.body), signal:init.signal });
+        const init = buildAdapterRequest(request, messages, options);
+        const resp = await fetchAiAdapterResponse(init);
         if (!resp.ok) throw await createApiResponseError(resp, 'API');
-        const result = await readAdapterResponse(resp, request, { stream:effectiveOptions.stream === true, onTextDelta });
-        if (result?.text) { hasText = true; if (timer) clearTimeout(timer); }
-        return result;
+        return await readAdapterResponse(resp, request, { stream:init.stream, onTextDelta });
       } catch (error) {
-        if (error?.name === 'TimeoutError' || localController.signal.reason?.name === 'TimeoutError') { const timeoutError = new Error('生成超时，请重试或调整超时时间'); timeoutError.name = 'TimeoutError'; throw timeoutError; }
+        if (preview) {
+          const item = aiTextStreams.value.find(item => item.id === preview.id);
+          if (item?.text) item.error = sanitizeApiErrorDetail(error.message || '接收中断');
+        }
         throw error;
       } finally {
-        if (timer) clearTimeout(timer);
-        if (parentSignal) parentSignal.removeEventListener('abort', relay);
+        if (preview) aiTextStreams.value = aiTextStreams.value.filter(item => item.id !== preview.id || item.error);
       }
     }
 
@@ -8169,6 +8416,7 @@ function cleanAIResponse(text) {
     }
 
     function isRecoverableStreamReadError(error) {
+      if (error?.retryable === false) return false;
       const message = String(error?.message || error || '');
       return error?.name === 'TypeError' || /Failed to fetch|network|NetworkError|terminated|aborted|connection|stream/i.test(message);
     }
@@ -8745,25 +8993,101 @@ function cleanAIResponse(text) {
       });
     }
 
-    function parseCharacterAiJsonEnvelope(text, expectedRoot = 'object') {
-      const cleaned = cleanAIResponse(String(text || '')).trim();
-      if (!cleaned) throw new Error('AI 返回为空，未生成可审阅草案');
-      let parsed;
-      try { parsed = JSON.parse(cleaned); }
-      catch {
-        const opener = expectedRoot === 'array' ? '[' : '{';
-        const closer = expectedRoot === 'array' ? ']' : '}';
-        const start = cleaned.indexOf(opener);
-        const end = cleaned.lastIndexOf(closer);
-        if (start < 0 || end <= start) throw new Error('AI 返回不是有效 JSON');
-        try { parsed = JSON.parse(cleaned.slice(start, end + 1)); }
-        catch { throw new Error('AI 返回 JSON 不完整或格式错误'); }
+    // 只用于模型生成的业务 JSON，不处理导入文件或 API 传输外壳。
+    function parseAiJsonSyntax(source, repair = false) {
+      let i = 0, edits = 0;
+      const fail = () => { throw new Error('AI 返回 JSON 不完整、存在歧义或格式错误（位置 ' + i + '）'); };
+      const ws = () => { while (/\s/.test(source[i] || '') && i < source.length) i++; };
+      function punctuation(expected) {
+        ws(); if (source[i] === expected) { i++; return true; }
+        if (repair && ({ '：':':', '，':',' })[source[i]] === expected) { i++; edits++; return true; }
+        return false;
       }
+      function string(key, parent) {
+        ws(); const open = source[i++], close = open === '“' ? '”' : '"'; let encoded = '"';
+        if (open !== '"') { if (!repair || open !== '“') fail(); edits++; }
+        while (i < source.length) {
+          const char = source[i++];
+          if (char === '\\') {
+            const escape = source[i++]; if (!escape) fail();
+            if (escape === 'u') { const digits = source.slice(i,i+4); if (!/^[\da-f]{4}$/i.test(digits)) fail(); encoded += '\\u' + digits; i += 4; }
+            else { if (!'"\\/bfnrt'.includes(escape)) fail(); encoded += '\\' + escape; }
+          } else if (char === close) {
+            let j = i; while (/\s/.test(source[j] || '') && j < source.length) j++;
+            const next = source[j];
+            let terminal = key || j === source.length || /[}\]]/.test(next || '');
+            if (next === ',' || (repair && next === '，')) {
+              // 对象字段结束必须跟下一个键或对象尾。数组的歧义不猜测。
+              terminal = parent !== 'object' || /^\s*(?:["“](?:[^"”\\]|\\.)*["”]\s*[:：]|})/.test(source.slice(j+1));
+            }
+            if (terminal) { try { return JSON.parse(encoded + '"'); } catch { fail(); } }
+            if (!repair || key || open !== '"') fail();
+            if (/^["“][^"”]*["”]\s*[:：]/.test(source.slice(j))) fail(); // 疑似缺逗号，不能合并字段
+            encoded += '\\"'; edits++;
+          } else if (char.charCodeAt(0) < 32) {
+            if (!repair) fail(); encoded += JSON.stringify(char).slice(1,-1); edits++;
+          } else encoded += char;
+        }
+        fail();
+      }
+      function value(parent, depth = 0) {
+        if (depth > 60) fail(); ws(); const char = source[i];
+        if (char === '"' || (repair && char === '“')) return string(false,parent);
+        if (char === '{' || char === '[') {
+          const object = char === '{', end = object ? '}' : ']'; const result = object ? {} : []; const keys = new Set(); i++; ws();
+          if (source[i] === end) { i++; return result; }
+          while (i < source.length) {
+            let key;
+            if (object) {
+              key = string(true,'object');
+              if (keys.has(key) || ['__proto__','prototype','constructor'].includes(key)) fail(); keys.add(key);
+              if (!punctuation(':')) fail();
+            }
+            const child = value(object ? 'object' : 'array', depth+1);
+            if (object) result[key] = child; else result.push(child);
+            ws(); if (source[i] === end) { i++; return result; }
+            if (!punctuation(',')) fail(); ws();
+            if (source[i] === end) { if (!repair) fail(); edits++; i++; return result; }
+          }
+          fail();
+        }
+        const literal = /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(source.slice(i));
+        if (!literal) fail(); i += literal[0].length; return JSON.parse(literal[0]);
+      }
+      const data = value('root'); ws(); if (i !== source.length) fail(); return { data, edits };
+    }
+    function parseAiStructuredJson(text, expectedRoot = 'any') {
+      const cleaned = cleanAIResponse(String(text || '')).replace(/^\uFEFF/, '').trim();
+      if (!cleaned) throw new Error('AI 返回为空，未生成可审阅内容');
+      let candidate = cleaned;
+      if (!/^[\[{]/.test(candidate)) {
+        const starts = [candidate.indexOf('{'), candidate.indexOf('[')].filter(i => i >= 0);
+        if (!starts.length) throw new Error('AI 返回不是有效 JSON');
+        const start = Math.min(...starts), close = candidate[start] === '[' ? ']' : '}';
+        const end = candidate.lastIndexOf(close); if (end <= start) throw new Error('AI 返回 JSON 不完整');
+        candidate = candidate.slice(start,end+1);
+      }
+      let result;
+      try { JSON.parse(candidate); result = parseAiJsonSyntax(candidate, false); }
+      catch { result = parseAiJsonSyntax(candidate, true); }
+      const parsed = result.data;
       if (expectedRoot === 'array' && !Array.isArray(parsed)) throw new Error('AI 返回根结构应为数组');
       if (expectedRoot === 'object' && (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))) throw new Error('AI 返回根结构应为对象');
+      if (result.edits) showToast('已修复 AI 返回中的 ' + result.edits + ' 处 JSON 格式问题，请核对生成内容后使用', 'warning');
       return parsed;
     }
-
+    function parseCharacterAiJsonEnvelope(text, expectedRoot = 'object') {
+      return parseAiStructuredJson(text, expectedRoot);
+    }
+    function parseAiRecordArray(text, stringFields) {
+      const rows = parseAiStructuredJson(text, 'array');
+      // 整批校验在任何 push 之前完成，避免前几项写入后才遇到 null/错类型。
+      if (!rows.length || rows.some(row => !row || typeof row !== 'object' || Array.isArray(row)
+        || stringFields.some(key => row[key] !== undefined && typeof row[key] !== 'string'))) {
+        throw new Error('AI 返回的条目字段类型无效，本批未写入');
+      }
+      return rows;
+    }
     function getCharacterDraftProposedValue(raw, normalized, key) {
       if (key === 'name') return String(raw?.name || '').trim();
       if (key === 'desc') return String(raw?.desc || raw?.description || '').trim();
@@ -9043,7 +9367,7 @@ function cleanAIResponse(text) {
         const response = await fetchAdapterCompletion(
           request,
           buildNsfwMessages(String(options.prompt || ''), { taskType:'character' }),
-          { stream:true, signal:controller.signal, maxTokens:Number(options.maxTokens || 4096), temperature:0.7 }
+          { stream:true, signal:controller.signal, maxTokens:Number(options.maxTokens || 4096), temperature:0.7, onTextDelta:(_delta,full) => { if (activeCharacterDraftRunId === runId && currentBookId.value === sourceBookId) { characterDraftReview.value.message = full; characterDraftReview.value.rawPreview = full; } } }
         );
         if (controller.signal.aborted || activeCharacterDraftRunId !== runId || currentBookId.value !== sourceBookId) return false;
         const parsed = typeof options.parseResponse === 'function' ? options.parseResponse(response.text) : parseCharacterAiJsonEnvelope(response.text, 'object');
@@ -9411,7 +9735,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
         if (!isBookScopedAiRunCurrent(run)) return;
         let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const items = JSON.parse(raw);
+        const items = parseAiRecordArray(raw, ['name','content']);
         items.forEach(p => {
           presets.value.push({
             id: uid(), name: p.name || '新预设', content: p.content || '',
@@ -20135,28 +20459,10 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
         const messages = buildSnowwingActiveContextPlannerMessages(mod, baseMessages, options);
         printAIRequestLogs(messages, cfg.model, options.logLabel || '白鸟工具调度预判 messages');
         // 调度请求与向量请求口径一致：429/503/5xx 在同一轮内退避重试，偶发限流不再直接放弃整轮工具调用。
-        const data = await runModRequestWithRetry(async () => {
-          const resp = await fetch(cfg.url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.apiKey },
-            body: JSON.stringify({
-              model: cfg.model,
-              messages,
-              stream: false,
-              temperature: 0.1,
-              max_tokens: 1200
-            }),
-            signal: controller.signal
-          });
-          if (!resp.ok) {
-            const error = new Error('API ' + resp.status);
-            error.status = Number(resp.status) || 0;
-            error.retryable = [408, 425, 429, 500, 502, 503, 504].includes(error.status);
-            throw error;
-          }
-          return await resp.json();
-        }, { signal: controller.signal, maxAttempts: 4, baseDelayMs: 1500 });
-        const parts = extractAiResponseParts(data);
+        const parts = await runModRequestWithRetry(() => fetchAdapterCompletion(
+          { ok:true, adapterId:'openai-compatible', url:cfg.url, apiKey:cfg.apiKey, model:cfg.model },
+          messages, { stream:true, temperature:0.1, maxTokens:1200, signal:controller.signal }
+        ), { signal: controller.signal, maxAttempts: 4, baseDelayMs: 1500 });
         // 思考型调度模型可能把调用 JSON 全部放进 reasoning，content 为空；此时从思考内容里救援，避免误判为无效返回。
         const payload = normalizeSnowwingActiveContextPlannerPayload(parts.text || parts.rawText || '')
           || normalizeSnowwingActiveContextPlannerPayload(parts.nativeThinking || '')
@@ -24173,7 +24479,8 @@ function getModHubPermissionLabels(mod) {
       const start = raw.indexOf('{');
       const end = raw.lastIndexOf('}');
       const jsonText = start >= 0 && end > start ? raw.slice(start, end + 1) : raw;
-      try { return normalizeInferredSettings(JSON.parse(jsonText)); } catch (e) {
+      try { return normalizeInferredSettings(parseAiStructuredJson(jsonText, 'object')); } catch (e) {
+        if (/^[\[{]/.test(raw)) throw e;
         const pick = (keys) => {
           const joined = keys.join('|');
           const labels = 'title|theme|synopsis|worldView|worldview|书名|标题|主题|简介|作品简介|世界观|设定';
@@ -24890,6 +25197,7 @@ function getModHubPermissionLabels(mod) {
 
     function isRecoverableOutlineAiError(error) {
       if (!error) return true;
+      if (error.retryable === false) return false;
       if (error.name === 'AbortError') return false;
       const status = Number(error.status || 0);
       if (status) return status === 408 || status === 425 || status === 429 || [500, 502, 503, 504].includes(status);
@@ -25000,11 +25308,11 @@ function getModHubPermissionLabels(mod) {
       const mode = options.mode || 'nonstream';
       const effectiveRequest = Object.assign({}, request, { url, apiKey, model });
       const adapterInit = buildAdapterRequest(effectiveRequest, buildNsfwMessages(prompt, { taskType: options.taskType || 'outline' }), { stream: mode === 'stream', temperature: options.temperature ?? 0.75, maxTokens:options.maxTokens, signal:options.signal });
-      const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
+      const resp = await fetchAiAdapterResponse(adapterInit);
       throwIfOutlineRequestAborted(options.signal);
       if (!resp.ok) throw await createApiResponseError(resp, 'API');
       const result = getAdapterIdForRequest(effectiveRequest) === 'openai-chat' || getAdapterIdForRequest(effectiveRequest) === 'openai-compatible'
-        ? (mode === 'stream' ? await readOutlineStreamResponse(resp, options) : await readOutlineJsonResponse(resp, options))
+        ? (resp.headers.get('content-type')?.includes('text/event-stream') ? await readOutlineStreamResponse(resp, options) : await readOutlineJsonResponse(resp, options))
         : await readAdapterResponse(resp, effectiveRequest, { stream:mode === 'stream', onTextDelta:options.onTextDelta });
       throwIfOutlineRequestAborted(options.signal);
       validateOutlineAiText(result.text, Object.assign({}, options, {
@@ -30606,15 +30914,14 @@ function getWritingModelLabel() {
       const sendChapterRequest = (requestMessages) => {
         assertGenerationRunCurrent(runId);
         if (!generationRequest.url || !generationRequest.apiKey || !generationRequest.model) throw new Error('正文生成 API 配置不完整');
-        // 中文注释：捕获最终 wire messages 以支持后续“单章重 roll”精确复现（不含任何 Key）。
-        wireSnapshotMessages = requestMessages.map(m => ({ role: String(m.role || 'user'), content: String(m.content || '') }));
-        // 中文注释：必须在 active-context / CoT 预检完成后记录，确保“实际发送字符数”与最终 wire messages 一致。
-        captureChapterContextMessages(requestMessages, generationRequest.model, '正文实际发送 messages');
-        printAIRequestLogs(requestMessages, generationRequest.model, '正文实际发送 messages');
         const adapterInit = buildAdapterRequest(generationRequest, requestMessages, { stream:settings.value.streamEnabled !== false, temperature:0.85, maxTokens:getChapterGenerationMaxTokens(generationContext.wordCountTarget), signal:requestController.signal });
+        wireSnapshotMessages = adapterInit.wireMessages.map(m => ({ role:String(m.role || 'user'), content:String(m.content || '') }));
+        msgs = wireSnapshotMessages; // 补写复用真实发送的前缀，包括本轮传输格式提醒。
+        captureChapterContextMessages(msgs, generationRequest.model, '正文实际发送 messages');
+        printAIRequestLogs(msgs, generationRequest.model, '正文实际发送 messages');
         // 中文注释：只重试“连接阶段”失败（中转服务在长上下文下常直接掐断，表现为 ERR_CONNECTION_CLOSED）。
         // 此时还没有任何流内容，重试不会产生重复正文；流读取中途的失败仍走中断草稿保留，绝不在这里重发。
-        return runModRequestWithRetry(() => fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal }), {
+        return runModRequestWithRetry(() => fetchAiAdapterResponse(adapterInit), {
           signal: requestController.signal,
           maxAttempts: 3,
           onRetry: info => showToast('正文请求连接失败第 ' + info.attempt + ' 次（' + info.reason + '），' + Math.round(info.delayMs / 1000) + ' 秒后重试', 'warning')
@@ -30658,10 +30965,9 @@ function getWritingModelLabel() {
         const needed = Math.max(120, contract.targetWords - currentWords + 80);
         // v0.0.13 req2：进入二轮补写前先弹窗告知用户（本轮会额外发起一次付费请求）。
         showToast('首轮正文约 ' + currentWords + ' 字，未达目标 ' + contract.targetWords + ' 字，正在进入二轮补写（将追加一次请求）', 'info');
-        // v0.0.13 req2 缓存命中优化：二轮不再整包重发 msgs（那样输入前缀与首轮不同，厂商侧 prompt 缓存无法命中、
-        // 输入还要按全新 token 再计一次费）。改为在首轮 wire messages 之后原样追加一条续写指令：
-        // 请求前缀与首轮逐字节一致，支持前缀缓存计费的服务商会直接命中缓存，只按新增的少量输入 token 计费。
-        const supplementMessages = msgs.concat([{ role:'user', content:'【二轮字数补充】首轮正文只有约 ' + currentWords + ' 字，未达到用户要求的 ' + contract.targetWords + ' 字。请从现有正文最后一个自然断点继续补写约 ' + needed + ' 字，只输出可直接接续的正文段落，不要标题、摘要、评论、解释或重复已有内容；必须继续遵守本请求中的大纲、细纲、角色和资料设定，不得引入未授权重大事件。' }]);
+        // v0.0.14：原样保留首轮 wire messages，追加已生成正文和续写要求。
+        // 前缀一致有利于缓存复用，但实际命中、计费和模型差异仍由服务商决定。
+        const supplementMessages = msgs.concat([{ role:'assistant', content:baseText }, { role:'user', content:'【二轮字数补充】首轮正文只有约 ' + currentWords + ' 字，未达到用户要求的 ' + contract.targetWords + ' 字。请从现有正文最后一个自然断点继续补写约 ' + needed + ' 字，只输出可直接接续的正文段落，不要标题、摘要、评论、解释或重复已有内容；必须继续遵守本请求中的大纲、细纲、角色和资料设定，不得引入未授权重大事件。' }]);
         let appended = '';
         const supplementRequest = resolveSupplementRequest();
         const result = await fetchAdapterCompletion(supplementRequest, supplementMessages, {
@@ -30722,14 +31028,14 @@ function getWritingModelLabel() {
         if (!resp.ok) throw await createApiResponseError(resp, 'API');
         const adapterId = getAdapterIdForRequest(generationRequest);
         if (adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
-          const parsed = await readAdapterResponse(resp, generationRequest, { stream:settings.value.streamEnabled !== false });
+          const parsed = await readAdapterResponse(resp, generationRequest, { stream:settings.value.streamEnabled !== false, onTextDelta:(_delta,full) => { streamContent.value = cleanAIResponse(full); _lastChunk = Date.now(); } });
           streamContent.value = parsed.text || '';
           streamCotActive.value = false;
           return Object.assign({ thinking:'', nativeThinking:'', truncated:false }, parsed);
         }
 
         // 非流式模式：直接读取JSON响应
-        if (settings.value.streamEnabled === false) {
+        if (!resp.headers.get('content-type')?.includes('text/event-stream')) {
           return resp.json().then(data => {
             assertGenerationRunCurrent(runId);
             const parts = extractAiResponseParts(data);
@@ -31410,21 +31716,21 @@ function getWritingModelLabel() {
         captureChapterContextMessages(continueMessages, continueGenerationModel, '中断续写实际发送 messages');
         printAIRequestLogs(continueMessages, continueGenerationModel, '中断续写 messages');
         const adapterInit = buildAdapterRequest(continueRequest, continueMessages, { stream:settings.value.streamEnabled !== false, temperature:1.0, maxTokens:getChapterGenerationMaxTokens(generationContext.wordCountTarget), signal:requestController.signal });
-        return fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
+        return fetchAiAdapterResponse(adapterInit);
       })
       .then(async resp => {
         assertGenerationRunCurrent(run.id);
         if (!resp.ok) throw await createApiResponseError(resp, 'API');
         const adapterId = getAdapterIdForRequest(continueRequest);
         if (adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
-          const parsed = await readAdapterResponse(resp, continueRequest, { stream:settings.value.streamEnabled !== false });
+          const parsed = await readAdapterResponse(resp, continueRequest, { stream:settings.value.streamEnabled !== false, onTextDelta:(_delta,full) => { streamContent.value = prev + cleanAIResponse(full); _lastChunk = Date.now(); } });
           streamContent.value = prev + (parsed.text || '');
           streamCotActive.value = false;
           return Object.assign({ thinking:'', nativeThinking:'', truncated:false }, parsed);
         }
 
         // 非流式模式
-        if (settings.value.streamEnabled === false) {
+        if (!resp.headers.get('content-type')?.includes('text/event-stream')) {
           return resp.json().then(data => {
             assertGenerationRunCurrent(run.id);
             const parts = extractAiResponseParts(data);
@@ -31807,11 +32113,11 @@ function getWritingModelLabel() {
         printAIRequestLogs(messages, modelId, '一键开书 messages #' + (attempt + 1));
         try {
           const adapterInit = buildAdapterRequest(Object.assign({}, request, { model:modelId }), messages, { stream:settings.value.streamEnabled !== false, temperature:attempt > 0 ? 0.7 : 0.85, signal });
-          const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body), signal:adapterInit.signal });
+          const resp = await fetchAiAdapterResponse(adapterInit);
           if (!resp.ok) throw await createApiResponseError(resp, 'API');
           let text = '';
-          if (settings.value.streamEnabled === false || adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
-            const parsed = await readAdapterResponse(resp, request, { stream:settings.value.streamEnabled !== false });
+          if (!resp.headers.get('content-type')?.includes('text/event-stream') || adapterId !== 'openai-chat' && adapterId !== 'openai-compatible') {
+            const parsed = await readAdapterResponse(resp, request, { stream:settings.value.streamEnabled !== false, onTextDelta:(_delta,full) => { okStream.value = cleanAIResponse(full); } });
             text = parsed.text;
             okStream.value = text;
           } else {
@@ -31833,7 +32139,7 @@ function getWritingModelLabel() {
                 }
               }
             } catch (e) {
-              if (full.length < 50) throw markRetryableAiError('流中断且内容不足', 'stream-short');
+              throw e; // 任何流式故障都保留预览并报错，不将半截内容作为完整结果
             }
             text = cleanAIResponse(full);
           }
@@ -32206,7 +32512,7 @@ function getWritingModelLabel() {
               let raw = text;
               const obj = raw.match(/\{[\s\S]*\}/);
               if (obj) raw = obj[0];
-              const parsed = JSON.parse(raw);
+              const parsed = parseAiStructuredJson(raw, 'object');
               R.chars = Array.isArray(parsed) ? parsed : (parsed.characters || []);
               R.dialogueStyles = parsed.dialogueStyles || [];
               if (parsed.pipeline) R.pipeline = parsed.pipeline;
@@ -32220,31 +32526,12 @@ function getWritingModelLabel() {
                 let moreRaw = moreText;
                 const moreObj = moreRaw.match(/\{[\s\S]*\}/);
                 if (moreObj) moreRaw = moreObj[0];
-                const moreParsed = JSON.parse(moreRaw);
+                const moreParsed = parseAiStructuredJson(moreRaw, 'object');
                 const moreChars = Array.isArray(moreParsed) ? moreParsed : (moreParsed.characters || []);
                 R.chars = R.chars.concat(moreChars).slice(0, c.charCount);
               }
-            } catch {
-              console.warn('角色JSON解析失败，尝试修复...');
-              try {
-                // 修复1：清理尾部不完整的JSON
-                let raw2 = text;
-                const arrM = raw2.match(/\[[\s\S]*/);
-                if (arrM) {
-                  raw2 = arrM[0];
-                  // 截断到最后一个完整的 }
-                  const lastBrace = raw2.lastIndexOf('}');
-                  if (lastBrace > 0) {
-                    raw2 = raw2.substring(0, lastBrace + 1) + ']';
-                    raw2 = raw2.replace(/,\s*\]/g, ']').replace(/,\s*\}/g, '}');
-                    R.chars = JSON.parse(raw2);
-                    console.log('角色JSON修复成功，解析到', R.chars.length, '个角色');
-                  }
-                }
-              } catch(e2) {
-                console.error('角色解析最终失败', e2);
-                showToast('角色JSON解析失败，跳过角色创建', 'error');
-              }
+            } catch (error) {
+              throw new Error('角色配置未写入：' + error.message);
             }
 
             // ═══ 数据校验：修复AI遗漏的字段 ═══
@@ -32305,25 +32592,7 @@ function getWritingModelLabel() {
             const text = await okStreamFetch(prompt, 'suggestion', signal);
             try {
               let raw = text;
-              const obj = raw.match(/\{[\s\S]*/);
-              if (obj) {
-                raw = obj[0];
-                // 修复截断的JSON：找到最后一个完整值的位置
-                let fixedRaw = raw;
-                try { JSON.parse(fixedRaw); } catch {
-                  // 尝试在最后一个 } 或 ] 处截断并补全
-                  const lastClose = Math.max(fixedRaw.lastIndexOf('}'), fixedRaw.lastIndexOf(']'));
-                  if (lastClose > 0) {
-                    fixedRaw = fixedRaw.substring(0, lastClose + 1);
-                    // 补全缺失的闭合括号
-                    const opens = (fixedRaw.match(/\{/g) || []).length;
-                    const closes = (fixedRaw.match(/\}/g) || []).length;
-                    for (let i = 0; i < opens - closes; i++) fixedRaw += '}';
-                  }
-                  raw = fixedRaw;
-                }
-              }
-              const parsed = JSON.parse(raw);
+              const parsed = parseAiStructuredJson(raw, 'object');
 
               if (parsed.pipeline) R.pipeline = parsed.pipeline;
               if (parsed.styles) R.styles = parsed.styles;
@@ -34348,8 +34617,8 @@ function getWritingModelLabel() {
         if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
         let raw = getAdapterCompletionText(result);
         let parsed = [];
-        try { const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0]; parsed = JSON.parse(raw); }
-        catch { parsed = raw.split('\n').map(line => line.replace(/^\d+[\.、]\s*/, '').trim()).filter(Boolean); }
+        try { const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0]; parsed = parseAiStructuredJson(raw, 'array'); }
+        catch (error) { if (/^[\[{]/.test(raw.trim())) throw error; parsed = raw.split('\n').map(line => line.replace(/^\d+[\.、]\s*/, '').trim()).filter(Boolean); }
         const comments = (Array.isArray(parsed) ? parsed : []).slice(0, count).map(item => normalizeParagraphCommentPayload(item));
         setParagraphComments(ch, paragraphIndex, paragraphText, comments.length ? comments : [normalizeParagraphCommentPayload(null, '这一段值得细品。')]);
       } catch (e) {
@@ -34434,10 +34703,11 @@ function getWritingModelLabel() {
         const rl = () => locs[Math.floor(Math.random() * locs.length)];
         try {
           const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-          const comments = cleanReaderCommentTree(JSON.parse(raw));
+          const comments = cleanReaderCommentTree(parseAiStructuredJson(raw, 'array'));
           comments.forEach(c => { c.level = Math.floor(Math.random()*20)+1; if(!c.location)c.location=rl(); c.isLiked=false; c.replies=c.replies||[]; c.replies.forEach(r=>{r.level=Math.floor(Math.random()*15)+1;r.likes=r.likes||0;r.isLiked=false;if(!r.location)r.location=rl();}); });
           ch.comments = comments;
-        } catch {
+        } catch (error) {
+          if (/^[\[{]/.test(raw.trim())) throw error;
           ch.comments = raw.split('\n').map(l=>stripSnowwingVisiblePromptLeaks(l).trim()).filter(Boolean).slice(0,commentCount).map(l=>({username:'热心书友',content:l.replace(/^\d+[\.、]\s*/,''),location:rl(),likes:Math.floor(Math.random()*100),time:'刚刚',level:Math.floor(Math.random()*10)+1,replies:[],isLiked:false}));
         }
         saveData();
@@ -34677,7 +34947,7 @@ function getWritingModelLabel() {
         if (!isBookScopedAiRunCurrent(run)) return;
         let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const styles = JSON.parse(raw);
+        const styles = parseAiRecordArray(raw, ['name','prompt']);
         styles.forEach(s => {
           writingStyles.value.push({ id: uid(), name: s.name || '新文风', prompt: s.prompt || '', isBuiltin: false });
         });
@@ -35186,7 +35456,8 @@ function getWritingModelLabel() {
         if (!isBookScopedAiRunCurrent(run) || !structuredCharacters.value.some(item => item === char || item?.id === char.id)) return;
         let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const lines = JSON.parse(raw);
+        const lines = parseAiStructuredJson(raw, 'array');
+        if (lines.some(line => typeof line !== 'string')) throw new Error('AI 台词条目应全部为字符串，本批未写入');
         if (!char.exampleDialogues) char.exampleDialogues = [];
         lines.forEach(l => { if (l && typeof l === 'string') char.exampleDialogues.push(l); });
         saveData();
@@ -35221,7 +35492,7 @@ function getWritingModelLabel() {
       .then(result => {
         if (!isBookScopedAiRunCurrent(run)) return;
         const raw = getAdapterCompletionText(result);
-        const tpl = JSON.parse(raw);
+        const tpl = parseAiStructuredJson(raw, 'object');
         worldTemplates.push({
           name: tpl.name || '自定义模板',
           icon: tpl.icon || '🌐',
@@ -35255,7 +35526,7 @@ function getWritingModelLabel() {
         if (!isBookScopedAiRunCurrent(run)) return;
         let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const templates = JSON.parse(raw);
+        const templates = parseAiRecordArray(raw, ['name','icon','description','worldView','theme']);
         templates.forEach(tpl => {
           worldTemplates.push({
             name: tpl.name || '模板', icon: tpl.icon || '🌐',
@@ -35709,7 +35980,7 @@ function getWritingModelLabel() {
       // v0.0.11 新功能6：事件时间线自动补录开关。
       autoTimelineSupplementOn, toggleAutoTimelineSupplement,
       // v0.0.13 req2：二轮补写开关。
-      toggleSecondRoundSupplement,
+      toggleSecondRoundSupplement, isGeminiReplySwitchOn, toggleGeminiReply, resetGeminiReplyAuto, aiTextStreams, dismissAiTextStream,
       // ── Part 2: 文风 ──
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──

@@ -1,5 +1,18 @@
 # Moyun 接手说明
 
+## v0.0.14 本地更新（2026-09-22）
+
+当前本地代码为v0.0.14，未上传。基线f8d338c、回滚分支backup/v0.0.14-base-f8d338c，工作分支temp/v0.0.14-work。本节优先于下文历史v0.0.13说明。
+
+- 文本请求统一使用buildAdapterRequest与fetchAiAdapterResponse，不直接fetch适配请求；模型连接测试、图片、向量、搜索API有独立协议。
+- settings.geminiReplyInTool：null按实际模型自动，boolean为持久手动覆盖。工具模式强制流式，消费者按响应类型读取，不能对流调用resp.json。
+- createReplyToolDecoder仅解码output_reply.content；错误、过滤、限长、重复工具/键及取消不能转为成功。原生Gemini/Anthropic分别适配，tool_grep/tool_web不是本轮新增功能。
+- parseAiStructuredJson只处理AI业务JSON，不能用于存档导入或API传输；不补造缺失闭合，修复后仍做业务校验，角色保持审阅。
+- 工作台补充实时预览后才填字段；createWorkbenchStreamFiller保留调用签名，不再通过onField提前写半截资料。
+- 补写复用adapterInit.wireMessages，再追加首轮正文与续写要求，提醒幂等。不要恢复“必然命中缓存”的表述。
+- 第3项用户跳过，第4项仅分析，不注入绕过安全过滤的nonce；页面公告待上传请求后按当日四位日期更新。
+- npm run regress已串联协议测试；node scripts/ai-browser-smoke.cjs接收独立CDP端口，只能在专用测试档案运行，不能接日常浏览器。完整检测及限制见TEST_REPORT。
+
 ## 项目定位
 
 Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节、正文、设定、角色、卷纲、细纲、资料条目和事件时间线保存在浏览器存储中；模型接口由用户在连接中心自行配置。项目不依赖自有后端，静态入口可部署到 GitHub Pages。
@@ -43,7 +56,7 @@ Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节�
 
 ## 版本和分支规则
 
-当前文档版本：`v0.0.13`。
+当前文档版本：`v0.0.14`（本地，未上传）。
 
 接手下一轮时：
 

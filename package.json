@@ -1,10 +1,12 @@
 {
   "name": "moyun-web",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "private": true,
   "scripts": {
     "build": "node scripts/build-static-site.cjs",
     "audit": "node scripts/structure-audit.cjs",
-    "regress": "node scripts/regression-check.cjs && node scripts/structure-audit.cjs"
+    "regress": "node scripts/regression-check.cjs && node scripts/structure-audit.cjs && node scripts/ai-protocol-regression.cjs",
+    "test:ai": "node scripts/ai-protocol-regression.cjs",
+    "test:browser": "node scripts/ai-browser-smoke.cjs"
   }
 }

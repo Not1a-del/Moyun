@@ -24,6 +24,13 @@
   </div>
 </div>
 <div id="app" v-cloak data-moyun-region="app-shell" class="w-full h-full flex relative" :class="{'immersive-mode': immersiveMode}">
+  <aside v-if="aiTextStreams.length" data-ai-text-streams aria-label="AI 实时输出" style="position:fixed;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:120;width:min(380px,calc(100vw - 24px));max-height:38vh;overflow:auto;background:var(--bg-card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh2)">
+    <details v-for="task in aiTextStreams" :key="task.id" open class="p-3">
+      <summary class="text-xs font-bold cursor-pointer" style="min-height:44px">{{ task.model }} · {{ task.error ? '接收中断，保留预览' : '正在接收' }} {{ task.length }} 字符</summary>
+      <div v-if="task.error" class="text-xs" style="color:var(--err)">{{ task.error }}<button type="button" @click="dismissAiTextStream(task.id)" class="underline px-2" style="min-height:44px">关闭预览</button></div>
+      <pre class="text-xs mt-2" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;color:var(--tx2)">{{ task.text || '等待模型输出…' }}</pre>
+    </details>
+  </aside>
 
 <!-- ════════════════════════════════════════════
      Toast 通知
@@ -4579,6 +4586,7 @@
         <div v-if="characterDraftReview.status==='generating'" class="min-h-[260px] flex flex-col items-center justify-center text-center gap-4">
           <span class="loading-spinner" style="width:28px;height:28px"></span>
           <div><div class="text-sm font-bold" style="color:var(--tx)">正在生成可审阅草案</div><div class="text-xs mt-1" style="color:var(--tx3)">角色数据保持原样；停止或请求失败都不会写入半截内容。</div></div>
+          <pre v-if="characterDraftReview.message" data-character-draft-stream class="w-full text-left text-xs p-3 rounded-lg" style="max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg-inset);color:var(--tx2)">{{ characterDraftReview.message }}</pre>
           <button type="button" data-character-draft-stop @click="stopCharacterDraftGeneration" class="btn-ghost text-sm px-5 py-2" style="min-height:44px;color:var(--err);border-color:color-mix(in srgb,var(--err) 45%,var(--bd))">停止生成</button>
         </div>
 
@@ -4586,6 +4594,7 @@
           <div class="w-12 h-12 rounded-full flex items-center justify-center text-xl" :style="characterDraftReview.status==='error'?'background:var(--err-soft);color:var(--err)':'background:var(--info-soft);color:var(--info)'">{{ characterDraftReview.status==='error' ? '!' : '■' }}</div>
           <div class="text-sm font-bold" style="color:var(--tx)">{{ characterDraftReview.status==='error' ? '草案生成失败' : '已停止生成' }}</div>
           <div class="text-xs leading-relaxed max-w-xl" style="color:var(--tx3);white-space:pre-wrap">{{ characterDraftReview.message }}</div>
+          <details v-if="characterDraftReview.rawPreview" class="w-full text-left text-xs"><summary style="min-height:44px;cursor:pointer">查看已收到的原文（未写入角色）</summary><pre style="max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere">{{ characterDraftReview.rawPreview }}</pre></details>
         </div>
 
         <div v-else-if="characterDraftReview.status==='review'" class="space-y-4">
@@ -5003,6 +5012,18 @@
             <div @click="toggleSecondRoundSupplement()" class="toggle-track" role="switch"
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="flex items-center justify-between gap-3 py-2" data-settings-gemini-reply-toggle>
+            <div class="min-w-0">
+              <span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">通过工具接收正文并流式显示；限长、断网或服务端拒绝仍会提示。</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">{{ typeof settings.geminiReplyInTool === 'boolean' ? '手动设置 · 应用于所有文本 AI 模块' : '自动模式 · 各模块使用 Gemini 时开启（右侧显示正文模块状态）' }}</span>
+              <button v-if="typeof settings.geminiReplyInTool === 'boolean'" type="button" @click="resetGeminiReplyAuto()" class="text-xs underline px-2" style="min-height:44px;color:var(--accent)">恢复自动</button>
+            </div>
+            <button type="button" @click="toggleGeminiReply()" role="switch" :aria-checked="isGeminiReplySwitchOn()?'true':'false'"
+                    aria-label="Gemini抗截断开关" class="shrink-0 flex items-center justify-center" style="min-width:44px;min-height:44px;background:transparent;border:0">
+              <span class="toggle-track" :class="isGeminiReplySwitchOn()?'toggle-on':'toggle-off'" aria-hidden="true"><span class="toggle-thumb"></span></span>
+            </button>
           </div>
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
@@ -6162,7 +6183,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=4d1e0d9ac3d1"></script>
+<script src="./assets/js/moyun.js?v=04abcd22140f"></script>
 <!-- PART_1_END -->
 </body>
 </html>
