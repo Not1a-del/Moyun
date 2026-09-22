@@ -46,19 +46,17 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-14-2145-0914-update',
+  id: 'web-2026-09-22-2020-0922-update',
   badge: '网页更新',
-  title: '0914更新',
-  publishedAt: '2026-09-14 21:45',
-  message: '0914 更新：大书保存瘦身、续写后自动补写开关、生图默认渠道与预设分组整理四项改动。点「我知道了」后，这条不会再弹。',
+  title: '0922更新',
+  publishedAt: '2026-09-22 20:20',
+  message: '0922 更新：新增 Gemini 抗截断开关，改进 AI 工具回复的流式显示与 JSON 格式识别。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'四项改动，全部在原有页面上生效。' }),
-    Object.freeze({ key:'mem-save', tone:'fix', title:'大书保存更省内存', body:'自动保存不再把整本书（含全部章节）额外复制一份，百万字级大书反复保存时的内存峰值明显下降，长时间写作更不容易卡顿或崩溃。已存档数据不受影响。' }),
-    Object.freeze({ key:'supplement-switch', tone:'new', title:'续写后自动补写：新增开关与独立模型', body:'「设置 → 上下文」新增「续写后自动补写」开关，默认开启；按次进行付费调用的用户请谨慎选择，关闭后续写不再自动补写缺口。补写可在连接中心单独选模型；计费以服务商为准。' }),
-    Object.freeze({ key:'nai-default', tone:'extra', title:'生图调用模式默认改为「增强」', body:'NAI 生图的默认渠道改为「增强」；已选过渠道的浏览器不受影响，仍按你的设置走。' }),
-    Object.freeze({ key:'nsfw-presets', tone:'new', title:'预设分组整理与禁止规则合并', body:'开启 R18 后，NSFW 专属预设集中展示在提示词流水线上方，其余预设移到下方「预设」区，找起来更清楚。rp6 预设合并 7 条禁止规则，旧存档会自动补齐缺失的规则，不重复添加。' }),
+    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'两项改进，让 AI 生成过程和结果处理更稳定。' }),
+    Object.freeze({ key:'gemini-reply-tool', tone:'new', title:'Gemini 抗截断与流式回复', body:'「全局设置 → 上下文」的「二轮补写」下方新增「Gemini抗截断」开关。默认按各功能实际使用的模型名称自动启用，也可手动开关或恢复自动。正文、续写、补写、大纲、角色、设定等文本 AI 功能统一接入工具回复解析，随接口返回增量实时显示内容；错误、限长和不完整回复会明确提示。实际流式效果与输出长度仍取决于模型和接口支持。' }),
+    Object.freeze({ key:'ai-json-compatibility', tone:'fix', title:'AI 输出格式识别更稳健', body:'改进角色、设定等结构化结果的 JSON 解析，兼容可识别的引号、控制字符、中文结构标点和尾逗号问题。修复后继续校验内容并提示；缺失闭合、重复字段或存在歧义的结果会报错，避免把半截内容当成完整数据写入。角色草案仍需审阅确认。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。自动补写开关担心计费的话，随时可以在设置里关掉。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。若接口提示不支持工具回复，可在设置里关闭「Gemini抗截断」。空回复最多尝试三次，计费以服务商为准。' })
   ]),
   acknowledge: '我知道了'
 });
