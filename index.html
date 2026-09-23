@@ -5013,18 +5013,6 @@
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between gap-3 py-2" data-settings-gemini-reply-toggle>
-            <div class="min-w-0">
-              <span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">通过工具接收正文并流式显示；限长、断网或服务端拒绝仍会提示。</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">{{ typeof settings.geminiReplyInTool === 'boolean' ? '手动设置 · 应用于所有文本 AI 模块' : '自动模式 · 各模块使用 Gemini 时开启（右侧显示正文模块状态）' }}</span>
-              <button v-if="typeof settings.geminiReplyInTool === 'boolean'" type="button" @click="resetGeminiReplyAuto()" class="text-xs underline px-2" style="min-height:44px;color:var(--accent)">恢复自动</button>
-            </div>
-            <button type="button" @click="toggleGeminiReply()" role="switch" :aria-checked="isGeminiReplySwitchOn()?'true':'false'"
-                    aria-label="Gemini抗截断开关" class="shrink-0 flex items-center justify-center" style="min-width:44px;min-height:44px;background:transparent;border:0">
-              <span class="toggle-track" :class="isGeminiReplySwitchOn()?'toggle-on':'toggle-off'" aria-hidden="true"><span class="toggle-thumb"></span></span>
-            </button>
-          </div>
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
             <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
@@ -6183,7 +6171,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=a45df7961222"></script>
+<script src="./assets/js/moyun.js?v=50bc86102bb8"></script>
 <!-- PART_1_END -->
 </body>
 </html>

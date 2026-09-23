@@ -6901,18 +6901,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between gap-3 py-2" data-settings-gemini-reply-toggle>
-            <div class="min-w-0">
-              <span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">通过工具接收正文并流式显示；限长、断网或服务端拒绝仍会提示。</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">{{ typeof settings.geminiReplyInTool === 'boolean' ? '手动设置 · 应用于所有文本 AI 模块' : '自动模式 · 各模块使用 Gemini 时开启（右侧显示正文模块状态）' }}</span>
-              <button v-if="typeof settings.geminiReplyInTool === 'boolean'" type="button" @click="resetGeminiReplyAuto()" class="text-xs underline px-2" style="min-height:44px;color:var(--accent)">恢复自动</button>
-            </div>
-            <button type="button" @click="toggleGeminiReply()" role="switch" :aria-checked="isGeminiReplySwitchOn()?'true':'false'"
-                    aria-label="Gemini抗截断开关" class="shrink-0 flex items-center justify-center" style="min-width:44px;min-height:44px;background:transparent;border:0">
-              <span class="toggle-track" :class="isGeminiReplySwitchOn()?'toggle-on':'toggle-off'" aria-hidden="true"><span class="toggle-thumb"></span></span>
-            </button>
-          </div>
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
             <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
@@ -8116,19 +8104,18 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
   acknowledge: '开始使用'
 });
 
-/* 网页更新公告：已读新手说明的既有用户优先看到此公告，时间精确到发布分钟。 */
+/* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-22-2020-0922-update',
+  id: 'web-2026-09-23-0923-update',
   badge: '网页更新',
-  title: '0922更新',
-  publishedAt: '2026-09-22 20:20',
-  message: '0922 更新：新增 Gemini 抗截断开关，改进 AI 工具回复的流式显示与 JSON 格式识别。点「我知道了」后，这条不会再弹。',
+  title: '0923更新',
+  publishedAt: '2026-09-23',
+  message: '0923 更新：改进角色、设定等 AI 输出的 JSON 格式识别与校验。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'两项改进，让 AI 生成过程和结果处理更稳定。' }),
-    Object.freeze({ key:'gemini-reply-tool', tone:'new', title:'Gemini 抗截断与流式回复', body:'「全局设置 → 上下文」的「二轮补写」下方新增「Gemini抗截断」开关。默认按各功能实际使用的模型名称自动启用，也可手动开关或恢复自动。正文、续写、补写、大纲、角色、设定等文本 AI 功能统一接入工具回复解析，随接口返回增量实时显示内容；错误、限长和不完整回复会明确提示。实际流式效果与输出长度仍取决于模型和接口支持。' }),
+    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'改进 AI 输出格式识别，让生成结果的处理更稳定。' }),
     Object.freeze({ key:'ai-json-compatibility', tone:'fix', title:'AI 输出格式识别更稳健', body:'改进角色、设定等结构化结果的 JSON 解析，兼容可识别的引号、控制字符、中文结构标点和尾逗号问题。修复后继续校验内容并提示；缺失闭合、重复字段或存在歧义的结果会报错，避免把半截内容当成完整数据写入。角色草案仍需审阅确认。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。若接口提示不支持工具回复，可在设置里关闭「Gemini抗截断」。空回复最多尝试三次，计费以服务商为准。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。角色草案请审阅确认后再写入。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -11039,7 +11026,6 @@ createApp({
       commentInline: false,
       // v0.0.13 req2：二轮补写开关，默认开启；关闭后首轮字数不足不再自动追加第二次请求。
       secondRoundSupplementEnabled: true,
-      geminiReplyInTool: null, // null=随实际模型自动，boolean=用户手动选择，跨重启保留
       moduleModels: {
         writing: '', settings: '', character: '', imagetext: '',
         outline: '', suggestion: '', review: '', summary: '',
@@ -11404,7 +11390,7 @@ createApp({
           if (resp.ok) { const data = await resp.json(); count = Array.isArray(data?.data) ? data.data.length : 0; }
         } else {
           const request = { ok:true, adapterId, url:getApiBaseUrl(draft.baseUrl), apiKey:key, model:String(draft.defaultModel || '') };
-          const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'连接测试：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16, replyInTool:false });
+          const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'连接测试：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16 });
           resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
         }
         if (!resp.ok) throw new Error('API ' + resp.status);
@@ -11429,7 +11415,7 @@ createApp({
         const adapterId = String(draft.adapterId || '');
         const baseUrl = getApiBaseUrl(draft.baseUrl);
         const request = { ok:true, adapterId, url:(adapterId === 'openai-chat' || adapterId === 'openai-compatible') ? (baseUrl + '/chat/completions') : baseUrl, apiKey:key, model:String(draft.defaultModel || '').trim() };
-        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16, replyInTool:false });
+        const adapterInit = buildAdapterRequest(request, [{ role:'user', content:'模型验证：请仅回复 OK' }], { stream:true, temperature:0, maxTokens:16 });
         const resp = await fetch(adapterInit.url, { method:'POST', headers:adapterInit.headers, body:JSON.stringify(adapterInit.body) });
         if (!resp.ok) throw new Error('API ' + resp.status);
         connectionProfileModelTestResult.value = { status:'ok', model:request.model, at:Date.now(), detail:'模型验证通过：' + request.model };
@@ -15731,79 +15717,7 @@ function copyLastChapterContextText() {
       return source;
     }
 
-    // v0.0.14：工具只搬运正文，不改变服务端拒绝、过滤、限长结果。
-    function isGeminiReplyEnabled(request = {}) {
-      const saved = settings.value.geminiReplyInTool;
-      return typeof saved === 'boolean' ? saved : /gemini/i.test(String(request.model || ''));
-    }
-    function isGeminiReplySwitchOn() { return isGeminiReplyEnabled(getModuleRequestConfig('writing')); }
-    function toggleGeminiReply() {
-      settings.value.geminiReplyInTool = !isGeminiReplySwitchOn(); saveData();
-      showToast(settings.value.geminiReplyInTool ? '已开启 Gemini 抗截断：通过工具流式接收正文' : '已关闭 Gemini 抗截断', 'info');
-    }
-    function resetGeminiReplyAuto() { settings.value.geminiReplyInTool = null; saveData(); }
-    function getReplyOutputTool() {
-      return { type:'function', function:{ name:'output_reply',
-        description:'将本次回复交给聊天界面显示。遵守现有输出规则，正文及需要附带的面板、图片标记、变量更新块等全部放入 content，不在普通消息中重复输出。检索工具返回结果后，只传新增回复内容。',
-        parameters:{ type:'object', properties:{ content:{ type:'string', description:'本次回复的原文，保留原有格式；作为 JSON 字符串正确转义。' } }, required:['content'], additionalProperties:false }
-      } };
-    }
     function aiTransportError(message, code, partialText = '') { return Object.assign(new Error(message), { code, partialText, retryable:false }); }
-    function createReplyToolDecoder() {
-      const calls = new Map(); let position = null, closed = false, output = '';
-      const invalid = () => aiTransportError('输出正文工具参数无效：应为仅含 content 字符串的 JSON 对象', 'tool-format', output);
-      function accept(parts, snapshot = false) {
-        for (const [ordinal, part] of (parts || []).entries()) {
-          const index = part.index ?? ordinal;
-          if (!Number.isInteger(index) || index < 0 || (part.type && part.type !== 'function')) throw invalid();
-          let call = calls.get(index);
-          if (!call) { call = { id:'', name:'', arguments:'' }; calls.set(index, call); }
-          if (part.id && call.id && part.id !== call.id) throw aiTransportError('API 返回冲突的工具调用 ID', 'tool-id', output);
-          call.id = part.id || call.id;
-          for (const key of ['name','arguments']) {
-            const value = part.function?.[key]; if (value == null) continue;
-            if (typeof value !== 'string') throw invalid();
-            if (snapshot) { if (!value.startsWith(call[key])) throw invalid(); call[key] = value; }
-            else call[key] += value;
-          }
-        }
-        if (calls.size > 1) throw aiTransportError('API 返回多个或混合工具调用，不能当成单一正文', 'tool-multiple', output);
-        const call = [...calls.values()][0];
-        if (!call || call.name !== 'output_reply' || closed) return '';
-        const source = call.arguments;
-        if (position === null) { const header = /^\s*\{\s*"content"\s*:\s*"/.exec(source); if (!header) return ''; position = header[0].length; }
-        let text = '', lastPosition = position;
-        while (position < source.length) {
-          const char = source[position];
-          if (char === '"') { position++; closed = true; break; }
-          if (char.charCodeAt(0) < 32) throw invalid();
-          let size = 1;
-          if (char === '\\') {
-            const escaped = source[position + 1]; if (!escaped) break;
-            if (escaped === 'u') { const digits = source.slice(position + 2, position + 6); if (/[^\da-f]/i.test(digits)) throw invalid(); if (digits.length < 4) break; size = 6; }
-            else { if (!'"\\/bfnrt'.includes(escaped)) throw invalid(); size = 2; }
-          }
-          lastPosition = position;
-          text += size === 1 ? char : JSON.parse('"' + source.slice(position, position + size) + '"'); position += size;
-        }
-        if (!closed && /[\uD800-\uDBFF]$/.test(text)) { position = lastPosition; text = text.slice(0, -1); }
-        output += text; return text;
-      }
-      function finish() {
-        const call = [...calls.values()][0]; if (!call) return { text:output, empty:true };
-        if (call.name !== 'output_reply') throw aiTransportError('API 返回未请求或不完整的工具名称', 'tool-name', output);
-        let parsed;
-        try { parsed = JSON.parse(call.arguments); }
-        catch {
-          if (position === null || (closed && call.arguments.slice(position).trim())) throw invalid();
-          throw aiTransportError('工具回复尚未完整接收；已收到的内容保留为预览，请检查限长或网络', 'tool-incomplete', output);
-        }
-        if (!parsed || typeof parsed.content !== 'string' || Object.keys(parsed).length !== 1 || !parsed.content.startsWith(output)) throw invalid();
-        if (closed && !/^\s*}\s*$/.test(call.arguments.slice(position))) throw invalid();
-        const tail = parsed.content.slice(output.length); output = parsed.content; return { text:output, tail, empty:false };
-      }
-      return { accept, finish, get text() { return output; }, get size() { return calls.size; } };
-    }
     async function* readAiWirePayloads(response, signal, onActivity = () => {}) {
       if (!response.body) throw aiTransportError('API 没有返回响应体', 'empty-body');
       const reader = response.body.getReader(), decoder = new TextDecoder();
@@ -15878,58 +15792,15 @@ function copyLastChapterContextText() {
       let response;
       try { response = await send(); } catch (error) { cleanup(); throw error; }
       if (!response.ok) { cleanup(); return response; }
-      const active = init.replyInTool === true, adapter = init.adapterId;
+      // 保留普通 JSON/SSE 校验，不转换正文、不重试工具调用。
       async function* decoded() {
-        let current = response;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          const tool = createReplyToolDecoder(), plainState = {}; let plain = '', reasoning = '', finishReason = '', received = false;
-          for await (const data of readAiWirePayloads(current, init.signal, touch)) {
-            received = true; finishReason = assertAiWirePayload(data) || finishReason;
-            if (!active) { yield data; continue; }
-            let parts = [], snapshot = false;
-            if (adapter === 'gemini-generate') {
-              const nativeParts = data?.candidates?.[0]?.content?.parts || [];
-              parts = nativeParts.filter(p => p.functionCall).map((p,index) => ({ index, function:{ name:p.functionCall.name, arguments:JSON.stringify(p.functionCall.args || {}) } })); snapshot = true;
-              plain += nativeParts.filter(p => !p.thought).map(p => p.text || '').join(''); reasoning += nativeParts.filter(p => p.thought).map(p => p.text || '').join('');
-            } else if (adapter === 'anthropic-messages') {
-              if (data.type === 'content_block_start' && data.content_block?.type === 'tool_use') parts = [{ index:data.index, id:data.content_block.id, function:{ name:data.content_block.name, arguments:Object.keys(data.content_block.input || {}).length ? JSON.stringify(data.content_block.input) : '' } }];
-              else if (data.type === 'content_block_delta' && data.delta?.type === 'input_json_delta') parts = [{ index:data.index, function:{ arguments:data.delta.partial_json } }];
-              else if (Array.isArray(data.content)) { parts = data.content.filter(p => p.type === 'tool_use').map((p,index) => ({ index, id:p.id, function:{ name:p.name, arguments:JSON.stringify(p.input) } })); snapshot = true; plain += data.content.filter(p => p.type === 'text').map(p => p.text || '').join(''); }
-              plain += data.delta?.text || ''; reasoning += data.delta?.thinking || '';
-            } else {
-              const choice = data?.choices?.[0] || {}, message = choice.delta || choice.message || {};
-              parts = message.tool_calls || []; snapshot = !choice.delta;
-              plain += extractAiStreamTextDelta(data, plainState); reasoning += extractNativeReasoningFromPayload(data) || '';
-            }
-            const text = tool.accept(parts, snapshot);
-            if (adapter === 'gemini-generate') yield { ...data, candidates:[{ ...(data.candidates?.[0] || {}), content:{ parts:[...(data?.candidates?.[0]?.content?.parts || []).filter(p => p.thought), { text }] } }] };
-            else if (adapter === 'anthropic-messages') {
-              if (text) yield { type:'content_block_delta', delta:{ type:'text_delta', text } };
-              if (data.delta?.type === 'thinking_delta') yield data;
-              if (data.type === 'message_delta' || data.type === 'message_start') yield data;
-            } else {
-              const choice = data?.choices?.[0] || {}, original = choice.delta || choice.message || {};
-              const { tool_calls, content, ...metadata } = original;
-              yield { ...data, choices:[{ ...choice, message:undefined, delta:{ ...metadata, content:text } }] };
-            }
-          }
-          if (isAiFinishReasonTruncated(finishReason)) throw aiTransportError('AI 输出已达到长度上限；已收到的内容保留为预览，未当作完整结果保存', 'output-truncated', tool.text || plain);
-          if (!active) { if (!received) throw aiTransportError('API 未返回有效模型响应', 'empty-response'); return; }
-          const final = tool.finish(), fallback = !final.text.trim() ? plain : final.tail || '';
-          if (!final.text.trim() && !plain.trim()) {
-            if (!tool.size && !reasoning.trim() && !isAiFinishReasonTruncated(finishReason) && attempt < 3 && !init.signal?.aborted) {
-              showToast('Gemini 工具空回，正在重试（' + (attempt + 1) + '/3，可能额外计费）', 'info');
-              current = await send(); if (!current.ok) throw await createApiResponseError(current, 'API'); continue;
-            }
-            throw aiTransportError('API 未返回工具正文，可能为空回或站点不支持工具，请检查模型和开关', 'empty-tool');
-          }
-          if (fallback) {
-            if (adapter === 'gemini-generate') yield { candidates:[{ content:{ parts:[{ text:fallback }] } }] };
-            else if (adapter === 'anthropic-messages') yield { type:'content_block_delta', delta:{ type:'text_delta', text:fallback } };
-            else yield { choices:[{ delta:{ content:fallback } }] };
-          }
-          return;
+        let finishReason = '', received = false;
+        for await (const data of readAiWirePayloads(response, init.signal, touch)) {
+          received = true; finishReason = assertAiWirePayload(data) || finishReason;
+          yield data;
         }
+        if (isAiFinishReasonTruncated(finishReason)) throw aiTransportError('AI 输出已达到长度上限；已收到的内容保留为预览，未当作完整结果保存', 'output-truncated');
+        if (!received) throw aiTransportError('API 未返回有效模型响应', 'empty-response');
       }
       if (init.stream) {
         const iterator = decoded(), encoder = new TextEncoder();
@@ -15953,15 +15824,7 @@ function copyLastChapterContextText() {
         const jsonInstruction = '\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。';
         if (target && !String(target.content || '').includes(jsonInstruction)) target.content = String(target.content || '') + jsonInstruction;
       }
-      const replyInTool = options.replyInTool ?? isGeminiReplyEnabled(request);
-      const stream = options.stream === true || replyInTool;
-      if (replyInTool) {
-        messages = (Array.isArray(messages) ? messages : []).map(item => ({ ...item }));
-        const target = [...messages].reverse().find(item => item.role === 'user');
-        const instruction = '\n\n需通过 output_reply 工具提交回复，不要用普通正文代替工具调用。保持当前任务要求的原始格式；若要求 JSON，content 内也必须是合法 JSON，字符串内双引号和换行必须正确转义。';
-        if (target) { if (!String(target.content || '').includes(instruction)) target.content = String(target.content || '') + instruction; }
-        else messages.push({ role:'user', content:instruction.trim() });
-      }
+      const stream = options.stream === true;
       const temperature = options.omitTemperature === true ? undefined : (options.temperature ?? 0.7);
       const headers = { 'Content-Type':'application/json' };
       let body;
@@ -15986,22 +15849,7 @@ function copyLastChapterContextText() {
         if (temperature !== undefined) body.temperature = temperature;
         if (options.maxTokens) body.max_tokens = Number(options.maxTokens);
       }
-      if (replyInTool) {
-        const tool = getReplyOutputTool().function;
-        if (adapterId === 'gemini-generate') {
-          const { additionalProperties, ...parameters } = tool.parameters;
-          body.tools = [{ functionDeclarations:[{ name:tool.name, description:tool.description, parameters }] }];
-          body.toolConfig = { functionCallingConfig:{ mode:'ANY', allowedFunctionNames:[tool.name] } };
-        } else if (adapterId === 'anthropic-messages') {
-          body.tools = [{ name:tool.name, description:tool.description, input_schema:tool.parameters }];
-          body.tool_choice = { type:'tool', name:tool.name, disable_parallel_tool_use:true };
-        } else {
-          body.tools = [getReplyOutputTool()];
-          body.tool_choice = { type:'function', function:{ name:tool.name } };
-          body.parallel_tool_calls = false;
-        }
-      }
-      return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal, stream, replyInTool, wireMessages:messages };
+      return { adapterId, url:getAdapterEndpoint(request, { stream }), headers, body, signal:options.signal, stream, wireMessages:messages };
     }
 
     function extractAdapterText(data, adapterId) {
@@ -44050,7 +43898,7 @@ function getWritingModelLabel() {
       // v0.0.11 新功能6：事件时间线自动补录开关。
       autoTimelineSupplementOn, toggleAutoTimelineSupplement,
       // v0.0.13 req2：二轮补写开关。
-      toggleSecondRoundSupplement, isGeminiReplySwitchOn, toggleGeminiReply, resetGeminiReplyAuto, aiTextStreams, dismissAiTextStream,
+      toggleSecondRoundSupplement, aiTextStreams, dismissAiTextStream,
       // ── Part 2: 文风 ──
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──

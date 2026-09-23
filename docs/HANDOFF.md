@@ -1,17 +1,17 @@
 # Moyun 接手说明
 
-## v0.0.14 本地更新（2026-09-22）
+## v0.0.15 本地更新（2026-09-23）
 
-当前本地代码为v0.0.14，未上传。基线f8d338c、回滚分支backup/v0.0.14-base-f8d338c，工作分支temp/v0.0.14-work。本节优先于下文历史v0.0.13说明。
+当前交付副本为 v0.0.15，未上传。基线为 0922 稳定发布 94b787b，回滚分支 backup/v0.0.15-base-94b787b，工作分支 fix/v0.0.15-remove-antitruncation，目录 .ui-check/fix-v0.0.15。主工作区的用户修改原样保留。本节优先于下文历史说明。
 
 - 文本请求统一使用buildAdapterRequest与fetchAiAdapterResponse，不直接fetch适配请求；模型连接测试、图片、向量、搜索API有独立协议。
-- settings.geminiReplyInTool：null按实际模型自动，boolean为持久手动覆盖。工具模式强制流式，消费者按响应类型读取，不能对流调用resp.json。
-- createReplyToolDecoder仅解码output_reply.content；错误、过滤、限长、重复工具/键及取消不能转为成功。原生Gemini/Anthropic分别适配，tool_grep/tool_web不是本轮新增功能。
+- Gemini 抗截断入口、模型自动开关、output_reply 工具声明/强制选择/提示词/解码和专属重试已移除。旧存档的开关字段不再被读取；普通流式设置仍生效。
+- 保留普通 JSON/SSE 传输校验、取消和空闲超时。OpenAI、Gemini、Anthropic 仍使用各自普通文本协议；错误、过滤和限长不作为成功结果保存。
 - parseAiStructuredJson只处理AI业务JSON，不能用于存档导入或API传输；不补造缺失闭合，修复后仍做业务校验，角色保持审阅。
 - 工作台补充实时预览后才填字段；createWorkbenchStreamFiller保留调用签名，不再通过onField提前写半截资料。
 - 补写复用adapterInit.wireMessages，再追加首轮正文与续写要求，提醒幂等。不要恢复“必然命中缓存”的表述。
-- 第3项用户跳过，第4项仅分析，不注入绕过安全过滤的nonce；页面公告待上传请求后按当日四位日期更新。
-- npm run regress已串联协议测试；node scripts/ai-browser-smoke.cjs接收独立CDP端口，只能在专用测试档案运行，不能接日常浏览器。完整检测及限制见TEST_REPORT。
+- 页面公告按本轮指令为「0923更新」，使用新已读标识，只保留 JSON 改进说明，无版本号和抗截断说明。上传前仍需用户授权。
+- npm run regress 已串联 23 组协议测试；node scripts/ai-browser-smoke.cjs 9235 完成 15 项浏览器检查，node scripts/announcement-browser-smoke.cjs 完成 8 项公告检查。脚本只用于独立测试档案，不能接日常浏览器。两款模型真实调用 4/4 通过，具体范围见 TEST_REPORT.md。
 
 ## 项目定位
 
@@ -56,7 +56,7 @@ Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节�
 
 ## 版本和分支规则
 
-当前文档版本：`v0.0.14`（本地，未上传）。
+当前文档版本：`v0.0.15`（本地，未上传）。
 
 接手下一轮时：
 
