@@ -2,7 +2,9 @@
 
 ## v0.0.15 本地更新（2026-09-23）
 
-当前交付副本为 v0.0.15，未上传。基线为 0922 稳定发布 94b787b，回滚分支 backup/v0.0.15-base-94b787b，工作分支 fix/v0.0.15-remove-antitruncation，目录 .ui-check/fix-v0.0.15。主工作区的用户修改原样保留。本节优先于下文历史说明。
+当前主工作区已同步 v0.0.15，未上传；直接使用根目录 index.html 或 source/moyun.single.html。分支为 fix/v0.0.15-main-workspace，删除功能的稳定代码提交为 8abdf43。用户原有 AGENTS.md 和模板修改已恢复为未提交状态，本地构建与当前模板一致。独立副本 .ui-check/fix-v0.0.15 保留作稳定参考，不再是唯一交付位置。
+
+2026-09-23 补正：上一轮只更新独立副本，主目录仍为旧版本，这是用户仍看到抗截断开关的原因。主目录同步前备份在 .ui-check/backup-main-v15-20260923，含文件清单/哈希与用户改动 stash；基线分支 backup/main-before-v15-20260923。今后交付必须核对实际使用入口，不能仅验证副本。基线 0922 稳定发布 94b787b 及 backup/v0.0.15-base-94b787b 仍保留。
 
 - 文本请求统一使用buildAdapterRequest与fetchAiAdapterResponse，不直接fetch适配请求；模型连接测试、图片、向量、搜索API有独立协议。
 - Gemini 抗截断入口、模型自动开关、output_reply 工具声明/强制选择/提示词/解码和专属重试已移除。旧存档的开关字段不再被读取；普通流式设置仍生效。

@@ -1,5 +1,28 @@
 # Moyun 历史测试报告与当前交接检查
 
+## v0.0.15 主工作区交付复核（2026-09-23，补齐同轮交付）
+
+**问题与原因：** 用户反馈本地仍可见抗截断开关。核查发现主目录停留在 temp/v0.0.14-work（48da467），模板、index.html 和运行脚本均存在完整功能；删除提交 8abdf43 只在 .ui-check/fix-v0.0.15 副本。上轮测试结论仅适用于该副本，未同步主目录是实际交付遗漏。
+
+**本次修正：** 主目录备份后切至 fix/v0.0.15-main-workspace（基于 8abdf43），恢复用户原有两处未提交改动，在主目录重新构建。版本仍为 0.0.15，公告为 0923，JSON 等保留更新不变。本节优先于下文历史交付位置说明。
+
+| 本次在主目录执行的检查 | 结果 |
+| --- | --- |
+| 模板、index.html、运行脚本中的开关/函数/output_reply/强制工具模式扫描 | 相关标识均为 0；通用旧协议字段不等于抗截断功能 |
+| 本地服务文件来源核对 | 模板、HTML、JS、CSS 均与主目录磁盘文件逐字节一致 |
+| 直接打开主目录 index.html 及 source/moyun.single.html | 两入口 × 1280/390 共 4 项通过；switchCount=0，hasHandler=false，无横向溢出；二轮补写保留 |
+| npm run regress | 构建/语法/全量既有回归通过，AI 协议 23 组通过 |
+| npm run audit | PASS：标签平衡，154 处 v-else 配对，editor-head 6 对 div 与 levels 同级；其余结构锚点全部通过 |
+| node scripts/ai-browser-smoke.cjs 9235 | 15 项通过，包含 11 模块 × 流式/非流式共 22 调用、两种模型名、旧开关开启存档、正文/大纲/角色/文风、错误不写入及双端几何 |
+| node scripts/announcement-browser-smoke.cjs | 8 项通过；新用户和已读 0922 老用户均正常显示 0923，确认后刷新不再弹 |
+| 原有修改保护及 review | AGENTS.md 与备份逐字节一致，模板原改动保持；其余模板与 8abdf43 一致，生成产物由当前模板构建 |
+
+**证据：** 主目录 .ui-check/main-v15-delivery.json、main-v15-file-pages.json、v15-browser-results.json、announce-0923-local.json，以及 main-v15-index-1280.png / main-v15-index-390.png / main-v15-template-1280.png / main-v15-template-390.png。浏览器使用独立 Edge 档案，只使用临时测试作品与模拟接口，未再次调用付费模型。
+
+**回滚：** .ui-check/backup-main-v15-20260923 保存同步前文件及 SHA-256 清单；user-stash.txt 指向保留的用户改动 stash。分支 backup/main-before-v15-20260923 保存同步前 HEAD，backup/v0.0.15-base-94b787b 保存 0922 稳定基线。恢复前先备份当前新改动，不覆盖用户后续编辑。
+
+**边界与复盘：** 本地两个实际入口均已验证删除。最大遗漏已修正为「交付副本未同步主目录」；最大尚不能确认的是用户原先打开的旧标签页/其他复制目录。备份目录中仍保留旧版本用于回滚，不能将备份作为当前入口。本轮尚未上传 GitHub，因此本地删除不等于线上已更新。
+
 ## v0.0.15 检测报告（2026-09-23）
 
 基线：0922 发布提交 94b787b；分支：fix/v0.0.15-remove-antitruncation。按用户要求移除抗截断，保留 0922 其他更新，公告改为 0923。本节为当前结果，以下为历史报告。尚未上传。
