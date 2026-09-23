@@ -1,7 +1,7 @@
 'use strict';
 // 使用已有 Edge 的独立测试 profile/CDP 端口。只测试本机页面和模拟 API。
 const fs=require('node:fs'), path=require('node:path'), assert=require('node:assert/strict');
-const port=Number(process.argv[2]||9235), base='http://127.0.0.1:4173/index.html';
+const port=Number(process.argv[2]||9235), base=process.argv[3]||'http://127.0.0.1:4173/index.html';
 const out=path.join(__dirname,'../.ui-check');fs.mkdirSync(out,{recursive:true});
 const results=[],errors=[];let ws,id=0;const pending=new Map();
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
