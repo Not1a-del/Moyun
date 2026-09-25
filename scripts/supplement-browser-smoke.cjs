@@ -52,6 +52,9 @@ async function mock(){await ev(()=>{
     t.requests=[];t.scenario=scenario;
     t.first='首轮起点。'+Array.from({length:scenario==='enough'?25:4},(_,i)=>'第'+i+'份记录放在桌上，守塔员核对日期与航线，窗外潮水慢慢退去，他将新的发现写在纸上。').join('\n')+'首轮终点。';
     t.second='补写起点。'+Array.from({length:scenario==='still-short'?1:17},(_,i)=>'第'+i+'张地图映着晨光，同伴指出浅滩的位置，他们交换看法并整理绳索，为傍晚的巡查做好准备。').join('\n')+'补写终点。';
+    // 本脚本专测原字数补写合同；缺摘要及第三轮由 v16-r2-summary-browser.cjs 单独覆盖。
+    t.first+='\n---剧情摘要---\n守塔员在灯塔核对航海记录与日期，将新发现记入日志，准备继续检查航线。';
+    t.second+='\n---剧情摘要---\n守塔员与同伴核对航线和浅滩位置，补充地图与日志，并整理巡查所需的绳索和记录。';
     const n=s.chapters.length;await s.startGeneration({count:1});return n;
    },scenario,enabled,stream);
    await until(()=>ev(()=>!window.__s.isGenerating));

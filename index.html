@@ -810,7 +810,7 @@
           </div>
           <!-- 摘要（在同一个循环内） -->
           <div v-if="ch.showSummary" class="px-4 pb-2">
-            <textarea v-model="ch.summary" @change="saveData()" rows="3" placeholder="本章摘要..."
+            <textarea v-model="ch.summary" @change="markChapterSummaryEdited(ch)" rows="3" placeholder="本章摘要..."
                       class="textarea-field text-[11px]" style="background:var(--bg-inset)"></textarea>
           </div>
         </template>
@@ -945,7 +945,7 @@
       <div class="absolute inset-0 overflow-y-auto">
       <div class="p-4 space-y-4 pb-20" :style="isSnowwingPresetLocked() ? 'filter:grayscale(1);opacity:.32;pointer-events:none;user-select:none' : ''">
 
-      <div class="moyun-preview-toolbar"><strong class="text-sm">作家预设</strong><button type="button" @click="openPresetTransfer('export')" class="btn-ghost text-xs">导出预设</button><button type="button" @click="presetImportInput.click()" class="btn-ghost text-xs">导入预设</button><input type="file" ref="presetImportInput" accept=".json,application/json" @change="readPresetFile" class="hidden"></div>
+      <div class="moyun-preview-toolbar"><strong class="text-sm">预设</strong><button type="button" @click="openPresetTransfer('export')" class="btn-ghost text-xs">导出预设</button><button type="button" @click="presetImportInput.click()" class="btn-ghost text-xs">导入预设</button><input type="file" ref="presetImportInput" accept=".json,application/json" @change="readPresetFile" class="hidden"></div>
       <!-- 提示词流水线 -->
       <div>
         <div class="flex items-center justify-between mb-2">
@@ -1017,7 +1017,7 @@
 
       <!-- 文风选择器 -->
       <div>
-        <label class="label">作家文风</label>
+        <label class="label">文风设置</label>
         <select :value="isSnowwingPresetLocked() ? '' : currentWritingStyleId" @change="currentWritingStyleId=$event.target.value;saveData()" class="select-field w-full text-sm mb-2">
           <option value="">无（默认风格）</option>
           <option v-for="s in writingStyles" :key="s.id" :value="s.id">{{ s.importBatch ? '[导入 '+s.importBatch+'] ' : '[本地] ' }}{{ s.name }}</option>
@@ -1031,7 +1031,7 @@
         </div>
         <!-- AI文风生成输入 -->
         <div v-if="showAiStyleGen" class="mt-2 p-3 rounded-lg" style="background:var(--bg-inset);border:1px solid var(--bd)">
-          <div class="text-[10px] mb-2" style="color:var(--tx3)">描述你想要的文风方向，AI批量生成作家预设</div>
+          <div class="text-[10px] mb-2" style="color:var(--tx3)">描述你想要的文风方向，AI批量生成预设</div>
           <div class="flex gap-2 items-end">
             <input v-model="aiStyleHint" placeholder="例如：适合写恐怖悬疑的文风..." class="input-field text-xs flex-1" style="height:30px">
             <select v-model.number="batchStyleCount" class="select-field text-xs py-0.5 shrink-0" style="width:50px;height:30px">
@@ -2451,7 +2451,7 @@
                           :style="(ch.activeVersionIdx||0)<=0?'opacity:.3':''" title="删除正在查看的这份旧稿" aria-label="删除正在查看的这份旧稿">×</button>
                 </span>
               </template>
-              <span class="text-[11px]" style="color:var(--tx4)">{{ ch.wordCount||0 }}字</span>
+              <span v-if="ch.summaryMissing && !ch.summary" class="text-[10px] px-1.5 py-0.5 rounded" style="color:var(--warn);background:var(--warn-soft)" title="本章摘要缺失；正文已保留，可在目录中编辑或重新生成摘要">摘要待补写</span><span class="text-[11px]" style="color:var(--tx4)">{{ ch.wordCount||0 }}字</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s" :style="ch.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
 
@@ -5013,12 +5013,15 @@
           <div class="flex items-center justify-between py-2" data-settings-second-round-toggle>
             <div>
               <span class="text-sm font-bold" style="color:var(--tx)">二轮补写</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">开启后：首轮正文未达目标字数时自动发起第二轮补写请求</span><br>
+              <span class="text-[10px]" style="color:var(--tx3)">首轮字数不足或摘要缺失时补写；缺摘要会先弹窗提醒</span><br>
               <span class="text-[10px]" style="color:var(--warn)">按次进行付费调用的用户请谨慎选择</span>
             </div>
             <div @click="toggleSecondRoundSupplement()" class="toggle-track" role="switch"
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="flex items-center justify-between py-2" data-settings-third-round-toggle>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="toggle-track" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></button>
           </div>
           <div class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
@@ -5918,7 +5921,16 @@
   </div>
 </transition>
 
-<div v-if="showPromptPreview" data-moyun-modal="prompt-preview" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" class="fixed inset-0 z-[240] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
+<div v-if="summarySupplementNotice" @click.self="answerSummarySupplementNotice(false)" data-moyun-modal="summary-supplement" role="dialog" aria-modal="true" aria-labelledby="summary-supplement-title" class="fixed inset-0 z-[260] flex items-end md:items-center justify-center p-2 md:p-4" style="background:var(--overlay)">
+  <section data-moyun-modal-panel tabindex="-1" class="moyun-feature-dialog" style="max-width:480px">
+    <h2 id="summary-supplement-title" class="text-base font-bold mb-3">{{ summarySupplementNotice.label }}</h2>
+    <p class="text-sm mb-3">本章没有可用摘要。继续会额外发起一次模型请求，补齐供后续章节使用的剧情摘要。</p>
+    <p class="text-xs mb-4" style="color:var(--tx3)">二轮同时补字数时会返回完整的新摘要；第三轮只补摘要。计费以服务商为准。取消会保留正文并标记“摘要待补写”，仍可继续生成。</p>
+    <div class="moyun-preview-toolbar"><button type="button" data-moyun-modal-close @click="answerSummarySupplementNotice(false)" class="btn-ghost text-xs">跳过，保留正文</button><button type="button" @click="answerSummarySupplementNotice(true)" class="btn-primary text-xs" data-summary-supplement-continue>继续补写</button></div>
+  </section>
+</div>
+
+<div v-if="showPromptPreview" @click.self="showPromptPreview=false" data-moyun-modal="prompt-preview" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" class="fixed inset-0 z-[240] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
   <div class="moyun-feature-dialog" data-moyun-modal-panel tabindex="-1">
     <div class="moyun-preview-toolbar mb-3"><h2 id="prompt-preview-title" class="font-bold flex-1">发送预览</h2><button type="button" data-moyun-modal-close @click="showPromptPreview=false" class="btn-ghost text-xs">关闭</button></div>
     <div class="moyun-preview-toolbar mb-3"><button type="button" @click="promptPreviewMode='next';refreshPromptPreview()" class="btn-ghost text-xs" :aria-pressed="promptPreviewMode==='next'">下一次正文请求</button><button type="button" @click="promptPreviewMode='sent'" class="btn-ghost text-xs" :aria-pressed="promptPreviewMode==='sent'">最近实际发送</button></div>
@@ -5929,7 +5941,7 @@
     </div>
     <div v-else class="space-y-3">
       <p v-if="promptPreviewError" role="alert" class="text-xs" style="color:var(--err)">{{ promptPreviewError }}</p>
-      <p v-if="isSnowwingPresetLocked()" class="text-xs" style="color:var(--warn)">白鸟模式：宿主作家预设及自定义楼层暂停注入，书籍事实可编辑。</p>
+      <p v-if="isSnowwingPresetLocked()" class="text-xs" style="color:var(--warn)">白鸟模式：宿主预设及自定义楼层暂停注入，书籍事实可编辑。</p>
       <details data-preview-sources class="moyun-preview-floor"><summary class="cursor-pointer text-xs font-bold">来源区块 · 点击跳转或展开编辑原文</summary>
         <input v-model="previewSourceQuery" class="input-field text-xs my-2" placeholder="筛选来源区块" aria-label="筛选预览来源">
         <details v-for="source in promptPreviewVisibleSources" :key="source.key" class="mb-2"><summary class="text-xs cursor-pointer" style="color:var(--accent)">{{ source.label }} · {{ source.content.length }} 字</summary><textarea v-model="source.content" rows="4" class="textarea-field text-xs my-2" :aria-label="source.label+'原文'"></textarea><div class="moyun-preview-toolbar"><button type="button" @click="savePreviewSource(source)" class="btn-primary text-xs">保存到源区块</button><button type="button" @click="jumpToPreviewSource(source)" class="btn-ghost text-xs">跳转到 {{ source.label }} →</button></div></details>
@@ -5952,7 +5964,7 @@
     <div class="moyun-preview-toolbar mb-3"><h2 id="section-transfer-title" class="font-bold flex-1">{{ transferState.title }}</h2><button type="button" data-moyun-modal-close :disabled="transferBusy" @click="closeTransfer" class="btn-ghost text-xs">取消</button></div>
     <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind!=='book'" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
     <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind==='preset-export'?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
-    <div v-if="transferState.kind==='book'" class="moyun-preview-toolbar mb-3"><label class="text-xs">导入目标 <select v-model="transferState.target" class="select-field text-xs"><option value="new">新建一本书</option><option value="current">合入当前书</option></select></label><p class="text-xs" style="color:var(--tx3)">项目树来自所选文件。本地作家预设独立管理，不随小说导入替换。</p></div>
+    <div v-if="transferState.kind==='book'" class="moyun-preview-toolbar mb-3"><label class="text-xs">导入目标 <select v-model="transferState.target" class="select-field text-xs"><option value="new">新建一本书</option><option value="current">合入当前书</option></select></label><p class="text-xs" style="color:var(--tx3)">项目树来自所选文件。本地预设独立管理，不随小说导入替换。</p></div>
     <div v-if="transferState.kind==='preset-import' || (transferState.kind==='book' && transferState.target==='current')" class="mb-3"><label class="text-xs">写入策略 <select v-model="transferState.strategy" class="select-field text-xs"><option value="append">额外新增（保留原有，分配新 ID）</option><option value="replace">{{ transferState.kind==='book'?'同 ID 项覆盖，其余保留':'覆盖所选预设区块' }}</option></select></label><p class="text-xs mt-2" style="color:var(--tx3)">未勾选区块不变。标量设置采用勾选文件中的值；数组按上述策略处理。同名但不同 ID 的内容不会被当作同一项。</p></div>
     <div v-if="transferState.mode==='selected'" class="mb-3"><div class="moyun-preview-toolbar mb-2"><input v-model="transferQuery" class="input-field text-xs flex-1" placeholder="筛选项目树" aria-label="筛选导入区块"><button type="button" @click="selectTransferRows(true)" class="btn-ghost text-xs">全选</button><button type="button" @click="selectTransferRows(false)" class="btn-ghost text-xs">全不选</button></div><div class="moyun-transfer-tree"><label v-for="row in visibleTransferRows" :key="row.key"><input type="checkbox" v-model="row.selected"><span :style="{paddingLeft:Math.min(3,row.path.length-1)*8+'px'}"><span style="color:var(--tx3)">{{ row.group }}</span> / {{ row.path.length > 1 ? row.label.slice(row.group.length + 3) : row.label }}</span></label><button v-if="visibleTransferRows.length>=transferLimit" type="button" @click="transferLimit+=60" class="btn-ghost text-xs">显示更多项目</button></div><p class="text-xs mt-2">已选择 {{ selectedTransferCount }} / {{ transferState.rows.length }} 项</p></div>
     <p v-if="transferError" role="alert" class="text-xs mb-3" style="color:var(--err)">{{ transferError }}</p>
@@ -6222,7 +6234,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=26023528849c"></script>
+<script src="./assets/js/moyun.js?v=6c8948ec06ba"></script>
 <!-- PART_1_END -->
 </body>
 </html>
