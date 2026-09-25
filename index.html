@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=3ef4df46e9dc">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=4aa6215db868">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -90,9 +90,10 @@
 <!-- ════════════════════════════════════════════
      侧边栏（桌面端固定 / 移动端抽屉）
      ════════════════════════════════════════════ -->
-<aside v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
+<button v-if="!isMobile && !immersiveMode && settings.sidebarCollapsed" @click="toggleDesktopSidebar" type="button" class="moyun-sidebar-reopen" title="展开侧栏" aria-label="展开侧栏" aria-controls="moyun-sidebar" :aria-expanded="false"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
+<aside id="moyun-sidebar" :inert="!isMobile && settings.sidebarCollapsed" :aria-hidden="!isMobile && settings.sidebarCollapsed ? 'true' : null" v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
        :class="[mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
-       :style="isMobile ? 'width:83%;max-width:384px' : 'width:384px;min-width:384px'"
+       :style="isMobile ? 'width:83%;max-width:384px' : (settings.sidebarCollapsed ? 'width:0;min-width:0;border-right:0;visibility:hidden' : 'width:384px;min-width:384px')"
        style="background:var(--bg-sidebar);border-right:1px solid var(--bd)">
 
   <!-- 侧边栏顶部 -->
@@ -100,6 +101,7 @@
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
     <h1 class="moyun-wordmark text-2xl select-none flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-6 h-6 shrink-0">Moyun</h1>
     <div class="flex gap-1 items-center">
+      <button @click="toggleDesktopSidebar" type="button" class="p-2 rounded-full" style="color:var(--tx3)" title="收起侧栏" aria-label="收起侧栏" aria-controls="moyun-sidebar" :aria-expanded="!settings.sidebarCollapsed"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h2v16H4V4zm14.6 3.4L17.2 6l-6 6 6 6 1.4-1.4-4.6-4.6 4.6-4.6z"/></svg></button>
       <button @click="toggleImmersive" class="p-2 rounded-full" style="color:var(--tx3)" title="沉浸阅读">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>
       </button>
@@ -943,10 +945,11 @@
       <div class="absolute inset-0 overflow-y-auto">
       <div class="p-4 space-y-4 pb-20" :style="isSnowwingPresetLocked() ? 'filter:grayscale(1);opacity:.32;pointer-events:none;user-select:none' : ''">
 
+      <div class="moyun-preview-toolbar"><strong class="text-sm">作家预设</strong><button type="button" @click="openPresetTransfer('export')" class="btn-ghost text-xs">导出预设</button><button type="button" @click="presetImportInput.click()" class="btn-ghost text-xs">导入预设</button><input type="file" ref="presetImportInput" accept=".json,application/json" @change="readPresetFile" class="hidden"></div>
       <!-- 提示词流水线 -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <span class="label mb-0">提示词注入流水线（8层，可调顺序）</span>
+          <span class="label mb-0">提示词流水线（{{ promptPipeline.length }} 层）</span>
           <button @click="pipelineExpanded=!pipelineExpanded" class="text-[10px] font-bold px-2 py-0.5 rounded" style="background:var(--accent-soft);color:var(--accent)">
             {{ pipelineExpanded ? '收起' : '展开' }}
           </button>
@@ -960,10 +963,11 @@
         </div>
         <div v-if="isGeneratingPipelineBatch && aiSupplementSegmentProgress" class="text-[10px] mb-2 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</div>
         <!-- 中文注释：提示词流水线支持上下移动显示/注入顺序，实际读取按 key 识别，避免重排后语义错位。 -->
+        <button type="button" @click="addPipelineLayer" class="btn-ghost text-xs mb-2">＋ 添加自定义层</button>
         <div class="text-[10px] mb-3" style="color:var(--tx4)">系统提示词按以下顺序拼装，每层可独立开关、编辑和上下移动；关闭的层不会注入。</div>
 
         <div class="space-y-2">
-          <div v-for="(layer, li) in promptPipeline" :key="layer.key"
+          <div v-for="(layer, li) in promptPipeline" :key="layer.key" :data-pipeline-key="layer.key"
                class="card overflow-hidden">
             <div @click="layer._expanded=!layer._expanded"
                  class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
@@ -986,6 +990,8 @@
                    :style="layer._expanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
             <div v-if="layer._expanded || pipelineExpanded" class="px-3 py-2.5">
+              <div class="flex gap-2 mb-2"><input v-model="layer.label" @change="saveData()" aria-label="流水线名称" class="input-field text-xs"><button v-if="layer.key.startsWith('custom_')" type="button" @click="removePipelineLayer(layer)" class="btn-ghost text-xs">删除层</button></div>
+              <span class="moyun-role-badge" :class="layer.importBatch ? 'moyun-origin-new' : ''">{{ presetOriginLabel(layer, li) }}</span>
               <div class="text-[10px] mb-1" style="color:var(--tx4)">{{ layer.desc }}</div>
               <div class="text-[9px] mb-2 px-2 py-1 rounded" style="background:var(--bg-inset);color:var(--tx4);border:1px solid var(--bd)">触发/省 token：{{ getPipelineLayerTriggerDesc(layer) }}</div>
               <textarea v-model="layer.content" @change="saveData()"
@@ -1011,10 +1017,10 @@
 
       <!-- 文风选择器 -->
       <div>
-        <label class="label">文风设置</label>
+        <label class="label">作家文风</label>
         <select :value="isSnowwingPresetLocked() ? '' : currentWritingStyleId" @change="currentWritingStyleId=$event.target.value;saveData()" class="select-field w-full text-sm mb-2">
           <option value="">无（默认风格）</option>
-          <option v-for="s in writingStyles" :key="s.id" :value="s.id">{{ s.name }}</option>
+          <option v-for="s in writingStyles" :key="s.id" :value="s.id">{{ s.importBatch ? '[导入 '+s.importBatch+'] ' : '[本地] ' }}{{ s.name }}</option>
         </select>
         <div v-if="getCurrentStylePrompt()" class="text-[11px] p-2 rounded-md line-clamp-3" style="background:var(--bg-inset);color:var(--tx3);line-height:1.5">
           {{ getCurrentStylePrompt() }}
@@ -1025,7 +1031,7 @@
         </div>
         <!-- AI文风生成输入 -->
         <div v-if="showAiStyleGen" class="mt-2 p-3 rounded-lg" style="background:var(--bg-inset);border:1px solid var(--bd)">
-          <div class="text-[10px] mb-2" style="color:var(--tx3)">描述你想要的文风方向，AI批量生成文风预设</div>
+          <div class="text-[10px] mb-2" style="color:var(--tx3)">描述你想要的文风方向，AI批量生成作家预设</div>
           <div class="flex gap-2 items-end">
             <input v-model="aiStyleHint" placeholder="例如：适合写恐怖悬疑的文风..." class="input-field text-xs flex-1" style="height:30px">
             <select v-model.number="batchStyleCount" class="select-field text-xs py-0.5 shrink-0" style="width:50px;height:30px">
@@ -1037,6 +1043,7 @@
             </button>
           </div>
         </div>
+        <span v-if="getStyleById(currentWritingStyleId)" class="moyun-role-badge" :class="getStyleById(currentWritingStyleId).importBatch ? 'moyun-origin-new' : ''">{{ presetOriginLabel(getStyleById(currentWritingStyleId), writingStyles.findIndex(s=>s.id===currentWritingStyleId)) }}</span>
         <!-- 编辑当前文风 -->
         <div v-if="currentWritingStyleId && getStyleById(currentWritingStyleId)" class="mt-2">
           <div class="flex gap-2 items-center mb-1">
@@ -1068,16 +1075,16 @@
             </button>
           </div>
         </div>
-        <div class="text-[10px] mb-3" style="color:var(--tx4)">启用的预设会注入到对应模块的AI系统提示中</div>
+        <div class="text-[10px] mb-3" style="color:var(--tx4)">启用的预设会注入到对应模块的AI系统提示中；导入项目带批次编号</div>
         <div class="space-y-2">
-          <div v-for="(p, pi) in presets" :key="p.id" class="card overflow-hidden">
+          <div v-for="(p, pi) in presets" :key="p.id" :data-preset-id="p.id" class="card overflow-hidden">
             <div class="flex items-center gap-2 px-3 py-2" style="border-bottom:1px solid var(--bd)">
               <div @click="p.enabled=!p.enabled;saveData()"
                    class="w-5 h-5 rounded shrink-0 flex items-center justify-center text-xs border cursor-pointer"
                    :style="(!isSnowwingPresetLocked() && p.enabled)?'background:var(--ok);color:white;border-color:var(--ok)':'background:var(--bg-inset);color:var(--tx4);border-color:var(--bd)'">
                 {{ !isSnowwingPresetLocked() && p.enabled ? '✓' : '' }}
               </div>
-              <span class="flex-1 text-xs font-bold text-truncate" style="color:var(--tx)">{{ p.name }}</span>
+              <span class="flex-1 text-xs font-bold text-truncate" style="color:var(--tx)">{{ p.name }}</span><span class="moyun-role-badge" :class="p.importBatch ? 'moyun-origin-new' : ''">{{ presetOriginLabel(p, pi) }}</span>
               <button @click="p._expanded=!p._expanded" class="text-[10px]" style="color:var(--tx4)">
                 {{ p._expanded ? '收起' : '编辑' }}
               </button>
@@ -2333,7 +2340,7 @@
             </transition>
           </div>
         </div>
-        <div ref="infiniteControlRef" data-infinite-control="primary" class="infinite-control-bar sticky bottom-0 md:bottom-8 z-10 mt-3" style="padding-bottom:calc(max(10px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+        <div v-show="!immersiveMode" ref="infiniteControlRef" data-infinite-control="primary" class="infinite-control-bar sticky bottom-0 md:bottom-8 z-10 mt-3" style="padding-bottom:calc(max(10px, env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
           <div class="rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto" style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
             <div class="flex flex-col gap-3">
               <div class="flex items-center justify-between gap-3">
@@ -2743,7 +2750,7 @@
       </div><!-- 关闭 space-y-4 flex-1 pb-24 -->
 
       <!-- 底部控制栏（大纲/细纲面板打开时隐藏） -->
-      <div v-show="!novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10">
+      <div v-show="!immersiveMode && !novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10">
         <div class="moyun-composer-card rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
              style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
           <div class="moyun-composer-prompt-row flex gap-1 items-end w-full">
@@ -3004,7 +3011,7 @@
      MOD 聚合悬浮菜单：单一可拖动圆形入口 / 小弹窗详情
      ════════════════════════════════════════════ -->
 <!-- 中文注释：v2.2.6 修正版：只保留一个根节点，按钮和菜单同源定位，避免菜单铺满页面或圆形按钮丢失。 -->
-<div v-if="getModFloatingHubMods().length" v-show="isModHubVisible()" data-moyun-region="mod-hub" class="mod-hub-root" :style="getModHubRootStyle()">
+<div v-if="getModFloatingHubMods().length" v-show="!immersiveMode && isModHubVisible()" data-moyun-region="mod-hub" class="mod-hub-root" :style="getModHubRootStyle()">
   <button @pointerdown.stop="startModHubDrag($event)" @click.stop="toggleModFloatingHub" class="mod-hub-trigger" :title="modFloatingHubOpen?'关闭 MOD 菜单':'查看已加载 MOD'" aria-haspopup="true" :aria-expanded="modFloatingHubOpen ? 'true' : 'false'">
     <svg v-if="!modFloatingHubOpen" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -3079,7 +3086,7 @@
   </transition>
 </div>
 <transition name="fade">
-  <div v-if="modFloatingHubOpen && isMobile && isModHubVisible()" class="mod-hub-backdrop" @click="closeModFloatingHub"></div>
+  <div v-if="!immersiveMode && modFloatingHubOpen && isMobile && isModHubVisible()" class="mod-hub-backdrop" @click="closeModFloatingHub"></div>
 </transition>
 
 <!-- 中文注释：MOD 独立弹窗宿主。弹窗只渲染 hostedViews 的安全组件，不接收 MOD HTML/JS。 -->
@@ -5173,6 +5180,7 @@
 
         <!-- ═══ 集中编辑 ═══ -->
         <div v-show="activeSettingsTab==='editable'" id="settings-panel-editable" role="tabpanel" aria-labelledby="settings-tab-editable" class="space-y-4">
+          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><h3 class="text-xs font-bold mb-2">发送预览</h3><p class="text-xs mb-2" style="color:var(--tx3)">查看下一次正文请求、最近发送消息、编辑来源和自定义楼层。</p><button type="button" @click="openPromptPreview" class="btn-primary text-xs" data-open-prompt-preview>打开发送预览</button></div>
           <!-- 中文注释：把分散在各模块里的可编辑配置集中到一个页签，方便不懂代码的用户统一修改。 -->
           <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">书籍设定（集中修改书名/简介/世界观/负面词）</div>
@@ -5910,6 +5918,49 @@
   </div>
 </transition>
 
+<div v-if="showPromptPreview" data-moyun-modal="prompt-preview" role="dialog" aria-modal="true" aria-labelledby="prompt-preview-title" class="fixed inset-0 z-[240] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
+  <div class="moyun-feature-dialog" data-moyun-modal-panel tabindex="-1">
+    <div class="moyun-preview-toolbar mb-3"><h2 id="prompt-preview-title" class="font-bold flex-1">发送预览</h2><button type="button" data-moyun-modal-close @click="showPromptPreview=false" class="btn-ghost text-xs">关闭</button></div>
+    <div class="moyun-preview-toolbar mb-3"><button type="button" @click="promptPreviewMode='next';refreshPromptPreview()" class="btn-ghost text-xs" :aria-pressed="promptPreviewMode==='next'">下一次正文请求</button><button type="button" @click="promptPreviewMode='sent'" class="btn-ghost text-xs" :aria-pressed="promptPreviewMode==='sent'">最近实际发送</button></div>
+    <p class="text-xs mb-3" style="color:var(--tx3)">按真实消息组装器预览。发送前动态 MOD 召回可能补充内容；最终请求以“最近实际发送”为准。此处不会调用 AI。</p>
+    <div v-if="promptPreviewMode==='sent'">
+      <p v-if="!lastSentPrompt || lastSentPrompt.bookId!==currentBookId" class="text-xs">当前书本次打开后还没有发送记录。</p>
+      <template v-else><p class="text-xs mb-2">{{ lastSentPrompt.adapter }} · {{ new Date(lastSentPrompt.at).toLocaleString() }} · 只读原文</p><details v-for="(message,mi) in lastSentPrompt.messages" :key="mi" class="moyun-preview-floor mb-2"><summary class="cursor-pointer text-xs"><span class="moyun-role-badge" :style="getRealContextRoleStyle(message.role)">{{ promptRoleLabel(message.role) }}</span> #{{ mi+1 }} · {{ message.content.length }} 字</summary><pre class="text-xs mt-3">{{ message.content }}</pre></details></template>
+    </div>
+    <div v-else class="space-y-3">
+      <p v-if="promptPreviewError" role="alert" class="text-xs" style="color:var(--err)">{{ promptPreviewError }}</p>
+      <p v-if="isSnowwingPresetLocked()" class="text-xs" style="color:var(--warn)">白鸟模式：宿主作家预设及自定义楼层暂停注入，书籍事实可编辑。</p>
+      <details data-preview-sources class="moyun-preview-floor"><summary class="cursor-pointer text-xs font-bold">来源区块 · 点击跳转或展开编辑原文</summary>
+        <input v-model="previewSourceQuery" class="input-field text-xs my-2" placeholder="筛选来源区块" aria-label="筛选预览来源">
+        <details v-for="source in promptPreviewVisibleSources" :key="source.key" class="mb-2"><summary class="text-xs cursor-pointer" style="color:var(--accent)">{{ source.label }} · {{ source.content.length }} 字</summary><textarea v-model="source.content" rows="4" class="textarea-field text-xs my-2" :aria-label="source.label+'原文'"></textarea><div class="moyun-preview-toolbar"><button type="button" @click="savePreviewSource(source)" class="btn-primary text-xs">保存到源区块</button><button type="button" @click="jumpToPreviewSource(source)" class="btn-ghost text-xs">跳转到 {{ source.label }} →</button></div></details>
+        <button v-if="promptPreviewVisibleSources.length>=previewSourceLimit" type="button" @click="previewSourceLimit+=30" class="btn-ghost text-xs">显示更多来源</button>
+      </details>
+      <details v-for="(message,mi) in promptPreviewMessages" :key="mi" class="moyun-preview-floor"><summary class="cursor-pointer text-xs"><span class="moyun-role-badge" :style="getRealContextRoleStyle(message.role)">{{ promptRoleLabel(message.role) }}</span> #{{ mi+1 }} · {{ message.content.length }} 字 · {{ message.content.slice(0,60) }}</summary><div class="mt-3"><div class="moyun-preview-toolbar mb-2"><span v-for="source in previewMessageSources(message)" :key="source.key" class="text-xs"><button type="button" @click="focusPreviewSource(source)" style="color:var(--accent);text-decoration:underline">{{ source.label }}</button><button type="button" @click="jumpToPreviewSource(source)" :aria-label="'跳转到'+source.label" class="px-1" style="color:var(--accent)">↗</button></span></div><label class="text-xs">角色 <select v-model="message.role" @focus="message.originalRole = message.originalRole || message.role" class="select-field text-xs mb-2"><option value="system">系统</option><option value="user">用户</option><option value="assistant">助手</option></select></label><textarea :value="message.content" @focus="message.originalContent = message.originalContent === undefined ? message.content : message.originalContent" @input="message.content=$event.target.value" rows="8" class="textarea-field text-xs" :aria-label="'第'+(mi+1)+'层消息'"></textarea><div class="moyun-preview-toolbar mt-2"><button type="button" @click="overridePreviewMessage(message)" :disabled="isSnowwingPresetLocked()" class="btn-ghost text-xs">保存此消息覆盖</button><button type="button" @click="addPromptFloor(mi)" :disabled="isSnowwingPresetLocked()" class="btn-ghost text-xs">在此位置插入楼层</button></div></div></details>
+      <div class="moyun-preview-toolbar"><h3 class="font-bold text-sm flex-1">自定义楼层</h3><button type="button" @click="addPromptFloor()" :disabled="isSnowwingPresetLocked()" class="btn-primary text-xs">＋ 添加楼层</button></div>
+      <label class="text-xs"><input type="checkbox" v-model="promptPreviewOverrideOnce"> 消息覆盖仅用于下一次匹配请求</label>
+      <p class="text-xs" style="color:var(--tx3)">按当前书保存。数字位置从 0 开始，指向自动消息组装后的插入位置；同位置按下方顺序排列。源设定改变会让旧消息覆盖失效。</p>
+      <div v-for="(floor,fi) in promptComposerConfig.floors" :key="floor.id" class="moyun-preview-floor">
+        <div class="moyun-preview-toolbar mb-2"><label class="text-xs"><input type="checkbox" v-model="floor.enabled" @change="savePromptFloor"> 启用 #{{ fi+1 }}</label><select v-model="floor.role" @change="savePromptFloor" class="select-field text-xs" aria-label="楼层角色"><option value="system">系统</option><option value="user">用户</option><option value="assistant">助手</option></select><select v-model="floor.position" @change="savePromptFloor" class="select-field text-xs" aria-label="楼层位置"><option value="start">最前</option><option value="end">最后</option><option value="index">指定位置</option></select><input v-if="floor.position==='index'" v-model.number="floor.index" @change="savePromptFloor" type="number" min="0" class="input-field text-xs" style="width:80px" aria-label="插入位置"><button type="button" @click="movePromptFloor(fi,-1)" :disabled="fi===0" class="btn-ghost text-xs" aria-label="上移楼层">↑</button><button type="button" @click="movePromptFloor(fi,1)" :disabled="fi===promptComposerConfig.floors.length-1" class="btn-ghost text-xs" aria-label="下移楼层">↓</button><button type="button" @click="removePromptFloor(fi)" class="btn-ghost text-xs">删除</button></div><textarea v-model="floor.content" @change="savePromptFloor" rows="4" class="textarea-field text-xs" :aria-label="'自定义楼层'+(fi+1)"></textarea>
+      </div>
+      <button v-if="promptComposerConfig.overrides.length" type="button" @click="promptComposerConfig.overrides=[];savePromptFloor()" class="btn-ghost text-xs">清除消息覆盖（{{ promptComposerConfig.overrides.length }}）</button>
+    </div>
+  </div>
+</div>
+
+<div v-if="transferState" data-moyun-modal="section-transfer" :data-moyun-modal-locked="transferBusy?'true':'false'" role="dialog" aria-modal="true" aria-labelledby="section-transfer-title" class="fixed inset-0 z-[250] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
+  <div class="moyun-feature-dialog" data-moyun-modal-panel tabindex="-1">
+    <div class="moyun-preview-toolbar mb-3"><h2 id="section-transfer-title" class="font-bold flex-1">{{ transferState.title }}</h2><button type="button" data-moyun-modal-close :disabled="transferBusy" @click="closeTransfer" class="btn-ghost text-xs">取消</button></div>
+    <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind!=='book'" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
+    <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind==='preset-export'?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
+    <div v-if="transferState.kind==='book'" class="moyun-preview-toolbar mb-3"><label class="text-xs">导入目标 <select v-model="transferState.target" class="select-field text-xs"><option value="new">新建一本书</option><option value="current">合入当前书</option></select></label><p class="text-xs" style="color:var(--tx3)">项目树来自所选文件。本地作家预设独立管理，不随小说导入替换。</p></div>
+    <div v-if="transferState.kind==='preset-import' || (transferState.kind==='book' && transferState.target==='current')" class="mb-3"><label class="text-xs">写入策略 <select v-model="transferState.strategy" class="select-field text-xs"><option value="append">额外新增（保留原有，分配新 ID）</option><option value="replace">{{ transferState.kind==='book'?'同 ID 项覆盖，其余保留':'覆盖所选预设区块' }}</option></select></label><p class="text-xs mt-2" style="color:var(--tx3)">未勾选区块不变。标量设置采用勾选文件中的值；数组按上述策略处理。同名但不同 ID 的内容不会被当作同一项。</p></div>
+    <div v-if="transferState.mode==='selected'" class="mb-3"><div class="moyun-preview-toolbar mb-2"><input v-model="transferQuery" class="input-field text-xs flex-1" placeholder="筛选项目树" aria-label="筛选导入区块"><button type="button" @click="selectTransferRows(true)" class="btn-ghost text-xs">全选</button><button type="button" @click="selectTransferRows(false)" class="btn-ghost text-xs">全不选</button></div><div class="moyun-transfer-tree"><label v-for="row in visibleTransferRows" :key="row.key"><input type="checkbox" v-model="row.selected"><span :style="{paddingLeft:Math.min(3,row.path.length-1)*8+'px'}"><span style="color:var(--tx3)">{{ row.group }}</span> / {{ row.path.length > 1 ? row.label.slice(row.group.length + 3) : row.label }}</span></label><button v-if="visibleTransferRows.length>=transferLimit" type="button" @click="transferLimit+=60" class="btn-ghost text-xs">显示更多项目</button></div><p class="text-xs mt-2">已选择 {{ selectedTransferCount }} / {{ transferState.rows.length }} 项</p></div>
+    <p v-if="transferError" role="alert" class="text-xs mb-3" style="color:var(--err)">{{ transferError }}</p>
+    <p v-if="transferState.kind==='book'" class="text-xs mb-3" style="color:var(--tx3)">建议同时选择关联的角色、资料、分支与章节。未随文件导入且当前书不存在的引用会由既有修复器清理；孤立章节归入主线。</p>
+    <div class="moyun-preview-toolbar"><button type="button" :disabled="transferBusy || (transferState.mode==='selected' && !selectedTransferCount)" @click="executeTransfer" class="btn-primary text-xs">{{ transferBusy?'正在保存…':(transferState.kind==='preset-export'?'确认导出':'确认导入') }}</button><span v-if="transferBusy" role="status" class="text-xs">请等待本地存储完成</span></div>
+  </div>
+</div>
+
 <!-- 沉浸阅读模式退出按钮 -->
 <div v-if="immersiveMode" @click="toggleImmersive" class="immersive-exit" title="退出沉浸模式">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -6171,7 +6222,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=90d676125809"></script>
+<script src="./assets/js/moyun.js?v=b90ca9f96e01"></script>
 <!-- PART_1_END -->
 </body>
 </html>
