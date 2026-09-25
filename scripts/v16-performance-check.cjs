@@ -18,17 +18,17 @@ const para='船员翻开地图，核对港口的方向和潮汐。他在日志�
 const content=Array.from({length:45},(_,i)=>'场景'+i+'。'+para.repeat(2)).join('\n\n');
 s.chapters=Array.from({length:400},(_,i)=>({id:'perf-'+i,title:'海上日志 '+i,content,summary:'航海记录',wordCount:content.length,branchId:'main',versions:[],isExpanded:i>=395,isEditing:false}));s.branchList=[{id:'main',name:'主线'}];s.activeBranchId='main';
 await Vue.nextTick();await new Promise(r=>setTimeout(r,300));
-let parsed=0;const parse=marked.parse;marked.parse=function(...args){parsed++;return parse.apply(this,args);};
-const warm=s.getChapterParagraphs(s.chapters[0],0);parsed=0;let start=performance.now();
+
+s.getChapterParagraphs(s.chapters[0],0);let start=performance.now();
 for(let r=0;r<12;r++)for(let i=0;i<10;i++)s.getChapterParagraphs(s.chapters[i],i);
-const paragraphMs=performance.now()-start,parseCalls=parsed;marked.parse=parse;
+const paragraphMs=performance.now()-start;
 const initial=s.totalWordCount;start=performance.now();s.chapters[0].content+='新';const count=s.totalWordCount;const countUpdateMs=performance.now()-start;
 start=performance.now();const snapshot=s.buildLibrarySnapshot();const snapshotMs=performance.now()-start;
 let frames=0;start=performance.now();for(let i=0;i<30;i++){s.streamContent='流式样本 '+i+'\n\n'+para.repeat(20+i*5);await Vue.nextTick();await new Promise(r=>requestAnimationFrame(()=>{frames++;r();}));}const updatesMs=performance.now()-start;s.streamContent='';
-return {chapters:s.chapters.length,characters:content.length*400,paragraphMs:Math.round(paragraphMs),parseCalls,countUpdateMs:Math.round(countUpdateMs),wordCountDelta:count-initial,snapshotMs:Math.round(snapshotMs),snapshotChapters:snapshot.chapters.length,updatesMs:Math.round(updatesMs),frames,overflow:document.documentElement.scrollWidth>innerWidth};
+return {chapters:s.chapters.length,characters:content.length*400,paragraphMs:Math.round(paragraphMs),countUpdateMs:Math.round(countUpdateMs),wordCountDelta:count-initial,snapshotMs:Math.round(snapshotMs),snapshotChapters:snapshot.chapters.length,updatesMs:Math.round(updatesMs),frames,overflow:document.documentElement.scrollWidth>innerWidth};
 });assert.equal(result.wordCountDelta,1);assert.equal(result.snapshotChapters,400);assert.equal(result.overflow,false);rows.push({label,width,...result});console.log(label,width,JSON.stringify(result));
 }
 }
-const comparison=[1280,390].map(width=>{const before=rows.find(x=>x.width===width&&x.label==='baseline'),after=rows.find(x=>x.width===width&&x.label==='v16');return{width,paragraphReduction:1-after.paragraphMs/Math.max(1,before.paragraphMs),parseCallsBefore:before.parseCalls,parseCallsAfter:after.parseCalls,wordCountMsBefore:before.countUpdateMs,wordCountMsAfter:after.countUpdateMs,updateMsBefore:before.updatesMs,updateMsAfter:after.updatesMs};});
+const comparison=[1280,390].map(width=>{const before=rows.find(x=>x.width===width&&x.label==='baseline'),after=rows.find(x=>x.width===width&&x.label==='v16');return{width,paragraphReduction:1-after.paragraphMs/Math.max(1,before.paragraphMs),wordCountMsBefore:before.countUpdateMs,wordCountMsAfter:after.countUpdateMs,updateMsBefore:before.updatesMs,updateMsAfter:after.updatesMs};});
 fs.writeFileSync(path.join(out,'v16-performance-results.json'),JSON.stringify({rows,comparison,scope:'本机已有 Edge；400 章合成书；窗口仿真，不代表真实手机温度或能耗'},null,2));console.log(JSON.stringify(comparison,null,2));ws.close();
 })().catch(e=>{console.error(e);ws?.close();process.exitCode=1;});

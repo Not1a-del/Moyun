@@ -1773,6 +1773,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 }
 
 /* v0.0.16 阅读、预览和选区导入 */
+.immersive-mode .mod-hub-backdrop{display:none!important;pointer-events:none!important}
 .moyun-sidebar-reopen{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:55;width:30px;height:60px;border-radius:0 60px 60px 0;border:1px solid var(--bd);border-left:0;background:var(--bg-sidebar);color:var(--accent);box-shadow:var(--sh2);display:flex;align-items:center;justify-content:center;transition:width .18s ease,background .18s ease}
 .moyun-sidebar-reopen:hover{width:36px;background:var(--bg-sidebar-h)}
 .moyun-sidebar-reopen:focus-visible{outline:2px solid var(--accent);outline-offset:3px}

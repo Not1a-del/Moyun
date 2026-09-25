@@ -6953,6 +6953,7 @@ function copyLastChapterContextText() {
       applyActiveThemePack();
       // 中文注释：加载书籍时同步恢复该书自己的插件私有数据。
       modPrivateData.value = book.modPrivateData && typeof book.modPrivateData === 'object' ? deepClone(book.modPrivateData) : {};
+      if(book.narrativePerson!==undefined)narrativePerson.value=book.narrativePerson;
       atmosphereEnabled.value = book.atmosphereEnabled !== undefined ? book.atmosphereEnabled : false;
       atmospherePrompt.value = book.atmospherePrompt || _defaultAtmospherePrompt;
       nsfwSettings.value = book.nsfwSettings ? deepClone(book.nsfwSettings) : deepClone(_defaultNsfwSettings);
@@ -9837,6 +9838,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if(transferBusy.value||!transferState.value)return;const state=transferState.value;
       if(state.sourceBookId!==currentBookId.value){transferError.value='当前书已变化，请关闭并重新导入';return;}
       transferBusy.value=true;transferError.value='';let rollback=null,newId='',oldId=currentBookId.value;
+      const previousImages={profiles:imageProfiles.value,active:activeProfileId.value};
       try{
         const data=transferSelectionPayload();
         if(state.kind==='preset-export'){downloadTransferJson({_type:'moyun_writer_presets',schemaVersion:1,exportedAt:new Date().toISOString(),data:sanitizePresetBundle(data)},'墨韵作家预设.json');}
@@ -9849,9 +9851,12 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
           if(storageLoadFailed)throw Error('存档处于保护模式，请先备份并恢复存档读取后再合入');
           syncBookData();
           if(state.target==='new'){newId=createNewBook(data.novel?.title||state.filename.replace(/\.json$/i,'')||'导入书籍');const book=books.value.find(x=>x.id===newId);mergeBookTransfer(book,data,'replace');loadBook(newId);}
-          else{const book=books.value.find(x=>x.id===oldId);if(!book)throw Error('当前书不存在');rollback=deepClone(book);mergeBookTransfer(book,data,state.strategy);loadBook(oldId);}
+          else{const book=books.value.find(x=>x.id===oldId);if(!book)throw Error('当前书不存在');rollback=deepClone(book);if(data.imageProfiles)book.imageProfiles=snapshotForSerialize(imageProfiles.value);mergeBookTransfer(book,data,state.strategy);loadBook(oldId);}
           repairDanglingCharacterReferences();repairStoryBibleReferences();
           const importedTarget=books.value.find(x=>x.id===currentBookId.value);
+          if(Array.isArray(data.imageProfiles)&&data.imageProfiles.length)imageProfiles.value=deepClone(importedTarget.imageProfiles);
+          if(data.activeProfileId!==undefined)activeProfileId.value=String(importedTarget.activeProfileId||'');
+          if(!imageProfiles.value.some(x=>x.id===activeProfileId.value))activeProfileId.value=imageProfiles.value[0]?.id||'';
           if(importedTarget?._pendingImportedImages){for(const [key,base64] of Object.entries(importedTarget._pendingImportedImages)){if(typeof base64==='string')await ImageStore.set(key,{base64,timestamp:Date.now()});}delete importedTarget._pendingImportedImages;}
           if(!await saveDataNow('分区导入小说'))throw Error('书籍保存失败，已撤回本次变更');
         }
@@ -9859,6 +9864,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       }catch(e){
         if(state.kind==='preset-import'&&rollback){const refs={promptPipeline,presets,writingStyles,currentWritingStyleId,activeStyleIds,atmosphereEnabled,atmospherePrompt,narrativePerson,dialogueTypes,personalityTagPresets,nsfwSettings,nsfwSystemPrompt,nsfwInjectionPrompt,discussionPrompt,oneKeySystemPrompt,promptComposerConfig};Object.keys(rollback).forEach(k=>refs[k].value=rollback[k]);}
         if(state.kind==='book'&&(newId||rollback)){if(newId)books.value=books.value.filter(x=>x.id!==newId);if(rollback){const idx=books.value.findIndex(x=>x.id===oldId);if(idx>=0)books.value[idx]=rollback;}if(books.value.some(x=>x.id===oldId))loadBook(oldId);}
+        imageProfiles.value=previousImages.profiles;activeProfileId.value=previousImages.active;
         transferError.value=sanitizeApiErrorDetail(e.message||e);transferBusy.value=false;
       }
     }
@@ -30988,6 +30994,8 @@ function getWritingModelLabel() {
     function stopActiveGeneration(reason = 'manualAbort') {
       const run = _activeGenerationRun;
       if (!run) return false;
+      run.flushPreview?.();
+      run.flushPreview=null;
       run.stopRequested = true;
       clearGenerationBetweenTimer(run);
       run.remaining = 0;
@@ -31089,6 +31097,7 @@ function getWritingModelLabel() {
 
       const run = _activeGenerationRun;
       run.betweenTimer = null;
+      run.flushPreview=null;
       isGenerating.value = true;
       streamContent.value = '';
       streamCotContent.value = '';
@@ -31300,12 +31309,14 @@ function getWritingModelLabel() {
         // 可见正文超过目标字数 2.5 倍就停收，已收到的内容仍保留为草稿，不丢东西。
         const runawayCeilingWords = Math.max(1200, Math.round(getChapterLengthContract(generationContext.wordCountTarget).targetWords * 2.5));
         let runawayCheckedLen = 0, lastStreamPaint=0;
+        run.flushPreview=()=>{const parts=extractResponseReasoningBlocks(full);streamContent.value=cleanAIResponse(parts.body);updateStreamThinkingDisplay(parts.thinking,cot,snowwingPreflightCot,snowwingCotContext);};
 
         function pump() {
           assertGenerationRunCurrent(runId);
           return reader.read().then(r => {
             assertGenerationRunCurrent(runId);
             if (r.done) {
+              run.flushPreview=null;
               const parts = extractResponseReasoningBlocks(full);
               streamContent.value = cleanAIResponse(parts.body);
               const separated = splitSnowwingCotParts(parts.thinking, cot.trim(), snowwingPreflightCot);
@@ -31360,6 +31371,7 @@ function getWritingModelLabel() {
             }
             return pump();
           }).catch(error => {
+            run.flushPreview=null;
             if (!isGenerationRunCurrent(runId) || requestController.signal.aborted) throw error;
             if (!isRecoverableStreamReadError(error)) throw error;
             const partial = buildPartialStreamResult(full, cot.trim(), {
