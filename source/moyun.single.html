@@ -8197,17 +8197,24 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-26-0926-update',
+  id: 'web-2026-09-26-0925-0926-update',
   badge: '网页更新',
   title: '0926更新',
   publishedAt: '2026-09-26',
-  message: '0926 更新：删除侧栏收起/展开动画。此前长文时收起侧栏会导致明显卡顿；现在改为即时切换，点击即完成。本次更新只影响 PC 端，手机端原有抽屉动画保持不变。点「我知道了」后，这条不会再弹。',
+  message: '0925–0926 更新：这次内容比较多，分两天完成。0925 带来桌面侧栏收起/展开、发送预览、作家预设、小说 JSON 导入和长书性能优化；0926 删除了侧栏收起动画（长书下会卡顿，改为即时切换）并修复保存与章节摘要问题。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-changes', kind:'group', title:'变更内容', body:'' }),
-    Object.freeze({ key:'sidebar-animation', tone:'perf', title:'侧栏收起/展开改为即时切换', body:'之前收起/展开侧栏时有 240 毫秒的平滑动画。但该动画会导致整页重排，在长书库（如 400 章）下无法保证流畅，出现明显卡顿。本版删除了该动画，改为点击后立即完成切换，同时保留收起和展开功能本身、半圆展开按钮及键盘焦点管理。' }),
-    Object.freeze({ key:'sidebar-border-fix', tone:'fix', title:'修复收起后残留 1px 边框', body:'收起侧栏后，浏览器可能在右侧残留 1 像素的空白边。本次更新了侧栏的边框样式声明，确保收起干净无残留。' }),
+    Object.freeze({ key:'group-0925', kind:'group', title:'0925 变更', body:'' }),
+    Object.freeze({ key:'sidebar-collapse', tone:'new', title:'桌面侧栏可收起/展开', body:'PC 端点击侧栏边缘的半圆按钮即可收起侧栏，写作区域自动变宽；收起后右缘保留半圆箭头，随时点开。沉浸模式两端隐藏 MOD 悬浮球与续写框，仅 PC 端加宽正文并随窗口调整字号。' }),
+    Object.freeze({ key:'send-preview', tone:'new', title:'发送预览', body:'全局设置顶部新增发送预览：显示每次实际发送给模型的消息、角色、来源与顺序，设定原文可编辑回写；自定义楼层按当前书持久保存，最近发送记录只读。' }),
+    Object.freeze({ key:'writer-preset', tone:'new', title:'作家预设与预设独立 JSON', body:'原文风预设更名为作家预设并加强写作指令；预设支持独立 JSON 的分区勾选导入、覆盖/新增与来源标记，小说导出不携带本地预设。' }),
+    Object.freeze({ key:'novel-import', tone:'new', title:'小说 JSON 导入', body:'导入完整小说 JSON 时可先看文件内容树，再选择新建一本书或合入当前书；合入前会展示冲突策略，未勾选的内容保持原样，取消不写入任何数据。' }),
+    Object.freeze({ key:'longbook-perf', tone:'perf', title:'长书性能优化', body:'长书的缓存、保存与流式显示链路做了优化：约 188 万字符样本的重复段落处理从约 191–294ms 降到 10–21ms，保存与流式显示更顺。' }),
+    Object.freeze({ key:'group-0926', kind:'group', title:'0926 变更', body:'' }),
+    Object.freeze({ key:'sidebar-animation', tone:'perf', title:'侧栏收起/展开改为即时切换', body:'0925 新增的收起/展开动画在长书库（如 400 章）下会导致整页逐帧重排，出现明显卡顿。本版删除该动画：点击后立即完成切换，收起/展开功能本身、半圆按钮与键盘焦点管理全部保留。本次只影响 PC 端，手机端抽屉动画不变。' }),
+    Object.freeze({ key:'sidebar-border-fix', tone:'fix', title:'修复收起后残留 1px 边框', body:'收起侧栏后浏览器可能在右侧残留 1 像素空白边，本次调整了边框样式声明，收起后干净无残留。' }),
+    Object.freeze({ key:'save-summary-fix', tone:'fix', title:'修复保存故障与章节摘要', body:'修复一处保存回归（Vue Proxy 写入快照导致保存失败的问题），回退数据恢复正常；章节摘要改为：摘要缺失时弹独立补写提醒，关闭或补写失败时保留正文并明确警告，仍可继续写下一章，不以伪摘要掩盖缺失。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。PC 端侧栏收起/展开现在是即时切换。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。侧栏收起/展开在 PC 端现在是即时切换。' })
   ]),
   acknowledge: '我知道了'
 });
