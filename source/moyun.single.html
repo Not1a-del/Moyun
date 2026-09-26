@@ -1785,8 +1785,8 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 
 /* v0.0.16 阅读、预览和选区导入 */
 .immersive-mode .mod-hub-backdrop{display:none!important;pointer-events:none!important}
-.moyun-sidebar-reopen{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:55;width:30px;height:60px;border-radius:0 60px 60px 0;border:1px solid var(--bd);border-left:0;background:var(--bg-sidebar);color:var(--accent);box-shadow:var(--sh2);display:flex;align-items:center;justify-content:center;transition:width .18s ease,background .18s ease}
-.moyun-sidebar-reopen:hover{width:36px;background:var(--bg-sidebar-h)}
+.moyun-sidebar-reopen{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:55;width:30px;height:60px;border-radius:0 60px 60px 0;border:1px solid var(--bd);border-left:0;background:var(--bg-sidebar);color:var(--accent);box-shadow:var(--sh2);display:flex;align-items:center;justify-content:center}
+.moyun-sidebar-reopen:hover{background:var(--bg-sidebar-h)}
 .moyun-sidebar-reopen:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .moyun-preview-floor{border:1px solid var(--bd);border-radius:10px;padding:12px;min-width:0;background:var(--bg-card)}
 .moyun-preview-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -1800,7 +1800,9 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 .moyun-feature-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:50vh;overflow:auto}
 .moyun-feature-dialog button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(min-width:768px){
-  [data-moyun-region=sidebar]{transition:width .24s ease,min-width .24s ease,transform .24s ease!important}
+  /* v0.0.16 R3：删除侧栏收起/展开动画。width 过渡每帧驱动整页 reflow，长书库下无法保证流畅；
+     桌面端改为即时切换（0ms），保留功能与焦点行为。transition-transform 仅供移动端抽屉（不受影响）。 */
+  [data-moyun-region=sidebar]{transition:width 0s,min-width 0s,transform 0s!important}
   .immersive-mode [data-moyun-region=main]>div{max-width:1200px;padding-left:48px;padding-right:48px}
   .immersive-mode .prose{font-size:20px!important;line-height:1.95}
 }
@@ -2007,8 +2009,8 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 <button v-if="!isMobile && !immersiveMode && settings.sidebarCollapsed" @click="toggleDesktopSidebar" type="button" class="moyun-sidebar-reopen" title="展开侧栏" aria-label="展开侧栏" aria-controls="moyun-sidebar" :aria-expanded="false"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
 <aside id="moyun-sidebar" :inert="!isMobile && settings.sidebarCollapsed" :aria-hidden="!isMobile && settings.sidebarCollapsed ? 'true' : null" v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
        :class="[mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
-       :style="isMobile ? 'width:83%;max-width:384px' : (settings.sidebarCollapsed ? 'width:0;min-width:0;border-right:0;visibility:hidden' : 'width:384px;min-width:384px')"
-       style="background:var(--bg-sidebar);border-right:1px solid var(--bd)">
+       :style="isMobile ? 'width:83%;max-width:384px;border-right:1px solid var(--bd)' : (settings.sidebarCollapsed ? 'width:0;min-width:0;border-right:0;visibility:hidden' : 'width:384px;min-width:384px;border-right:1px solid var(--bd)')"
+       style="background:var(--bg-sidebar)">
 
   <!-- 侧边栏顶部 -->
   <div class="px-5 py-4 flex justify-between items-center shrink-0 desktop-only"
@@ -8195,16 +8197,17 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-23-0923-update',
+  id: 'web-2026-09-26-0926-update',
   badge: '网页更新',
-  title: '0923更新',
-  publishedAt: '2026-09-23',
-  message: '0923 更新：改进角色、设定等 AI 输出的 JSON 格式识别与校验。点「我知道了」后，这条不会再弹。',
+  title: '0926更新',
+  publishedAt: '2026-09-26',
+  message: '0926 更新：删除侧栏收起/展开动画。此前长文时收起侧栏会导致明显卡顿；现在改为即时切换，点击即完成。本次更新只影响 PC 端，手机端原有抽屉动画保持不变。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'改进 AI 输出格式识别，让生成结果的处理更稳定。' }),
-    Object.freeze({ key:'ai-json-compatibility', tone:'fix', title:'AI 输出格式识别更稳健', body:'改进角色、设定等结构化结果的 JSON 解析，兼容可识别的引号、控制字符、中文结构标点和尾逗号问题。修复后继续校验内容并提示；缺失闭合、重复字段或存在歧义的结果会报错，避免把半截内容当成完整数据写入。角色草案仍需审阅确认。' }),
+    Object.freeze({ key:'group-changes', kind:'group', title:'变更内容', body:'' }),
+    Object.freeze({ key:'sidebar-animation', tone:'perf', title:'侧栏收起/展开改为即时切换', body:'之前收起/展开侧栏时有 240 毫秒的平滑动画。但该动画会导致整页重排，在长书库（如 400 章）下无法保证流畅，出现明显卡顿。本版删除了该动画，改为点击后立即完成切换，同时保留收起和展开功能本身、半圆展开按钮及键盘焦点管理。' }),
+    Object.freeze({ key:'sidebar-border-fix', tone:'fix', title:'修复收起后残留 1px 边框', body:'收起侧栏后，浏览器可能在右侧残留 1 像素的空白边。本次更新了侧栏的边框样式声明，确保收起干净无残留。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。角色草案请审阅确认后再写入。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。PC 端侧栏收起/展开现在是即时切换。' })
   ]),
   acknowledge: '我知道了'
 });

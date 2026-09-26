@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/moyun.css?v=830a1d87cc37">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=80e1ab859cc3">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -93,8 +93,8 @@
 <button v-if="!isMobile && !immersiveMode && settings.sidebarCollapsed" @click="toggleDesktopSidebar" type="button" class="moyun-sidebar-reopen" title="展开侧栏" aria-label="展开侧栏" aria-controls="moyun-sidebar" :aria-expanded="false"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></button>
 <aside id="moyun-sidebar" :inert="!isMobile && settings.sidebarCollapsed" :aria-hidden="!isMobile && settings.sidebarCollapsed ? 'true' : null" v-show="!immersiveMode" data-moyun-region="sidebar" class="fixed md:static inset-y-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300 md:translate-x-0"
        :class="[mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
-       :style="isMobile ? 'width:83%;max-width:384px' : (settings.sidebarCollapsed ? 'width:0;min-width:0;border-right:0;visibility:hidden' : 'width:384px;min-width:384px')"
-       style="background:var(--bg-sidebar);border-right:1px solid var(--bd)">
+       :style="isMobile ? 'width:83%;max-width:384px;border-right:1px solid var(--bd)' : (settings.sidebarCollapsed ? 'width:0;min-width:0;border-right:0;visibility:hidden' : 'width:384px;min-width:384px;border-right:1px solid var(--bd)')"
+       style="background:var(--bg-sidebar)">
 
   <!-- 侧边栏顶部 -->
   <div class="px-5 py-4 flex justify-between items-center shrink-0 desktop-only"
@@ -6234,7 +6234,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=6c8948ec06ba"></script>
+<script src="./assets/js/moyun.js?v=dbf9de1b99aa"></script>
 <!-- PART_1_END -->
 </body>
 </html>

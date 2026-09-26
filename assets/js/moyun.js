@@ -46,16 +46,17 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-09-23-0923-update',
+  id: 'web-2026-09-26-0926-update',
   badge: '网页更新',
-  title: '0923更新',
-  publishedAt: '2026-09-23',
-  message: '0923 更新：改进角色、设定等 AI 输出的 JSON 格式识别与校验。点「我知道了」后，这条不会再弹。',
+  title: '0926更新',
+  publishedAt: '2026-09-26',
+  message: '0926 更新：删除侧栏收起/展开动画。此前长文时收起侧栏会导致明显卡顿；现在改为即时切换，点击即完成。本次更新只影响 PC 端，手机端原有抽屉动画保持不变。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-extra', kind:'group', title:'本轮更新', body:'改进 AI 输出格式识别，让生成结果的处理更稳定。' }),
-    Object.freeze({ key:'ai-json-compatibility', tone:'fix', title:'AI 输出格式识别更稳健', body:'改进角色、设定等结构化结果的 JSON 解析，兼容可识别的引号、控制字符、中文结构标点和尾逗号问题。修复后继续校验内容并提示；缺失闭合、重复字段或存在歧义的结果会报错，避免把半截内容当成完整数据写入。角色草案仍需审阅确认。' }),
+    Object.freeze({ key:'group-changes', kind:'group', title:'变更内容', body:'' }),
+    Object.freeze({ key:'sidebar-animation', tone:'perf', title:'侧栏收起/展开改为即时切换', body:'之前收起/展开侧栏时有 240 毫秒的平滑动画。但该动画会导致整页重排，在长书库（如 400 章）下无法保证流畅，出现明显卡顿。本版删除了该动画，改为点击后立即完成切换，同时保留收起和展开功能本身、半圆展开按钮及键盘焦点管理。' }),
+    Object.freeze({ key:'sidebar-border-fix', tone:'fix', title:'修复收起后残留 1px 边框', body:'收起侧栏后，浏览器可能在右侧残留 1 像素的空白边。本次更新了侧栏的边框样式声明，确保收起干净无残留。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。角色草案请审阅确认后再写入。' })
+    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'只有点「我知道了」才会关掉这条公告，之后不会再弹。PC 端侧栏收起/展开现在是即时切换。' })
   ]),
   acknowledge: '我知道了'
 });
