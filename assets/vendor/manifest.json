@@ -1,0 +1,22 @@
+[
+  {
+    "name": "diff_match_patch.js",
+    "bytes": 19192,
+    "sha256": "aac7655a215d8448d95d9871e8d8a40ac3d9aaf38d81ab2ccc43c1cd267b8fa3"
+  },
+  {
+    "name": "marked.umd.js",
+    "bytes": 73384,
+    "sha256": "d7931d1cd7bf727dd756c871637edcc9e0f8538003b927368400ec1ee47a9dd9"
+  },
+  {
+    "name": "tailwind-3.4.17.js",
+    "bytes": 407279,
+    "sha256": "176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15"
+  },
+  {
+    "name": "vue.global.js",
+    "bytes": 596415,
+    "sha256": "b191cf809aa83452971804f9df2d8c67de65de34caa40f0fcf828c508c7099e2"
+  }
+]
