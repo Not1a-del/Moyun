@@ -29,6 +29,11 @@ const cssVersion = assetVersion(css);
 const jsVersion = assetVersion(js);
 let html = source.replace(styles[0], `<link rel="stylesheet" href="./assets/css/moyun.css?v=${cssVersion}">`);
 html = html.replace(inlineScripts[0], `<script src="./assets/js/moyun.js?v=${jsVersion}"></script>`);
+// source 位于子目录，发布入口位于项目根目录；两者均可直接通过 file:// 打开。
+html = html.replace(/(src|href)="\.\.\/assets\//g, '$1="./assets/');
+for (const name of ['vue.global.js', 'tailwind-3.4.17.js', 'marked.umd.js', 'diff_match_patch.js']) {
+  if (!fs.existsSync(path.join(root, 'assets', 'vendor', name))) throw new Error('Missing local runtime dependency: ' + name);
+}
 
 fs.mkdirSync(path.dirname(cssPath), { recursive: true });
 fs.mkdirSync(path.dirname(jsPath), { recursive: true });
