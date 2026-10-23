@@ -91,11 +91,11 @@ button{cursor:pointer}
    ═══════════════════════════════════════════════ */
 .fade-enter-active,.fade-leave-active{transition:opacity .3s ease}
 .fade-enter-from,.fade-leave-to{opacity:0}
-.pop-enter-active,.pop-leave-active{transition:all .2s cubic-bezier(.25,.46,.45,.94)}
+.pop-enter-active,.pop-leave-active{transition:opacity .2s cubic-bezier(.25,.46,.45,.94),transform .2s cubic-bezier(.25,.46,.45,.94)}
 .pop-enter-from,.pop-leave-to{opacity:0;transform:scale(.95)}
 .slide-enter-active,.slide-leave-active{transition:transform .3s ease-out}
 .slide-enter-from,.slide-leave-to{transform:translateX(-100%)}
-.toast-enter-active,.toast-leave-active{transition:all .4s cubic-bezier(.25,.8,.25,1)}
+.toast-enter-active,.toast-leave-active{transition:opacity .4s cubic-bezier(.25,.8,.25,1),transform .4s cubic-bezier(.25,.8,.25,1)}
 .toast-enter-from,.toast-leave-to{opacity:0;transform:translateY(-20px) scale(.95)}
 .moyun-toast{white-space:normal;overflow-wrap:anywhere;word-break:break-word;text-align:center;line-height:1.45}
 .moyun-volume-board{box-shadow:var(--sh1);}.moyun-volume-board .input-field{min-height:32px}.moyun-volume-board button,.moyun-volume-editor button{min-height:32px}.moyun-volume-editor{min-height:340px;box-shadow:var(--sh1)}.moyun-volume-list{max-height:min(46vh,520px);overflow-y:auto;overscroll-behavior:contain;padding-right:3px}.moyun-volume-card{transition:background-color .18s,border-color .18s}.moyun-volume-card.is-collapsed .moyun-volume-summary{display:none}.moyun-outline-stream-preview{margin:0 0 10px;padding:12px;border:1px solid color-mix(in srgb,var(--info) 40%,var(--bd));border-radius:12px;background:var(--info-soft);color:var(--tx2);max-height:42vh;overflow:auto;line-height:1.7}
@@ -115,7 +115,7 @@ button{cursor:pointer}
   }
 }
 .list-move{transition:transform .5s ease}
-.list-enter-active,.list-leave-active{transition:all .5s ease}
+.list-enter-active,.list-leave-active{transition:opacity .5s ease,transform .5s ease}
 .list-enter-from,.list-leave-to{opacity:0;transform:translateY(20px)}
 .list-leave-active{position:absolute}
 
@@ -1503,7 +1503,7 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
   color: var(--tx3);
   white-space: nowrap;
   word-break: keep-all;
@@ -1521,7 +1521,8 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 [data-moyun-modal] :focus-visible,
 .moyun-icon-button:focus-visible,
 .settings-tab-item:focus-visible,
-.chapter-version-button:focus-visible {
+.chapter-version-button:focus-visible,
+img[role="button"]:focus-visible {
   outline:3px solid color-mix(in srgb, var(--accent) 72%, white);
   outline-offset:2px;
 }
@@ -1953,3 +1954,34 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 @media (max-width:520px){.paragraph-comment-line{font-size:16px;line-height:2.15}.paragraph-comment-bubble{padding:2px 7px;margin-left:6px;font-size:10px}.paragraph-comment-sheet{max-height:84vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-content{font-size:14px}}
 .moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Arial,"Noto Sans SC",sans-serif;font-size:clamp(29px,5vw,43px);font-weight:700;letter-spacing:0;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
 .moyun-loader-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;line-height:1.05}
+.moyun-generation-range{display:block;width:100%;height:44px;accent-color:var(--accent);cursor:pointer}
+.moyun-generation-range:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+[data-moyun-legacy-presets]{min-width:0;max-width:100%;overflow-wrap:anywhere}
+[data-moyun-legacy-presets] .flex-1{min-width:0}
+[data-moyun-legacy-presets] input,[data-moyun-legacy-presets] textarea{min-width:0;max-width:100%}
+[data-moyun-legacy-presets] .moyun-role-badge{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-moyun-legacy-presets] .moyun-preset-enabled-toggle{display:inline-flex;flex:0 0 20px;align-items:center;justify-content:center;width:20px;height:20px;min-width:20px;min-height:20px;padding:0;border:0;background:transparent!important}
+[data-moyun-legacy-presets] .moyun-preset-enabled-indicator{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 20px}
+[data-moyun-legacy-presets] .moyun-preset-scope-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;max-width:100%}
+[data-moyun-legacy-presets] .moyun-preset-scope-toggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:max-content;max-width:100%;height:32px;min-height:32px;padding:0 10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:manipulation}
+[data-moyun-modal="prompt-preset-editor"] [data-moyun-modal-panel]{min-width:0;max-width:min(32rem,100vw);overflow-wrap:anywhere}
+@media(max-width:767px){
+  [data-moyun-legacy-presets] button:not(.moyun-preset-scope-toggle){min-height:44px}
+  [data-moyun-legacy-presets] .moyun-preset-enabled-toggle{flex-basis:44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:12px}
+  [data-moyun-legacy-presets] .moyun-preset-scope-toggle{height:32px;min-height:32px;padding:0 9px;font-size:10px}
+  [data-moyun-legacy-presets] input,[data-moyun-legacy-presets] select{height:44px!important}
+  [data-moyun-legacy-presets] textarea{font-size:14px;line-height:1.65;min-height:140px}
+  [data-moyun-modal="prompt-preset-editor"] textarea{font-size:16px;line-height:1.6;min-height:160px;max-height:45dvh}
+  [data-moyun-modal="prompt-preset-editor"] input{font-size:16px}
+}
+/* 减少动态效果覆盖工作区、弹窗和 CSS 平滑滚动，保留加载/保存状态。 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms!important;
+    animation-iteration-count:1!important;
+    animation-delay:0s!important;
+    transition-duration:0.01ms!important;
+    transition-delay:0s!important;
+    scroll-behavior:auto!important;
+  }
+}

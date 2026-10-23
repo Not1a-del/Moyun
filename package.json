@@ -1,6 +1,6 @@
 {
   "name": "moyun-web",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "private": true,
   "scripts": {
     "preview": "node scripts/preview-local.cjs",
@@ -11,6 +11,7 @@
     "test:ai": "node scripts/ai-protocol-regression.cjs",
     "test:browser": "node scripts/ai-browser-smoke.cjs",
     "test:v17": "node --test scripts/preset-refactor.test.cjs scripts/v17-context-regression.cjs",
+    "test:v18:memory": "node scripts/v18-memory-volume.test.cjs",
     "test:v17:browser": "node scripts/v17-preset-smoke.cjs && node scripts/v17-preset-transfer-browser.cjs && node scripts/v17-image-suggestion-browser.cjs && node scripts/v17-image-boundary-browser.cjs && node scripts/v17-image-correction-browser.cjs"
   }
 }

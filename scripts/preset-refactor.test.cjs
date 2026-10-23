@@ -123,6 +123,8 @@ const pieces = [
   const buildStoryBibleSuggestionContextPackage = () => null;
   const getEnabledModWithFeature = () => null;
   const getModSettingValue = () => undefined;
+  // 旧请求 fixture 明确关闭 v0.0.18 记忆库；仍调用真实的 history 入口验证回退。
+  const memoryLibrary = ref({settings:{enabled:false}});
   `,
 
   // A：thinking 清洗链 + 白鸟 CoT 上下文 + 审计旗标 + 章节清洗 helper（含 SNOWWING 常量）
@@ -149,6 +151,7 @@ const pieces = [
   // G'：nextChapterPrompt ref 与 normalizeNoOutputTimeout 供 R 切片的 buildChapterMessages 使用
   sliceInclusive('    const nextChapterPrompt = ref(\'\');', '    const nextChapterPrompt = ref(\'\');'),
   fnBlock('normalizeNoOutputTimeout'),
+  fnBlock('buildMemoryHistory'),
   // G''：R 切片的 buildChapterMessages 还引用 generateCount/wordCountTarget 两个 ref（真实默认值）
   sliceInclusive('    const generateCount = ref(1);', '    const generateCount = ref(1);'),
 
@@ -223,7 +226,7 @@ const pieces = [
     modPacks, storyBible,
     visibleChapters, narrativePerson,
     // v0.0.17 适配：场景改写需要直接操作流水线层与文风 refs（K 切片真实代码）。
-    promptPipeline, writingStyles, currentWritingStyleId, activeStyleIds,
+    promptPipeline, presets, writingStyles, currentWritingStyleId, activeStyleIds,
     isSnowwingPresetLocked,
     buildSuggestionPrompt, buildInfiniteContextPrompt, window
   };
@@ -503,8 +506,13 @@ if (process.env.MOYUN_CAPTURE) {
     assert.equal(out, golden.nsfwMessages);
   });
 
-  test('第0刀 保护：buildNsfwMessages 源码逐字节保持（MOD 协议兼容面）', () => {
-    assert.equal(slice('    function buildNsfwMessages(userPrompt, options = {}) {', '    // 中文注释：限制长文本注入长度'), golden.buildNsfwMessagesSource);
+  test('v0.0.18 旧预设：按作用模块注入，关闭后保持通用请求与画图隔离', () => {
+    const api=harness();baseState(api);
+    api.presets.value=[{id:'legacy-scope',name:'作用范围',content:'LEGACY_SCOPE_SENTINEL',enabled:true,applyTo:['outline']}];
+    for(const taskType of ['outline','detailedOutline'])assert.ok(serialize(api.buildNsfwMessages('任务',{taskType})).includes('LEGACY_SCOPE_SENTINEL'));
+    for(const taskType of ['character','imagetext','summary'])assert.ok(!serialize(api.buildNsfwMessages('任务',{taskType})).includes('LEGACY_SCOPE_SENTINEL'));
+    api.presets.value[0].enabled=false;
+    assert.equal(serialize(api.buildNsfwMessages('请生成第三章大纲：老宅线索',{taskType:'outline',systemPrompt:'你是大纲助手。'})),golden.nsfwMessages);
   });
 
   test('第4刀 结构：system 置首排尾 + 预注入独立消息 + 宿主硬编码全部退出', () => {
@@ -611,6 +619,9 @@ if (process.env.MOYUN_CAPTURE) {
       notifyRestoredChapterEdits: noop,
       stopOutlineRunsForBookChange: noop,
       cancelAiRunsForBookChange: noop,
+      cancelMemoryWork: noop,
+      memoryLibrary: R({settings:{enabled:false},memories:[],groups:[]}),
+      memoryFailures: R({}), lastWritingUsage: R(null),
       resetCharacterDraftReviewForBookChange: noop,
       resetRelationshipGraphState: noop,
       clearRealContextDiagnostics: noop,
@@ -665,7 +676,7 @@ if (process.env.MOYUN_CAPTURE) {
     });
     const script = [
       'const ref = v => ({ value: v });\nconst computed = fn => ({ get value() { return fn(); } });\nconst localStorage = { getItem: () => null, setItem() {}, removeItem() {} };\nconst window = {};\nconst LEGACY_PRESET_ROOT_KEYS = [\'promptPipeline\', \'presets\', \'writingStyles\', \'currentWritingStyleId\', \'activeStyleIds\', \'atmosphereEnabled\', \'atmospherePrompt\'];\nconst legacyPresetRootFields = { value: {} };',
-      NEW_SECTION, SYNC_BOOK_DATA, INIT_BOOKS, CREATE_AND_LOAD_BOOK, SAVE_SNAPSHOT, RESTORE_SNAPSHOT, CLEAR_ALL, EXPORT_FULL_BACKUP, RESOLVE_IMPORTED,
+      fnBlock('normalizeMemoryLibrary'), NEW_SECTION, SYNC_BOOK_DATA, INIT_BOOKS, CREATE_AND_LOAD_BOOK, SAVE_SNAPSHOT, RESTORE_SNAPSHOT, CLEAR_ALL, EXPORT_FULL_BACKUP, RESOLVE_IMPORTED,
       'this.__api = { syncBookData, initBooks, createNewBook, loadBook, saveSnapshot, restoreSnapshot, clearAll, performExportBookFullBackup, resolveImportedBookData, normalizeNarrativePerson, normalizePromptPresetRole, normalizePromptPreset, normalizePromptPresetList, syncBuiltinPromptPresets, syncNarrativePersonPresets, BUILTIN_PROMPT_PRESETS, PROMPT_PRESET_DYNAMIC_MEMORY_SEGMENT, books, currentBookId, novel, chapters, structuredCharacters, storyBible, branchList, activeBranchId, chapterOutlines, chapterIndexDrafts, outlineRevisions, activeStyleIds, coverImage, promptPipeline, presets, writingStyles, currentWritingStyleId, modPacks, installedThemePacks, activeThemePackId, modPrivateData, atmosphereEnabled, atmospherePrompt, dialogueTypes, personalityTagPresets, summaries, narrativePerson, promptPresets, totalWordCount, legacyRemovedLibraryFields, legacyPresetRootFields, oneKeySystemPrompt, visiblePromptPresets, canEditPromptPresetContent, canDeletePromptPreset, canMovePromptPreset, movePromptPreset, togglePromptPresetEnabled, addPromptPreset, openPromptPresetEditor, savePromptPresetEditor, deletePromptPresetItem, cancelPromptPresetEditor, setNarrativePerson, uniquePromptPresetImportName, promptPresetEditor, showPromptPresetEditor };'
     ].join('\n');
     vm.runInContext(script, ctx, { filename: 'moyun-preset-refactor-storage.cjs' });
