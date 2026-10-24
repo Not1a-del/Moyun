@@ -1,6 +1,23 @@
-# v0.0.18 本地接手与优化验收（2026-10-22 复核）
+# v0.0.18 第一轮热修测试报告（2026-10-23）
 
-当前工作分支 `feat/v0.0.18`，本地实现与复核完成，未提交、未发布、未改网页公告。四项优化及接手功能均已纳入回归；完整证据、来源、回滚方法和边界见 [V0.0.18_LOCAL_VALIDATION.md](./V0.0.18_LOCAL_VALIDATION.md)。
+当前分支 `hotfix/v0.0.18-r1-settings-search-context-tilde`，基线 `c1f277b`。按用户决定保留 `v0.0.18`；页面公告已改为「1024更新」，仅记录本轮热修；本地变更尚未提交或上传。
+
+| 检查 | 本轮结果 |
+| --- | --- |
+| `npm.cmd run build` | 通过；JS `dcdaf869e5c6`、CSS `66c7dee7abea` |
+| `npm.cmd run audit` | 通过；标签、分支、关键锚点与组件配对均正常 |
+| `npm.cmd run regress` | 通过；项目回归、结构审计及 AI 协议 40/40 |
+| `npm.cmd run test:v18:memory` | `V18 MEMORY/VOLUME PROMPT TEST PASSED` |
+| `node scripts/v18-browser.cjs` | 115/115，浏览器控制台错误 0；含搜索、11 项模型模块说明、10 个已接入模块的 12 个入口、6 个工作台栏目入口、记忆库手机直达、Escape/遮罩、波浪线格式、设置弹窗滚动边界及既有 v18 场景 |
+| 公告浏览器（隔离 Edge，1280×844 / 390×844） | 8/8；首次用户说明顺序、老用户看到新公告、内容只含本轮、无横向溢出、确认后刷新不再弹 |
+| PC / 手机 / 横屏尺寸 | 1366×900、390×844、320×568、667×375，设置搜索无横向溢出 |
+| `node --check`、`git diff --check` | 通过；模板和脚本无语法或空白错误 |
+
+浏览器在本地静态构建上运行，使用隔离 Edge 临时档案与 mock。没有验证真实模型服务商的搜索外功能，也没有实体手机软键盘验收。截图和机器结果见 `.ui-check/v18/browser-results.json`、`announce-1024-local.json`、`announce-1024-local-{1280,390}.png`、`settings-search-*.png` 与 `settings-scroll-boundary-667x375.png、context-module-routes-390x844.png`；详细操作、边界及回滚方法见 [V0.0.18_LOCAL_VALIDATION.md](./V0.0.18_LOCAL_VALIDATION.md)。
+
+## v0.0.18 主版本接手验收（2026-10-22 热修前）
+
+以下为第一轮热修前的主版本复核记录；当前热修验收以本文顶部报告为准。四项优化及接手功能的完整证据、来源、回滚方法和边界见 [V0.0.18_LOCAL_VALIDATION.md](./V0.0.18_LOCAL_VALIDATION.md)。
 
 | 检查 | 本轮结果 |
 | --- | --- |

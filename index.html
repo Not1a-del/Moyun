@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=634c6012e411">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=66c7dee7abea">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -5051,10 +5051,10 @@
        role="dialog" aria-modal="true" aria-labelledby="moyun-settings-title"
        class="fixed inset-0 z-[80] flex items-end md:items-center justify-center p-0 md:p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
-    <div data-moyun-modal-panel tabindex="-1" class="w-full overflow-y-auto rounded-t-2xl md:rounded-2xl" :class="activeSettingsTab==='mods' ? 'max-w-5xl' : 'max-w-lg'"
-         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
+    <div data-moyun-modal-panel tabindex="-1" class="w-full flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl" :class="activeSettingsTab==='mods' ? 'max-w-5xl' : 'max-w-lg'"
+         style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <!-- 设置头部 -->
-      <div class="px-5 py-3 flex justify-between items-center sticky top-0 z-10 rounded-t-2xl md:rounded-t-2xl"
+      <div data-settings-modal-header class="px-5 py-3 flex justify-between items-center shrink-0 rounded-t-2xl md:rounded-t-2xl"
            style="border-bottom:1px solid var(--bd);background:var(--bg-card)">
         <div>
           <h3 id="moyun-settings-title" class="text-lg font-bold" style="color:var(--tx)">⚙ 全局设置</h3>
@@ -5065,7 +5065,32 @@
         </button>
       </div>
 
-      <div class="p-5 space-y-5">
+      <div class="p-5 space-y-5 settings-search-shell flex-1 min-h-0 overflow-y-auto">
+        <div class="settings-search-area" data-settings-search-area>
+          <div class="settings-search-control">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--tx4);flex:0 0 auto"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input ref="settingsSearchInput" type="search" v-model="settingsSearchQuery" @focus="settingsSearchFocused=true" @input="resetSettingsSearchResults" @keydown="handleSettingsSearchKeydown"
+                   role="combobox" aria-label="搜索全局设置" aria-autocomplete="list" :aria-controls="settingsSearchFocused ? 'settings-search-results' : undefined"
+                   :aria-expanded="settingsSearchFocused ? 'true' : 'false'"
+                   :aria-activedescendant="settingsSearchResults[settingsSearchActiveIndex] ? 'settings-search-option-'+settingsSearchResults[settingsSearchActiveIndex].index : undefined"
+                   placeholder="搜索全局设置：温度、记忆、wendu…" autocomplete="off" spellcheck="false">
+            <button v-if="settingsSearchQuery" type="button" class="settings-search-clear" @click="settingsSearchQuery='';resetSettingsSearchResults();$refs.settingsSearchInput?.focus()" aria-label="清除设置搜索">清除</button>
+          </div>
+          <div v-if="settingsSearchFocused" id="settings-search-results" class="settings-search-results" role="listbox" aria-label="设置搜索结果">
+            <template v-if="settingsSearchQuery.trim()">
+              <button v-for="(result, index) in settingsSearchResults" :key="result.target" :id="'settings-search-option-'+result.index" type="button" role="option"
+                      :aria-selected="settingsSearchActiveIndex===index ? 'true' : 'false'" class="settings-search-result"
+                      @mousedown.prevent @click="navigateToSettingsSearchResult(result)">
+                <span class="settings-search-result-title">{{ result.title }}</span>
+                <span class="settings-search-result-path">{{ settingsTabs.find(tab=>tab.id===result.tab)?.name }}</span>
+              </button>
+              <div v-if="settingsSearchResults.length===0" class="settings-search-empty" role="status">没有找到相关设置。可尝试单字、错序关键词或拼音，例如“温”“章摘”“wednu”。这里只搜索全局设置，不包含“关于”。</div>
+            </template>
+            <div v-else class="settings-search-empty" role="status">输入设置名称、功能关键词或拼音；按 ↑↓ 选择、Enter 跳转、Esc 关闭。</div>
+          </div>
+        </div>
+        <div v-if="settingsSearchFocused" class="settings-search-backdrop" aria-hidden="true" @click="settingsSearchQuery='';closeSettingsSearch()"></div>
+        <div class="settings-search-body" :class="{'is-obscured':settingsSearchFocused}" :inert="settingsSearchFocused">
         <!-- ── 设置内部Tab ── -->
         <div class="settings-tab-bar" role="tablist" aria-label="设置分类">
           <button v-for="st in settingsTabs" :key="st.id" type="button" data-settings-tab
@@ -5078,7 +5103,7 @@
 
         <!-- ═══ API 连接中心 ═══ -->
         <div v-show="activeSettingsTab==='api'" id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" class="space-y-4">
-          <div class="flex items-center justify-between gap-3">
+          <div id="settings-search-api-profiles" class="flex items-center justify-between gap-3">
             <div>
               <div class="text-sm font-bold" style="color:var(--tx)">API 配置预设</div>
               <div class="text-[10px] mt-1" style="color:var(--tx3)">配置名称用于模块分配；密钥仅保存在本机私有存储。</div>
@@ -5111,53 +5136,65 @@
             <span>配好模型后，别忘了到「上下文」页签底部，为正文 / 大纲 / 总结等模块分别分配模型。</span>
             <button type="button" @click="activeSettingsTab='context'" class="btn-ghost text-[10px] px-2 py-1 shrink-0" style="color:var(--accent)">去分配模块 →</button>
           </div>
-          <section data-global-generation-settings class="p-3 rounded-xl space-y-3 min-w-0" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <section id="settings-search-global-controls" data-global-generation-settings class="p-3 rounded-xl space-y-3 min-w-0" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div><h4 class="text-sm font-bold" style="color:var(--tx)">温度与思考强度</h4><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">全局设置，应用于所有书籍及模块；默认强度由模型决定。</p></div>
             <label class="block min-w-0"><span class="flex flex-wrap items-center justify-between gap-2 text-xs" style="color:var(--tx2)"><span class="font-bold">思考强度</span><span>{{ reasoningEffortLabel }}</span></span><input v-model.number="reasoningEffortSlider" @change="saveData()" type="range" min="0" max="5" step="1" class="moyun-generation-range" aria-label="思考强度" :aria-valuetext="reasoningEffortLabel"></label>
             <label class="block min-w-0" style="border-top:1px solid var(--bd);padding-top:.5rem"><span class="flex items-center justify-between gap-2 text-xs" style="color:var(--tx2)"><span class="font-bold">温度</span><span class="font-mono tabular-nums">{{ Number(settings.temperature).toFixed(2) }}</span></span><input v-model.number="settings.temperature" @change="saveData()" type="range" min="0" max="1" step="0.01" class="moyun-generation-range" aria-label="温度"></label>
-            <div class="flex items-center justify-between gap-3" data-settings-anti-truncation><div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">Gemini 模型通过工具提交回复；其他模型保持普通输出。</p></div><button type="button" @click="settings.preventTruncation=!settings.preventTruncation;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.preventTruncation" aria-label="Gemini抗截断开关"><span class="toggle-track" :class="settings.preventTruncation?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+            <div id="settings-search-anti-truncation" class="flex items-center justify-between gap-3" data-settings-anti-truncation><div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">Gemini 模型通过工具提交回复；其他模型保持普通输出。</p></div><button type="button" @click="settings.preventTruncation=!settings.preventTruncation;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.preventTruncation" aria-label="Gemini抗截断开关"><span class="toggle-track" :class="settings.preventTruncation?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           </section>
         </div>
 
         <!-- ═══ 上下文与功能 ═══ -->
         <div v-show="activeSettingsTab==='context'" id="settings-panel-context" role="tabpanel" aria-labelledby="settings-tab-context" class="space-y-4">
           <!-- 中文注释：上下文省 token 配置直接影响正文生成请求，可按模型窗口大小选择是否发送全文/摘要/长期总结。 -->
-          <div class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-context-intro" class="p-3 rounded-xl space-y-2" style="background:var(--accent-soft);border:1px solid var(--bd)">
+            <div class="text-xs font-bold" style="color:var(--tx)">这些设置决定模型本次能参考什么、由哪个模型处理</div>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx2)">正文、章节摘要、长期总结和细纲控制“发送哪些资料”；截断上限控制“每类资料最多发送多少字”；模型分配控制“每类任务使用哪个 API 配置”。这些选项只影响发给模型的参考内容，不会删除书稿。二轮/三轮补写和书评评论可能增加模型请求次数。</p>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx3)">黄色模块标签表示该模型模块实际出现的页面入口；点击后会关闭全局设置并跳转到对应页面。</p>
+          </div>
+          <div id="settings-search-context-workbench" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <div class="text-xs font-bold" style="color:var(--tx)">创作设定工作台入口</div>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx3)">项目、世界、事件、资料和上下文包共同整理写作参考；记忆库按章节总结，供后续写作使用。黄色入口会直接打开对应栏目，书籍与分支仍按各自规则隔离。</p>
+            <div class="flex flex-wrap gap-1.5" aria-label="创作设定工作台栏目入口">
+              <button v-for="location in settingsContextWorkbenchLocations" :key="location.workbenchSection" type="button" class="settings-module-location" @click="navigateToSettingsModuleLocation(location)" :aria-label="'打开'+location.label">{{ location.label }} ↗</button>
+            </div>
+          </div>
+          <div id="settings-search-context-sources" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <!-- v0.0.11 新功能6：自动补录开关同步放进设置-上下文页，与事件工作台入口共用同一 settings.autoTimelineSupplement。 -->
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-auto-timeline" class="flex items-center justify-between py-1">
               <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
               <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录" data-settings-auto-timeline><div class="toggle-thumb"></div></div>
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-compact-mode" class="flex items-center justify-between py-1">
               <div><span class="text-sm font-bold" style="color:var(--tx)">省 token 模式</span><br><span class="text-[10px]" style="color:var(--tx3)">自动收紧全文章数和单章截断长度，适合小上下文模型</span></div>
               <div @click="settings.contextCompactMode=!settings.contextCompactMode;saveData()"
                    class="toggle-track" :class="settings.contextCompactMode?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFullText=!settings.contextUseFullText;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-full-text" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFullText=!settings.contextUseFullText;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送最近正文</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseFullText!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseChapterSummaries=!settings.contextUseChapterSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-chapter-summary" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseChapterSummaries=!settings.contextUseChapterSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送章节摘要</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseChapterSummaries!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseRangeSummaries=!settings.contextUseRangeSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-range-summary" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseRangeSummaries=!settings.contextUseRangeSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送长期总结</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseRangeSummaries!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseOutline=!settings.contextUseOutline;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-outline" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseOutline=!settings.contextUseOutline;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送细纲</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseOutline!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFinalCheck=!settings.contextUseFinalCheck;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-final-check" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFinalCheck=!settings.contextUseFinalCheck;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>最终校验</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseFinalCheck!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
             </div>
           </div>
           <!-- v0.0.13 req2：二轮补写全局开关。默认开启；关闭后首轮字数不足直接落盘，不再追加第二次请求。 -->
-          <div class="flex items-center justify-between py-2" data-settings-second-round-toggle>
+          <div id="settings-search-second-round" class="flex items-center justify-between py-2" data-settings-second-round-toggle>
             <div>
               <span class="text-sm font-bold" style="color:var(--tx)">二轮补写</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">首轮字数不足或摘要缺失时补写；缺摘要会先弹窗提醒</span><br>
@@ -5167,22 +5204,22 @@
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" data-settings-third-round-toggle>
+          <div id="settings-search-third-round" class="flex items-center justify-between py-2" data-settings-third-round-toggle>
             <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="toggle-track" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></button>
           </div>
-          <div class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-gemini-input" class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+          <div id="settings-search-full-chapters" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
             <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
                    class="input-field text-center" style="width:80px;height:32px">
           </div>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-summary-chapters" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">摘要章数</span><br><span class="text-[10px]" style="color:var(--tx3)">更早的章节只发标题+摘要</span></div>
             <input type="number" v-model.number="settings.contextSummaryChapters" @change="saveData()" min="0" max="50"
                    class="input-field text-center" style="width:80px;height:32px">
           </div>
           <!-- 中文注释：这里的“上限”只限制发送给 AI 的参考文本长度，不会删除书籍正文、摘要、世界观或角色卡原文。 -->
-          <div class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-context-limits" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <div class="text-xs font-bold" style="color:var(--tx)">上下文截断上限</div>
@@ -5220,7 +5257,7 @@
           </div>
           <div class="divider"></div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-auto-scroll" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">生成开始时定位</span><br><span class="text-[10px]" style="color:var(--tx3)">只定位到生成内容开头，不再持续追到页面底部</span></div>
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
@@ -5228,7 +5265,7 @@
 
           <div class="divider"></div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-reviewer" class="flex items-center justify-between py-2">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评团功能</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">总开关，默认关闭。开启后：正文右上角出现「书评团」入口（吃瓜群众 / 十年老书虫 / 金牌主编三人格点评全书），章节底部出现「生成本章书评」，并且每写完一章会自动为该章生成模拟读者评论——这些都会各自发起真实模型调用。</span>
@@ -5236,7 +5273,7 @@
             <div @click="settings.enableReviewer=!settings.enableReviewer;saveData()"
                  class="toggle-track shrink-0" :class="settings.enableReviewer?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+          <div id="settings-search-inline-comment" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评随正文生成</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '本章评论与正文合并为一次 API 调用，节省费用' : '需先开启上方「书评团功能」才会生效' }}</span>
@@ -5244,7 +5281,7 @@
             <div @click="settings.enableReviewer ? (settings.commentInline=!settings.commentInline, saveData()) : showToast('请先开启上方「书评团功能」','info')"
                  class="toggle-track shrink-0" :class="settings.commentInline?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+          <div id="settings-search-comment-count" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '每章自动生成的模拟读者评论条数' : '需先开启上方「书评团功能」才会生效' }}</span>
@@ -5253,49 +5290,49 @@
                    class="input-field text-center shrink-0" style="width:80px;height:32px">
           </div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-stream" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">流式输出</span><br><span class="text-[10px]" style="color:var(--tx3)">关闭后使用非流式请求（某些API需要）</span></div>
             <div @click="toggleStream()"
                  class="toggle-track" :class="settings.streamEnabled!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
 
-          <div class="flex items-center justify-between py-2 gap-3">
+          <div id="settings-search-timeout" class="flex items-center justify-between py-2 gap-3">
             <div class="pr-3"><span class="text-sm font-bold" style="color:var(--tx)">首字超时</span><br><span class="text-[10px]" style="color:var(--tx3)">仅当正文仍为 0 字时计时；已有输出后会继续等待</span></div>
             <label class="flex items-center gap-1 shrink-0"><input type="number" v-model.number="settings.noOutputTimeoutSec" @change="settings.noOutputTimeoutSec=normalizeNoOutputTimeout(settings.noOutputTimeoutSec);saveData()" min="1" max="3600" step="1" class="input-field text-xs py-1 text-center" style="width:78px" aria-label="首字超时时间"><span class="text-xs" style="color:var(--tx3)">秒</span></label>
           </div>
 		  
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-thinking" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">显示思维链</span><br><span class="text-[10px]" style="color:var(--tx3)">展示AI的思考过程（如DeepSeek的推理）</span></div>
             <div @click="settings.enableThinking=!settings.enableThinking;saveData()"
                  class="toggle-track" :class="settings.enableThinking?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between gap-3" data-settings-token-usage><div><span class="text-sm font-bold" style="color:var(--tx)">显示Token用量</span><br><span class="text-[10px]" style="color:var(--tx3)">在续写框上方显示本书上一轮输入、输出和缓存命中；接口未报告时显示 —</span></div><button type="button" @click="settings.showTokenUsage=!settings.showTokenUsage;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.showTokenUsage" aria-label="显示Token用量开关"><span class="toggle-track" :class="settings.showTokenUsage?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+          <div id="settings-search-token-usage" class="flex items-center justify-between gap-3" data-settings-token-usage><div><span class="text-sm font-bold" style="color:var(--tx)">显示Token用量</span><br><span class="text-[10px]" style="color:var(--tx3)">在续写框上方显示本书上一轮输入、输出和缓存命中；接口未报告时显示 —</span></div><button type="button" @click="settings.showTokenUsage=!settings.showTokenUsage;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.showTokenUsage" aria-label="显示Token用量开关"><span class="toggle-track" :class="settings.showTokenUsage?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           <div class="divider"></div>
           <div class="divider"></div>
-          <label class="label">AI 生成字数控制</label>
+          <label id="settings-search-word-count" class="label">AI 生成字数控制</label>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">字数为参考值，AI实际输出可能略有偏差。这几项只管各自那份文本有多长，都<b>不影响正文长度</b>；正文字数在写作页的「本章目标字数」里设。</div>
           <div class="space-y-2">
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-outline-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">大纲字数</span>
               <input type="number" v-model.number="settings.aiWordCount_outline" @change="saveData()" min="500" max="10000" step="500" class="input-field text-center" style="width:80px;height:30px" title="大纲文本本身的长度，不是正文字数">
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-detailed-outline-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">细纲字数</span>
               <input type="number" v-model.number="settings.aiWordCount_detailedOutline" @change="saveData()" min="500" max="20000" step="500" class="input-field text-center" style="width:80px;height:30px" title="全部细纲文本合计的长度，会按本批章数平摊；不是正文字数">
             </div>
             <div class="text-[10px] -mt-1 mb-1 leading-relaxed" style="color:var(--tx4)">细纲字数是<b>所有章细纲合计</b>的长度，生成时按本批章数平摊。默认按细纲:正文≈1:4~1:5（每1000字细纲生成4000-5000字正文，取中值1:4.5）自动推算每章预算；手动改动此值后将固定使用该值（改回 3000 恢复自动比例）。细纲里若出现「字数控制在X字」，写作时会被忽略。</div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-suggestion-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">建议字数</span>
               <input type="number" v-model.number="settings.aiWordCount_suggestion" @change="saveData()" min="30" max="500" step="10" class="input-field text-center" style="width:80px;height:30px">
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-character-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">角色字数</span>
               <input type="number" v-model.number="settings.aiWordCount_character" @change="saveData()" min="100" max="2000" step="50" class="input-field text-center" style="width:80px;height:30px">
             </div>
           </div>
 
           <div class="divider"></div>
-          <label class="label">细纲注入范围</label>
+          <label id="settings-search-outline-range" class="label">细纲注入范围</label>
           <div class="text-[10px] mb-2" style="color:var(--tx4)">AI写作时读取当前章前后几章的细纲（防止多章生成串味）</div>
           <div class="flex gap-4">
             <div class="flex-1">
@@ -5312,9 +5349,14 @@
           <div class="flex items-center justify-between mb-2"><label class="label mb-0">模块 API 配置分配</label><button @click="resetModuleRoutes" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--tx3);border:1px solid var(--bd)">全部跟随默认</button></div>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">每个模块只能选择一个配置；模型使用所选配置的默认模型。</div>
           <div class="space-y-2">
-            <fieldset v-for="mod in moduleModelConfig" :key="mod.key" class="p-2 rounded-lg" style="border:1px solid var(--bd)">
+            <fieldset v-for="mod in moduleModelConfig" :key="mod.key" :id="'settings-search-route-'+mod.key" class="p-2 rounded-lg" style="border:1px solid var(--bd)">
               <legend class="px-1 text-xs font-bold" style="color:var(--tx)">{{ mod.name }}</legend>
-              <div class="text-[9px] mb-2" style="color:var(--tx4)">{{ mod.desc }}</div>
+              <div class="text-[10px] leading-relaxed mb-2" style="color:var(--tx3)">{{ mod.desc }}</div>
+              <div class="flex flex-wrap items-center gap-1.5 mb-2" :aria-label="mod.name+'页面入口'">
+                <span class="text-[9px] font-bold" style="color:var(--tx4)">页面入口</span>
+                <button v-for="location in settingsModuleLocations[mod.key]" :key="location.workbenchSection || location.tab+location.label" type="button" class="settings-module-location" @click="navigateToSettingsModuleLocation(location)" :aria-label="'跳转到'+location.label">{{ location.label }} ↗</button>
+                <span v-if="!settingsModuleLocations[mod.key]?.length" class="text-[9px]" style="color:var(--tx4)">当前预留，暂无可跳转入口</span>
+              </div>
               <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" value="" :checked="getModuleRouteProfileId(mod.key)===''" @change="setModuleRouteProfile(mod.key,'')">
                 <span class="text-[10px]" style="color:var(--tx)">{{ mod.key==='supplement' ? '跟随正文模块（可命中缓存）' : '跟随默认配置' }}</span>
@@ -5332,9 +5374,9 @@
 
         <!-- ═══ 集中编辑 ═══ -->
         <div v-show="activeSettingsTab==='editable'" id="settings-panel-editable" role="tabpanel" aria-labelledby="settings-tab-editable" class="space-y-4">
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><h3 class="text-xs font-bold mb-2">发送预览</h3><p class="text-xs mb-2" style="color:var(--tx3)">查看下一次正文请求、最近发送消息、编辑来源和自定义楼层。</p><button type="button" @click="openPromptPreview" class="btn-primary text-xs" data-open-prompt-preview>打开发送预览</button></div>
+          <div id="settings-search-editable-preview" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><h3 class="text-xs font-bold mb-2">发送预览</h3><p class="text-xs mb-2" style="color:var(--tx3)">查看下一次正文请求、最近发送消息、编辑来源和自定义楼层。</p><button type="button" @click="openPromptPreview" class="btn-primary text-xs" data-open-prompt-preview>打开发送预览</button></div>
           <!-- 中文注释：把分散在各模块里的可编辑配置集中到一个页签，方便不懂代码的用户统一修改。 -->
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-book-edit" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">书籍设定（集中修改书名/简介/世界观/负面词）</div>
             <div class="space-y-2">
               <input v-model="novel.title" @change="saveData()" placeholder="书名" class="input-field text-xs">
@@ -5344,12 +5386,12 @@
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-suggestion-persona" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">AI建议人设（已移动到这里）</div>
             <textarea v-model="suggestionPersona" @change="saveData()" rows="3" class="textarea-field text-[10px]" style="line-height:1.5" aria-label="AI建议人设提示词"></textarea>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-editable-prompts" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">提示词流水线</div>
             <div class="space-y-2">
               <div v-for="layer in promptPipeline" :key="layer.key">
@@ -5359,7 +5401,7 @@
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-atmosphere" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="flex items-center justify-between mb-2">
               <div class="text-xs font-bold" style="color:var(--tx)">环境氛围增强</div>
               <div @click="atmosphereEnabled=!atmosphereEnabled;saveData()" class="toggle-track w-9 h-5" :class="atmosphereEnabled?'toggle-on':'toggle-off'" style="width:36px;height:20px"><div class="toggle-thumb"></div></div>
@@ -5367,7 +5409,7 @@
             <textarea v-model="atmospherePrompt" @change="saveData()" rows="4" class="textarea-field text-xs" placeholder="氛围增强提示词"></textarea>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-editable-characters" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">角色可编辑信息</div>
             <div class="space-y-3 max-h-[420px] overflow-y-auto">
               <div v-for="(char, ci) in structuredCharacters" :key="char.id || ci" class="p-2 rounded-lg" style="background:var(--bg-card);border:1px solid var(--bd)">
@@ -5381,7 +5423,7 @@
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-review-personas" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">书评人设</div>
             <div class="space-y-2">
               <div v-for="(persona, key) in reviewPersonas" :key="key">
@@ -5395,7 +5437,7 @@
         <!-- ═══ MOD 插件设置 ═══ -->
         <div v-show="activeSettingsTab==='mods'" id="settings-panel-mods" role="tabpanel" aria-labelledby="settings-tab-mods" class="space-y-4">
                 <!-- 中文注释：MOD 共创管理统一放在全局设置 > 插件页，避免侧边导航拥挤和设置页重复。 -->
-                <div>
+                <div id="settings-search-plugin-manager">
                   <div class="flex justify-between items-center mb-2">
                     <div>
                       <label class="label mb-0">MOD 共创管理</label>
@@ -5848,7 +5890,7 @@
             </span>
             <span class="text-xs font-bold shrink-0" style="color:var(--accent)">打开 ↗</span>
           </a>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-image" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">生图功能</span><br><span class="text-[10px]" style="color:var(--tx3)">AI自动插入场景图片</span></div>
             <div @click="imageGenEnabled=!imageGenEnabled;saveData()"
                  class="toggle-track" :class="imageGenEnabled?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
@@ -6059,10 +6101,11 @@
           <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
           <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" :title="connectionProfileTesting ? '正在测试连接，等结果出来再保存' : '保存这份 API 配置（密钥只留在本机）'" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
         </div>
+        </div>
       </div>
 
       <!-- 设置底部 -->
-      <div class="px-4 py-2 sticky bottom-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+      <div data-settings-modal-footer class="px-4 py-2 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <div class="text-[10px] text-center mb-1" style="color:var(--tx3)">所有更改均已自动保存</div>
         <button type="button" data-moyun-modal-close @click="showSettings_modal=false" class="btn-primary w-full min-h-[44px] py-2 text-sm">完成</button>
       </div>
@@ -6383,7 +6426,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=45a122615d0d"></script>
+<script src="./assets/js/moyun.js?v=dcdaf869e5c6"></script>
 <!-- PART_1_END -->
 </body>
 </html>

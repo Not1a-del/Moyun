@@ -64,25 +64,18 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-10-22-1022-update',
+  id: 'web-2026-10-24-1024-update',
   badge: '网页更新',
-  title: '1022更新',
-  publishedAt: '2026-10-22',
-  message: '1022 更新：本轮集中完善预设、全局调节、抗截断、记忆库和卷纲交接，并修复移动端显示与写作过程中的稳定性问题。点「我知道了」后，这条不会再弹。',
+  title: '1024更新',
+  publishedAt: '2026-10-24',
+  message: '1024 更新：补充全局设置说明与模块直达，新增全局设置搜索，并优化正文符号和设置窗口显示。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-1022', kind:'group', title:'1022 变更', body:'' }),
-    Object.freeze({ key:'preset-compatibility', tone:'new', title:'旧版预设恢复与兼容提示', body:'恢复旧版自定义预设的使用入口，可单独启用、停用和选择作用模块。旧版预设旁会显示“未知兼容性警告，请谨慎使用”，方便你判断是否继续使用；手机窗口和较窄窗口下的勾选项也已重新排版。' }),
-    Object.freeze({ key:'gemini-test', tone:'new', title:'Gemini 测试输入', body:'Gemini 测试输入下方的说明统一为“实验功能”，减少不必要的描述。测试输入会按当前协议发送，和 RPHUB 原版的混淆输入处理保持一致。' }),
-    Object.freeze({ key:'global-controls', tone:'new', title:'全局温度与思考强度', body:'全局设置的“连接中心”下新增温度和思考强度滑块。这里的设置是全局设置，会作用于所有书籍和文本模块；数值会即时显示并自动保存。' }),
-    Object.freeze({ key:'anti-truncation', tone:'new', title:'完整回复与抗截断', body:'写作请求支持完整回复处理：优先使用模型返回的完整内容，遇到 Gemini 的可继续生成状态时按原逻辑续写并合并结果，尽量保留模型输出，不会把正常内容误判为失败。' }),
-    Object.freeze({ key:'memory-chapters', tone:'new', title:'记忆库按章节工作', body:'记忆总结改为阅读最近已经完成的章节，只使用当前书籍、当前分支和当前正文之前的内容，正文事实优先，禁止读取未来章节。记忆写入和读取彼此隔离，避免串书；向量检索失败时会回退到普通章节上下文，不会阻断写作。' }),
-    Object.freeze({ key:'memory-model', tone:'new', title:'向量模型选择', body:'记忆库可以从当前默认全局 API 站点获取可用模型，并手动选择向量模型。选择结果是全局设置，会自动保存；切换书籍、分支或重新打开页面时不会丢失模型名称和已有记录。' }),
-    Object.freeze({ key:'volume-handoff', tone:'new', title:'卷末交接与双卷纲', body:'当章节到达当前卷纲的最后一章时，会额外生成本卷上下文总结。下一卷开始时使用上一卷的交接摘要代替上一卷正文，同时结合更早内容和记忆库继续写作。摘要会同时保留原计划卷纲与实际卷纲，明确记录剧情变化、修正和新增细节。' }),
-    Object.freeze({ key:'outline-summary', tone:'new', title:'卷纲识别与摘要优化', body:'章节摘要会更清楚地标记所属书籍、卷、章节和状态，保存内容改为“章节摘要”和“卷末总结”两类，便于后续提示词准确读取和展示，不再把楼层当作章节。' }),
-    Object.freeze({ key:'writing-controls', tone:'perf', title:'写作与页面细节优化', body:'补充 Token 用量展示和自定义字数设置，优化弹窗、键盘焦点、图片可访问性和响应式布局。电脑端、平板和手机端的设置面板、预设选项与公告内容都支持滚动阅读。' }),
-    Object.freeze({ key:'protocol-compatibility', tone:'perf', title:'协议兼容', body:'本轮整理了 OpenAI、Gemini、Anthropic 等常用协议的参数传递和返回结果处理，尽量保持原有连接方式与书籍数据不变。' }),
+    Object.freeze({ key:'group-1024', kind:'group', title:'1024 变更', body:'' }),
+    Object.freeze({ key:'context-routes', tone:'new', title:'上下文说明与模块直达', body:'补充“全局设置 → 上下文”各模块的用途和配置说明，并增加黄色跳转标签。已检查 11 个模型模块：10 个已接入模块共有 12 个入口；AI总结可直达记忆库，翻译仍为预留。' }),
+    Object.freeze({ key:'settings-search', tone:'new', title:'全局设置搜索', body:'在全局设置栏目上方新增搜索，可按中文、拼音、错字和词序偏差查找，并按匹配程度排列结果。搜索只覆盖全局设置，不包含“关于”。聚焦输入时设置内容会暂时模糊并阻止误触，点击空白或按 Escape 即可恢复。' }),
+    Object.freeze({ key:'settings-and-markdown-fixes', tone:'fix', title:'设置滚动与正文符号显示', body:'修复滚动时标题栏和底栏重叠、上下边框被遮住，以及滑块越出卡片的问题。正文和思维链中的成对波浪线会按原文显示，不影响加粗、行内代码和代码块。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'先在“全局设置”里调整温度、思考强度和向量模型；需要使用旧版预设时查看旁边的兼容性提示。记忆库会按已完成章节整理内容，卷末自动生成交接摘要。只有点「我知道了」才会关掉这条公告，之后不会再弹。' })
+    Object.freeze({ key:'howto', title:'快速找到设置', body:'在全局设置栏目上方输入中文或拼音关键词，选择结果即可跳转；黄色模块标签也能直达对应页面。设置内容被模糊时，按 Escape 或点击空白即可恢复。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -5815,6 +5808,9 @@ function copyLastChapterContextText() {
     let _suggestionRunSequence = 0;
     let _activeSuggestionRun = null;
     const showSettings_modal = ref(false);
+    const settingsSearchQuery = ref('');
+    const settingsSearchFocused = ref(false);
+    const settingsSearchActiveIndex = ref(0);
     const showImportExport = ref(false);
     const showNewBook = ref(false);
     const showBookEditor = ref(false);
@@ -5826,7 +5822,12 @@ function copyLastChapterContextText() {
     const isOneKeyCreating = ref(false);
 
     watch(showSettings_modal, isOpen => {
-      if (!isOpen) saveDataNow('关闭设置自动保存');
+      if (!isOpen) {
+        settingsSearchQuery.value = '';
+        settingsSearchFocused.value = false;
+        settingsSearchActiveIndex.value = 0;
+        saveDataNow('关闭设置自动保存');
+      }
     });
 	
     // ═══ 一键开书增强系统 ═══
@@ -7954,17 +7955,17 @@ function copyLastChapterContextText() {
     /* ═══ 模块模型分配（旧版能力整合） ═══ */
     const moduleModelConfig = [
       // v0.0.13 req2：新增 supplement（续写补写）模块，用于二轮补写选择专用模型。
-      { key:'writing', name:'正文生成', desc:'章节正文续写、AI编辑、改标题、生成摘要' },
-      { key:'supplement', name:'续写补写', desc:'二轮字数补充等追加续写请求；跟随正文可命中缓存，指定专用模型则按所选模型调用' },
-      { key:'settings', name:'设定模块', desc:'设定补全、世界观、一键开书设定' },
-      { key:'character', name:'角色模块', desc:'角色生成、标签、台词、关系' },
-      { key:'imagetext', name:'封面/立绘', desc:'封面和角色立绘的标签提取（文本API）' },
-      { key:'outline', name:'大纲模块', desc:'大纲、细纲、一键开书大纲' },
-      { key:'suggestion', name:'预设模块', desc:'预设生成、文风生成、AI建议' },
-      { key:'review', name:'AI书评', desc:'书评团点评' },
-      { key:'summary', name:'AI总结', desc:'章节总结生成' },
-      { key:'comments', name:'AI评论', desc:'模拟读者评论' },
-      { key:'translate', name:'翻译模块', desc:'章节和设定翻译（预留）' }
+      { key:'writing', name:'正文生成', desc:'负责正文续写、重写/润色、章节标题修改和正文任务中的摘要生成；从书架的写作区发起。' },
+      { key:'supplement', name:'续写补写', desc:'首轮正文未达到目标字数时的追加请求，也可用于补齐缺失摘要。默认跟随“正文生成”配置以复用缓存；单独分配后会改用此处选择的模型。' },
+      { key:'settings', name:'设定模块', desc:'生成或补全作品简介、世界观、题材和一键开书中的设定内容；从本书“设定”页面或新建书籍流程发起。' },
+      { key:'character', name:'角色模块', desc:'创建角色卡、补全人物资料、生成角色标签/台词/关系等文本；从“角色”页面发起。' },
+      { key:'imagetext', name:'封面/立绘', desc:'为封面或角色立绘整理、提取和翻译文本关键词；这是文字模型路由，不负责生成图片本身。' },
+      { key:'outline', name:'大纲模块', desc:'生成或修改全书大纲、分卷安排和章节细纲，也用于一键开书的大纲步骤；从“大纲”页面发起。' },
+      { key:'suggestion', name:'预设模块', desc:'生成自定义提示词/文风预设，并为正文写作或设定流程提供 AI 建议；从正文建议入口或“预设”页面发起。' },
+      { key:'review', name:'AI书评', desc:'按书评团人设点评整本作品或当前章节；从书架的正文与章节书评入口发起。' },
+      { key:'summary', name:'AI总结', desc:'整理章节摘要、长篇总结、卷末交接摘要和记忆库逐章总结，供后续章节写作使用；从“总结”页面、记忆库或章节流程发起。' },
+      { key:'comments', name:'AI评论', desc:'生成模拟读者评论，可在章节完成后自动执行；从书架的章节评论区域查看。' },
+      { key:'translate', name:'翻译模块', desc:'预留给章节和设定翻译使用；目前没有已接入的页面入口，因此分配后暂不会由写作流程调用。' }
     ];
 
 
@@ -29042,11 +29043,43 @@ function getModHubPermissionLabels(mod) {
     }
 
     const markdownRenderCache=new Map();let markdownCacheChars=0;
+    function escapeMarkdownStrikeTildes(text) {
+      const source = String(text == null ? '' : text);
+      const parts = source.split(/(\r\n|\n|\r)/);
+      let fenceChar = '', fenceSize = 0, inlineCodeSize = 0;
+      return parts.map((line, partIndex) => {
+        if (partIndex % 2 === 1) return line;
+        if (!inlineCodeSize && fenceChar) {
+          const close = new RegExp('^ {0,3}' + fenceChar + '{' + fenceSize + ',}[ \\t]*$');
+          if (close.test(line)) { fenceChar = ''; fenceSize = 0; }
+          return line;
+        }
+        if (!inlineCodeSize) {
+          const opening = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+          if (opening) { fenceChar = opening[1][0]; fenceSize = opening[1].length; return line; }
+        }
+        let out = '';
+        for (let i = 0; i < line.length;) {
+          if (line[i] === '\x60') {
+            let end = i + 1;
+            while (line[end] === '\x60') end++;
+            const runSize = end - i;
+            if (!inlineCodeSize) inlineCodeSize = runSize;
+            else if (inlineCodeSize === runSize) inlineCodeSize = 0;
+            out += line.slice(i, end); i = end; continue;
+          }
+          if (!inlineCodeSize && line[i] === '~' && line[i + 1] === '~') { out += '&#126;&#126;'; i += 2; continue; }
+          out += line[i++];
+        }
+        return out;
+      }).join('');
+    }
     function renderMarkdown(text) {
       if (!text) return '';
       const source=String(text);if(markdownRenderCache.has(source))return markdownRenderCache.get(source);
       const processed = stripSnowwingVisiblePromptLeaks(stripThinkingBlocks(String(text)));
-      let html;try {html=marked.parse(processed);}catch{html=processed;}
+      const markdownSafe = escapeMarkdownStrikeTildes(processed);
+      let html;try {html=marked.parse(markdownSafe);}catch{html=markdownSafe;}
       if(source.length<300000){markdownRenderCache.set(source,html);markdownCacheChars+=source.length+html.length;while(markdownRenderCache.size>128||markdownCacheChars>2000000){const first=markdownRenderCache.keys().next().value;markdownCacheChars-=first.length+markdownRenderCache.get(first).length;markdownRenderCache.delete(first);}}
       return html;
     }
@@ -29056,7 +29089,8 @@ function getModHubPermissionLabels(mod) {
       const extracted = extractResponseReasoningBlocks(String(text));
       const source = extracted.thinking || extracted.body;
       const processed = normalizeCotDisplayText(source);
-      try { return marked.parse(processed); } catch { return processed; }
+      const markdownSafe = escapeMarkdownStrikeTildes(processed);
+      try { return marked.parse(markdownSafe); } catch { return markdownSafe; }
     }
 
 
@@ -35058,6 +35092,183 @@ function getWritingModelLabel() {
       {id:'changelog', name:'关于'}
     ];
 
+    const settingsModuleLocations = {
+      writing:[{label:'正文续写',tab:'bookshelf'}],
+      supplement:[{label:'正文补写',tab:'bookshelf'}],
+      settings:[{label:'设定补全',tab:'settings'}],
+      character:[{label:'角色卡',tab:'characters'}],
+      imagetext:[{label:'封面与立绘',tab:'characters'}],
+      outline:[{label:'大纲与细纲',tab:'outline'}],
+      suggestion:[{label:'AI 建议',tab:'bookshelf'},{label:'提示词预设',tab:'presets'}],
+      review:[{label:'章节书评',tab:'bookshelf'}],
+      summary:[{label:'章节总结',tab:'summary'},{label:'记忆库',workbenchSection:'memory'}],
+      comments:[{label:'读者评论',tab:'bookshelf'}],
+      translate:[]
+    };
+    const settingsContextWorkbenchLocations = [
+      {label:'项目总览',workbenchSection:'project'},
+      {label:'世界总览',workbenchSection:'world'},
+      {label:'事件时间线',workbenchSection:'events'},
+      {label:'资料条目',workbenchSection:'entries'},
+      {label:'上下文包',workbenchSection:'context'},
+      {label:'记忆库',workbenchSection:'memory'}
+    ];
+    const settingsSearchCatalog = [
+      {tab:'api',target:'settings-search-api-profiles',title:'连接中心｜API 配置',keywords:'连接 模型 服务商 API 地址 密钥 key 协议 openai gemini claude anthropic lianjie peizhi moxing fuwushang'},
+      {tab:'api',target:'settings-search-global-controls',title:'全局温度与思考强度',keywords:'采样 温度创造性 随机性 推理等级 思考预算 reasoning effort temperature wendu sikao qiangdu quanju'},
+      {tab:'api',target:'settings-search-anti-truncation',title:'Gemini 抗截断',keywords:'output reply 完整回复 工具续写 保留正文 kangjieduan jiemi gemini'},
+      {tab:'context',target:'settings-search-context-intro',title:'上下文设置说明',keywords:'提示 配置说明 模型模块 正文资料 章节历史上下文 shangxiawen'},
+      {tab:'context',target:'settings-search-context-workbench',title:'创作设定工作台与记忆库入口',keywords:'记忆库 逐章总结 项目总览 世界观 时间线 资料条目 上下文包 story bible memory jiyiku'},
+      {tab:'context',target:'settings-search-context-sources',title:'正文参考资料开关',keywords:'最近正文 完整正文 章节摘要 长期总结 细纲 最终校验 正文上下文 zhengwen zhaiyao'},
+      {tab:'context',target:'settings-search-context-full-text',title:'发送最近正文',keywords:'完整正文 最近章节全文 正文上下文 body full text zhengwen quanwen'},
+      {tab:'context',target:'settings-search-context-chapter-summary',title:'发送章节摘要',keywords:'章节摘要 最近章节总结 单章总结 chapter summary zhangjie zhaiyao'},
+      {tab:'context',target:'settings-search-context-range-summary',title:'发送长期总结',keywords:'范围总结 早期章节摘要 长期上下文 range summary changqi zongjie'},
+      {tab:'context',target:'settings-search-context-outline',title:'发送细纲',keywords:'当前章节安排 章节大纲 注入剧情计划 outline detailed outline dagang xigang'},
+      {tab:'context',target:'settings-search-context-final-check',title:'最终校验上下文',keywords:'最终检查 校验角色和剧情设定 final check zhongjian jiaoyan'},
+      {tab:'context',target:'settings-search-auto-timeline',title:'事件时间线自动补录',keywords:'章节 事件 自动提取 时间线 shijian zhuanxie'},
+      {tab:'context',target:'settings-search-compact-mode',title:'省 Token 模式',keywords:'上下文小窗口 限制章节 字数 token compact sheng token'},
+      {tab:'context',target:'settings-search-second-round',title:'二轮补写',keywords:'字数不足 追加续写 再生成 摘要缺少 erlun buxie'},
+      {tab:'context',target:'settings-search-third-round',title:'三轮摘要补写',keywords:'二轮后补摘要 额外模型请求 sanlun zhaiyao'},
+      {tab:'context',target:'settings-search-gemini-input',title:'Gemini 测试输入',keywords:'混淆输入 实验功能 gemini ceshi shuru'},
+      {tab:'context',target:'settings-search-full-chapters',title:'最近正文的章节数',keywords:'发送最近N章 几章全文 全文章数 chapters zhangjie quanwen'},
+      {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 summary zhangshu'},
+      {tab:'context',target:'settings-search-context-limits',title:'上下文截断上限',keywords:'单章正文上限 摘要上限 世界观 角色信息 大纲细纲 字符数 token 截断 xianzhi'},
+      {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 scroll dingwei'},
+      {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 review tuan pinglun'},
+      {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 inline comment suizhengwen'},
+      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 comment count pinglun shuliang'},
+      {tab:'context',target:'settings-search-stream',title:'流式输出',keywords:'关闭流式 非流式 请求方式 stream streaming shuchu'},
+      {tab:'context',target:'settings-search-timeout',title:'首字超时',keywords:'等待 首次输出 无响应 超时秒数 timeout first token shouzi chaoshi'},
+      {tab:'context',target:'settings-search-thinking',title:'显示思维链',keywords:'推理过程 思考过程 deepseek thinking sikao'},
+      {tab:'context',target:'settings-search-token-usage',title:'显示 Token 用量',keywords:'输入 输出 缓存命中 用量 usage shujuliang'},
+      {tab:'context',target:'settings-search-word-count',title:'AI 生成文本的字数参考',keywords:'大纲细纲建议角色目标长度 不影响正文长度 word count zishu'},
+      {tab:'context',target:'settings-search-outline-word-count',title:'大纲字数参考',keywords:'全书大纲生成长度 dagang zishu'},
+      {tab:'context',target:'settings-search-detailed-outline-word-count',title:'细纲字数参考',keywords:'所有章节细纲总长度 按批次平摊 xigang zishu'},
+      {tab:'context',target:'settings-search-suggestion-word-count',title:'建议字数参考',keywords:'AI建议方向长度 suggestion jianyi zishu'},
+      {tab:'context',target:'settings-search-character-word-count',title:'角色资料字数参考',keywords:'人物角色设定长度 character renwu zishu'},
+      {tab:'context',target:'settings-search-outline-range',title:'细纲注入范围',keywords:'前文章数 后文章数 当前章节附近 细纲范围 zhigang注入'},
+      ...moduleModelConfig.map(mod=>({tab:'context',target:'settings-search-route-'+mod.key,title:'模块模型分配｜'+mod.name,keywords:mod.name+' '+mod.desc+' API 模型 路由 分配 连接 luyou fenpei '+(mod.key==='writing'?'zhengwen续写':mod.key==='supplement'?'二轮补写':mod.key==='character'?'角色人物':mod.key==='outline'?'大纲细纲':mod.key==='summary'?'章节总结':mod.key==='imagetext'?'封面立绘':mod.key==='suggestion'?'预设建议':mod.key==='review'?'书评':mod.key==='comments'?'读者评论':'')})),
+      {tab:'editable',target:'settings-search-editable-preview',title:'发送预览',keywords:'查看实际请求内容 prompt system user assistant 编辑来源 自定义楼层 tijian tishi'},
+      {tab:'editable',target:'settings-search-book-edit',title:'书籍设定与世界观',keywords:'书名 简介 负面词 题材 novel 世界观 synopsis shushe'},
+      {tab:'editable',target:'settings-search-suggestion-persona',title:'AI 建议人设',keywords:'建议提示词 生成方向 自定义身份 suggestion persona jianyi renwu'},
+      {tab:'editable',target:'settings-search-editable-prompts',title:'提示词流水线',keywords:'系统提示词 内置提示词 文风 风格 调整 核心规则 system prompt'},
+      {tab:'editable',target:'settings-search-atmosphere',title:'环境氛围增强',keywords:'氛围环境描写加强 atmosphere prompt huanjing fenwei'},
+      {tab:'editable',target:'settings-search-editable-characters',title:'角色可编辑信息',keywords:'角色卡 人物描述 说话风格 台词 关系 角色专属提示词 avatar renwu'},
+      {tab:'editable',target:'settings-search-review-personas',title:'书评人设',keywords:'点评人格 书评团 persona review prompt pinglun renge'},
+      {tab:'mods',target:'settings-search-plugin-manager',title:'插件与 MOD 管理',keywords:'安装 导入 JSON 权限 事件总线 资产包 宿主弹窗 AI工具 工作流 主题 UI 开发者预览 mod plugin'},
+      {tab:'image',target:'settings-search-image',title:'生图设置',keywords:'图片 插图 NAI 服务商 模型 API 图片生成 生图密钥 比例 数量缓存 shengtu image'},
+    ];
+    function normalizeSettingsSearchText(value) {
+      return String(value == null ? '' : value).normalize('NFKC').toLocaleLowerCase().replace(/[\u200b-\u200f\ufeff]/g,'').replace(/[^\u3400-\u9fff\u{20000}-\u{2fa1f}a-z0-9]/gu,'');
+    }
+    function settingsSearchEditDistance(a, b, limit = 1) {
+      const left = Array.from(a), right = Array.from(b);
+      if (Math.abs(left.length - right.length) > limit) return limit + 1;
+      const rows = Array.from({length:left.length + 1}, (_, i) => {
+        const row = new Array(right.length + 1).fill(0); row[0] = i; return row;
+      });
+      for (let j = 0; j <= right.length; j++) rows[0][j] = j;
+      for (let i = 1; i <= left.length; i++) {
+        let rowMin = Infinity;
+        for (let j = 1; j <= right.length; j++) {
+          rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1));
+          if (i > 1 && j > 1 && left[i - 1] === right[j - 2] && left[i - 2] === right[j - 1]) rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+          rowMin = Math.min(rowMin, rows[i][j]);
+        }
+      }
+      return rows[left.length][right.length];
+    }
+    function settingsSearchOrderedScore(query, field) {
+      const wanted = Array.from(query), available = Array.from(field);
+      if (wanted.length < 2) return 0;
+      let cursor = 0, gaps = 0;
+      for (const char of wanted) {
+        const found = available.indexOf(char, cursor);
+        if (found < 0) return 0;
+        gaps += found - cursor; cursor = found + 1;
+      }
+      return 650 - Math.min(80, gaps * 3) - Math.min(35, Math.max(0, available.length - wanted.length) / 8);
+    }
+    function scoreSettingsSearchItem(query, item) {
+      const q = normalizeSettingsSearchText(query);
+      if (!q) return 0;
+      const title = normalizeSettingsSearchText(item.title);
+      const fields = normalizeSettingsSearchText(item.title + ' ' + item.keywords);
+      const queryParts = String(query).trim().split(/[\s,，、/|]+/).map(normalizeSettingsSearchText).filter(Boolean);
+      const queryLength = Array.from(q).length;
+      const shortCjkQuery = queryLength <= 2 && /[\u3400-\u9fff]/u.test(q);
+      if (q === title) return 1200;
+      if (title.startsWith(q)) return 1080 - Math.max(0, title.length - q.length);
+      if (title.includes(q)) return 980 - Math.max(0, title.length - q.length) / 4;
+      if (fields.includes(q)) return 820 - Math.max(0, fields.length - q.length) / 30;
+      if (queryParts.length > 1 && queryParts.every(part => fields.includes(part))) return 760 + Math.min(queryParts.length, 12);
+      const tokens = String(item.title + ' ' + item.keywords).split(/[\s|｜,，/]+/).map(normalizeSettingsSearchText).filter(Boolean);
+      const titleOrderedScore = settingsSearchOrderedScore(q, title);
+      const fieldsOrderedScore = Math.max(0, ...tokens.map(token => settingsSearchOrderedScore(q, token)));
+      if (titleOrderedScore > 0) return titleOrderedScore + 40;
+      if (fieldsOrderedScore > 0) return fieldsOrderedScore;
+      if (!shortCjkQuery && queryLength >= 2 && queryLength <= 16) {
+        const distance = Math.min(...tokens.map(word => word.length >= 2 && word.length <= 32 ? settingsSearchEditDistance(q, word, 1) : 2));
+        if (distance <= 1) return 400 - distance * 70 + Math.min(q.length, 16);
+      }
+      if (q.length >= 2 && Array.from(q).every(char => fields.includes(char))) return 300 + Math.min(q.length, 12);
+      return 0;
+    }
+    const settingsSearchResults = computed(() => {
+      const query = String(settingsSearchQuery.value || '').trim();
+      if (!query) return [];
+      return settingsSearchCatalog.map((item, index) => ({...item,index,score:scoreSettingsSearchItem(query,item)})).filter(item => item.score > 0).sort((a,b) => b.score - a.score || a.index - b.index).slice(0,10);
+    });
+    function resetSettingsSearchResults() { settingsSearchActiveIndex.value = 0; }
+    function moveSettingsSearchSelection(delta) {
+      const count = settingsSearchResults.value.length;
+      if (!count) return;
+      settingsSearchActiveIndex.value = (settingsSearchActiveIndex.value + delta + count) % count;
+      const active = settingsSearchResults.value[settingsSearchActiveIndex.value];
+      if (active) nextTick(() => document.getElementById('settings-search-option-' + active.index)?.scrollIntoView({block:'nearest'}));
+    }
+    function closeSettingsSearch() {
+      settingsSearchFocused.value = false;
+      settingsSearchActiveIndex.value = 0;
+      const input = document.activeElement;
+      if (input?.matches('[data-settings-search-area] input')) input.blur();
+    }
+    function handleSettingsSearchKeydown(event) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); moveSettingsSearchSelection(1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); moveSettingsSearchSelection(-1); }
+      else if (event.key === 'Enter') { event.preventDefault(); const item = settingsSearchResults.value[settingsSearchActiveIndex.value] || settingsSearchResults.value[0]; if (item) navigateToSettingsSearchResult(item); }
+      else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); settingsSearchQuery.value = ''; closeSettingsSearch(); }
+    }
+    function navigateToSettingsSearchResult(item) {
+      if (!item || !settingsTabs.some(tab => tab.id === item.tab && tab.id !== 'changelog')) return;
+      activeSettingsTab.value = item.tab;
+      settingsSearchQuery.value = '';
+      closeSettingsSearch();
+      nextTick(() => requestAnimationFrame(() => {
+        const target = document.getElementById(item.target);
+        const panel = document.querySelector('[data-moyun-modal="settings"] [data-moyun-modal-panel]');
+        if (!target || !panel) return;
+        const panelRect = panel.getBoundingClientRect(), targetRect = target.getBoundingClientRect();
+        const nextTop = panel.scrollTop + targetRect.top - panelRect.top - 78;
+        panel.scrollTo({top:Math.max(0,nextTop),behavior:moyunScrollBehavior()});
+        target.classList.add('settings-search-target-flash');
+        setTimeout(() => target.classList.remove('settings-search-target-flash'), 1100);
+      }));
+    }
+    function navigateToSettingsModuleLocation(locationOrTab) {
+      const location = typeof locationOrTab === 'string' ? {tab:locationOrTab} : locationOrTab;
+      if (location?.workbenchSection) {
+        if (!openStoryBibleWorkbench(location.workbenchSection)) return;
+        showSettings_modal.value = false;
+        return;
+      }
+      if (!sidebarTabs.some(tab => tab.id === location?.tab)) return;
+      showSettings_modal.value = false;
+      if (showStoryBibleWorkbench.value) closeStoryBibleWorkbench();
+      if (showCharacterWorkbench.value) closeCharacterWorkbench();
+      selectSidebarTab(location.tab);
+    }
+
     const imageKeyInfo = ref('');
     const modelConnectionStatus = ref({ type:'idle', text:'' });
 
@@ -37929,7 +38140,8 @@ function getWritingModelLabel() {
       reviews, reviewStatus, reviewPersonas, startBookReview,
 
       // ── Part 6: 设置面板 ──
-      activeSettingsTab, settingsTabs,
+      activeSettingsTab, settingsTabs, settingsSearchQuery, settingsSearchFocused, settingsSearchActiveIndex, settingsSearchResults, settingsModuleLocations, settingsContextWorkbenchLocations,
+      resetSettingsSearchResults, closeSettingsSearch, handleSettingsSearchKeydown, navigateToSettingsSearchResult, navigateToSettingsModuleLocation,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
       getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, getSupplementFollowProfile, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,

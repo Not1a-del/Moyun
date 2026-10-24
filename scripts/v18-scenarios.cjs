@@ -139,6 +139,7 @@ module.exports=async function(c,check,shot){
  await require('./v18-optimization.cjs')(c,check,shot);
  await require('./v18-visuals.cjs')(c,check,shot);
  await require('./v18-accessibility.cjs')(c,check,shot);
+ await require('./v18-r1-settings-search.cjs')(c,check,shot);
  await check('保存刷新：记忆库、旧预设开关、自定义字数及Token恢复',async()=>{
   await c.ev(async()=>{__s.cancelMemoryWork();__s.memoryLibrary.settings.enabled=false;__s.settings.geminiTestInput=true;__s.settings.showTokenUsage=true;await __s.saveData();});await delay(1100);await c.navigate();
   const d=await c.ev(()=>({records:__s.memoryLibrary.memories.length,usage:__s.lastWritingUsage,wordCount:__s.wordCountTarget,old:__s.presets[0].content,oldEnabled:__s.presets[0].enabled,gemini:__s.settings.geminiTestInput,token:__s.settings.showTokenUsage,temperature:__s.settings.temperature,effort:__s.settings.reasoningEffort,anti:__s.settings.preventTruncation,embedding:__s.settings.memoryEmbeddingModel}));assert.ok(d.records>=4);assert.equal(d.usage.cached,40);assert.equal(d.wordCount,300.5);assert.equal(d.old,'V18_LEGACY_SCOPE');assert.equal(d.oldEnabled,false);assert.equal(d.gemini,true);assert.equal(d.token,true);assert.equal(d.temperature,.42);assert.equal(d.effort,'high');assert.equal(d.anti,true);assert.equal(d.embedding,'v18-vector-next');return d;

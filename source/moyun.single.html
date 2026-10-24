@@ -1524,6 +1524,29 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   color: var(--accent);
   box-shadow: var(--sh1);
 }
+.settings-search-shell{position:relative}
+.settings-search-area{position:relative;z-index:20;margin-bottom:.75rem}
+.settings-search-backdrop{position:absolute;top:62px;left:0;right:0;bottom:0;z-index:15;cursor:default}
+.settings-search-body{position:relative;z-index:10}
+.settings-search-control{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 6px 4px 12px;border:1px solid var(--bd);border-radius:12px;background:var(--bg-card);box-shadow:var(--sh1)}
+.settings-search-control:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+.settings-search-control input{flex:1;min-width:0;height:36px;padding:0;border:0;outline:0;background:transparent;color:var(--tx);font-size:13px}
+.settings-search-control input::placeholder{color:var(--tx4)}
+.settings-search-clear{flex:0 0 auto;min-width:36px;min-height:36px;border-radius:9px;color:var(--tx3)}
+.settings-search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:24;max-height:min(48vh,380px);overflow-y:auto;padding:5px;border:1px solid var(--bd);border-radius:13px;background:var(--bg-card);box-shadow:var(--sh3)}
+.settings-search-result{display:flex;width:100%;min-height:44px;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;border-radius:9px;text-align:left;color:var(--tx2)}
+.settings-search-result:hover,.settings-search-result[aria-selected="true"]{background:var(--accent-soft);color:var(--tx)}
+.settings-search-result-title{min-width:0;font-size:12px;font-weight:750;line-height:1.45;overflow-wrap:anywhere}
+.settings-search-result-path{flex:0 0 auto;max-width:42%;font-size:10px;color:var(--tx4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settings-search-empty{padding:13px 11px;font-size:11px;line-height:1.6;color:var(--tx3)}
+.settings-search-body{transition:filter .16s ease,opacity .16s ease}
+.settings-search-body.is-obscured{filter:blur(4px);opacity:.42;pointer-events:none;user-select:none}
+.settings-search-target-flash{outline:2px solid var(--warn);outline-offset:3px;border-radius:10px;animation:settings-search-target-pulse 1s ease-out}
+@keyframes settings-search-target-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--warn) 35%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+.settings-module-location{min-height:32px;padding:4px 9px;border:1px solid color-mix(in srgb,var(--warn) 48%,var(--bd));border-radius:999px;background:color-mix(in srgb,var(--warn) 10%,var(--bg-card));color:var(--warn);font-size:10px;font-weight:750;line-height:1.35;white-space:normal}
+.settings-module-location:hover{background:color-mix(in srgb,var(--warn) 18%,var(--bg-card))}
+@media(max-width:767px){.settings-search-control{min-height:48px}.settings-search-control input{height:38px}.settings-search-result{min-height:48px}.settings-search-results{max-height:42vh}.settings-module-location{min-height:40px}}
+@media(prefers-reduced-motion:reduce){.settings-search-body,.settings-search-result{transition:none!important}.settings-search-target-flash{animation:none!important}}
 
 /* Goal 4：统一弹窗、键盘焦点与触控热区 */
 [data-moyun-modal-panel] { outline:none; }
@@ -1964,7 +1987,7 @@ img[role="button"]:focus-visible {
 @media (max-width:520px){.paragraph-comment-line{font-size:16px;line-height:2.15}.paragraph-comment-bubble{padding:2px 7px;margin-left:6px;font-size:10px}.paragraph-comment-sheet{max-height:84vh}.paragraph-comment-title{font-size:18px}.paragraph-comment-content{font-size:14px}}
 .moyun-page-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#121a22;color:#f6f1e7;transition:opacity .42s ease,visibility .42s ease}.moyun-page-loader::before{content:"";position:absolute;width:min(72vw,560px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(246,241,231,.08) 0,rgba(246,241,231,.025) 33%,transparent 68%);animation:moyun-loader-breathe 2.4s ease-in-out infinite}.moyun-page-loader.is-ready{opacity:0;visibility:hidden;pointer-events:none}.moyun-loader-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;text-align:center}.moyun-loader-mark{position:relative;width:82px;height:82px;filter:drop-shadow(0 12px 25px rgba(0,0,0,.34));animation:moyun-loader-rise .72s cubic-bezier(.22,1,.36,1) both}.moyun-loader-mark img{display:block;width:100%;height:100%;border-radius:20px}.moyun-loader-seal{position:absolute;right:-7px;bottom:-6px;width:22px;height:22px;border:2px solid #121a22;border-radius:50%;background:#b83a2e;box-shadow:0 0 0 5px rgba(184,58,46,.12);animation:moyun-loader-seal 1.65s ease-in-out infinite}.moyun-loader-wordmark{font-family:Arial,"Noto Sans SC",sans-serif;font-size:clamp(29px,5vw,43px);font-weight:700;letter-spacing:0;line-height:1;color:#f6f1e7;animation:moyun-loader-rise .72s .08s cubic-bezier(.22,1,.36,1) both}.moyun-loader-track{display:flex;gap:7px;margin-top:12px}.moyun-loader-track span{width:5px;height:5px;border-radius:50%;background:#f6f1e7;opacity:.22;animation:moyun-loader-ink 1.2s ease-in-out infinite}.moyun-loader-track span:nth-child(2){animation-delay:.14s}.moyun-loader-track span:nth-child(3){animation-delay:.28s}.moyun-loader-status{margin-top:2px;font-size:10px;letter-spacing:.16em;color:rgba(246,241,231,.42);animation:moyun-loader-rise .72s .22s cubic-bezier(.22,1,.36,1) both}@keyframes moyun-loader-rise{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes moyun-loader-breathe{0%,100%{transform:scale(.9);opacity:.56}50%{transform:scale(1.08);opacity:1}}@keyframes moyun-loader-seal{0%,100%{transform:scale(.9);box-shadow:0 0 0 5px rgba(184,58,46,.12)}50%{transform:scale(1);box-shadow:0 0 0 10px rgba(184,58,46,0)}}@keyframes moyun-loader-ink{0%,100%{transform:translateY(0);opacity:.22}50%{transform:translateY(-6px);opacity:1}}@media (prefers-reduced-motion:reduce){.moyun-page-loader,.moyun-page-loader::before,.moyun-loader-mark,.moyun-loader-seal,.moyun-loader-wordmark,.moyun-loader-track span,.moyun-loader-status{animation:none;transition-duration:.01ms}}
 .moyun-loader-wordmark{font-family:Georgia,"Times New Roman","Noto Serif SC",serif;line-height:1.05}
-.moyun-generation-range{display:block;width:100%;height:44px;accent-color:var(--accent);cursor:pointer}
+.moyun-generation-range{display:block;width:100%;max-width:100%;height:44px;box-sizing:border-box;accent-color:var(--accent);cursor:pointer}
 .moyun-generation-range:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 [data-moyun-legacy-presets]{min-width:0;max-width:100%;overflow-wrap:anywhere}
 [data-moyun-legacy-presets] .flex-1{min-width:0}
@@ -7036,10 +7059,10 @@ img[role="button"]:focus-visible {
        role="dialog" aria-modal="true" aria-labelledby="moyun-settings-title"
        class="fixed inset-0 z-[80] flex items-end md:items-center justify-center p-0 md:p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
-    <div data-moyun-modal-panel tabindex="-1" class="w-full overflow-y-auto rounded-t-2xl md:rounded-2xl" :class="activeSettingsTab==='mods' ? 'max-w-5xl' : 'max-w-lg'"
-         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
+    <div data-moyun-modal-panel tabindex="-1" class="w-full flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl" :class="activeSettingsTab==='mods' ? 'max-w-5xl' : 'max-w-lg'"
+         style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh3);max-height:min(92vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <!-- 设置头部 -->
-      <div class="px-5 py-3 flex justify-between items-center sticky top-0 z-10 rounded-t-2xl md:rounded-t-2xl"
+      <div data-settings-modal-header class="px-5 py-3 flex justify-between items-center shrink-0 rounded-t-2xl md:rounded-t-2xl"
            style="border-bottom:1px solid var(--bd);background:var(--bg-card)">
         <div>
           <h3 id="moyun-settings-title" class="text-lg font-bold" style="color:var(--tx)">⚙ 全局设置</h3>
@@ -7050,7 +7073,32 @@ img[role="button"]:focus-visible {
         </button>
       </div>
 
-      <div class="p-5 space-y-5">
+      <div class="p-5 space-y-5 settings-search-shell flex-1 min-h-0 overflow-y-auto">
+        <div class="settings-search-area" data-settings-search-area>
+          <div class="settings-search-control">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--tx4);flex:0 0 auto"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input ref="settingsSearchInput" type="search" v-model="settingsSearchQuery" @focus="settingsSearchFocused=true" @input="resetSettingsSearchResults" @keydown="handleSettingsSearchKeydown"
+                   role="combobox" aria-label="搜索全局设置" aria-autocomplete="list" :aria-controls="settingsSearchFocused ? 'settings-search-results' : undefined"
+                   :aria-expanded="settingsSearchFocused ? 'true' : 'false'"
+                   :aria-activedescendant="settingsSearchResults[settingsSearchActiveIndex] ? 'settings-search-option-'+settingsSearchResults[settingsSearchActiveIndex].index : undefined"
+                   placeholder="搜索全局设置：温度、记忆、wendu…" autocomplete="off" spellcheck="false">
+            <button v-if="settingsSearchQuery" type="button" class="settings-search-clear" @click="settingsSearchQuery='';resetSettingsSearchResults();$refs.settingsSearchInput?.focus()" aria-label="清除设置搜索">清除</button>
+          </div>
+          <div v-if="settingsSearchFocused" id="settings-search-results" class="settings-search-results" role="listbox" aria-label="设置搜索结果">
+            <template v-if="settingsSearchQuery.trim()">
+              <button v-for="(result, index) in settingsSearchResults" :key="result.target" :id="'settings-search-option-'+result.index" type="button" role="option"
+                      :aria-selected="settingsSearchActiveIndex===index ? 'true' : 'false'" class="settings-search-result"
+                      @mousedown.prevent @click="navigateToSettingsSearchResult(result)">
+                <span class="settings-search-result-title">{{ result.title }}</span>
+                <span class="settings-search-result-path">{{ settingsTabs.find(tab=>tab.id===result.tab)?.name }}</span>
+              </button>
+              <div v-if="settingsSearchResults.length===0" class="settings-search-empty" role="status">没有找到相关设置。可尝试单字、错序关键词或拼音，例如“温”“章摘”“wednu”。这里只搜索全局设置，不包含“关于”。</div>
+            </template>
+            <div v-else class="settings-search-empty" role="status">输入设置名称、功能关键词或拼音；按 ↑↓ 选择、Enter 跳转、Esc 关闭。</div>
+          </div>
+        </div>
+        <div v-if="settingsSearchFocused" class="settings-search-backdrop" aria-hidden="true" @click="settingsSearchQuery='';closeSettingsSearch()"></div>
+        <div class="settings-search-body" :class="{'is-obscured':settingsSearchFocused}" :inert="settingsSearchFocused">
         <!-- ── 设置内部Tab ── -->
         <div class="settings-tab-bar" role="tablist" aria-label="设置分类">
           <button v-for="st in settingsTabs" :key="st.id" type="button" data-settings-tab
@@ -7063,7 +7111,7 @@ img[role="button"]:focus-visible {
 
         <!-- ═══ API 连接中心 ═══ -->
         <div v-show="activeSettingsTab==='api'" id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" class="space-y-4">
-          <div class="flex items-center justify-between gap-3">
+          <div id="settings-search-api-profiles" class="flex items-center justify-between gap-3">
             <div>
               <div class="text-sm font-bold" style="color:var(--tx)">API 配置预设</div>
               <div class="text-[10px] mt-1" style="color:var(--tx3)">配置名称用于模块分配；密钥仅保存在本机私有存储。</div>
@@ -7096,53 +7144,65 @@ img[role="button"]:focus-visible {
             <span>配好模型后，别忘了到「上下文」页签底部，为正文 / 大纲 / 总结等模块分别分配模型。</span>
             <button type="button" @click="activeSettingsTab='context'" class="btn-ghost text-[10px] px-2 py-1 shrink-0" style="color:var(--accent)">去分配模块 →</button>
           </div>
-          <section data-global-generation-settings class="p-3 rounded-xl space-y-3 min-w-0" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <section id="settings-search-global-controls" data-global-generation-settings class="p-3 rounded-xl space-y-3 min-w-0" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div><h4 class="text-sm font-bold" style="color:var(--tx)">温度与思考强度</h4><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">全局设置，应用于所有书籍及模块；默认强度由模型决定。</p></div>
             <label class="block min-w-0"><span class="flex flex-wrap items-center justify-between gap-2 text-xs" style="color:var(--tx2)"><span class="font-bold">思考强度</span><span>{{ reasoningEffortLabel }}</span></span><input v-model.number="reasoningEffortSlider" @change="saveData()" type="range" min="0" max="5" step="1" class="moyun-generation-range" aria-label="思考强度" :aria-valuetext="reasoningEffortLabel"></label>
             <label class="block min-w-0" style="border-top:1px solid var(--bd);padding-top:.5rem"><span class="flex items-center justify-between gap-2 text-xs" style="color:var(--tx2)"><span class="font-bold">温度</span><span class="font-mono tabular-nums">{{ Number(settings.temperature).toFixed(2) }}</span></span><input v-model.number="settings.temperature" @change="saveData()" type="range" min="0" max="1" step="0.01" class="moyun-generation-range" aria-label="温度"></label>
-            <div class="flex items-center justify-between gap-3" data-settings-anti-truncation><div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">Gemini 模型通过工具提交回复；其他模型保持普通输出。</p></div><button type="button" @click="settings.preventTruncation=!settings.preventTruncation;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.preventTruncation" aria-label="Gemini抗截断开关"><span class="toggle-track" :class="settings.preventTruncation?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+            <div id="settings-search-anti-truncation" class="flex items-center justify-between gap-3" data-settings-anti-truncation><div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">Gemini抗截断</span><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">Gemini 模型通过工具提交回复；其他模型保持普通输出。</p></div><button type="button" @click="settings.preventTruncation=!settings.preventTruncation;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.preventTruncation" aria-label="Gemini抗截断开关"><span class="toggle-track" :class="settings.preventTruncation?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           </section>
         </div>
 
         <!-- ═══ 上下文与功能 ═══ -->
         <div v-show="activeSettingsTab==='context'" id="settings-panel-context" role="tabpanel" aria-labelledby="settings-tab-context" class="space-y-4">
           <!-- 中文注释：上下文省 token 配置直接影响正文生成请求，可按模型窗口大小选择是否发送全文/摘要/长期总结。 -->
-          <div class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-context-intro" class="p-3 rounded-xl space-y-2" style="background:var(--accent-soft);border:1px solid var(--bd)">
+            <div class="text-xs font-bold" style="color:var(--tx)">这些设置决定模型本次能参考什么、由哪个模型处理</div>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx2)">正文、章节摘要、长期总结和细纲控制“发送哪些资料”；截断上限控制“每类资料最多发送多少字”；模型分配控制“每类任务使用哪个 API 配置”。这些选项只影响发给模型的参考内容，不会删除书稿。二轮/三轮补写和书评评论可能增加模型请求次数。</p>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx3)">黄色模块标签表示该模型模块实际出现的页面入口；点击后会关闭全局设置并跳转到对应页面。</p>
+          </div>
+          <div id="settings-search-context-workbench" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <div class="text-xs font-bold" style="color:var(--tx)">创作设定工作台入口</div>
+            <p class="text-[10px] leading-relaxed m-0" style="color:var(--tx3)">项目、世界、事件、资料和上下文包共同整理写作参考；记忆库按章节总结，供后续写作使用。黄色入口会直接打开对应栏目，书籍与分支仍按各自规则隔离。</p>
+            <div class="flex flex-wrap gap-1.5" aria-label="创作设定工作台栏目入口">
+              <button v-for="location in settingsContextWorkbenchLocations" :key="location.workbenchSection" type="button" class="settings-module-location" @click="navigateToSettingsModuleLocation(location)" :aria-label="'打开'+location.label">{{ location.label }} ↗</button>
+            </div>
+          </div>
+          <div id="settings-search-context-sources" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <!-- v0.0.11 新功能6：自动补录开关同步放进设置-上下文页，与事件工作台入口共用同一 settings.autoTimelineSupplement。 -->
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-auto-timeline" class="flex items-center justify-between py-1">
               <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
               <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录" data-settings-auto-timeline><div class="toggle-thumb"></div></div>
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-compact-mode" class="flex items-center justify-between py-1">
               <div><span class="text-sm font-bold" style="color:var(--tx)">省 token 模式</span><br><span class="text-[10px]" style="color:var(--tx3)">自动收紧全文章数和单章截断长度，适合小上下文模型</span></div>
               <div @click="settings.contextCompactMode=!settings.contextCompactMode;saveData()"
                    class="toggle-track" :class="settings.contextCompactMode?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFullText=!settings.contextUseFullText;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-full-text" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFullText=!settings.contextUseFullText;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送最近正文</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseFullText!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseChapterSummaries=!settings.contextUseChapterSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-chapter-summary" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseChapterSummaries=!settings.contextUseChapterSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送章节摘要</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseChapterSummaries!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseRangeSummaries=!settings.contextUseRangeSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-range-summary" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseRangeSummaries=!settings.contextUseRangeSummaries;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送长期总结</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseRangeSummaries!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseOutline=!settings.contextUseOutline;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-outline" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseOutline=!settings.contextUseOutline;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>发送细纲</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseOutline!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
-              <div class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFinalCheck=!settings.contextUseFinalCheck;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
+              <div id="settings-search-context-final-check" class="flex items-center justify-between gap-2 p-2 rounded-lg text-[10px] cursor-pointer" @click="settings.contextUseFinalCheck=!settings.contextUseFinalCheck;saveData()" style="background:var(--bg-card);border:1px solid var(--bd);color:var(--tx2)">
                 <span>最终校验</span>
                 <div class="toggle-track toggle-sm" :class="settings.contextUseFinalCheck!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
               </div>
             </div>
           </div>
           <!-- v0.0.13 req2：二轮补写全局开关。默认开启；关闭后首轮字数不足直接落盘，不再追加第二次请求。 -->
-          <div class="flex items-center justify-between py-2" data-settings-second-round-toggle>
+          <div id="settings-search-second-round" class="flex items-center justify-between py-2" data-settings-second-round-toggle>
             <div>
               <span class="text-sm font-bold" style="color:var(--tx)">二轮补写</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">首轮字数不足或摘要缺失时补写；缺摘要会先弹窗提醒</span><br>
@@ -7152,22 +7212,22 @@ img[role="button"]:focus-visible {
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
                  :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" data-settings-third-round-toggle>
+          <div id="settings-search-third-round" class="flex items-center justify-between py-2" data-settings-third-round-toggle>
             <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="toggle-track" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></button>
           </div>
-          <div class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-gemini-input" class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+          <div id="settings-search-full-chapters" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
             <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
                    class="input-field text-center" style="width:80px;height:32px">
           </div>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-summary-chapters" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">摘要章数</span><br><span class="text-[10px]" style="color:var(--tx3)">更早的章节只发标题+摘要</span></div>
             <input type="number" v-model.number="settings.contextSummaryChapters" @change="saveData()" min="0" max="50"
                    class="input-field text-center" style="width:80px;height:32px">
           </div>
           <!-- 中文注释：这里的“上限”只限制发送给 AI 的参考文本长度，不会删除书籍正文、摘要、世界观或角色卡原文。 -->
-          <div class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-context-limits" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <div class="text-xs font-bold" style="color:var(--tx)">上下文截断上限</div>
@@ -7205,7 +7265,7 @@ img[role="button"]:focus-visible {
           </div>
           <div class="divider"></div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-auto-scroll" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">生成开始时定位</span><br><span class="text-[10px]" style="color:var(--tx3)">只定位到生成内容开头，不再持续追到页面底部</span></div>
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
@@ -7213,7 +7273,7 @@ img[role="button"]:focus-visible {
 
           <div class="divider"></div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-reviewer" class="flex items-center justify-between py-2">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评团功能</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">总开关，默认关闭。开启后：正文右上角出现「书评团」入口（吃瓜群众 / 十年老书虫 / 金牌主编三人格点评全书），章节底部出现「生成本章书评」，并且每写完一章会自动为该章生成模拟读者评论——这些都会各自发起真实模型调用。</span>
@@ -7221,7 +7281,7 @@ img[role="button"]:focus-visible {
             <div @click="settings.enableReviewer=!settings.enableReviewer;saveData()"
                  class="toggle-track shrink-0" :class="settings.enableReviewer?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+          <div id="settings-search-inline-comment" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评随正文生成</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '本章评论与正文合并为一次 API 调用，节省费用' : '需先开启上方「书评团功能」才会生效' }}</span>
@@ -7229,7 +7289,7 @@ img[role="button"]:focus-visible {
             <div @click="settings.enableReviewer ? (settings.commentInline=!settings.commentInline, saveData()) : showToast('请先开启上方「书评团功能」','info')"
                  class="toggle-track shrink-0" :class="settings.commentInline?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
+          <div id="settings-search-comment-count" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '每章自动生成的模拟读者评论条数' : '需先开启上方「书评团功能」才会生效' }}</span>
@@ -7238,49 +7298,49 @@ img[role="button"]:focus-visible {
                    class="input-field text-center shrink-0" style="width:80px;height:32px">
           </div>
 
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-stream" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">流式输出</span><br><span class="text-[10px]" style="color:var(--tx3)">关闭后使用非流式请求（某些API需要）</span></div>
             <div @click="toggleStream()"
                  class="toggle-track" :class="settings.streamEnabled!==false?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
 
-          <div class="flex items-center justify-between py-2 gap-3">
+          <div id="settings-search-timeout" class="flex items-center justify-between py-2 gap-3">
             <div class="pr-3"><span class="text-sm font-bold" style="color:var(--tx)">首字超时</span><br><span class="text-[10px]" style="color:var(--tx3)">仅当正文仍为 0 字时计时；已有输出后会继续等待</span></div>
             <label class="flex items-center gap-1 shrink-0"><input type="number" v-model.number="settings.noOutputTimeoutSec" @change="settings.noOutputTimeoutSec=normalizeNoOutputTimeout(settings.noOutputTimeoutSec);saveData()" min="1" max="3600" step="1" class="input-field text-xs py-1 text-center" style="width:78px" aria-label="首字超时时间"><span class="text-xs" style="color:var(--tx3)">秒</span></label>
           </div>
 		  
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-thinking" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">显示思维链</span><br><span class="text-[10px]" style="color:var(--tx3)">展示AI的思考过程（如DeepSeek的推理）</span></div>
             <div @click="settings.enableThinking=!settings.enableThinking;saveData()"
                  class="toggle-track" :class="settings.enableThinking?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
-          <div class="flex items-center justify-between gap-3" data-settings-token-usage><div><span class="text-sm font-bold" style="color:var(--tx)">显示Token用量</span><br><span class="text-[10px]" style="color:var(--tx3)">在续写框上方显示本书上一轮输入、输出和缓存命中；接口未报告时显示 —</span></div><button type="button" @click="settings.showTokenUsage=!settings.showTokenUsage;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.showTokenUsage" aria-label="显示Token用量开关"><span class="toggle-track" :class="settings.showTokenUsage?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+          <div id="settings-search-token-usage" class="flex items-center justify-between gap-3" data-settings-token-usage><div><span class="text-sm font-bold" style="color:var(--tx)">显示Token用量</span><br><span class="text-[10px]" style="color:var(--tx3)">在续写框上方显示本书上一轮输入、输出和缓存命中；接口未报告时显示 —</span></div><button type="button" @click="settings.showTokenUsage=!settings.showTokenUsage;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.showTokenUsage" aria-label="显示Token用量开关"><span class="toggle-track" :class="settings.showTokenUsage?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           <div class="divider"></div>
           <div class="divider"></div>
-          <label class="label">AI 生成字数控制</label>
+          <label id="settings-search-word-count" class="label">AI 生成字数控制</label>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">字数为参考值，AI实际输出可能略有偏差。这几项只管各自那份文本有多长，都<b>不影响正文长度</b>；正文字数在写作页的「本章目标字数」里设。</div>
           <div class="space-y-2">
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-outline-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">大纲字数</span>
               <input type="number" v-model.number="settings.aiWordCount_outline" @change="saveData()" min="500" max="10000" step="500" class="input-field text-center" style="width:80px;height:30px" title="大纲文本本身的长度，不是正文字数">
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-detailed-outline-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">细纲字数</span>
               <input type="number" v-model.number="settings.aiWordCount_detailedOutline" @change="saveData()" min="500" max="20000" step="500" class="input-field text-center" style="width:80px;height:30px" title="全部细纲文本合计的长度，会按本批章数平摊；不是正文字数">
             </div>
             <div class="text-[10px] -mt-1 mb-1 leading-relaxed" style="color:var(--tx4)">细纲字数是<b>所有章细纲合计</b>的长度，生成时按本批章数平摊。默认按细纲:正文≈1:4~1:5（每1000字细纲生成4000-5000字正文，取中值1:4.5）自动推算每章预算；手动改动此值后将固定使用该值（改回 3000 恢复自动比例）。细纲里若出现「字数控制在X字」，写作时会被忽略。</div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-suggestion-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">建议字数</span>
               <input type="number" v-model.number="settings.aiWordCount_suggestion" @change="saveData()" min="30" max="500" step="10" class="input-field text-center" style="width:80px;height:30px">
             </div>
-            <div class="flex items-center justify-between py-1">
+            <div id="settings-search-character-word-count" class="flex items-center justify-between py-1">
               <span class="text-xs" style="color:var(--tx2)">角色字数</span>
               <input type="number" v-model.number="settings.aiWordCount_character" @change="saveData()" min="100" max="2000" step="50" class="input-field text-center" style="width:80px;height:30px">
             </div>
           </div>
 
           <div class="divider"></div>
-          <label class="label">细纲注入范围</label>
+          <label id="settings-search-outline-range" class="label">细纲注入范围</label>
           <div class="text-[10px] mb-2" style="color:var(--tx4)">AI写作时读取当前章前后几章的细纲（防止多章生成串味）</div>
           <div class="flex gap-4">
             <div class="flex-1">
@@ -7297,9 +7357,14 @@ img[role="button"]:focus-visible {
           <div class="flex items-center justify-between mb-2"><label class="label mb-0">模块 API 配置分配</label><button @click="resetModuleRoutes" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--tx3);border:1px solid var(--bd)">全部跟随默认</button></div>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">每个模块只能选择一个配置；模型使用所选配置的默认模型。</div>
           <div class="space-y-2">
-            <fieldset v-for="mod in moduleModelConfig" :key="mod.key" class="p-2 rounded-lg" style="border:1px solid var(--bd)">
+            <fieldset v-for="mod in moduleModelConfig" :key="mod.key" :id="'settings-search-route-'+mod.key" class="p-2 rounded-lg" style="border:1px solid var(--bd)">
               <legend class="px-1 text-xs font-bold" style="color:var(--tx)">{{ mod.name }}</legend>
-              <div class="text-[9px] mb-2" style="color:var(--tx4)">{{ mod.desc }}</div>
+              <div class="text-[10px] leading-relaxed mb-2" style="color:var(--tx3)">{{ mod.desc }}</div>
+              <div class="flex flex-wrap items-center gap-1.5 mb-2" :aria-label="mod.name+'页面入口'">
+                <span class="text-[9px] font-bold" style="color:var(--tx4)">页面入口</span>
+                <button v-for="location in settingsModuleLocations[mod.key]" :key="location.workbenchSection || location.tab+location.label" type="button" class="settings-module-location" @click="navigateToSettingsModuleLocation(location)" :aria-label="'跳转到'+location.label">{{ location.label }} ↗</button>
+                <span v-if="!settingsModuleLocations[mod.key]?.length" class="text-[9px]" style="color:var(--tx4)">当前预留，暂无可跳转入口</span>
+              </div>
               <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
                 <input type="radio" :name="'module-route-'+mod.key" value="" :checked="getModuleRouteProfileId(mod.key)===''" @change="setModuleRouteProfile(mod.key,'')">
                 <span class="text-[10px]" style="color:var(--tx)">{{ mod.key==='supplement' ? '跟随正文模块（可命中缓存）' : '跟随默认配置' }}</span>
@@ -7317,9 +7382,9 @@ img[role="button"]:focus-visible {
 
         <!-- ═══ 集中编辑 ═══ -->
         <div v-show="activeSettingsTab==='editable'" id="settings-panel-editable" role="tabpanel" aria-labelledby="settings-tab-editable" class="space-y-4">
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><h3 class="text-xs font-bold mb-2">发送预览</h3><p class="text-xs mb-2" style="color:var(--tx3)">查看下一次正文请求、最近发送消息、编辑来源和自定义楼层。</p><button type="button" @click="openPromptPreview" class="btn-primary text-xs" data-open-prompt-preview>打开发送预览</button></div>
+          <div id="settings-search-editable-preview" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><h3 class="text-xs font-bold mb-2">发送预览</h3><p class="text-xs mb-2" style="color:var(--tx3)">查看下一次正文请求、最近发送消息、编辑来源和自定义楼层。</p><button type="button" @click="openPromptPreview" class="btn-primary text-xs" data-open-prompt-preview>打开发送预览</button></div>
           <!-- 中文注释：把分散在各模块里的可编辑配置集中到一个页签，方便不懂代码的用户统一修改。 -->
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-book-edit" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">书籍设定（集中修改书名/简介/世界观/负面词）</div>
             <div class="space-y-2">
               <input v-model="novel.title" @change="saveData()" placeholder="书名" class="input-field text-xs">
@@ -7329,12 +7394,12 @@ img[role="button"]:focus-visible {
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-suggestion-persona" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">AI建议人设（已移动到这里）</div>
             <textarea v-model="suggestionPersona" @change="saveData()" rows="3" class="textarea-field text-[10px]" style="line-height:1.5" aria-label="AI建议人设提示词"></textarea>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-editable-prompts" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">提示词流水线</div>
             <div class="space-y-2">
               <div v-for="layer in promptPipeline" :key="layer.key">
@@ -7344,7 +7409,7 @@ img[role="button"]:focus-visible {
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-atmosphere" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="flex items-center justify-between mb-2">
               <div class="text-xs font-bold" style="color:var(--tx)">环境氛围增强</div>
               <div @click="atmosphereEnabled=!atmosphereEnabled;saveData()" class="toggle-track w-9 h-5" :class="atmosphereEnabled?'toggle-on':'toggle-off'" style="width:36px;height:20px"><div class="toggle-thumb"></div></div>
@@ -7352,7 +7417,7 @@ img[role="button"]:focus-visible {
             <textarea v-model="atmospherePrompt" @change="saveData()" rows="4" class="textarea-field text-xs" placeholder="氛围增强提示词"></textarea>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-editable-characters" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">角色可编辑信息</div>
             <div class="space-y-3 max-h-[420px] overflow-y-auto">
               <div v-for="(char, ci) in structuredCharacters" :key="char.id || ci" class="p-2 rounded-lg" style="background:var(--bg-card);border:1px solid var(--bd)">
@@ -7366,7 +7431,7 @@ img[role="button"]:focus-visible {
             </div>
           </div>
 
-          <div class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+          <div id="settings-search-review-personas" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">书评人设</div>
             <div class="space-y-2">
               <div v-for="(persona, key) in reviewPersonas" :key="key">
@@ -7380,7 +7445,7 @@ img[role="button"]:focus-visible {
         <!-- ═══ MOD 插件设置 ═══ -->
         <div v-show="activeSettingsTab==='mods'" id="settings-panel-mods" role="tabpanel" aria-labelledby="settings-tab-mods" class="space-y-4">
                 <!-- 中文注释：MOD 共创管理统一放在全局设置 > 插件页，避免侧边导航拥挤和设置页重复。 -->
-                <div>
+                <div id="settings-search-plugin-manager">
                   <div class="flex justify-between items-center mb-2">
                     <div>
                       <label class="label mb-0">MOD 共创管理</label>
@@ -7833,7 +7898,7 @@ img[role="button"]:focus-visible {
             </span>
             <span class="text-xs font-bold shrink-0" style="color:var(--accent)">打开 ↗</span>
           </a>
-          <div class="flex items-center justify-between py-2">
+          <div id="settings-search-image" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">生图功能</span><br><span class="text-[10px]" style="color:var(--tx3)">AI自动插入场景图片</span></div>
             <div @click="imageGenEnabled=!imageGenEnabled;saveData()"
                  class="toggle-track" :class="imageGenEnabled?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
@@ -8044,10 +8109,11 @@ img[role="button"]:focus-visible {
           <div v-if="connectionProfileModelTestResult.detail" class="text-[10px]" :style="connectionProfileModelTestResult.status==='ok'?'color:var(--ok)':connectionProfileModelTestResult.status==='error'?'color:var(--err)':'color:var(--tx3)'">模型：{{ connectionProfileModelTestResult.detail }}</div>
           <div class="flex gap-2"><button type="button" @click="testConnectionProfileDraft" :disabled="connectionProfileTesting" class="btn-primary flex-1 text-xs py-2">{{ connectionProfileTesting ? '验证中…' : '测试连接' }}</button><button type="button" @click="saveConnectionProfileDraft" :disabled="connectionProfileTesting" :title="connectionProfileTesting ? '正在测试连接，等结果出来再保存' : '保存这份 API 配置（密钥只留在本机）'" class="btn-primary flex-1 text-xs py-2 disabled:opacity-50">保存配置</button></div>
         </div>
+        </div>
       </div>
 
       <!-- 设置底部 -->
-      <div class="px-4 py-2 sticky bottom-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+      <div data-settings-modal-footer class="px-4 py-2 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(8px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <div class="text-[10px] text-center mb-1" style="color:var(--tx3)">所有更改均已自动保存</div>
         <button type="button" data-moyun-modal-close @click="showSettings_modal=false" class="btn-primary w-full min-h-[44px] py-2 text-sm">完成</button>
       </div>
@@ -8433,25 +8499,18 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：已读新手说明的既有用户优先看到此公告，按本轮更新日期显示。 */
 const WEB_UPDATE_ANNOUNCEMENT = Object.freeze({
-  id: 'web-2026-10-22-1022-update',
+  id: 'web-2026-10-24-1024-update',
   badge: '网页更新',
-  title: '1022更新',
-  publishedAt: '2026-10-22',
-  message: '1022 更新：本轮集中完善预设、全局调节、抗截断、记忆库和卷纲交接，并修复移动端显示与写作过程中的稳定性问题。点「我知道了」后，这条不会再弹。',
+  title: '1024更新',
+  publishedAt: '2026-10-24',
+  message: '1024 更新：补充全局设置说明与模块直达，新增全局设置搜索，并优化正文符号和设置窗口显示。点「我知道了」后，这条不会再弹。',
   sections: Object.freeze([
-    Object.freeze({ key:'group-1022', kind:'group', title:'1022 变更', body:'' }),
-    Object.freeze({ key:'preset-compatibility', tone:'new', title:'旧版预设恢复与兼容提示', body:'恢复旧版自定义预设的使用入口，可单独启用、停用和选择作用模块。旧版预设旁会显示“未知兼容性警告，请谨慎使用”，方便你判断是否继续使用；手机窗口和较窄窗口下的勾选项也已重新排版。' }),
-    Object.freeze({ key:'gemini-test', tone:'new', title:'Gemini 测试输入', body:'Gemini 测试输入下方的说明统一为“实验功能”，减少不必要的描述。测试输入会按当前协议发送，和 RPHUB 原版的混淆输入处理保持一致。' }),
-    Object.freeze({ key:'global-controls', tone:'new', title:'全局温度与思考强度', body:'全局设置的“连接中心”下新增温度和思考强度滑块。这里的设置是全局设置，会作用于所有书籍和文本模块；数值会即时显示并自动保存。' }),
-    Object.freeze({ key:'anti-truncation', tone:'new', title:'完整回复与抗截断', body:'写作请求支持完整回复处理：优先使用模型返回的完整内容，遇到 Gemini 的可继续生成状态时按原逻辑续写并合并结果，尽量保留模型输出，不会把正常内容误判为失败。' }),
-    Object.freeze({ key:'memory-chapters', tone:'new', title:'记忆库按章节工作', body:'记忆总结改为阅读最近已经完成的章节，只使用当前书籍、当前分支和当前正文之前的内容，正文事实优先，禁止读取未来章节。记忆写入和读取彼此隔离，避免串书；向量检索失败时会回退到普通章节上下文，不会阻断写作。' }),
-    Object.freeze({ key:'memory-model', tone:'new', title:'向量模型选择', body:'记忆库可以从当前默认全局 API 站点获取可用模型，并手动选择向量模型。选择结果是全局设置，会自动保存；切换书籍、分支或重新打开页面时不会丢失模型名称和已有记录。' }),
-    Object.freeze({ key:'volume-handoff', tone:'new', title:'卷末交接与双卷纲', body:'当章节到达当前卷纲的最后一章时，会额外生成本卷上下文总结。下一卷开始时使用上一卷的交接摘要代替上一卷正文，同时结合更早内容和记忆库继续写作。摘要会同时保留原计划卷纲与实际卷纲，明确记录剧情变化、修正和新增细节。' }),
-    Object.freeze({ key:'outline-summary', tone:'new', title:'卷纲识别与摘要优化', body:'章节摘要会更清楚地标记所属书籍、卷、章节和状态，保存内容改为“章节摘要”和“卷末总结”两类，便于后续提示词准确读取和展示，不再把楼层当作章节。' }),
-    Object.freeze({ key:'writing-controls', tone:'perf', title:'写作与页面细节优化', body:'补充 Token 用量展示和自定义字数设置，优化弹窗、键盘焦点、图片可访问性和响应式布局。电脑端、平板和手机端的设置面板、预设选项与公告内容都支持滚动阅读。' }),
-    Object.freeze({ key:'protocol-compatibility', tone:'perf', title:'协议兼容', body:'本轮整理了 OpenAI、Gemini、Anthropic 等常用协议的参数传递和返回结果处理，尽量保持原有连接方式与书籍数据不变。' }),
+    Object.freeze({ key:'group-1024', kind:'group', title:'1024 变更', body:'' }),
+    Object.freeze({ key:'context-routes', tone:'new', title:'上下文说明与模块直达', body:'补充“全局设置 → 上下文”各模块的用途和配置说明，并增加黄色跳转标签。已检查 11 个模型模块：10 个已接入模块共有 12 个入口；AI总结可直达记忆库，翻译仍为预留。' }),
+    Object.freeze({ key:'settings-search', tone:'new', title:'全局设置搜索', body:'在全局设置栏目上方新增搜索，可按中文、拼音、错字和词序偏差查找，并按匹配程度排列结果。搜索只覆盖全局设置，不包含“关于”。聚焦输入时设置内容会暂时模糊并阻止误触，点击空白或按 Escape 即可恢复。' }),
+    Object.freeze({ key:'settings-and-markdown-fixes', tone:'fix', title:'设置滚动与正文符号显示', body:'修复滚动时标题栏和底栏重叠、上下边框被遮住，以及滑块越出卡片的问题。正文和思维链中的成对波浪线会按原文显示，不影响加粗、行内代码和代码块。' }),
     Object.freeze({ key:'group-howto', kind:'group', title:'怎么用', body:'' }),
-    Object.freeze({ key:'howto', title:'看完就可以继续写', body:'先在“全局设置”里调整温度、思考强度和向量模型；需要使用旧版预设时查看旁边的兼容性提示。记忆库会按已完成章节整理内容，卷末自动生成交接摘要。只有点「我知道了」才会关掉这条公告，之后不会再弹。' })
+    Object.freeze({ key:'howto', title:'快速找到设置', body:'在全局设置栏目上方输入中文或拼音关键词，选择结果即可跳转；黄色模块标签也能直达对应页面。设置内容被模糊时，按 Escape 或点击空白即可恢复。' })
   ]),
   acknowledge: '我知道了'
 });
@@ -14184,6 +14243,9 @@ function copyLastChapterContextText() {
     let _suggestionRunSequence = 0;
     let _activeSuggestionRun = null;
     const showSettings_modal = ref(false);
+    const settingsSearchQuery = ref('');
+    const settingsSearchFocused = ref(false);
+    const settingsSearchActiveIndex = ref(0);
     const showImportExport = ref(false);
     const showNewBook = ref(false);
     const showBookEditor = ref(false);
@@ -14195,7 +14257,12 @@ function copyLastChapterContextText() {
     const isOneKeyCreating = ref(false);
 
     watch(showSettings_modal, isOpen => {
-      if (!isOpen) saveDataNow('关闭设置自动保存');
+      if (!isOpen) {
+        settingsSearchQuery.value = '';
+        settingsSearchFocused.value = false;
+        settingsSearchActiveIndex.value = 0;
+        saveDataNow('关闭设置自动保存');
+      }
     });
 	
     // ═══ 一键开书增强系统 ═══
@@ -16323,17 +16390,17 @@ function copyLastChapterContextText() {
     /* ═══ 模块模型分配（旧版能力整合） ═══ */
     const moduleModelConfig = [
       // v0.0.13 req2：新增 supplement（续写补写）模块，用于二轮补写选择专用模型。
-      { key:'writing', name:'正文生成', desc:'章节正文续写、AI编辑、改标题、生成摘要' },
-      { key:'supplement', name:'续写补写', desc:'二轮字数补充等追加续写请求；跟随正文可命中缓存，指定专用模型则按所选模型调用' },
-      { key:'settings', name:'设定模块', desc:'设定补全、世界观、一键开书设定' },
-      { key:'character', name:'角色模块', desc:'角色生成、标签、台词、关系' },
-      { key:'imagetext', name:'封面/立绘', desc:'封面和角色立绘的标签提取（文本API）' },
-      { key:'outline', name:'大纲模块', desc:'大纲、细纲、一键开书大纲' },
-      { key:'suggestion', name:'预设模块', desc:'预设生成、文风生成、AI建议' },
-      { key:'review', name:'AI书评', desc:'书评团点评' },
-      { key:'summary', name:'AI总结', desc:'章节总结生成' },
-      { key:'comments', name:'AI评论', desc:'模拟读者评论' },
-      { key:'translate', name:'翻译模块', desc:'章节和设定翻译（预留）' }
+      { key:'writing', name:'正文生成', desc:'负责正文续写、重写/润色、章节标题修改和正文任务中的摘要生成；从书架的写作区发起。' },
+      { key:'supplement', name:'续写补写', desc:'首轮正文未达到目标字数时的追加请求，也可用于补齐缺失摘要。默认跟随“正文生成”配置以复用缓存；单独分配后会改用此处选择的模型。' },
+      { key:'settings', name:'设定模块', desc:'生成或补全作品简介、世界观、题材和一键开书中的设定内容；从本书“设定”页面或新建书籍流程发起。' },
+      { key:'character', name:'角色模块', desc:'创建角色卡、补全人物资料、生成角色标签/台词/关系等文本；从“角色”页面发起。' },
+      { key:'imagetext', name:'封面/立绘', desc:'为封面或角色立绘整理、提取和翻译文本关键词；这是文字模型路由，不负责生成图片本身。' },
+      { key:'outline', name:'大纲模块', desc:'生成或修改全书大纲、分卷安排和章节细纲，也用于一键开书的大纲步骤；从“大纲”页面发起。' },
+      { key:'suggestion', name:'预设模块', desc:'生成自定义提示词/文风预设，并为正文写作或设定流程提供 AI 建议；从正文建议入口或“预设”页面发起。' },
+      { key:'review', name:'AI书评', desc:'按书评团人设点评整本作品或当前章节；从书架的正文与章节书评入口发起。' },
+      { key:'summary', name:'AI总结', desc:'整理章节摘要、长篇总结、卷末交接摘要和记忆库逐章总结，供后续章节写作使用；从“总结”页面、记忆库或章节流程发起。' },
+      { key:'comments', name:'AI评论', desc:'生成模拟读者评论，可在章节完成后自动执行；从书架的章节评论区域查看。' },
+      { key:'translate', name:'翻译模块', desc:'预留给章节和设定翻译使用；目前没有已接入的页面入口，因此分配后暂不会由写作流程调用。' }
     ];
 
 
@@ -37411,11 +37478,43 @@ function getModHubPermissionLabels(mod) {
     }
 
     const markdownRenderCache=new Map();let markdownCacheChars=0;
+    function escapeMarkdownStrikeTildes(text) {
+      const source = String(text == null ? '' : text);
+      const parts = source.split(/(\r\n|\n|\r)/);
+      let fenceChar = '', fenceSize = 0, inlineCodeSize = 0;
+      return parts.map((line, partIndex) => {
+        if (partIndex % 2 === 1) return line;
+        if (!inlineCodeSize && fenceChar) {
+          const close = new RegExp('^ {0,3}' + fenceChar + '{' + fenceSize + ',}[ \\t]*$');
+          if (close.test(line)) { fenceChar = ''; fenceSize = 0; }
+          return line;
+        }
+        if (!inlineCodeSize) {
+          const opening = line.match(/^ {0,3}(\x60{3,}|~{3,})/);
+          if (opening) { fenceChar = opening[1][0]; fenceSize = opening[1].length; return line; }
+        }
+        let out = '';
+        for (let i = 0; i < line.length;) {
+          if (line[i] === '\x60') {
+            let end = i + 1;
+            while (line[end] === '\x60') end++;
+            const runSize = end - i;
+            if (!inlineCodeSize) inlineCodeSize = runSize;
+            else if (inlineCodeSize === runSize) inlineCodeSize = 0;
+            out += line.slice(i, end); i = end; continue;
+          }
+          if (!inlineCodeSize && line[i] === '~' && line[i + 1] === '~') { out += '&#126;&#126;'; i += 2; continue; }
+          out += line[i++];
+        }
+        return out;
+      }).join('');
+    }
     function renderMarkdown(text) {
       if (!text) return '';
       const source=String(text);if(markdownRenderCache.has(source))return markdownRenderCache.get(source);
       const processed = stripSnowwingVisiblePromptLeaks(stripThinkingBlocks(String(text)));
-      let html;try {html=marked.parse(processed);}catch{html=processed;}
+      const markdownSafe = escapeMarkdownStrikeTildes(processed);
+      let html;try {html=marked.parse(markdownSafe);}catch{html=markdownSafe;}
       if(source.length<300000){markdownRenderCache.set(source,html);markdownCacheChars+=source.length+html.length;while(markdownRenderCache.size>128||markdownCacheChars>2000000){const first=markdownRenderCache.keys().next().value;markdownCacheChars-=first.length+markdownRenderCache.get(first).length;markdownRenderCache.delete(first);}}
       return html;
     }
@@ -37425,7 +37524,8 @@ function getModHubPermissionLabels(mod) {
       const extracted = extractResponseReasoningBlocks(String(text));
       const source = extracted.thinking || extracted.body;
       const processed = normalizeCotDisplayText(source);
-      try { return marked.parse(processed); } catch { return processed; }
+      const markdownSafe = escapeMarkdownStrikeTildes(processed);
+      try { return marked.parse(markdownSafe); } catch { return markdownSafe; }
     }
 
 
@@ -43427,6 +43527,183 @@ function getWritingModelLabel() {
       {id:'changelog', name:'关于'}
     ];
 
+    const settingsModuleLocations = {
+      writing:[{label:'正文续写',tab:'bookshelf'}],
+      supplement:[{label:'正文补写',tab:'bookshelf'}],
+      settings:[{label:'设定补全',tab:'settings'}],
+      character:[{label:'角色卡',tab:'characters'}],
+      imagetext:[{label:'封面与立绘',tab:'characters'}],
+      outline:[{label:'大纲与细纲',tab:'outline'}],
+      suggestion:[{label:'AI 建议',tab:'bookshelf'},{label:'提示词预设',tab:'presets'}],
+      review:[{label:'章节书评',tab:'bookshelf'}],
+      summary:[{label:'章节总结',tab:'summary'},{label:'记忆库',workbenchSection:'memory'}],
+      comments:[{label:'读者评论',tab:'bookshelf'}],
+      translate:[]
+    };
+    const settingsContextWorkbenchLocations = [
+      {label:'项目总览',workbenchSection:'project'},
+      {label:'世界总览',workbenchSection:'world'},
+      {label:'事件时间线',workbenchSection:'events'},
+      {label:'资料条目',workbenchSection:'entries'},
+      {label:'上下文包',workbenchSection:'context'},
+      {label:'记忆库',workbenchSection:'memory'}
+    ];
+    const settingsSearchCatalog = [
+      {tab:'api',target:'settings-search-api-profiles',title:'连接中心｜API 配置',keywords:'连接 模型 服务商 API 地址 密钥 key 协议 openai gemini claude anthropic lianjie peizhi moxing fuwushang'},
+      {tab:'api',target:'settings-search-global-controls',title:'全局温度与思考强度',keywords:'采样 温度创造性 随机性 推理等级 思考预算 reasoning effort temperature wendu sikao qiangdu quanju'},
+      {tab:'api',target:'settings-search-anti-truncation',title:'Gemini 抗截断',keywords:'output reply 完整回复 工具续写 保留正文 kangjieduan jiemi gemini'},
+      {tab:'context',target:'settings-search-context-intro',title:'上下文设置说明',keywords:'提示 配置说明 模型模块 正文资料 章节历史上下文 shangxiawen'},
+      {tab:'context',target:'settings-search-context-workbench',title:'创作设定工作台与记忆库入口',keywords:'记忆库 逐章总结 项目总览 世界观 时间线 资料条目 上下文包 story bible memory jiyiku'},
+      {tab:'context',target:'settings-search-context-sources',title:'正文参考资料开关',keywords:'最近正文 完整正文 章节摘要 长期总结 细纲 最终校验 正文上下文 zhengwen zhaiyao'},
+      {tab:'context',target:'settings-search-context-full-text',title:'发送最近正文',keywords:'完整正文 最近章节全文 正文上下文 body full text zhengwen quanwen'},
+      {tab:'context',target:'settings-search-context-chapter-summary',title:'发送章节摘要',keywords:'章节摘要 最近章节总结 单章总结 chapter summary zhangjie zhaiyao'},
+      {tab:'context',target:'settings-search-context-range-summary',title:'发送长期总结',keywords:'范围总结 早期章节摘要 长期上下文 range summary changqi zongjie'},
+      {tab:'context',target:'settings-search-context-outline',title:'发送细纲',keywords:'当前章节安排 章节大纲 注入剧情计划 outline detailed outline dagang xigang'},
+      {tab:'context',target:'settings-search-context-final-check',title:'最终校验上下文',keywords:'最终检查 校验角色和剧情设定 final check zhongjian jiaoyan'},
+      {tab:'context',target:'settings-search-auto-timeline',title:'事件时间线自动补录',keywords:'章节 事件 自动提取 时间线 shijian zhuanxie'},
+      {tab:'context',target:'settings-search-compact-mode',title:'省 Token 模式',keywords:'上下文小窗口 限制章节 字数 token compact sheng token'},
+      {tab:'context',target:'settings-search-second-round',title:'二轮补写',keywords:'字数不足 追加续写 再生成 摘要缺少 erlun buxie'},
+      {tab:'context',target:'settings-search-third-round',title:'三轮摘要补写',keywords:'二轮后补摘要 额外模型请求 sanlun zhaiyao'},
+      {tab:'context',target:'settings-search-gemini-input',title:'Gemini 测试输入',keywords:'混淆输入 实验功能 gemini ceshi shuru'},
+      {tab:'context',target:'settings-search-full-chapters',title:'最近正文的章节数',keywords:'发送最近N章 几章全文 全文章数 chapters zhangjie quanwen'},
+      {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 summary zhangshu'},
+      {tab:'context',target:'settings-search-context-limits',title:'上下文截断上限',keywords:'单章正文上限 摘要上限 世界观 角色信息 大纲细纲 字符数 token 截断 xianzhi'},
+      {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 scroll dingwei'},
+      {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 review tuan pinglun'},
+      {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 inline comment suizhengwen'},
+      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 comment count pinglun shuliang'},
+      {tab:'context',target:'settings-search-stream',title:'流式输出',keywords:'关闭流式 非流式 请求方式 stream streaming shuchu'},
+      {tab:'context',target:'settings-search-timeout',title:'首字超时',keywords:'等待 首次输出 无响应 超时秒数 timeout first token shouzi chaoshi'},
+      {tab:'context',target:'settings-search-thinking',title:'显示思维链',keywords:'推理过程 思考过程 deepseek thinking sikao'},
+      {tab:'context',target:'settings-search-token-usage',title:'显示 Token 用量',keywords:'输入 输出 缓存命中 用量 usage shujuliang'},
+      {tab:'context',target:'settings-search-word-count',title:'AI 生成文本的字数参考',keywords:'大纲细纲建议角色目标长度 不影响正文长度 word count zishu'},
+      {tab:'context',target:'settings-search-outline-word-count',title:'大纲字数参考',keywords:'全书大纲生成长度 dagang zishu'},
+      {tab:'context',target:'settings-search-detailed-outline-word-count',title:'细纲字数参考',keywords:'所有章节细纲总长度 按批次平摊 xigang zishu'},
+      {tab:'context',target:'settings-search-suggestion-word-count',title:'建议字数参考',keywords:'AI建议方向长度 suggestion jianyi zishu'},
+      {tab:'context',target:'settings-search-character-word-count',title:'角色资料字数参考',keywords:'人物角色设定长度 character renwu zishu'},
+      {tab:'context',target:'settings-search-outline-range',title:'细纲注入范围',keywords:'前文章数 后文章数 当前章节附近 细纲范围 zhigang注入'},
+      ...moduleModelConfig.map(mod=>({tab:'context',target:'settings-search-route-'+mod.key,title:'模块模型分配｜'+mod.name,keywords:mod.name+' '+mod.desc+' API 模型 路由 分配 连接 luyou fenpei '+(mod.key==='writing'?'zhengwen续写':mod.key==='supplement'?'二轮补写':mod.key==='character'?'角色人物':mod.key==='outline'?'大纲细纲':mod.key==='summary'?'章节总结':mod.key==='imagetext'?'封面立绘':mod.key==='suggestion'?'预设建议':mod.key==='review'?'书评':mod.key==='comments'?'读者评论':'')})),
+      {tab:'editable',target:'settings-search-editable-preview',title:'发送预览',keywords:'查看实际请求内容 prompt system user assistant 编辑来源 自定义楼层 tijian tishi'},
+      {tab:'editable',target:'settings-search-book-edit',title:'书籍设定与世界观',keywords:'书名 简介 负面词 题材 novel 世界观 synopsis shushe'},
+      {tab:'editable',target:'settings-search-suggestion-persona',title:'AI 建议人设',keywords:'建议提示词 生成方向 自定义身份 suggestion persona jianyi renwu'},
+      {tab:'editable',target:'settings-search-editable-prompts',title:'提示词流水线',keywords:'系统提示词 内置提示词 文风 风格 调整 核心规则 system prompt'},
+      {tab:'editable',target:'settings-search-atmosphere',title:'环境氛围增强',keywords:'氛围环境描写加强 atmosphere prompt huanjing fenwei'},
+      {tab:'editable',target:'settings-search-editable-characters',title:'角色可编辑信息',keywords:'角色卡 人物描述 说话风格 台词 关系 角色专属提示词 avatar renwu'},
+      {tab:'editable',target:'settings-search-review-personas',title:'书评人设',keywords:'点评人格 书评团 persona review prompt pinglun renge'},
+      {tab:'mods',target:'settings-search-plugin-manager',title:'插件与 MOD 管理',keywords:'安装 导入 JSON 权限 事件总线 资产包 宿主弹窗 AI工具 工作流 主题 UI 开发者预览 mod plugin'},
+      {tab:'image',target:'settings-search-image',title:'生图设置',keywords:'图片 插图 NAI 服务商 模型 API 图片生成 生图密钥 比例 数量缓存 shengtu image'},
+    ];
+    function normalizeSettingsSearchText(value) {
+      return String(value == null ? '' : value).normalize('NFKC').toLocaleLowerCase().replace(/[\u200b-\u200f\ufeff]/g,'').replace(/[^\u3400-\u9fff\u{20000}-\u{2fa1f}a-z0-9]/gu,'');
+    }
+    function settingsSearchEditDistance(a, b, limit = 1) {
+      const left = Array.from(a), right = Array.from(b);
+      if (Math.abs(left.length - right.length) > limit) return limit + 1;
+      const rows = Array.from({length:left.length + 1}, (_, i) => {
+        const row = new Array(right.length + 1).fill(0); row[0] = i; return row;
+      });
+      for (let j = 0; j <= right.length; j++) rows[0][j] = j;
+      for (let i = 1; i <= left.length; i++) {
+        let rowMin = Infinity;
+        for (let j = 1; j <= right.length; j++) {
+          rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1));
+          if (i > 1 && j > 1 && left[i - 1] === right[j - 2] && left[i - 2] === right[j - 1]) rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+          rowMin = Math.min(rowMin, rows[i][j]);
+        }
+      }
+      return rows[left.length][right.length];
+    }
+    function settingsSearchOrderedScore(query, field) {
+      const wanted = Array.from(query), available = Array.from(field);
+      if (wanted.length < 2) return 0;
+      let cursor = 0, gaps = 0;
+      for (const char of wanted) {
+        const found = available.indexOf(char, cursor);
+        if (found < 0) return 0;
+        gaps += found - cursor; cursor = found + 1;
+      }
+      return 650 - Math.min(80, gaps * 3) - Math.min(35, Math.max(0, available.length - wanted.length) / 8);
+    }
+    function scoreSettingsSearchItem(query, item) {
+      const q = normalizeSettingsSearchText(query);
+      if (!q) return 0;
+      const title = normalizeSettingsSearchText(item.title);
+      const fields = normalizeSettingsSearchText(item.title + ' ' + item.keywords);
+      const queryParts = String(query).trim().split(/[\s,，、/|]+/).map(normalizeSettingsSearchText).filter(Boolean);
+      const queryLength = Array.from(q).length;
+      const shortCjkQuery = queryLength <= 2 && /[\u3400-\u9fff]/u.test(q);
+      if (q === title) return 1200;
+      if (title.startsWith(q)) return 1080 - Math.max(0, title.length - q.length);
+      if (title.includes(q)) return 980 - Math.max(0, title.length - q.length) / 4;
+      if (fields.includes(q)) return 820 - Math.max(0, fields.length - q.length) / 30;
+      if (queryParts.length > 1 && queryParts.every(part => fields.includes(part))) return 760 + Math.min(queryParts.length, 12);
+      const tokens = String(item.title + ' ' + item.keywords).split(/[\s|｜,，/]+/).map(normalizeSettingsSearchText).filter(Boolean);
+      const titleOrderedScore = settingsSearchOrderedScore(q, title);
+      const fieldsOrderedScore = Math.max(0, ...tokens.map(token => settingsSearchOrderedScore(q, token)));
+      if (titleOrderedScore > 0) return titleOrderedScore + 40;
+      if (fieldsOrderedScore > 0) return fieldsOrderedScore;
+      if (!shortCjkQuery && queryLength >= 2 && queryLength <= 16) {
+        const distance = Math.min(...tokens.map(word => word.length >= 2 && word.length <= 32 ? settingsSearchEditDistance(q, word, 1) : 2));
+        if (distance <= 1) return 400 - distance * 70 + Math.min(q.length, 16);
+      }
+      if (q.length >= 2 && Array.from(q).every(char => fields.includes(char))) return 300 + Math.min(q.length, 12);
+      return 0;
+    }
+    const settingsSearchResults = computed(() => {
+      const query = String(settingsSearchQuery.value || '').trim();
+      if (!query) return [];
+      return settingsSearchCatalog.map((item, index) => ({...item,index,score:scoreSettingsSearchItem(query,item)})).filter(item => item.score > 0).sort((a,b) => b.score - a.score || a.index - b.index).slice(0,10);
+    });
+    function resetSettingsSearchResults() { settingsSearchActiveIndex.value = 0; }
+    function moveSettingsSearchSelection(delta) {
+      const count = settingsSearchResults.value.length;
+      if (!count) return;
+      settingsSearchActiveIndex.value = (settingsSearchActiveIndex.value + delta + count) % count;
+      const active = settingsSearchResults.value[settingsSearchActiveIndex.value];
+      if (active) nextTick(() => document.getElementById('settings-search-option-' + active.index)?.scrollIntoView({block:'nearest'}));
+    }
+    function closeSettingsSearch() {
+      settingsSearchFocused.value = false;
+      settingsSearchActiveIndex.value = 0;
+      const input = document.activeElement;
+      if (input?.matches('[data-settings-search-area] input')) input.blur();
+    }
+    function handleSettingsSearchKeydown(event) {
+      if (event.key === 'ArrowDown') { event.preventDefault(); moveSettingsSearchSelection(1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); moveSettingsSearchSelection(-1); }
+      else if (event.key === 'Enter') { event.preventDefault(); const item = settingsSearchResults.value[settingsSearchActiveIndex.value] || settingsSearchResults.value[0]; if (item) navigateToSettingsSearchResult(item); }
+      else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); settingsSearchQuery.value = ''; closeSettingsSearch(); }
+    }
+    function navigateToSettingsSearchResult(item) {
+      if (!item || !settingsTabs.some(tab => tab.id === item.tab && tab.id !== 'changelog')) return;
+      activeSettingsTab.value = item.tab;
+      settingsSearchQuery.value = '';
+      closeSettingsSearch();
+      nextTick(() => requestAnimationFrame(() => {
+        const target = document.getElementById(item.target);
+        const panel = document.querySelector('[data-moyun-modal="settings"] [data-moyun-modal-panel]');
+        if (!target || !panel) return;
+        const panelRect = panel.getBoundingClientRect(), targetRect = target.getBoundingClientRect();
+        const nextTop = panel.scrollTop + targetRect.top - panelRect.top - 78;
+        panel.scrollTo({top:Math.max(0,nextTop),behavior:moyunScrollBehavior()});
+        target.classList.add('settings-search-target-flash');
+        setTimeout(() => target.classList.remove('settings-search-target-flash'), 1100);
+      }));
+    }
+    function navigateToSettingsModuleLocation(locationOrTab) {
+      const location = typeof locationOrTab === 'string' ? {tab:locationOrTab} : locationOrTab;
+      if (location?.workbenchSection) {
+        if (!openStoryBibleWorkbench(location.workbenchSection)) return;
+        showSettings_modal.value = false;
+        return;
+      }
+      if (!sidebarTabs.some(tab => tab.id === location?.tab)) return;
+      showSettings_modal.value = false;
+      if (showStoryBibleWorkbench.value) closeStoryBibleWorkbench();
+      if (showCharacterWorkbench.value) closeCharacterWorkbench();
+      selectSidebarTab(location.tab);
+    }
+
     const imageKeyInfo = ref('');
     const modelConnectionStatus = ref({ type:'idle', text:'' });
 
@@ -46298,7 +46575,8 @@ function getWritingModelLabel() {
       reviews, reviewStatus, reviewPersonas, startBookReview,
 
       // ── Part 6: 设置面板 ──
-      activeSettingsTab, settingsTabs,
+      activeSettingsTab, settingsTabs, settingsSearchQuery, settingsSearchFocused, settingsSearchActiveIndex, settingsSearchResults, settingsModuleLocations, settingsContextWorkbenchLocations,
+      resetSettingsSearchResults, closeSettingsSearch, handleSettingsSearchKeydown, navigateToSettingsSearchResult, navigateToSettingsModuleLocation,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
       getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, getSupplementFollowProfile, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
