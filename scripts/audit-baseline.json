@@ -1,0 +1,41 @@
+{
+  "_说明": "审计基线：现有 localStorage 键、IndexedDB 库名和跨作用域同名函数。只在有意新增时用 node scripts/structure-audit.cjs --write-baseline 重新生成，并核对 git diff。",
+  "localStorage": {
+    "literalKeys": [
+      "'_moyun_keep_next_chapter_prompt'",
+      "'_moyun_mod_floating_positions'",
+      "'_moyun_mod_hub_position'",
+      "'_nw6_emergency_backup'",
+      "'_nw6_library_v5'",
+      "'_nw6_library_v6'",
+      "'_nw6_library_v6_revision'",
+      "'_nw6_models'",
+      "'_nw6_theme'",
+      "'moyunThemeSafeMode'",
+      "'novel_generator_library_v3'",
+      "'novel_generator_library_v5'",
+      "'one_key_auto_retry'"
+    ],
+    "variableKeySites": {
+      "'_moyun_theme_full_access_' + getThemeFullAccessKey(pack": 2,
+      "'_nw6_' + credentialsKey": 1,
+      "'_nw6_' + key": 2,
+      "MOYUN_FIRST_RUN_GUIDE_SEEN_KEY": 2,
+      "WEB_UPDATE_ANNOUNCEMENT_SEEN_KEY": 2,
+      "key": 4,
+      "storageKey": 5
+    },
+    "otherAccess": 1
+  },
+  "indexedDBNames": [
+    "'NovelSnapshotsV6'",
+    "'NovelWriterV6'",
+    "DB_NAME",
+    "dbName"
+  ],
+  "duplicateFunctions": [
+    "2:openDB",
+    "8:done",
+    "8:pump"
+  ]
+}

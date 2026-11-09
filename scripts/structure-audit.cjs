@@ -109,6 +109,10 @@ for (const t of VUE_SCOPED) {
   check('<' + t + '> 开闭一致（' + open + '/' + close + '）', open === close, 'open=' + open + ' close=' + close);
 }
 
+// v0.0.19：追加机器检查（localStorage 键、IndexedDB 库名、同名函数、已删除符号残留），见 scripts/audit-extra.cjs
+console.log('[structure-audit] 追加检查（基线：scripts/audit-baseline.json）');
+require('./audit-extra.cjs').run({ src, check, writeBaseline: process.argv.includes('--write-baseline') });
+
 console.log('');
 if (failed) { console.error('STRUCT AUDIT FAILED: ' + failed + ' 项失败\n  - ' + failures.join('\n  - ')); process.exit(1); }
 console.log('STRUCT AUDIT PASSED: 模板结构无跨层/无配对缺失/关键锚点平衡');

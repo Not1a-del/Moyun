@@ -120,7 +120,7 @@ git diff -- source/moyun.single.html index.html assets/css/moyun.css assets/js/m
 
 ### 依赖与供应链边界
 
-应用通过 CDN 使用 Vue 3 global、Tailwind CSS、Marked、diff-match-patch 与 Google Fonts。它们没有被本仓打包和锁定。维护者改动页面加载方式、离线能力或 CSP 前，应评估：网络不可用、CDN 内容变化、地区网络失败、第三方脚本供应链和字体回退。`LICENSE` 只覆盖 Moyun 原创内容，不替代第三方依赖各自的许可证。
+应用所需的 Vue 3 global、Tailwind CSS 运行时脚本、Marked、diff-match-patch 已固定版本并随仓库保存在 `assets/vendor/`（版本、来源与许可证见 `assets/vendor/README.md`），启动不访问外部 CDN，也不加载 Google Fonts，页面使用系统回退字体。升级依赖时必须同步更新该 README 的版本表与对应许可证文件，并重新运行启动、布局和业务回归。维护者改动页面加载方式、离线能力或 CSP 前，应评估：第三方脚本的供应链与许可证、版本升级后的行为变化，以及 Tailwind 运行时脚本对启动速度的影响。`LICENSE` 只覆盖 Moyun 原创内容，不替代第三方依赖各自的许可证。
 
 ---
 

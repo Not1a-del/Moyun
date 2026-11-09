@@ -7,6 +7,8 @@
     "test:startup": "npm run build && node --test scripts/startup-regression.cjs",
     "build": "node scripts/build-static-site.cjs",
     "audit": "node scripts/structure-audit.cjs",
+    "gate": "node scripts/gate.cjs",
+    "gate:browser": "node scripts/gate.cjs --browser",
     "regress": "node scripts/regression-check.cjs && node scripts/structure-audit.cjs && node scripts/ai-protocol-regression.cjs",
     "test:ai": "node scripts/ai-protocol-regression.cjs",
     "test:browser": "node scripts/ai-browser-smoke.cjs",

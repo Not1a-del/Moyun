@@ -713,7 +713,7 @@ if (process.env.MOYUN_CAPTURE) {
 
   /* T01：16 条常量与冻结文档逐字一致（独立解析 MD，不与生成器共用代码） */
   test('第1刀 T01：16 条内置常量与冻结 Markdown 逐字一致（含 role/默认/锚点/隐藏）', () => {
-    const doc = fs.readFileSync(path.join(root, 'docs/refactor/preset-drafts.md'), 'utf8');
+    const doc = fs.readFileSync(path.join(root, 'docs/refactor/preset-drafts.md'), 'utf8').replace(/\r\n/g, '\n');
     // 独立提取：按 "## " 分节取各条目围栏
     const sectionOf = startRe => {
       const i = doc.search(startRe);

@@ -101,7 +101,7 @@ node output/bug-audit/stage8-finalize-report.cjs
 
 ## 第三方依赖
 
-页面通过 CDN 使用 Vue 3、Tailwind CSS、Marked、diff-match-patch 与 Google Fonts。它们各自适用独立许可证；本仓库的 `LICENSE` 仅适用于墨韵原创内容。
+页面启动所需的 Vue 3、Tailwind CSS 运行时脚本、Marked、diff-match-patch 均已固定版本并随仓库保存在 `assets/vendor/`（版本、来源与许可证见 `assets/vendor/README.md`），启动不访问外部 CDN，也不加载 Google Fonts。它们各自适用独立许可证；本仓库的 `LICENSE` 仅适用于墨韵原创内容。
 
 ## 协议与许可
 

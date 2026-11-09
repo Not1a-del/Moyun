@@ -85,7 +85,7 @@ Moyun 是本地优先的纯前端长篇小说写作工作台。书籍、章节�
 
 ## 关键运行结构
 
-- Vue 3 通过 CDN 加载，应用逻辑集中在单文件源的内联脚本中。
+- Vue 3 从 `assets/vendor/vue.global.js` 本地加载，应用逻辑集中在单文件源的内联脚本中。
 - `novel.value` 保存当前书籍，`novelVolumes` 保存卷纲，`activeVolumeEditor` 控制卷纲放大编辑。
 - 生成正文、大纲、细纲、评论和工作台补充时，会通过上下文构建逻辑注入设定、资料、事件和卷纲边界。
 - `toggleNovelVolumeCollapsed` 管理卷纲全局/单项折叠；v0.0.7 修复了全局收起后单项展开。
