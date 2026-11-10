@@ -41,10 +41,12 @@ console.log('[structure-audit] 模板区 ' + tpl.length + ' 字符');
 // ── 1. 标签平衡（严格栈） ──
 const stack = [];
 const balanceIssues = [];
+const selfClosedComponents = [];
 let m;
 tagRe.lastIndex = 0;
 while ((m = tagRe.exec(tpl)) !== null) {
   const close = m[1] === '/', name = m[2].toLowerCase(), self = m[4] === '/' || VOID.has(name);
+  if (!close && m[4] === '/' && name.includes('-')) selfClosedComponents.push(name + ' @off' + m.index);
   if (close) {
     if (stack.length && stack[stack.length - 1].tag === name) { stack.pop(); continue; }
     let idx = -1;
@@ -59,6 +61,8 @@ while ((m = tagRe.exec(tpl)) !== null) {
 }
 if (stack.length) balanceIssues.push('EOF 未闭合残留: ' + stack.map(s => '<' + s.tag + ' @off' + s.off + '>').join(', '));
 check('标签平衡（跨层/多余/残留 = 0）', balanceIssues.length === 0, balanceIssues.slice(0, 3).join(' ; '));
+// 浏览器先按 HTML 解析 DOM 模板，自闭合组件会吞掉其后的弹窗。
+check('DOM 模板自定义组件显式闭合', selfClosedComponents.length === 0, selfClosedComponents.join(' ; '));
 
 // ── 2. v-else / v-else-if 配对 ──
 const root = { tag: 'ROOT', kids: [], parent: null, vif: true, velseif: false, velse: false };

@@ -1,0 +1,30 @@
+{
+  "id": "v19-fixture-A",
+  "title": "空白新书",
+  "lastModified": 1792800000000,
+  "wordCount": 0,
+  "novel": {
+    "title": "空白新书",
+    "theme": "",
+    "synopsis": "",
+    "worldView": "",
+    "outline": "",
+    "negativePrompt": "",
+    "isAdultMode": false
+  },
+  "chapters": [],
+  "characters": [],
+  "chapterOutlines": [],
+  "chapterIndexDrafts": [],
+  "foreshadowMatrix": [],
+  "summaries": [],
+  "branchList": [
+    {
+      "id": "main",
+      "name": "主线",
+      "forkFromChapterId": null,
+      "forkIndex": 0
+    }
+  ],
+  "activeBranchId": "main"
+}

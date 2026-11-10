@@ -92,7 +92,7 @@ else {
   let novel = { value: { volumes: volumes() } };
   const novelVolumes = { get value() { return novel.value.volumes; } };
   let saved = 0;
-  const fn = new Function('novel', 'novelVolumes', 'saveData', 'return (' + avuText + ');')(novel, novelVolumes, () => { saved++; });
+  const fn = new Function('novel', 'novelVolumes', 'saveData', 'markVolumePlanStale', 'return (' + avuText + ');')(novel, novelVolumes, () => { saved++; }, () => {});
   // 新格式：卷头 + 逐章行
   const aiNew = '【卷纲更新】\n第1卷｜卷名：风云起｜章节 1-3｜框架摘要：少年入宗\n第1章：主角进山\n第2章：初见师姐\n第3章：夜袭\n第2卷｜卷名：暗流涌｜章节 4-6｜框架摘要：暗线展开\n第4章：密信\n第5章：破庙对峙\n第6章：断桥抉择\n## 核心卖点\n- 测试';
   fn(aiNew);
@@ -103,12 +103,12 @@ else {
   check('新格式：摘要含框架摘要行', v1.summary.startsWith('少年入宗'), v1.summary.slice(0, 20));
   // 旧格式兼容
   novel = { value: { volumes: volumes() } };
-  const fn2 = new Function('novel', 'novelVolumes', 'saveData', 'return (' + avuText + ');')(novel, novelVolumes, () => {});
+  const fn2 = new Function('novel', 'novelVolumes', 'saveData', 'markVolumePlanStale', 'return (' + avuText + ');')(novel, novelVolumes, () => {}, () => {});
   fn2('【卷纲更新】\n第1卷｜卷名：新卷名｜章节 1-3｜框架摘要：全新摘要\n## 核心卖点');
   check('旧格式兼容：仅回填摘要', novel.value.volumes[0].summary === '全新摘要', novel.value.volumes[0].summary);
   // 超量卷行被忽略
   novel = { value: { volumes: volumes() } };
-  const fn3 = new Function('novel', 'novelVolumes', 'saveData', 'return (' + avuText + ');')(novel, novelVolumes, () => {});
+  const fn3 = new Function('novel', 'novelVolumes', 'saveData', 'markVolumePlanStale', 'return (' + avuText + ');')(novel, novelVolumes, () => {}, () => {});
   const changed9 = fn3('【卷纲更新】\n第9卷｜卷名：臆造卷｜章节 1-2｜框架摘要：不存在');
   check('臆造卷行被忽略', changed9 === 0 && novel.value.volumes[0].title === '第一卷', 'changed=' + changed9);
 }

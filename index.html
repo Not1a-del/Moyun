@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=66c7dee7abea">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=f44f397344db">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -296,6 +296,52 @@
                   :style="narrativePerson==='third'?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-card);color:var(--tx3);border-color:var(--bd)'">第三人称</button>
           <button type="button" @click="setNarrativePerson('first')" class="text-[10px] px-3 py-1.5 rounded-lg font-bold border"
                   :style="narrativePerson==='first'?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-card);color:var(--tx3);border-color:var(--bd)'">第一人称</button>
+        </div>
+      </div>
+
+      <!-- v0.0.19 项目6：设定修改候选先进入审阅，只有明确应用后才写回。 -->
+      <section class="card p-3 space-y-2" data-moyun-settings-revision>
+        <div class="flex items-start justify-between gap-2">
+          <div><div class="text-sm font-bold" style="color:var(--tx)">设定修改</div><div class="text-[10px] mt-1" style="color:var(--tx3)">先看改动，再决定是否应用；已写好的正文不会自动跟着改。</div></div>
+          <span class="text-[10px] px-2 py-1 rounded-full shrink-0" style="background:var(--accent-soft);color:var(--accent)">{{ settingsRevisionScopeSummary }}</span>
+        </div>
+        <button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="settingsRevisionScopeOpen=!settingsRevisionScopeOpen" :aria-expanded="settingsRevisionScopeOpen">{{ settingsRevisionScopeOpen ? '收起范围' : '选择修改范围 · ' + settingsRevisionScopeSummary }}</button>
+        <div v-if="settingsRevisionScopeOpen" class="space-y-2 p-2 rounded-lg" style="background:var(--bg-inset)">
+          <details v-for="group in [{id:'book',label:'书籍设定'},{id:'project',label:'故事设定'},{id:'entries',label:'资料条目'},{id:'events',label:'事件时间线'}]" :key="group.id" :open="!isMobile" class="rounded-lg p-2" style="background:var(--bg-card);border:1px solid var(--bd)">
+            <summary class="flex items-center justify-between gap-2 text-[10px] font-bold cursor-pointer" style="color:var(--tx)"><span>{{ group.label }}</span><span style="color:var(--tx3)">{{ getSettingsRevisionGroupState(group.id).selected }}/{{ getSettingsRevisionGroupState(group.id).total }} 项 · {{ getSettingsRevisionGroupState(group.id).indeterminate ? '部分选择' : getSettingsRevisionGroupState(group.id).checked ? '全选' : '未选择' }}</span></summary>
+            <button type="button" class="btn-ghost text-[9px] px-2 py-1 mt-1" @click="toggleSettingsRevisionGroup(group.id)" :aria-checked="getSettingsRevisionGroupState(group.id).indeterminate?'mixed':getSettingsRevisionGroupState(group.id).checked">{{ getSettingsRevisionGroupState(group.id).checked ? '取消本组' : '全选本组' }}</button>
+            <label v-for="item in settingsRevisionTargets.filter(row=>row.group===group.id)" :key="item.id" class="flex items-start gap-2 mt-1.5 text-[10px] cursor-pointer" style="color:var(--tx2)">
+              <input type="checkbox" :checked="isSettingsRevisionTargetSelected(item.id)" @change="toggleSettingsRevisionTarget(item.id)" class="mt-0.5 shrink-0"><span class="min-w-0 break-words">{{ item.label }}</span>
+            </label>
+            <div v-if="!getSettingsRevisionGroupState(group.id).total" class="text-[9px] mt-1" style="color:var(--tx4)">暂无可选内容</div>
+          </details>
+          <div class="text-[9px] leading-relaxed" style="color:var(--tx4)">本期不改角色卡，角色修改仍使用角色自己的逐字段审阅。</div>
+        </div>
+        <textarea v-model="settingsRevisionPrompt" rows="3" class="textarea-field text-xs" placeholder="写下希望怎么调整，例如：把世界观里的力量来源统一改成潮汐，不要改动事件时间线。"></textarea>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div v-if="settingsRevisionRequestReason" class="text-[10px]" style="color:var(--warn)" role="status">{{ settingsRevisionRequestReason }}</div>
+          <button type="button" @click="generateSettingsRevision" :disabled="settingsRevisionBusy||!!settingsRevisionRequestReason" :title="settingsRevisionRequestReason||'生成修改建议，不会直接改动设定'" class="btn-primary min-h-[44px] px-4 text-xs sm:ml-auto" :style="settingsRevisionBusy||settingsRevisionRequestReason?'opacity:.55':''">{{ settingsRevisionBusy ? '正在整理建议…' : '生成修改建议' }}</button>
+        </div>
+        <div v-if="settingsRevisionState.error" class="text-[10px] p-2 rounded" style="background:var(--warn-soft);color:var(--warn)" role="status">{{ settingsRevisionState.error }}</div>
+        <button v-if="settingsRevisionState.rows.length&&settingsRevisionState.status==='deferred'" type="button" class="btn-ghost min-h-[44px] px-3 text-xs" @click="settingsRevisionState.status='review'">继续审阅（{{ settingsRevisionState.rows.length }} 条）</button>
+      </section>
+
+      <div v-if="settingsRevisionState.status==='review'||settingsRevisionState.status==='applied'" data-moyun-modal="settings-revision" role="dialog" aria-modal="true" aria-label="设定修改审阅" class="fixed inset-0 z-[92] flex items-end md:items-center justify-center p-0 md:p-4" style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom,0px))">
+        <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-3xl flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl" style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(90dvh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom,0px)))">
+          <div class="px-4 py-3 flex items-center justify-between gap-2 shrink-0" style="border-bottom:1px solid var(--bd)"><div><h3 class="text-sm font-bold" style="color:var(--tx)">设定修改审阅</h3><p class="text-[10px] mt-1" style="color:var(--tx3)">黄色项目需要确认位置；红色为原文，绿色为建议。</p></div><button type="button" data-moyun-modal-close class="btn-ghost min-h-[44px] px-3" @click="deferSettingsRevision">稍后审阅</button></div>
+          <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+            <button v-if="settingsRevisionState.focusedRowId" type="button" class="btn-ghost min-h-[44px] px-3 text-xs" @click="focusSettingsRevision(null,'')">返回全部建议</button>
+            <div v-for="row in settingsRevisionState.rows.filter(item=>!settingsRevisionState.focusedRowId||item.id===settingsRevisionState.focusedRowId)" :key="row.id" class="rounded-xl p-3 space-y-2" :style="row.issue&&!['已应用','已拒绝'].includes(row.issue)?'background:var(--warn-soft);border:1px solid var(--warn)':'background:var(--bg-inset);border:1px solid var(--bd)'">
+              <div class="flex items-start gap-2"><input type="checkbox" :checked="row.selected" :disabled="!row.canApply" @change="toggleSettingsRevisionReviewRow(row)" class="mt-1 shrink-0" :aria-label="'选择应用：'+row.label"><div class="min-w-0 flex-1"><div class="text-xs font-bold break-words" style="color:var(--tx)">{{ row.label }}</div><div class="text-[10px] mt-1 break-words" style="color:var(--tx3)">理由：{{ row.reason || '未说明' }}</div></div><span v-if="row.issue" class="text-[9px] font-bold shrink-0" style="color:var(--warn)">{{ row.issue }}</span><span v-else-if="row.locationMode==='near'||row.locationMode==='fuzzy'" class="text-[9px] font-bold shrink-0" style="color:var(--warn)">近似定位，请确认</span><span v-else-if="row.replaceWhole" class="text-[9px] font-bold shrink-0" style="color:var(--warn)">整条替换需确认</span></div>
+              <review-panel :state="row.review" :title="row.label" :show-toolbar="false" @accept="id=>requestApplySettingsRevision(false,row,id)" @reject="id=>rejectSettingsRevision(row,id)" @select="(id,selected)=>selectSettingsRevisionChange(row,id,selected)" @focus="id=>focusSettingsRevision(row,id)"></review-panel>
+              <div class="flex flex-wrap justify-end gap-2"><button type="button" @click="requestApplySettingsRevision(false,row)" :disabled="!row.canApply" class="btn-ghost min-h-[44px] px-3 text-[10px]" :style="!row.canApply?'opacity:.45':''">应用这一条</button><button type="button" @click="rejectSettingsRevision(row)" :disabled="!row.canApply" class="btn-ghost min-h-[44px] px-3 text-[10px]">拒绝这一条</button></div>
+            </div>
+            <div v-if="!settingsRevisionState.rows.length" class="text-center py-8 text-xs" style="color:var(--tx3)">没有可审阅的修改；原设定没有变化。</div>
+          </div>
+          <div class="px-3 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0" style="border-top:1px solid var(--bd)">
+            <div class="flex flex-wrap gap-2"><button type="button" @click="requestApplySettingsRevision(false)" class="btn-ghost min-h-[44px] px-3 text-[10px]">全部应用</button><button type="button" @click="requestApplySettingsRevision(true)" class="btn-primary min-h-[44px] px-3 text-[10px]">应用所选（{{ settingsRevisionState.rows.filter(row=>row.selected&&row.canApply).length }}/{{ settingsRevisionState.rows.length }}）</button><button type="button" @click="rejectSettingsRevision()" class="btn-ghost min-h-[44px] px-3 text-[10px]">全部拒绝</button><button v-if="canUndoSettingsRevision" type="button" @click="undoSettingsRevision" class="btn-ghost min-h-[44px] px-3 text-[10px]">↶ 撤销本次修改</button></div>
+            <button type="button" @click="abandonSettingsRevision" class="btn-ghost min-h-[44px] px-3 text-[10px]">放弃</button>
+          </div>
         </div>
       </div>
 
@@ -856,7 +902,7 @@
       </div>
 
       <div class="flex-1 overflow-y-auto space-y-2">
-        <div v-for="sum in summaries" :key="sum.id" class="card overflow-hidden">
+        <div v-for="sum in visibleSummaries" :key="sum.id" class="card overflow-hidden">
           <div @click="sum.isExpanded=!sum.isExpanded" class="p-3 flex justify-between items-center cursor-pointer">
             <span class="text-sm font-bold" style="color:var(--tx)">{{ sum.kind==='volume-handoff' ? (sum.volumeTitle || '卷末交接') : sum.startChapter+'-'+sum.endChapter+'章总结' }}</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s"
@@ -878,7 +924,7 @@
             </div>
           </div>
         </div>
-        <div v-if="summaries.length===0" class="text-center py-10 text-xs" style="color:var(--tx3)">暂无总结</div>
+        <div v-if="visibleSummaries.length===0" class="text-center py-10 text-xs" style="color:var(--tx3)">暂无总结</div>
       </div>
     </div>
 
@@ -1786,14 +1832,12 @@
 
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
-        <h2 class="moyun-wb-title">故事大纲</h2>
+        <h2 class="moyun-wb-title">故事大纲</h2><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'大纲')">⑂ {{ currentBranchName }} ▾</button>
         <div class="moyun-wb-subtitle">结构化总纲、修订审阅和拆细纲前检查</div>
       </div>
       <div class="moyun-wb-header-actions">
         <span v-if="outlineLastRequest" class="moyun-wb-pill">{{ formatOutlineRequestSummary(outlineLastRequest) }}</span>
         <template v-if="outlineRevisions.length>0">
-          <button @click="requestAcceptAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--ok-soft);color:var(--ok)" title="接受全部改动；含删除时会先确认">全部接受</button>
-          <button @click="rejectAllRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--err-soft);color:var(--err)" title="丢弃 AI 本次全部改动，保留原大纲">全部拒绝</button>
           <!-- 中文注释：原来审阅期只有全接受/全拒绝两条出路，关闭按钮被顶掉，用户会被卡在审阅态。 -->
           <button @click="deferOutlineRevisions" class="text-[11px] px-3 py-1 rounded-md font-bold" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" title="先退出面板，修订原样保留，重开可继续审阅">稍后审阅</button>
         </template>
@@ -1804,35 +1848,14 @@
         </button>
       </div>
       </div>
-    <div class="moyun-wb-scroll" @click="selectedRevId=''">
+    <div class="moyun-wb-scroll">
       <div class="moyun-outline-grid">
         <section class="moyun-wb-editor">
           <div class="moyun-wb-editor-head">
             <span class="moyun-wb-editor-title">{{ outlineRevisions.length>0 ? '修订审阅' : '总纲文本' }}</span>
             <span class="moyun-wb-editor-meta">{{ outlineRevisions.length>0 ? '逐项接受或拒绝' : '更改自动保存' }}</span>
           </div>
-          <!-- Diff修订模式 -->
-          <div v-if="outlineRevisions.length>0" class="flex-1 overflow-y-auto p-4 whitespace-pre-wrap text-base leading-loose" style="color:var(--tx2)">
-            <template v-for="rev in outlineRevisions" :key="rev.id">
-              <span v-if="rev.type===0">{{ rev.text }}</span>
-              <span v-else-if="rev.type===-1&&rev.status==='pending'" @click.stop="selectedRevId=rev.id" class="diff-del cursor-pointer relative">{{ rev.text }}
-                <span v-if="selectedRevId===rev.id" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 p-1 rounded-lg z-50 whitespace-nowrap" style="background:var(--bg-card);box-shadow:var(--sh3);border:1px solid var(--bd)">
-                  <button @click.stop="acceptRev(rev)" class="text-[11px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)">接受</button>
-                  <button @click.stop="rejectRev(rev)" class="text-[11px] px-2 py-1 rounded font-bold" style="background:var(--err-soft);color:var(--err)">拒绝</button>
-                </span>
-              </span>
-              <span v-else-if="rev.type===1&&rev.status==='pending'" @click.stop="selectedRevId=rev.id" class="diff-ins cursor-pointer relative">{{ rev.text }}
-                <span v-if="selectedRevId===rev.id" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 p-1 rounded-lg z-50 whitespace-nowrap" style="background:var(--bg-card);box-shadow:var(--sh3);border:1px solid var(--bd)">
-                  <button @click.stop="acceptRev(rev)" class="text-[11px] px-2 py-1 rounded font-bold" style="background:var(--ok-soft);color:var(--ok)">接受</button>
-                  <button @click.stop="rejectRev(rev)" class="text-[11px] px-2 py-1 rounded font-bold" style="background:var(--err-soft);color:var(--err)">拒绝</button>
-                </span>
-              </span>
-              <span v-else-if="rev.type===-1&&rev.status==='accepted'" class="hidden"></span>
-              <span v-else-if="rev.type===-1&&rev.status==='rejected'">{{ rev.text }}</span>
-              <span v-else-if="rev.type===1&&rev.status==='accepted'">{{ rev.text }}</span>
-              <span v-else-if="rev.type===1&&rev.status==='rejected'" class="hidden"></span>
-            </template>
-          </div>
+          <review-panel v-if="outlineRevisions.length>0" :state="outlineReview" title="大纲修订" class="flex-1 overflow-y-auto p-3" @apply="requestOutlineReviewApply" @discard="rejectAllRevisions" @undo="undoOutlineRevisionApply" @accept="acceptRev" @reject="rejectRev" @select="selectOutlineReview" @focus="focusOutlineReview"></review-panel>
           <!-- 普通编辑模式 -->
           <div v-if="isGeneratingOutline && outlineStreamPreview" class="moyun-outline-stream-preview" role="status" aria-live="polite"><div class="text-[10px] font-bold mb-1" style="color:var(--info)">正在流式生成大纲…</div><div class="whitespace-pre-wrap">{{ outlineStreamPreview }}</div></div>
           <!-- v0.0.11 修复3：细纲流式文字现在按章节标题直接落进下方各章卡片，这里只保留批进度提示，不再整段重复粘贴原文。 -->
@@ -1849,12 +1872,13 @@
             <div v-if="!novelVolumes.length" class="text-[10px]" style="color:var(--tx4)">尚未建立卷纲；生成大纲时会自动建立“第一卷”作为默认边界。</div>
             <div v-else class="moyun-volume-list">
               <div v-for="(vol,vi) in novelVolumes" :key="vol.id" class="moyun-volume-card p-2 mb-2 rounded-lg" :class="{'is-collapsed':isNovelVolumeCollapsed(vol)}" style="background:var(--bg-card);border:1px solid var(--bd)">
+                <div class="flex flex-wrap gap-1 mb-1"><button v-if="getStaleMark('卷',vol.id)" type="button" class="btn-ghost text-[10px] px-2 py-1" style="background:var(--warn-soft);color:var(--warn)" @click="acknowledgeStaleMark(getStaleMark('卷',vol.id))">待核对</button><button v-if="getStaleMark('卷末交接',vol.id)" type="button" class="btn-ghost text-[10px] px-2 py-1" style="background:var(--warn-soft);color:var(--warn)" @click="acknowledgeStaleMark(getStaleMark('卷末交接',vol.id))">卷末交接已过期</button></div>
                 <div class="flex items-center gap-2"><button type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="toggleNovelVolumeCollapsed(vol)" :aria-expanded="String(!isNovelVolumeCollapsed(vol))" :aria-label="(isNovelVolumeCollapsed(vol)?'展开':'收起')+vol.title">{{ isNovelVolumeCollapsed(vol) ? '展开' : '收起' }}</button><strong class="text-[11px] truncate">{{ vol.title }}</strong><input v-model="vol.title" @change="saveData()" class="input-field text-[10px] flex-1 min-w-0" aria-label="卷标题"><button type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="removeNovelVolume(vi)" style="color:var(--err)">删除</button></div>
                 <div v-show="!isNovelVolumeCollapsed(vol)" class="moyun-volume-summary flex items-center gap-2 min-w-0 mt-1 text-[10px]"><span>章节</span><input type="number" v-model.number="vol.startChapter" min="1" class="input-field" style="width:58px"><span>至</span><input type="number" v-model.number="vol.endChapter" min="1" class="input-field" style="width:58px"><button type="button" class="input-field flex-1 min-w-0 text-left truncate" @click="openVolumeEditor(vol)" :aria-label="'放大编辑'+vol.title+'框架摘要'" title="点击放大编辑卷纲摘要">{{ vol.summary || '点击填写/放大卷纲摘要' }}</button><button v-if="getVolumeHandoff(vol, activeBranchId)" type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="openSummaryTabForVolume(vol)" title="查看卷末交接总结">已交接</button><button v-else type="button" class="btn-ghost text-[10px] px-2 py-1 shrink-0" @click="regenerateVolumeHandoff(vol)" title="按本卷正文生成上下文交接">生成交接</button></div>
               </div>
             </div>
           </div>
-          <div v-if="activeVolumeEditor" class="moyun-volume-editor flex-1 flex flex-col gap-3 p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="flex items-center justify-between gap-2"><div><div class="text-sm font-black" style="color:var(--tx)">编辑{{ activeVolumeEditor.title }}</div><div class="text-[10px]" style="color:var(--tx3)">收起后返回大纲文本；修改会自动保存。</div></div><button type="button" class="btn-ghost text-xs px-3 py-2" @click="closeVolumeEditor">收起卷纲</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-2"><label class="text-xs" style="color:var(--tx2)">卷名<input :value="activeVolumeEditor.title" @input="updateVolumeField(activeVolumeEditor,'title',$event.target.value)" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">起始章<input type="number" :value="activeVolumeEditor.startChapter" @change="updateVolumeField(activeVolumeEditor,'startChapter',$event.target.value)" min="1" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">结束章<input type="number" :value="activeVolumeEditor.endChapter" @change="updateVolumeField(activeVolumeEditor,'endChapter',$event.target.value)" min="1" class="input-field mt-1"></label></div><textarea :value="activeVolumeEditor.summary" @input="updateVolumeField(activeVolumeEditor,'summary',$event.target.value)" class="textarea-field flex-1 text-sm" placeholder="填写本卷框架摘要…" aria-label="卷纲框架摘要"></textarea></div>
+          <div v-if="activeVolumeEditor" class="moyun-volume-editor flex-1 flex flex-col gap-3 p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)"><div class="flex items-center justify-between gap-2"><div><div class="text-sm font-black" style="color:var(--tx)">编辑{{ activeVolumeEditor.title }}</div><div class="text-[10px]" style="color:var(--tx3)">收起后返回大纲文本；修改会自动保存。</div></div><button type="button" class="btn-ghost text-xs px-3 py-2" @click="closeVolumeEditor">收起卷纲</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-2"><label class="text-xs" style="color:var(--tx2)">卷名<input :value="activeVolumeEditor.title" @input="updateVolumeField(activeVolumeEditor,'title',$event.target.value)" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">起始章<input type="number" :value="activeVolumeEditor.startChapter" @change="updateVolumeField(activeVolumeEditor,'startChapter',$event.target.value)" min="1" class="input-field mt-1"></label><label class="text-xs" style="color:var(--tx2)">结束章<input type="number" :value="activeVolumeEditor.endChapter" @change="updateVolumeField(activeVolumeEditor,'endChapter',$event.target.value)" min="1" class="input-field mt-1"></label></div><textarea :value="activeVolumeEditor.summary" @input="updateVolumeField(activeVolumeEditor,'summary',$event.target.value)" class="textarea-field text-sm" rows="4" placeholder="填写本卷框架摘要…" aria-label="卷纲框架摘要"></textarea><textarea :value="activeVolumeEditor.writingRequirement" @input="updateVolumeField(activeVolumeEditor,'writingRequirement',$event.target.value)" class="textarea-field text-sm" rows="3" placeholder="填写本卷写作内容要求…" aria-label="本卷写作内容要求"></textarea><textarea :value="activeVolumeEditor.bridge" @input="updateVolumeField(activeVolumeEditor,'bridge',$event.target.value)" class="textarea-field text-sm" rows="3" placeholder="填写本卷结尾衔接点…" aria-label="本卷结尾衔接点"></textarea></div>
           <div v-if="novelVolumes.length && !activeVolumeEditor && !novelVolumesBoardMinimized" class="flex flex-wrap gap-2 mb-2"><button v-for="vol in novelVolumes" :key="'edit-'+vol.id" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="openVolumeEditor(vol)">放大编辑{{ vol.title }}</button></div>
           <textarea v-if="!activeVolumeEditor" v-model="novel.outline" @change="saveData()" data-story-target="outline"
                     placeholder="在此编写大纲，或在下方用 AI 生成..."
@@ -1887,6 +1911,18 @@
                   class="btn-ghost text-xs py-2 px-3 w-full">
             查看细纲工作台
           </button>
+          <div class="mt-2 space-y-2">
+            <label class="flex items-start gap-2 text-xs p-2 rounded-lg" style="background:var(--bg-inset);color:var(--tx2)">
+              <input type="checkbox" v-model="unfinishedModeToggle" :disabled="!canToggleUnfinishedMode && !unfinishedModeToggle" class="mt-0.5">
+              <span><strong>未完模式</strong><br><span class="text-[10px]" style="color:var(--tx3)">{{ canToggleUnfinishedMode ? '只规划这一段，禁止写结局。' : unfinishedModeDisabledReason }}</span></span>
+            </label>
+            <button v-if="unfinishedModeToggle" type="button" class="btn-ghost text-xs py-2 px-3 w-full" @click="continueUnfinishedPlanning">继续规划下一段</button>
+            <button v-if="unfinishedModeToggle" type="button" class="btn-ghost text-xs py-2 px-3 w-full" @click="markUnfinishedPlanComplete">标记为已写到结局</button>
+            <button v-if="chapterOutlines.some(item => String(item.content || '').trim())" type="button" class="btn-ghost text-xs py-2 px-3 w-full" @click="reverseOutlineFromDetails()">由细纲反推大纲</button>
+            <div v-if="reverseOutlineState.message" class="moyun-action-status" role="status"><span>{{ reverseOutlineState.message }}</span><button v-if="reverseOutlineState.status==='running'" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="stopReverseOutlineFromDetails">停止</button></div>
+            <div v-if="novel.outlineImpact" class="moyun-action-status flex-col items-start" role="status"><span>影响 {{ novel.outlineImpact.volumes }} 卷 / {{ novel.outlineImpact.chapters }} 章细纲，已标记待核对。</span><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="replanEmptyOutlinesAfterOutlineReview">按新大纲重排细纲（只补空白）</button></div>
+            <pre v-if="reverseOutlineState.raw" class="mt-2 text-[10px] leading-relaxed whitespace-pre-wrap break-words max-h-[180px] overflow-auto p-2 rounded-lg" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ reverseOutlineState.raw }}</pre>
+          </div>
         </aside>
       </div>
     </div>
@@ -1934,15 +1970,14 @@
       data-moyun-workbench="detailed-outline"
       class="moyun-workbench flex flex-col h-full shrink-0 z-10"
       :style="splitScreen
-        ? 'width:50%;border-right:1px solid var(--bd)'
+        ? 'width:'+(settings.detailedOutlineWidth || 60)+'%;border-right:1px solid var(--bd);background:var(--bg-card)'
         : isMobile
-          ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%'
-          : 'width:100%;position:absolute;inset:0'"
-      style="background:var(--bg-card)">
+          ? 'width:100%;position:absolute;top:0;left:0;right:0;bottom:0;height:100%;background:var(--bg-card)'
+          : 'width:100%;position:absolute;inset:0;background:var(--bg-card)'">
 
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
-        <h2 class="moyun-wb-title">细纲详情</h2>
+        <h2 class="moyun-wb-title">细纲详情</h2><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'细纲')">⑂ {{ currentBranchName }} ▾</button>
         <div class="moyun-wb-subtitle">分批生成、逐章检查、失败重试和正文前打磨</div>
       </div>
       <div class="moyun-wb-header-actions">
@@ -1973,6 +2008,11 @@
       <label class="moyun-do-only-empty flex items-center gap-1 text-[10px]" style="color:var(--tx3)">
         <input type="checkbox" v-model="settings.detailedOutlineOnlyEmpty" @change="saveData()">只补空白
       </label>
+      <label class="flex items-start gap-1 text-[10px]" style="color:var(--tx3)" title="已有大纲或细纲时不能切换">
+        <input type="checkbox" v-model="unfinishedModeToggle" :disabled="!canToggleUnfinishedMode && !unfinishedModeToggle" class="mt-0.5">
+        <span><strong>未完模式</strong><span v-if="!canToggleUnfinishedMode">：{{ unfinishedModeDisabledReason }}</span><span v-else>：只规划一段，禁止写结局</span></span>
+      </label>
+      <button v-if="unfinishedModeToggle" type="button" class="btn-ghost text-[10px] px-2 py-1" @click="continueUnfinishedPlanning">继续规划下一段</button>
       <!-- 中文注释：短屏会隐藏上面那个勾选框，但设置照旧生效。覆盖模式必须有一个短屏也看得见的标记。 -->
       <button v-if="settings.detailedOutlineOnlyEmpty === false" type="button"
               @click="settings.detailedOutlineOnlyEmpty = true; saveData(); showToast('已改回「只补空白」，已有细纲不会被覆盖', 'success')"
@@ -1981,6 +2021,7 @@
       <div class="moyun-wb-mode-tabs ml-auto" data-moyun-mode-tabs="detailed-outline-view">
         <button @click="detailedOutlineViewMode='all'" :class="{active:detailedOutlineViewMode==='all'}">全部</button>
         <button @click="detailedOutlineViewMode='issues'" :class="{active:detailedOutlineViewMode==='issues'}">只看问题</button>
+        <button @click="detailedOutlineViewMode='reading'" :class="{active:detailedOutlineViewMode==='reading'}">阅读</button>
       </div>
       <span class="moyun-do-range-hint text-[10px] w-full md:w-auto" style="color:var(--tx3)">生成时按批次写入，失败章节可重试。细纲里写的字数不生效，正文长度只看写作页的目标字数。</span>
     </div>
@@ -2081,7 +2122,7 @@
           </div>
         </div>
 
-        <div v-if="longformWorkbenchView==='foreshadow'" class="space-y-2">
+        <div v-if="longformWorkbenchView==='foreshadow'" class="space-y-2"><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'暗线')">⑂ {{ currentBranchName }} ▾</button>
           <div class="moyun-darkline-boundary">
             <div>
               <div class="moyun-darkline-boundary-title">暗线回收计划 · 宿主规划层</div>
@@ -2153,11 +2194,11 @@
               </button>
             </div>
             <div class="moyun-darkline-row-tools">
-              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'setup')" :disabled="activeBranchId!=='main'" :title="activeBranchId==='main'?'按当前主线章节标记':'共享暗线计划按主线维护，请先切回主线'">本章布置</button>
-              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'upgrade')" :disabled="activeBranchId!=='main'" :title="activeBranchId==='main'?'按当前主线章节标记':'共享暗线计划按主线维护，请先切回主线'">本章推进</button>
-              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'resolved')" :disabled="activeBranchId!=='main'" :title="activeBranchId==='main'?'按当前主线章节标记':'共享暗线计划按主线维护，请先切回主线'">本章回收</button>
+              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'setup')" title="按当前分支章节标记">本章布置</button>
+              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'upgrade')" title="按当前分支章节标记">本章推进</button>
+              <button type="button" class="moyun-darkline-tool-btn" @click="markDarklineAtCurrentChapter(row,'resolved')" title="按当前分支章节标记">本章回收</button>
               <button v-if="row.resolvedChapter || row.status==='回收'" type="button" class="moyun-darkline-tool-btn" @click="undoDarklineResolved(row)">撤销回收</button>
-              <span class="moyun-darkline-inline-note">主线正文进度：第 {{ getDarklineCurrentChapterNo() || 0 }} 章<span v-if="activeBranchId!=='main'"> · 当前在支线，本章动作已停用</span></span>
+              <span class="moyun-darkline-inline-note">当前分支可见章数：{{ getDarklineCurrentChapterNo() || 0 }} 章</span>
             </div>
           </div>
         </div>
@@ -2210,8 +2251,16 @@
           <button @click="chapterOutlines.forEach(o=>o.isExpanded=false)" class="text-[10px] px-2 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3)">全部收起</button>
         </div>
       </div>
+      <div class="flex flex-wrap items-center gap-3 mb-3 text-xs" style="color:var(--tx3)">
+        <label v-if="!isMobile">宽度 <select :value="splitScreen ? (settings.detailedOutlineWidth || 60) : 100" @change="setDetailedOutlineWidth($event.target.value)" class="select-field"><option :value="50">50%</option><option :value="60">60%</option><option :value="65">65%</option><option :value="100">全宽</option></select></label>
+        <label><input type="checkbox" v-model="settings.detailedOutlineAutoCollapse" @change="saveData()">展开时收起其他章</label>
+        <label>跳到 <select aria-label="跳到第几章细纲" class="select-field" @change="openOutlineCard(Number($event.target.value)-1)"><option value="">选择章节</option><option v-for="(co,ci) in chapterOutlines" :value="ci+1" :key="co.id">第{{ci+1}}章</option></select></label>
+      </div>
+      <div v-if="detailedOutlineViewMode==='reading'" class="moyun-do-reading">
+        <article v-for="(co,ci) in chapterOutlines" :key="co.id" class="moyun-do-reading-chapter"><button class="btn-ghost text-sm font-bold" @click="openOutlineCard(ci)">{{co.title || '第'+(ci+1)+'章'}}</button><p class="whitespace-pre-wrap mt-3">{{co.content || '本章细纲为空'}}</p></article>
+      </div>
       <!-- 逐章细纲 -->
-      <div class="space-y-2">
+      <div v-else class="space-y-2">
         <template v-for="(co,ci) in chapterOutlines" :key="co.id">
         <div v-if="shouldShowChapterOutlineCard(ci) && (ci===0 || String(getVolumeForChapter(ci+1)?.id || '') !== String(getVolumeForChapter(ci)?.id || ''))" class="moyun-do-volume-divider px-3 py-2 rounded-xl" style="background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--bd));color:var(--accent)">
           <div class="text-xs font-black">{{ getVolumeForChapter(ci+1)?.title || '未分卷章节' }}</div>
@@ -2228,7 +2277,7 @@
                    : getChapterOutlineQuality(ci).status==='empty'
                      ? 'border-left:3px solid var(--bd2)'
                      : 'border-left:3px solid var(--warn)'">
-          <div @click="co.isExpanded=!co.isExpanded" @keydown.enter.prevent="co.isExpanded=!co.isExpanded" @keydown.space.prevent="co.isExpanded=!co.isExpanded"
+          <div @click="toggleChapterOutline(ci)" @keydown.enter.prevent="toggleChapterOutline(ci)" @keydown.space.prevent="toggleChapterOutline(ci)"
                role="button" tabindex="0" :aria-expanded="co.isExpanded" :aria-label="(co.title || '第'+(ci+1)+'章') + '细纲，' + (co.isExpanded ? '收起' : '展开')"
                class="moyun-do-card-head px-3 py-2 cursor-pointer select-none" :style="co.isExpanded?'background:var(--bg-inset)':''">
             <div class="moyun-do-titleline">
@@ -2247,15 +2296,40 @@
               </div>
             </div>
             <div class="moyun-do-actions">
+              <span v-if="getStaleMark('细纲',co.id)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">待核对</span>
               <span v-if="getChapterOutlineRunStatusLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineRunStatusStyle(ci)">{{ getChapterOutlineRunStatusLabel(ci) }}</span>
               <span v-if="getChapterOutlineQualityLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineQualityStyle(ci)">{{ getChapterOutlineQualityLabel(ci) }}</span>
+              <button type="button" class="btn-ghost text-xs" @click.stop="forkBranch(ci)" :disabled="activeBranchId!=='main' || !visibleChapters[ci]" :title="activeBranchId!=='main' ? '支线里不能再分叉' : !visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '从这章之后另写一条剧情'">从这章分支</button>
               <button @click.stop="removeChapterOutline(ci)" @keydown.stop class="moyun-do-card-action" title="删除本章细纲" :aria-label="'删除第' + (ci + 1) + '章细纲'"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s" :style="co.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
           </div>
-          <div v-if="co.isExpanded" class="px-3 pb-3 space-y-2" style="border-top:1px solid var(--bd)">
+          <p v-if="!co.isExpanded" class="moyun-do-summary px-3 pb-2">{{(co.content || '暂无细纲').slice(0,80)}}</p>
+          <div class="moyun-do-expand" :class="{'is-open':co.isExpanded}" :inert="!co.isExpanded" :aria-hidden="!co.isExpanded"><div class="min-h-0 overflow-hidden">
+          <div v-if="co.isExpanded || expandedOutlineIds.has(co.id)" class="px-3 pb-3 space-y-2" style="border-top:1px solid var(--bd)">
             <input v-model="co.title" @change="saveData()" data-story-field="title" placeholder="章节标题" class="input-field text-xs font-bold mt-2">
-            <textarea v-model="co.content" @change="saveData()" data-story-field="content" rows="6" placeholder="编辑本章细纲..." class="textarea-field text-[11px]"></textarea>
+            <textarea v-model="co.content" :ref="el=>sizeOutlineTextarea(el,co)" @input="sizeOutlineTextarea($event.target,co)" @change="saveData()" data-story-field="content" rows="8" placeholder="编辑本章细纲..." class="textarea-field moyun-do-textarea"></textarea>
+            <div v-if="getStaleMark('细纲',co.id)" class="rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px]" style="background:var(--warn-soft);color:var(--warn)">
+              <span>{{ getStaleMark('细纲',co.id).reason }}</span>
+              <button type="button" class="btn-ghost px-2 py-1" @click="acknowledgeStaleMark(getStaleMark('细纲',co.id))">已核对</button>
+            </div>
+            <div v-if="co.continuityStatus" class="rounded-lg px-3 py-2 text-[10px]" :style="co.continuityStatus==='ok' ? 'background:var(--ok-soft);color:var(--ok)' : 'background:var(--warn-soft);color:var(--warn)'">
+              <span v-if="co.continuityStatus==='ok'">衔接初检未提示问题。</span>
+              <span v-else-if="co.continuityStatus==='issues'">衔接提示：{{ readContinuityIssues('细纲', chapterOutlines[ci-1], co)[0]?.message || '请人工核对相邻章节。' }}</span>
+              <span v-else>衔接检查结果无法解读，请人工核对相邻章节。</span>
+              <details v-if="co.continuityStatus==='unreadable' && co.continuityRaw" class="mt-1">
+                <summary class="cursor-pointer">查看原始回复片段</summary>
+                <pre class="whitespace-pre-wrap font-sans mt-1">{{ co.continuityRaw }}</pre>
+              </details>
+              <div v-if="co.continuityStatus!=='ok'" class="flex flex-wrap gap-1 mt-2"><button type="button" @click="ignoreOutlineContinuity(ci)" class="btn-ghost px-2 py-1">忽略</button><button type="button" @click="openOutlineContinuity(ci)" class="btn-ghost px-2 py-1">查看建议 / 待审调整</button><button type="button" @click="requestNeighborAdjustment(ci+1)" class="btn-ghost px-2 py-1">让 AI 调整相邻章</button></div>
+            </div>
+            <details v-if="co.history && co.history.length" class="rounded-lg px-3 py-2 text-[10px]" style="background:var(--bg-inset);border:1px solid var(--bd)">
+              <summary class="cursor-pointer font-bold">历史版本（{{ co.history.length }}）</summary>
+              <div v-for="(version,hi) in co.history" :key="version.at + '-' + hi" class="mt-2 rounded-lg p-2 space-y-1" style="border:1px solid var(--bd)">
+                <div class="flex items-center justify-between gap-2"><span>{{ version.title || '未命名细纲' }} · {{ new Date(version.at).toLocaleString() }}</span><button type="button" class="btn-ghost px-2 py-1 shrink-0" @click="restoreChapterOutlineHistory(ci,hi)">恢复这一版</button></div>
+                <p class="whitespace-pre-wrap" style="color:var(--tx3)">{{ (version.content || '').slice(0,30) }}{{ version.content && version.content.length > 30 ? '…' : '' }}</p>
+              </div>
+            </details>
             <section class="moyun-do-context-card" :data-outline-context-id="co.id">
               <div class="moyun-do-context-head">
                 <div class="min-w-0">
@@ -2288,7 +2362,6 @@
                   </button>
                   <button v-if="outlineAiEditingIdx===ci" @click="stopSingleDetailedOutlineRun()" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--err);color:white" title="停止本章的 AI 处理（不写入结果）">⏸ 停止</button>
                   <!-- 中文注释：单章 AI 是覆盖写回，这里给一次回到处理前的机会。 -->
-                  <button v-if="outlineAiEditingIdx<0 && canUndoChapterOutlineAi(ci)" @click="undoChapterOutlineAi(ci)" class="text-[10px] px-2 py-1 rounded font-bold" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)" title="把本章细纲恢复成 AI 改写之前的内容">↶ 撤销AI改写</button>
                 </div>
               </div>
               <div v-if="getDetailedOutlineAiDisabledReason('chapter')" class="moyun-action-status" role="status">
@@ -2303,6 +2376,7 @@
 
 
           </div>
+          </div></div>
         </div>
         </template>
       </div>
@@ -2353,8 +2427,45 @@
   </div>
 
   <!-- 正文主区域 -->
-  <main data-moyun-region="main" class="flex-1 h-full overflow-y-auto relative scroll-smooth scrollbar-hide md:scrollbar-auto" ref="mainScroll" style="-webkit-overflow-scrolling:touch">
+  <main data-moyun-region="main" class="flex-1 h-full overflow-y-auto relative scroll-smooth scrollbar-hide md:scrollbar-auto" :class="{'immersive-tool-active': immersiveMode && immersiveToolMode}" ref="mainScroll" style="-webkit-overflow-scrolling:touch">
     <div class="max-w-4xl mx-auto px-4 md:px-12 pt-4 pb-0 md:py-16 min-h-full flex flex-col">
+      <section v-if="immersiveMode && immersiveToolMode==='write'" class="immersive-writing-shell" aria-label="沉浸手写">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4" style="color:var(--tx3)">
+          <span class="text-xs font-bold">手写 · {{ immersiveWritingChapterTitle }}</span>
+          <span class="text-xs" aria-live="polite">{{ immersiveWritingWordCount }} 字 · {{ immersiveDraftStatus }}</span>
+          <div class="flex gap-2"><button type="button" class="btn-ghost text-xs px-3 py-2" @click="cancelImmersiveWriting">收起手写</button><button type="button" class="btn-primary text-xs px-3 py-2" @click="saveImmersiveWriting">保存</button></div>
+        </div>
+        <textarea ref="immersiveWritingRef" :value="immersiveWritingText" @input="onImmersiveWritingInput" @click="keepImmersiveCaretVisible()" :disabled="immersiveExpandBusy" placeholder="在这里写下正文…" aria-label="沉浸手写正文"></textarea>
+        <div class="text-[11px] mt-3" style="color:var(--tx4)">停笔约 2 秒会自动保存草稿；点「保存」才会写入正式正文。</div>
+      </section>
+      <section v-else-if="immersiveMode && immersiveToolMode==='expand'" class="immersive-expand-panel" aria-label="正文扩写">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="text-sm font-bold">扩写 · {{ immersiveWritingChapterTitle }}</div>
+          <div class="text-[11px]" style="color:var(--tx3)">{{ immersiveExpandHint }}</div><button type="button" class="btn-ghost text-xs px-3 py-2" :disabled="immersiveExpandBusy" @click="enterImmersiveWriting">返回手写</button>
+        </div>
+        <div class="immersive-expand-legend" aria-label="扩写标签工具">
+          <button v-for="tool in [{kind:'insert',label:'◆ 插'},{kind:'start',label:'▶ 起'},{kind:'end',label:'◀ 止'},{kind:'full',label:'整篇'}]" :key="tool.kind" type="button" :class="['immersive-expand-tag',tool.kind]" :disabled="immersiveExpandBusy || !!immersiveExpandReview" :aria-pressed="tool.kind==='full' ? immersiveExpandWhole : !immersiveExpandWhole && immersiveExpandTagTool===tool.kind" @click="setImmersiveExpandTagTool(tool.kind)">{{ tool.label }}</button>
+          <button type="button" class="btn-ghost text-xs px-3 py-2" :disabled="immersiveExpandBusy || !!immersiveExpandReview" @click="immersiveExpandTags={}; immersiveExpandWhole=false">清除标签</button>
+        </div>
+        <p class="text-xs mb-3" style="color:var(--tx3)">先选标签，再点段间「＋」放置；点标签可取消。不放标签则从结尾扩写。「起」放好后可直接放「止」。</p>
+        <label v-if="immersiveExpandMode==='range'" class="flex items-center gap-2 text-xs mb-3"><input type="checkbox" v-model="immersiveExpandRewrite" :disabled="immersiveExpandBusy || !!immersiveExpandReview">改写所选区间（不勾选时默认扩写）</label>
+        <template v-for="(para, pIdx) in immersiveExpandParagraphs" :key="'exp-'+pIdx">
+          <div class="immersive-expand-gap"><button type="button" :disabled="immersiveExpandBusy || !!immersiveExpandReview" @click="toggleImmersiveExpandTag(pIdx)" :aria-label="'第'+(pIdx+1)+'段前'+(immersiveExpandTagLabel(pIdx)?'取消标签':'放置标签')" :class="immersiveExpandTagClass(pIdx)">{{ immersiveExpandTagLabel(pIdx) || '＋' }}</button></div>
+          <div class="immersive-expand-paragraph" :class="{'is-selected': immersiveExpandIsSelected(pIdx)}">P{{ pIdx+1 }}　{{ para.text }}</div>
+        </template>
+        <div class="immersive-expand-gap"><button type="button" :disabled="immersiveExpandBusy || !!immersiveExpandReview" @click="toggleImmersiveExpandTag(immersiveExpandParagraphs.length)" aria-label="在正文结尾放置或取消标签" :class="immersiveExpandTagClass(immersiveExpandParagraphs.length)">{{ immersiveExpandTagLabel(immersiveExpandParagraphs.length) || '＋' }}</button></div>
+        <div class="immersive-review" v-if="immersiveExpandReview">
+          <p class="text-xs mb-3" style="color:var(--tx3)">逐块接受或取消；应用只写入编辑草稿，返回手写后点「保存」才修改正式正文。</p>
+          <div v-for="(op, opIdx) in immersiveExpandReview.operations" :key="op.review.id" class="mb-5">
+            <p v-if="op.issue" class="text-xs mb-2" style="color:var(--warn)">{{ op.issue }}</p><p v-if="op.warnings.length" class="text-xs mb-2" style="color:var(--warn)">{{ op.warnings.join('；') }}</p>
+            <review-panel :state="op.review" :title="'建议 '+(opIdx+1)+(op.applied?' · 已应用到草稿':'')" :show-toolbar="false" @accept="id=>updateImmersiveReview(op,'accept',id)" @reject="id=>updateImmersiveReview(op,'reject',id)" @select="(id,checked)=>updateImmersiveReview(op,'select',id,checked)" @focus="id=>updateImmersiveReview(op,'focus',id)"></review-panel>
+            <div class="flex flex-wrap justify-end gap-2 mt-2"><button type="button" class="btn-ghost text-xs px-3 py-2" :disabled="op.done || !!op.issue" @click="discardImmersiveExpansion(opIdx)">取消剩余改动</button><button type="button" class="btn-primary text-xs px-3 py-2" :disabled="op.done || !!op.issue" @click="applyImmersiveExpansion(opIdx)">应用这条所选</button></div>
+          </div>
+          <details class="text-xs my-3"><summary>查看 AI 原始返回</summary><pre class="whitespace-pre-wrap break-words">{{ getImmersiveExpansionRaw(immersiveExpandReview) }}</pre></details>
+          <div class="flex flex-wrap justify-end gap-2 mt-3"><button type="button" class="btn-ghost text-xs px-3 py-2" @click="discardImmersiveExpansion()">放弃剩余建议</button><button type="button" class="btn-primary text-xs px-3 py-2" @click="applyImmersiveExpansion()">应用所选到草稿</button><button type="button" class="btn-ghost text-xs px-3 py-2" @click="enterImmersiveWriting">返回手写</button></div>
+        </div>
+        <div v-else class="flex flex-wrap gap-2 mt-4"><input v-model="immersiveExpandPrompt" :disabled="immersiveExpandBusy" class="input-field text-sm flex-1 min-w-0 w-full" placeholder="想怎么扩（可不填）" aria-label="想怎么扩（可不填）"><label class="flex items-center gap-2 text-xs">目标增加字数 <input v-model.number="immersiveExpandTarget" :disabled="immersiveExpandBusy" type="number" min="100" max="3000" class="input-field text-sm w-24"></label><button v-if="immersiveExpandBusy" type="button" class="btn-ghost text-xs px-3 py-2" @click="stopImmersiveExpansion">停止扩写</button><button v-else type="button" class="btn-primary text-xs px-3 py-2" @click="runImmersiveExpansion">生成扩写</button><span v-if="immersiveExpandBusy" class="text-xs" role="status">生成中，正文已锁定；停止后可继续编辑。</span></div>
+      </section>
       <!-- 标题 -->
       <div class="text-center mb-6 md:mb-20 mt-0 md:mt-4">
 	        <!-- 封面图 -->
@@ -2486,17 +2597,7 @@
             <button @click="currentTab='outline';openOutlineWorkbench()" class="btn-ghost text-xs px-4 py-2">③ 编写大纲</button>
           </div>
         </div>
-        <!-- 分支切换 -->
-        <div v-if="branchList.length>1" class="flex flex-wrap justify-center gap-2 mb-4">
-          <button v-for="b in branchList" :key="b.id" @click="switchBranch(b.id)"
-                  class="text-xs px-3 py-1.5 rounded-full border flex items-center gap-1.5 transition-colors"
-                  :style="activeBranchId===b.id?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-card);color:var(--tx2);border-color:var(--bd)'">
-            <span>{{ b.name }}</span>
-            <span v-if="b.id!=='main'" @click.stop="deleteBranch(b.id)" class="opacity-40 hover:opacity-100 cursor-pointer">✕</span>
-            <span @click.stop="renameBranch(b.id)" class="opacity-40 hover:opacity-100 cursor-pointer text-[9px]">✎</span>
-          </button>
-          <button @click="showTreeView=true" class="text-xs px-3 py-1.5 rounded-full border border-dashed transition-colors" style="color:var(--tx3);border-color:var(--bd)">🌳 故事树</button>
-        </div>
+        <div class="flex justify-center mb-4"><button type="button" class="btn-ghost text-xs px-3 py-2 rounded-full" @click="toggleBranchPanel($event,'正文')">⑂ {{ currentBranchName }} ▾</button></div>
 
         <!-- 逐章渲染 -->
         <div v-for="(ch, idx) in visibleChapters" :key="ch.id||idx" :id="'chapter-'+idx" data-moyun-region="editor" class="mb-4">
@@ -2518,6 +2619,7 @@
               <span class="text-xl font-art shrink-0" style="color:var(--tx4)">{{ idx+1 }}</span>
 
               <span class="flex-1 text-base font-bold text-truncate" style="color:var(--tx)">{{ getDisplayChapterTitle(ch, idx) }}</span>
+              <button v-if="getStaleMark('正文',ch.id)" type="button" @click.stop="acknowledgeStaleMark(getStaleMark('正文',ch.id))" class="btn-ghost text-[10px] px-2 py-1 shrink-0" style="background:var(--warn-soft);color:var(--warn)">待核对</button>
               <button @click.stop="scrollChapterToEnd(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--bg-card);color:var(--tx2);border:1px solid var(--bd)" aria-label="滚动到本章底部" title="滚动到本章底部">回到本章底</button>
               <button @click.stop="renameChapterTitle(idx)" class="text-[10px] px-2 py-1 rounded-md font-bold shrink-0" style="background:var(--accent-soft);color:var(--accent)" aria-label="手动修改章节标题" title="手动修改章节标题">改名</button>
               <!-- 版本导航 -->
@@ -2702,9 +2804,10 @@
                   <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">编辑</button>
                   <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">复制</button>
                   <button @click.stop="rerollChapter(idx)" :disabled="!ch.regenSnapshot" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--ok-soft);color:var(--ok)" :style="!ch.regenSnapshot?'opacity:.4;cursor:not-allowed':''" :title="ch.regenSnapshot?'用与首次生成完全相同的提示词与注入（含白鸟）重新生成本章，原稿转历史稿':'旧章或导入章没有可精确复现的注入快照，改用分支重写'">重新生成</button>
-                  <button @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
+                  <button @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
+                    <button type="button" @click.stop="checkChapterContinuity(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :disabled="idx>=visibleChapters.length-1">衔接检查</button>
                     <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前正文另存一份旧稿，之后可用章节标题右侧的 ‹ › 翻回">存为旧稿</button>
                     <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)"
                             :style="rewritingSummaryIdx===idx?'opacity:.5':''">{{ rewritingSummaryIdx===idx ? '生成中...' : '生成摘要' }}</button>
@@ -2746,6 +2849,7 @@
                   <span v-if="genRate>0">⚡ {{ genRate }} 字/秒</span>
                 </div>
                 <p class="text-[10px]" style="color:var(--tx4)">{{ getModelForModule('writing') || '未配置模型' }}</p>
+                <button type="button" class="btn-ghost text-xs px-4 py-2" @click="beginImmersiveWritingFromGeneration">我来写</button>
                 <div v-if="genStalled" class="text-xs font-bold mt-2" style="color:var(--warn)">
                   ⚠ 超过15秒未收到数据，可能已断连
                 </div>
@@ -2848,7 +2952,7 @@
             <span>缓存命中 <strong>{{ formatTokenUsage(lastWritingUsage?.cached) }}</strong></span>
           </div>
           <div class="moyun-composer-prompt-row flex gap-1 items-end w-full">
-            <textarea ref="composerPromptRef" v-model="nextChapterPrompt" @input="keepComposerFocus" placeholder="下一章剧情走向..." rows="1"
+            <textarea ref="composerPromptRef" v-model="nextChapterPrompt" @input="keepComposerFocus" placeholder="接下来的思路和想法…" rows="1"
                       data-moyun-composer-prompt
                       class="textarea-field text-sm flex-1" style="border-radius:10px;resize:vertical;min-height:36px;max-height:800px"
                       @input="autosizeComposerPrompt($event);restoreComposerPromptCaret($event)"
@@ -4154,7 +4258,7 @@
        class="fixed inset-0 z-[245] flex items-end md:items-center justify-center p-0 md:p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))">
     <form data-moyun-modal-panel tabindex="-1" class="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl"
-          style="background:var(--bg-card);box-shadow:var(--sh3)" @submit.prevent="execInputPrompt">
+          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:calc(100dvh - 3rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto" @submit.prevent="execInputPrompt">
       <div class="px-5 py-4 flex items-start justify-between gap-3" style="border-bottom:1px solid var(--bd)">
         <div>
           <h3 id="moyun-input-prompt-title" class="text-lg font-bold" style="color:var(--tx)">{{ inputPromptCfg.title }}</h3>
@@ -4169,6 +4273,7 @@
                   class="textarea-field text-sm w-full" :placeholder="inputPromptCfg.placeholder"></textarea>
         <input v-else v-model="inputPromptValue" data-moyun-input-prompt-field autocomplete="off"
                class="input-field text-sm w-full" :placeholder="inputPromptCfg.placeholder" :maxlength="inputPromptCfg.maxlength || 200">
+        <label v-for="option in (inputPromptCfg.checks || [])" :key="option.id" class="flex items-start gap-2 text-xs py-2" style="color:var(--tx2)"><input type="checkbox" v-model="option.checked" class="mt-0.5"><span>{{ option.label }}</span></label>
       </div>
       <div class="px-5 py-4 flex gap-3" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <button type="button" data-moyun-modal-close @click="cancelInputPrompt" class="btn-ghost flex-1 min-h-[44px] text-sm">取消</button>
@@ -4225,31 +4330,48 @@
       <div class="px-5 py-4" style="background:var(--bg-inset);border-bottom:1px solid var(--bd)">
         <div class="min-w-0">
           <div class="text-[10px] font-bold tracking-[0.16em]" style="color:var(--accent)">{{ webUpdateAnnouncement.badge }}</div>
-          <h3 id="moyun-web-update-title" class="mt-1 text-lg font-black" style="color:var(--tx)">{{ webUpdateAnnouncement.title }}</h3>
+          <div class="flex items-start justify-between gap-3">
+            <h3 id="moyun-web-update-title" class="mt-1 text-lg font-black" style="color:var(--tx)">{{ webUpdateAnnouncement.title }}</h3>
+            <span v-if="!isFirstRunGuide" class="moyun-announce-counter" aria-hidden="true">第 {{ webAnnouncementIndex + 1 }}/{{ webAnnouncementCount }} 条<span v-if="webAnnouncementIndex===0"> · 最新</span></span>
+          </div>
           <p class="mt-1 text-xs" style="color:var(--tx3)">{{ webUpdateAnnouncement.publishedAt }}</p>
         </div>
       </div>
-      <div class="px-5 py-5 overflow-y-auto moyun-announce-stack" style="color:var(--tx)">
-        <p class="moyun-announce-lead">{{ webUpdateAnnouncement.message }}</p>
-        <template v-for="section in webUpdateAnnouncement.sections" :key="section.key">
-          <div v-if="section.kind==='group'" class="moyun-announce-group">
-            <h4 class="moyun-announce-group-title">{{ section.title }}</h4>
-            <p v-if="section.body" class="moyun-announce-group-desc">{{ section.body }}</p>
-          </div>
-          <article v-else class="moyun-announce-item" :data-announce-tone="section.tone || ''">
-            <h4>{{ section.title }}</h4>
-            <p v-if="section.body">{{ section.body }}</p>
-          </article>
-        </template>
-        <section v-if="webUpdateAnnouncement.supportLink" class="pt-4 space-y-3" style="border-top:1px solid var(--bd)">
-          <h4 class="text-sm font-bold" style="color:var(--tx)">{{ webUpdateAnnouncement.supportLink.title }}</h4>
-          <p class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.body }}</p>
-          <p v-if="webUpdateAnnouncement.supportLink.thanks" class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.thanks }}</p>
-          <a :href="webUpdateAnnouncement.supportLink.href" target="_blank" rel="noopener noreferrer" class="btn-primary flex w-full items-center justify-center min-h-[44px] px-4 text-sm" aria-label="在新标签打开 Moyun 爱发电主页">{{ webUpdateAnnouncement.supportLink.label }}</a>
-        </section>
+      <div class="moyun-announce-layout" :class="{'moyun-announce-has-pages':!isFirstRunGuide}">
+        <button v-if="!isFirstRunGuide" type="button" class="moyun-icon-button moyun-announce-side" :disabled="!canViewEarlierAnnouncement" @click="viewEarlierAnnouncement" aria-label="查看更早的公告" title="查看更早的公告">‹ 更早</button>
+        <div ref="webAnnouncementScroll" class="px-5 py-5 overflow-y-auto moyun-announce-scroll" style="color:var(--tx)" @touchstart="startWebAnnouncementSwipe" @touchend="finishWebAnnouncementSwipe">
+        <transition name="moyun-announce-page" mode="out-in"><div :key="webUpdateAnnouncement.id" class="moyun-announce-stack">
+          <p class="moyun-announce-lead">{{ webUpdateAnnouncement.message }}</p>
+          <template v-for="section in webUpdateAnnouncement.sections" :key="section.key">
+            <div v-if="section.kind==='group'" class="moyun-announce-group">
+              <h4 class="moyun-announce-group-title">{{ section.title }}</h4>
+              <p v-if="section.body" class="moyun-announce-group-desc">{{ section.body }}</p>
+            </div>
+            <article v-else class="moyun-announce-item" :data-announce-tone="section.tone || ''">
+              <h4>{{ section.title }}</h4>
+              <p v-if="section.body">{{ section.body }}</p>
+            </article>
+          </template>
+          <section v-if="webUpdateAnnouncement.supportLink" class="pt-4 space-y-3" style="border-top:1px solid var(--bd)">
+            <h4 class="text-sm font-bold" style="color:var(--tx)">{{ webUpdateAnnouncement.supportLink.title }}</h4>
+            <p class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.body }}</p>
+            <p v-if="webUpdateAnnouncement.supportLink.thanks" class="text-xs leading-relaxed" style="color:var(--tx2)">{{ webUpdateAnnouncement.supportLink.thanks }}</p>
+            <a :href="webUpdateAnnouncement.supportLink.href" target="_blank" rel="noopener noreferrer" class="btn-primary flex w-full items-center justify-center min-h-[44px] px-4 text-sm" aria-label="在新标签打开 Moyun 爱发电主页">{{ webUpdateAnnouncement.supportLink.label }}</a>
+          </section>
+        </div></transition>
+        </div>
+        <button v-if="!isFirstRunGuide" type="button" class="moyun-icon-button moyun-announce-side" :disabled="!canViewNewerAnnouncement" @click="viewNewerAnnouncement" aria-label="查看更新的公告" title="查看更新的公告">更新 ›</button>
+        <div v-if="!isFirstRunGuide" class="moyun-announce-mobile-controls">
+          <button type="button" class="moyun-icon-button" :disabled="!canViewEarlierAnnouncement" @click="viewEarlierAnnouncement" aria-label="查看更早的公告" title="查看更早的公告">‹ 更早</button>
+          <span>{{ webAnnouncementIndex + 1 }}/{{ webAnnouncementCount }}</span>
+          <button type="button" class="moyun-icon-button" :disabled="!canViewNewerAnnouncement" @click="viewNewerAnnouncement" aria-label="查看更新的公告" title="查看更新的公告">更新 ›</button>
+        </div>
       </div>
       <div class="px-5 py-4 shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-        <button type="button" data-web-update-ack @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">{{ webUpdateAnnouncement.acknowledge }}</button>
+        <div class="flex gap-3">
+          <button type="button" data-web-update-ack :data-moyun-modal-close="webAnnouncementBrowseMode ? '' : null" @click="dismissWebUpdateAnnouncement" class="btn-primary w-full min-h-[44px] text-sm">{{ webAnnouncementBrowseMode ? '关闭' : webUpdateAnnouncement.acknowledge }}</button>
+        </div>
+        <div class="sr-only" aria-live="polite">{{ webAnnouncementLive }}</div>
       </div>
     </section>
   </div>
@@ -4308,13 +4430,52 @@
       <!-- 头部 -->
       <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
         <h3 id="moyun-new-book-title" class="text-lg font-bold" style="color:var(--tx)">{{ oneKeyPhase==='config' ? '✨ 新建书籍' : oneKeyPhase==='generating' ? '🚀 正在创建...' : '✅ 创建完成' }}</h3>
-        <button v-if="oneKeyPhase==='config'" type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭新建书籍" title="关闭">
+        <button v-if="oneKeyPhase==='config' || (oneKeyPhase==='generating' && newBookMode==='team')" type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭新建书籍" title="关闭">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
 
-      <!-- ═══ 配置阶段 ═══ -->
-      <div v-if="oneKeyPhase==='config'" class="flex-1 overflow-y-auto p-5 space-y-4">
+      <!-- ═══ 配置阶段：一段话团队开书 ═══ -->
+      <div v-if="oneKeyPhase==='config' && newBookMode==='team'" class="flex-1 overflow-y-auto p-5 space-y-4" data-team-book-panel>
+        <template v-if="teamPhase==='input' || teamPhase==='planning'">
+          <div class="rounded-2xl p-4" style="background:var(--accent-soft);border:1px solid var(--bd)">
+            <div class="text-base font-black" style="color:var(--tx)">一段话开书</div>
+            <div class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">只写你的想法，策划员会先拆成方案；确认之前不会创建新书，也不会改动当前书。</div>
+          </div>
+          <label class="block"><span class="label">故事想法</span><textarea v-model="teamBrief" rows="9" class="textarea-field text-sm" placeholder="例如：写一个会说话的猫帮失业的程序员破案的轻松故事。" :disabled="teamPhase==='planning'" data-team-book-brief></textarea></label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="card p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold" style="color:var(--tx)">未完模式</span><input v-model="teamPlanOptions.unfinishedMode" type="checkbox" :disabled="teamPhase==='planning'"></label>
+            <label class="card p-3 flex items-center justify-between gap-3"><span class="text-xs font-bold" style="color:var(--tx)">本段章数</span><input v-model.number="teamPlanOptions.chapterCount" type="number" min="1" max="200" class="input-field text-xs" style="width:86px" :disabled="teamPhase==='planning'"></label>
+          </div>
+          <div v-if="teamPhase==='planning'" class="moyun-action-status" role="status"><span>策划员正在拆分方案，请稍候…</span></div>
+        </template>
+        <template v-else-if="teamPhase==='review'">
+          <div class="flex items-center justify-between gap-3"><div><div class="text-base font-black" style="color:var(--tx)">先看方案，再开始写</div><div class="text-xs mt-1" style="color:var(--tx3)">预计约 {{ teamPlanRequestEstimate }} 次请求 · 当前书仍未写入</div></div><button type="button" class="btn-ghost text-xs px-3 py-2" @click="backToManualBook">返回手填</button></div>
+          <div v-if="teamPlanNeedsManual" class="moyun-action-status" role="alert"><span>策划员返回格式不完整，已进入手动填写方案；补好关键字段后仍可直接开写。</span></div>
+          <section class="card p-4 space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs"><div><span class="label">书名候选</span><div style="color:var(--tx)">{{ (teamPlan.titleCandidates||[]).join('、') || '待定' }}</div></div><div><span class="label">类型</span><div style="color:var(--tx)">{{ teamPlan.genre || '待定' }}</div></div><div><span class="label">基调</span><div style="color:var(--tx)">{{ teamPlan.tone || '待定' }}</div></div></div>
+            <div><div class="label">用户原话事实</div><div class="space-y-1 text-xs"><div v-for="(fact,index) in (teamPlan.userFacts||[])" :key="index" class="p-2 rounded-lg" style="background:var(--bg-inset);color:var(--tx2)">{{ index+1 }}. {{ fact.text }} <span class="text-[10px]" style="color:var(--accent)">（{{ fact.source }}）</span></div></div></div>
+            <div><div class="label">设定总表</div><pre class="text-[11px] leading-relaxed whitespace-pre-wrap break-words p-3 rounded-xl" style="background:var(--bg-inset);color:var(--tx2);max-height:220px;overflow:auto">{{ buildTeamSettingTable(teamPlan) }}</pre></div>
+            <div><div class="label">卷划分</div><div class="space-y-1"><div v-for="volume in (teamPlan.volumes||[])" :key="volume.number" class="text-xs p-2 rounded-lg" style="background:var(--bg-inset);color:var(--tx2)">第{{ volume.number }}卷《{{ volume.title }}》 · 第{{ volume.startChapter }}—{{ volume.endChapter }}章<div class="text-[10px] mt-1" style="color:var(--tx3)">{{ volume.summary || '暂无摘要' }}<span v-if="volume.bridge"> · 衔接：{{ volume.bridge }}</span></div></div></div></div>
+            <div v-if="teamPlanNeedsManual" class="rounded-xl p-3 space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+              <div class="label">手动填写方案</div>
+              <label class="block"><span class="text-[10px]" style="color:var(--tx3)">书名</span><input v-model="teamPlan.titleCandidates[0]" class="input-field text-xs" placeholder="例如：雾港钟声"></label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2"><label class="block"><span class="text-[10px]" style="color:var(--tx3)">类型</span><input v-model="teamPlan.genre" class="input-field text-xs"></label><label class="block"><span class="text-[10px]" style="color:var(--tx3)">基调</span><input v-model="teamPlan.tone" class="input-field text-xs"></label></div>
+              <label v-for="volume in (teamPlan.volumes||[])" :key="'manual-'+volume.number" class="block"><span class="text-[10px]" style="color:var(--tx3)">第{{ volume.number }}卷摘要</span><textarea v-model="volume.summary" rows="2" class="textarea-field text-xs"></textarea></label>
+            </div>
+          </section>
+          <label class="flex items-center gap-2 text-xs" style="color:var(--tx2)"><input type="checkbox" :checked="teamSkipPlanConfirm" @change="setTeamPlanConfirmPreference($event.target.checked)">以后不再确认方案</label>
+          <label class="block"><span class="label">改一句再拆（选填）</span><textarea v-model="teamReplanInput" rows="2" class="textarea-field text-xs" placeholder="例如：把女主改成男主，名字叫许知秋，其余不变。"></textarea></label>
+          <div v-if="teamPlanRaw" class="text-[10px]" style="color:var(--tx4)"><button type="button" class="underline" @click="teamRawView=teamPlanRaw">查看策划员原文</button></div>
+        </template>
+      </div>
+
+      <!-- ═══ 配置阶段：原有手填/一键开书 ═══ -->
+      <div v-else-if="oneKeyPhase==='config'" class="flex-1 overflow-y-auto p-5 space-y-4">
+        <div class="rounded-xl p-3 flex items-center justify-between gap-3" style="background:var(--accent-soft);border:1px solid var(--bd)">
+          <div><div class="text-xs font-bold" style="color:var(--tx)">只写一段想法？</div><div class="text-[10px] mt-1" style="color:var(--tx3)">先看团队方案，确认后再一次写入。</div></div>
+          <button type="button" class="btn-ghost text-xs px-3 py-2 shrink-0" @click="openTeamBookMode">一段话开书</button>
+        </div>
 
         <!-- 基础信息 -->
         <div>
@@ -4538,7 +4699,18 @@
         </div>
       </div>
 
-      <!-- ═══ 生成阶段 ═══ -->
+      <!-- ═══ 团队生成阶段 ═══ -->
+      <div v-else-if="oneKeyPhase==='generating' && newBookMode==='team'" class="flex-1 overflow-y-auto p-5 space-y-3" data-team-book-progress>
+        <div class="flex items-center justify-between gap-3"><div><div class="text-base font-black" style="color:var(--tx)">团队正在并行工作</div><div class="text-xs mt-1" style="color:var(--tx3)">结果先放草稿区，全部完成后才会写入书库。</div></div><button type="button" class="btn-ghost text-xs px-3 py-2" @click="stopTeamBook">停止</button></div>
+        <div v-for="row in teamBlocks" :key="row.id" class="card p-3 flex items-start gap-3">
+          <span class="text-base">{{ row.status==='done' ? '✅' : row.status==='running' ? '🔄' : row.status==='error' ? '⚠️' : row.status==='stopped' ? '⏹' : '⏳' }}</span>
+          <div class="min-w-0 flex-1"><div class="text-xs font-bold" :style="row.status==='error'?'color:var(--err)':'color:var(--tx)'">{{ row.label }}</div><div class="text-[10px] mt-1" style="color:var(--tx3)">{{ row.status==='done'?'完成':row.status==='running'?'进行中':row.status==='error'?'失败':row.status==='stopped'?'已停止':'排队' }}<span v-if="row.elapsed"> · {{ row.elapsed }}</span></div><div v-if="row.error" class="text-[10px] mt-1 break-words" style="color:var(--err)">{{ row.error }}</div></div>
+          <div v-if="row.status==='error'" class="flex gap-1 shrink-0"><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="retryTeamBlock(row.id)">重试</button><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="viewTeamRaw(row.id)">原文</button></div>
+        </div>
+        <pre v-if="teamRawView" class="text-[10px] leading-relaxed whitespace-pre-wrap break-words p-3 rounded-xl max-h-[180px] overflow-auto" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ teamRawView }}</pre>
+      </div>
+
+      <!-- ═══ 原有生成阶段 ═══ -->
       <div v-else-if="oneKeyPhase==='generating'" class="flex-1 overflow-y-auto p-5 space-y-3">
         <div v-for="(step, si) in okSteps" :key="si" class="flex items-center gap-3 py-2">
           <span v-if="step.status==='done'" class="text-base">✅</span>
@@ -4558,7 +4730,30 @@
              style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd);line-height:1.5">{{ okStream.substring(okStream.length-500) }}</div>
       </div>
 
-      <!-- ═══ 完成阶段 ═══ -->
+      <!-- ═══ 团队完成阶段 ═══ -->
+      <div v-else-if="newBookMode==='team'" class="flex-1 overflow-y-auto p-5 space-y-4" data-team-book-review>
+        <div class="text-center"><div class="text-4xl mb-2">{{ teamDraft ? '🧾' : '⏹' }}</div><div class="text-lg font-black" style="color:var(--tx)">{{ teamDraft ? '方案已生成，等待写入' : '团队开书已停止' }}</div><div class="text-xs mt-2" style="color:var(--tx3)">{{ teamDraft ? '审查结果仅供你检查；点击写入后才会创建新书。' : '书库没有写入半成品。' }}</div></div>
+        <template v-if="teamDraft">
+          <section class="card p-4 space-y-3"><div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">{{ teamDraft.title }}</div><div class="text-xs mt-1" style="color:var(--tx3)">{{ teamDraft.synopsis || '暂无简介' }}</div></div><span class="text-[10px] px-2 py-1 rounded-full" :style="teamReview?.status==='incomplete'?'background:var(--warn-soft);color:var(--warn)':'background:var(--ok-soft);color:var(--ok)'">{{ teamReview?.status==='incomplete'?'审查未完成':teamReview?.status==='issues'?'发现问题':'审查完成' }}</span></div>
+            <div v-if="teamReview?.message" class="moyun-action-status" role="status"><span>{{ teamReview.message }}</span></div>
+            <div v-if="teamReview?.facts?.length" class="space-y-1"><div class="label">用户要求落实情况</div><div v-for="(fact,index) in teamReview.facts" :key="index" class="text-xs p-2 rounded-lg" :style="fact.fulfilled===false?'background:var(--warn-soft);color:var(--warn)':'background:var(--ok-soft);color:var(--tx2)'">{{ fact.fulfilled===false?'待补':'已落实' }} · {{ fact.text }}<span v-if="fact.reason">：{{ fact.reason }}</span></div></div>
+            <div v-if="teamReview?.issues?.length" class="space-y-1"><div class="label">审查提示</div><div v-for="(issue,index) in teamReview.issues" :key="index" class="text-xs p-2 rounded-lg" style="background:var(--warn-soft);color:var(--warn)">{{ issue.message || issue.kind }}</div></div>
+            <div v-if="teamReview?.status==='issues'" class="flex flex-wrap gap-2"><button v-for="row in teamBlocks.filter(item=>['settings','characters','outline'].includes(item.id))" :key="row.id" class="btn-ghost text-xs" :disabled="row.status==='running'" @click="retryTeamBlock(row.id)">让{{ row.label }}重做这一块</button></div>
+            <div v-if="teamDraft.needsFill?.length" class="moyun-action-status" role="alert"><span>未完成块：{{ teamDraft.needsFill.join('、') }}。可先写入已完成部分，也可以在下方单独重试。</span></div>
+            <div v-if="teamBlocks.some(row => row.status==='error')" class="space-y-2" data-team-book-failed-blocks>
+              <div class="label">失败块</div>
+              <div v-for="row in teamBlocks.filter(item => item.status==='error')" :key="'failed-' + row.id" class="p-3 rounded-xl flex items-start gap-3" style="background:var(--warn-soft);border:1px solid var(--bd)">
+                <div class="min-w-0 flex-1"><div class="text-xs font-bold" style="color:var(--warn)">{{ row.label }}</div><div class="text-[10px] mt-1 break-words" style="color:var(--tx3)">{{ row.error || '该块未完成' }}</div></div>
+                <div class="flex gap-1 shrink-0"><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="retryTeamBlock(row.id)">重试</button><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="viewTeamRaw(row.id)">原文</button></div>
+              </div>
+            </div>
+            <pre v-if="teamRawView" class="text-[10px] leading-relaxed whitespace-pre-wrap break-words p-3 rounded-xl max-h-[180px] overflow-auto" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ teamRawView }}</pre>
+          </section>
+          <div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn-primary text-sm px-4 py-2" :disabled="teamDraft.committing" @click="commitTeamDraft()">{{ teamDraft.committing ? '正在写入…' : teamDraft.needsFill?.length ? '完整写入' : '接受并写入' }}</button><button v-if="teamDraft.needsFill?.length" type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="commitPartialTeamDraft">先写入已完成部分</button><button type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="teamPhase='review';oneKeyPhase='config'">返回方案</button></div>
+        </template>
+      </div>
+
+      <!-- ═══ 原有完成阶段 ═══ -->
       <div v-else class="flex-1 overflow-y-auto p-5 text-center py-12">
         <div class="text-4xl mb-3">{{ okFailedSteps.length ? '⚠️' : '🎉' }}</div>
         <div class="text-lg font-bold mb-2" style="color:var(--tx)">{{ okFailedSteps.length ? '部分模块生成失败' : '创建完成！' }}</div>
@@ -4579,7 +4774,12 @@
 
       <!-- 底部按钮 -->
       <div class="px-5 py-4 flex justify-end gap-3 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-        <template v-if="oneKeyPhase==='config'">
+        <template v-if="oneKeyPhase==='config' && newBookMode==='team'">
+          <button type="button" class="btn-ghost text-sm px-4 py-2" @click="backToManualBook">返回手填</button>
+          <template v-if="teamPhase==='input'"><button type="button" class="btn-primary text-sm px-5 py-2" :disabled="!teamBrief.trim()" @click="splitTeamPlan()">发送</button></template>
+          <template v-else-if="teamPhase==='review'"><button type="button" class="btn-ghost text-sm px-4 py-2" @click="retryTeamPlanner">改一句再拆</button><button type="button" class="btn-primary text-sm px-5 py-2" @click="acceptTeamPlan">接受并开写</button></template>
+        </template>
+        <template v-else-if="oneKeyPhase==='config'">
           <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-ghost text-sm px-4 py-2">取消</button>
           <button @click="handleNewBookConfirm" class="btn-ghost text-sm px-4 py-2" title="不调用 AI，主题和书名都可以留空">仅创建空书</button>
           <button @click="startOneKeyGeneration" :disabled="!newBookForm.theme||!oneKeyGenerationReady"
@@ -4935,74 +5135,7 @@
 <!-- ════════════════════════════════════════════
      故事树弹窗
      ════════════════════════════════════════════ -->
-<transition name="pop">
-  <div v-if="showTreeView" data-moyun-modal="story-tree" role="dialog" aria-modal="true" aria-label="故事分支树"
-       class="fixed inset-0 z-[85] flex items-end md:items-center justify-center p-0 md:p-4"
-       style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showTreeView=false">
-    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-[600px] flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
-         style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(80vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
-      <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
-        <h3 class="text-base font-bold" style="color:var(--tx)">🌳 故事分支树</h3>
-        <button type="button" data-moyun-modal-close @click="showTreeView=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭故事分支树" title="关闭">
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </div>
-      <div class="flex-1 overflow-y-auto p-5">
-        <div v-if="branchList.length<=1" class="text-center py-12" style="color:var(--tx3)">
-          <p class="text-3xl mb-2">🌱</p>
-          <p class="text-sm">故事还是一条直线</p>
-          <p class="text-[11px] mt-1" style="color:var(--tx4)">展开章节 → 点「重写」→ 创建分支</p>
-        </div>
-        <div v-else v-for="root in treeData" :key="root.id">
-          <div v-for="(ch,ci) in root.chapters" :key="ch.id">
-            <!-- 主线章节节点 -->
-            <div class="flex items-center gap-3 py-1">
-              <div class="flex flex-col items-center" style="width:16px">
-                <div class="w-px" :style="{height:ci===0?'0':'10px',background:'var(--bd)'}"></div>
-                <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="root.isCurrent?'background:var(--accent)':'background:var(--bd)'"></div>
-                <div class="w-px flex-1" style="min-height:10px;background:var(--bd)"></div>
-              </div>
-              <span class="text-xs" :style="root.isCurrent?'color:var(--tx)':'color:var(--tx3)'">
-                第{{ch.index}}章 <b>{{ch.title}}</b>
-              </span>
-            </div>
-            <!-- 从这章分出的分支 -->
-            <div v-for="fork in root.forks.filter(f=>f.forkAfter===ch.index)" :key="fork.id" class="ml-6 py-1">
-              <div class="flex items-center gap-2">
-                <div class="w-5 h-px" style="background:var(--info)"></div>
-                <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="fork.isCurrent?'background:var(--info)':'background:var(--bd)'"></div>
-                <span class="text-xs font-bold" :style="fork.isCurrent?'color:var(--info)':'color:var(--tx3)'">{{fork.name}} ({{fork.count}}章)</span>
-                <span v-if="fork.isCurrent" class="badge-ok text-[8px] px-1">当前</span>
-              </div>
-              <!-- 分支内章节 -->
-              <div class="ml-7 mt-1">
-                <button @click="toggleTreeBranch(fork.id)" class="text-[10px] px-2 py-0.5 rounded mb-1" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">
-                  {{ treeExpandedBranches[fork.id] ? '收起 ▲' : '展开 '+fork.count+' 章 ▼' }}
-                </button>
-                <div v-if="treeExpandedBranches[fork.id]" class="space-y-0.5 pl-3" style="border-left:2px solid var(--bd)">
-                  <div v-for="fch in fork.chapters" :key="fch.id" class="flex items-center gap-2 text-[11px]"
-                       :style="fork.isCurrent?'color:var(--tx2)':'color:var(--tx3)'">
-                    <div class="w-1.5 h-1.5 rounded-full shrink-0" :style="fork.isCurrent?'background:var(--info)':'background:var(--bd)'"></div>
-                    第{{fch.index}}章 {{fch.title}}
-                  </div>
-                </div>
-                <div class="flex gap-1.5 mt-1.5">
-                  <button @click="switchBranch(fork.id);showTreeView=false" class="text-[10px] px-2 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx2);border:1px solid var(--bd)">切换</button>
-                  <button @click="renameBranch(fork.id)" class="text-[10px] px-2 py-0.5 rounded" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">改名</button>
-                  <button @click="deleteBranch(fork.id)" class="text-[10px] px-2 py-0.5 rounded" style="background:var(--err-soft);color:var(--err)">删除</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-top:1px solid var(--bd)">
-        <span class="text-[11px]" style="color:var(--tx3)">{{branchList.length}} 条故事线</span>
-        <button type="button" data-moyun-modal-close @click="showTreeView=false" class="btn-primary text-xs px-4 py-1.5">关闭</button>
-      </div>
-    </div>
-  </div>
-</transition>
+<branch-panel v-if="showBranchPanel" :route="branchRouteMap" :active-id="activeBranchId" :selected-id="selectedBranchPanelId" :view="branchPanelView" :stats="branchPanelStats" :panel-style="branchPanelStyle" :context="branchPanelContext" @close="showBranchPanel=false" @select="selectedBranchPanelId=$event" @view="branchPanelView=$event" @enter="enterSelectedBranch" @rename="renameBranch(selectedBranchPanelId)" @delete="deleteBranch(selectedBranchPanelId)" @note="setBranchNote"></branch-panel>
 
 <!-- ════════════════════════════════════════════
      快照历史弹窗
@@ -5290,6 +5423,7 @@
                    class="input-field text-center shrink-0" style="width:80px;height:32px">
           </div>
 
+          <div class="space-y-2 py-2"><label class="flex items-start gap-2 text-sm"><input type="checkbox" v-model="settings.autoCheckContinuity" @change="saveData()" class="mt-1"><span>重新生成后自动检查衔接<span class="block text-[10px] mt-1" style="color:var(--tx3)">单章细纲在生成时初检；多章细纲完成后合并检查一次。</span></span></label><label class="flex items-start gap-2 text-sm"><input type="checkbox" v-model="settings.allowAiNeighborAdjustment" @change="saveData()" class="mt-1"><span>允许 AI 微调相邻章<span class="block text-[10px] mt-1" style="color:var(--tx3)">只在你点击调整后生成同卷前后各一章候选，逐章确认才写入。</span></span></label></div>
           <div id="settings-search-stream" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">流式输出</span><br><span class="text-[10px]" style="color:var(--tx3)">关闭后使用非流式请求（某些API需要）</span></div>
             <div @click="toggleStream()"
@@ -6074,6 +6208,12 @@
             </section>
           </div>
 
+          <section class="p-4 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)" data-moyun-announcement-card>
+            <div><h3 class="text-sm font-bold" style="color:var(--tx)">更新公告</h3><p class="mt-1 text-xs" style="color:var(--tx2)">查看最新和过往的更新公告</p></div>
+            <p class="text-xs leading-relaxed" style="color:var(--tx3)">共 {{ webAnnouncementCount }} 条，最近一条：{{ latestWebAnnouncement.title }}（{{ latestWebAnnouncement.publishedAt }}）</p>
+            <button type="button" class="btn-primary min-h-[44px] px-4 text-xs" @click="openWebUpdateAnnouncement(true)">查看公告</button>
+          </section>
+
         </div>
       </div>
 
@@ -6166,8 +6306,18 @@
 </div>
 
 <!-- 沉浸阅读模式退出按钮 -->
-<div v-if="immersiveMode" @click="toggleImmersive" class="immersive-exit" title="退出沉浸模式">
+<button v-if="immersiveMode" type="button" @click="toggleImmersive" class="immersive-exit" title="退出沉浸模式" aria-label="退出沉浸模式">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+</button>
+<button v-if="immersiveMode" type="button" class="immersive-reveal-toolbar" aria-label="显示沉浸工具条" @click="immersiveToolbarHidden=false"><span v-if="immersiveToolbarHidden">显示工具条</span></button>
+<div v-if="immersiveMode" class="immersive-toolbar" :class="{'is-hidden': immersiveToolbarHidden}" aria-label="沉浸写作工具">
+  <button type="button" class="btn-ghost" @click="enterImmersiveWriting" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='write'">手写</button>
+  <button type="button" class="btn-ghost" @click="enterImmersiveExpansion" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='expand'">扩写</button>
+  <button type="button" class="btn-ghost" @click="openImmersiveContinue" :disabled="immersiveExpandBusy" :aria-pressed="immersivePromptVisible">AI续写</button>
+</div>
+<div v-if="immersiveMode && immersivePromptVisible" class="immersive-continue-panel" aria-label="沉浸 AI 续写">
+  <div class="flex items-center justify-between gap-2 mb-2"><strong class="text-xs">AI续写</strong><button type="button" class="btn-ghost text-xs px-3 py-2" @click="immersivePromptVisible=false">收起</button></div>
+  <div class="flex gap-2 items-end"><textarea v-model="nextChapterPrompt" class="textarea-field text-sm flex-1" rows="2" placeholder="接下来的思路和想法…" aria-label="AI续写要求"></textarea><button type="button" class="btn-primary text-xs px-3 py-2" @click="sendImmersiveContinue" :disabled="isGenerating">发送</button></div>
 </div>
 
 <!-- 书评团浮动入口按钮（面板打开时自动下移避免遮挡） -->
@@ -6409,7 +6559,7 @@
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     </div>
-    <textarea ref="fullscreenInputRef" v-model="nextChapterPrompt" placeholder="在这里输入下一章的剧情走向、场景描述、人物互动等..."
+    <textarea ref="fullscreenInputRef" v-model="nextChapterPrompt" placeholder="接下来的思路和想法…"
               class="flex-1 p-4 text-base outline-none resize-none"
               style="background:transparent;color:var(--tx);line-height:1.8;border:none"
               @input="restoreComposerPromptCaret($event)"
@@ -6422,11 +6572,24 @@
 </transition>
 
 <!-- 更多弹窗占位（Part 4-8 填充：设置/角色预览/批量角色/书评/故事树/快照等） -->
+<transition name="pop">
+  <div v-if="continuityState.show" data-moyun-modal="continuity" role="dialog" aria-modal="true" aria-labelledby="moyun-continuity-title" class="fixed inset-0 z-[235] flex items-end md:items-center justify-center p-2 md:p-4" style="background:var(--overlay)">
+    <section data-moyun-modal-panel tabindex="-1" class="w-full max-w-3xl rounded-2xl overflow-y-auto p-4 md:p-5 space-y-3" style="background:var(--bg-card);max-height:calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom))">
+      <div class="flex justify-between items-start gap-3"><h3 id="moyun-continuity-title" class="text-base font-bold" style="color:var(--tx)">{{ continuityState.kind }}衔接检查</h3><button type="button" data-moyun-modal-close @click="closeContinuityCheck" class="btn-ghost text-xs px-3 py-2">{{ continuityState.busy?'停止并关闭':'关闭' }}</button></div>
+      <p v-if="continuityState.busy" class="text-xs" role="status">正在检查，请稍候……</p>
+      <p v-if="continuityState.error" class="text-xs whitespace-pre-wrap break-words" style="color:var(--err)" role="alert">{{ continuityState.error }}</p>
+      <p v-if="continuityState.checked && !continuityState.issues.length" class="text-xs" style="color:var(--ok)">本次检查在已提供的相邻内容中未发现衔接问题。</p>
+      <article v-for="(issue,index) in continuityState.issues" :key="index" class="rounded-lg p-3 text-xs space-y-2 break-words" style="background:var(--warn-soft);color:var(--tx2)"><div class="font-bold">{{ issue.location }} · {{ issue.type }}</div><p>{{ issue.message }}</p><details v-if="issue.suggestion"><summary class="cursor-pointer">查看建议</summary><p class="mt-2">{{ issue.suggestion }}</p></details><details v-if="issue.type==='无法解读'"><summary class="cursor-pointer">查看检查原文</summary><pre class="whitespace-pre-wrap break-words font-sans mt-2">{{ issue.raw || continuityState.raw || '（空响应）' }}</pre></details></article>
+      <button v-if="continuityState.kind==='细纲' && continuityState.chapterNo" type="button" @click="requestNeighborAdjustment(continuityState.chapterNo)" :disabled="continuityState.busy" class="btn-ghost text-xs px-3 py-2">让 AI 调整同卷相邻章（先审阅）</button>
+      <article v-for="row in continuityReviewRows" :key="row.id" class="space-y-2" data-continuity-review><h4 class="text-sm font-bold">第{{ row.chapterNo }}章调整稿</h4><review-panel :state="row.review" :title="'第'+row.chapterNo+'章细纲'" :show-toolbar="true" @apply="selected=>requestApplyContinuityReview(row,selected)" @discard="rejectContinuityReview(row)" @undo="undoContinuityReview(row)" @accept="id=>requestApplyContinuityReview(row,false,id)" @reject="id=>rejectContinuityReview(row,id)" @select="(id,selected)=>selectContinuityReview(row,id,selected)" @focus="id=>focusContinuityReview(row,id)"></review-panel></article>
+    </section>
+  </div>
+</transition>
 
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=dcdaf869e5c6"></script>
+<script src="./assets/js/moyun.js?v=9a370383bf9c"></script>
 <!-- PART_1_END -->
 </body>
 </html>

@@ -1,0 +1,174 @@
+{
+  "id": "v19-fixture-E",
+  "title": "完结细纲：十二章",
+  "lastModified": 1792800000000,
+  "wordCount": 0,
+  "novel": {
+    "title": "完结细纲：十二章",
+    "theme": "雾港寻灯",
+    "synopsis": "林舟和沈禾寻找失踪的守灯人。",
+    "worldView": "潮汐决定航路，灯塔只在夜里开放。",
+    "outline": "",
+    "negativePrompt": "",
+    "isAdultMode": false
+  },
+  "chapters": [],
+  "characters": [
+    {
+      "id": "E-char-1",
+      "name": "林舟",
+      "desc": "成年修灯师，保管铜钥匙。"
+    },
+    {
+      "id": "E-char-2",
+      "name": "沈禾",
+      "desc": "成年领航员，熟悉潮汐。"
+    }
+  ],
+  "chapterOutlines": [
+    {
+      "id": "E-outline-1",
+      "chapterNo": 1,
+      "title": "第1章 灯塔线索",
+      "content": "林舟核对第1处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-2",
+      "chapterNo": 2,
+      "title": "第2章 灯塔线索",
+      "content": "林舟核对第2处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-3",
+      "chapterNo": 3,
+      "title": "第3章 灯塔线索",
+      "content": "林舟核对第3处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-4",
+      "chapterNo": 4,
+      "title": "第4章 灯塔线索",
+      "content": "林舟核对第4处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-5",
+      "chapterNo": 5,
+      "title": "第5章 灯塔线索",
+      "content": "林舟核对第5处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-6",
+      "chapterNo": 6,
+      "title": "第6章 灯塔线索",
+      "content": "林舟核对第6处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-7",
+      "chapterNo": 7,
+      "title": "第7章 灯塔线索",
+      "content": "林舟核对第7处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-8",
+      "chapterNo": 8,
+      "title": "第8章 灯塔线索",
+      "content": "林舟核对第8处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-9",
+      "chapterNo": 9,
+      "title": "第9章 灯塔线索",
+      "content": "林舟核对第9处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-10",
+      "chapterNo": 10,
+      "title": "第10章 灯塔线索",
+      "content": "林舟核对第10处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-11",
+      "chapterNo": 11,
+      "title": "第11章 灯塔线索",
+      "content": "林舟核对第11处航标，沈禾发现新的潮汐线索。下一步仍需寻找守灯人。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    },
+    {
+      "id": "E-outline-12",
+      "chapterNo": 12,
+      "title": "第12章 灯塔线索",
+      "content": "林舟归还钥匙，守灯人平安归来，所有线索在本章收束。故事结束。",
+      "characterIds": [
+        "E-char-1",
+        "E-char-2"
+      ],
+      "isExpanded": false
+    }
+  ],
+  "chapterIndexDrafts": [],
+  "foreshadowMatrix": [],
+  "summaries": [],
+  "branchList": [
+    {
+      "id": "main",
+      "name": "主线",
+      "forkFromChapterId": null,
+      "forkIndex": 0
+    }
+  ],
+  "activeBranchId": "main"
+}

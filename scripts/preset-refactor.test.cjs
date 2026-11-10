@@ -125,6 +125,8 @@ const pieces = [
   const getModSettingValue = () => undefined;
   // 旧请求 fixture 明确关闭 v0.0.18 记忆库；仍调用真实的 history 入口验证回退。
   const memoryLibrary = ref({settings:{enabled:false}});
+  const activeBranchId = ref('main');
+  const branchList = ref([{id:'main'}]);
   `,
 
   // A：thinking 清洗链 + 白鸟 CoT 上下文 + 审计旗标 + 章节清洗 helper（含 SNOWWING 常量）
@@ -152,6 +154,8 @@ const pieces = [
   sliceInclusive('    const nextChapterPrompt = ref(\'\');', '    const nextChapterPrompt = ref(\'\');'),
   fnBlock('normalizeNoOutputTimeout'),
   fnBlock('buildMemoryHistory'),
+  fnBlock('isSummaryInCurrentBranch'),
+  fnBlock('buildBranchNotePrompt'),
   // G''：R 切片的 buildChapterMessages 还引用 generateCount/wordCountTarget 两个 ref（真实默认值）
   sliceInclusive('    const generateCount = ref(1);', '    const generateCount = ref(1);'),
 
@@ -607,6 +611,7 @@ if (process.env.MOYUN_CAPTURE) {
       normalizePromptComposer: x => (x && typeof x === 'object') ? x : { floors: [], overrides: [] },
       normalizeForeshadowMatrix: x => Array.isArray(x) ? x : [],
       normalizeChapterIndexDrafts: x => Array.isArray(x) ? x : [],
+      normalizeChapterOutline: x => x,
       normalizeModPacks: x => Array.isArray(x) ? x : [],
       normalizeInstalledThemePacks: x => Array.isArray(x) ? x : [],
       normalizeSnowwingChapterStoryTimeRecord: noop,
@@ -662,7 +667,9 @@ if (process.env.MOYUN_CAPTURE) {
       // 存储矩阵触及的全部 ref
       books: R([]), currentBookId: R(''), currentChapterIndex: R(-1),
       novel: R({}), chapters: R([]), structuredCharacters: R([]), storyBible: R(null),
-      branchList: R([]), activeBranchId: R('main'), chapterOutlines: R([]), chapterIndexDrafts: R([]),
+      branchList: R([]), activeBranchId: R('main'), branchData:R({}),staleMarks:R([]),chapterOutlines: R([]), chapterIndexDrafts: R([]),
+      outlineReview:R({revisions:[]}),settingsRevisionState:R({status:'idle',rows:[],undo:null,error:''}),reverseOutlineState:R({status:'idle'}),
+      settingsRevisionPrompt:R(''),settingsRevisionSelectedIds:R([]),settingsRevisionSelectionReady:R(false),settingsRevisionScopeOpen:R(false),settingsRevisionBusy:R(false),
       outlineRevisions: R([]), selectedRevId: R(''), activeStyleIds: R([]), coverImage: R(''),
       promptPipeline: R([]), presets: R([]), writingStyles: R([]), currentWritingStyleId: R(''),
       modPacks: R([]), installedThemePacks: R([]), activeThemePackId: R(''), modPrivateData: R({}),
@@ -676,7 +683,11 @@ if (process.env.MOYUN_CAPTURE) {
     });
     const script = [
       'const ref = v => ({ value: v });\nconst computed = fn => ({ get value() { return fn(); } });\nconst localStorage = { getItem: () => null, setItem() {}, removeItem() {} };\nconst window = {};\nconst LEGACY_PRESET_ROOT_KEYS = [\'promptPipeline\', \'presets\', \'writingStyles\', \'currentWritingStyleId\', \'activeStyleIds\', \'atmosphereEnabled\', \'atmospherePrompt\'];\nconst legacyPresetRootFields = { value: {} };',
-      fnBlock('normalizeMemoryLibrary'), NEW_SECTION, SYNC_BOOK_DATA, INIT_BOOKS, CREATE_AND_LOAD_BOOK, SAVE_SNAPSHOT, RESTORE_SNAPSHOT, CLEAR_ALL, EXPORT_FULL_BACKUP, RESOLVE_IMPORTED,
+      fnBlock('normalizeMemoryLibrary'), NEW_SECTION,
+      slice('    function normalizeStaleMarks(', '    function markStale('),fnBlock('parseChapterRefs'),
+      slice('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'),
+      slice('    function persistReviewStates(', '    function getSettingsRevisionTargets('),
+      SYNC_BOOK_DATA, INIT_BOOKS, CREATE_AND_LOAD_BOOK, SAVE_SNAPSHOT, RESTORE_SNAPSHOT, CLEAR_ALL, EXPORT_FULL_BACKUP, RESOLVE_IMPORTED,
       'this.__api = { syncBookData, initBooks, createNewBook, loadBook, saveSnapshot, restoreSnapshot, clearAll, performExportBookFullBackup, resolveImportedBookData, normalizeNarrativePerson, normalizePromptPresetRole, normalizePromptPreset, normalizePromptPresetList, syncBuiltinPromptPresets, syncNarrativePersonPresets, BUILTIN_PROMPT_PRESETS, PROMPT_PRESET_DYNAMIC_MEMORY_SEGMENT, books, currentBookId, novel, chapters, structuredCharacters, storyBible, branchList, activeBranchId, chapterOutlines, chapterIndexDrafts, outlineRevisions, activeStyleIds, coverImage, promptPipeline, presets, writingStyles, currentWritingStyleId, modPacks, installedThemePacks, activeThemePackId, modPrivateData, atmosphereEnabled, atmospherePrompt, dialogueTypes, personalityTagPresets, summaries, narrativePerson, promptPresets, totalWordCount, legacyRemovedLibraryFields, legacyPresetRootFields, oneKeySystemPrompt, visiblePromptPresets, canEditPromptPresetContent, canDeletePromptPreset, canMovePromptPreset, movePromptPreset, togglePromptPresetEnabled, addPromptPreset, openPromptPresetEditor, savePromptPresetEditor, deletePromptPresetItem, cancelPromptPresetEditor, setNarrativePerson, uniquePromptPresetImportName, promptPresetEditor, showPromptPresetEditor };'
     ].join('\n');
     vm.runInContext(script, ctx, { filename: 'moyun-preset-refactor-storage.cjs' });

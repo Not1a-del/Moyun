@@ -26,7 +26,8 @@ const steps = [
   { id: 'ai-protocol', title: 'AI 协议回归（本地 mock）', args: ['scripts/ai-protocol-regression.cjs'] },
   { id: 'startup', title: '启动资源检查', args: ['--test', 'scripts/startup-regression.cjs'] },
   { id: 'v17', title: '预设与上下文回归', args: ['--test', 'scripts/preset-refactor.test.cjs', 'scripts/v17-context-regression.cjs'] },
-  { id: 'v18-memory', title: '记忆库回归', args: ['scripts/v18-memory-volume.test.cjs'] }
+  { id: 'v18-memory', title: '记忆库回归', args: ['scripts/v18-memory-volume.test.cjs'] },
+  { id: 'v19', title: 'v0.0.19 功能回归', args: ['--test', ...fs.readdirSync(path.join(ROOT,'scripts')).filter(name => /^v19-.*\.test\.cjs$/.test(name)).sort().map(name => 'scripts/' + name)] }
 ];
 const browserSteps = [
   { id: 'v18-browser', title: '浏览器回归（桌面与手机尺寸）', args: ['scripts/v18-browser.cjs'], browser: true },

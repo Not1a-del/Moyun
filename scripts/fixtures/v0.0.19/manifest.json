@@ -1,0 +1,56 @@
+{
+  "A": {
+    "file": "A.json",
+    "title": "空白新书",
+    "chapters": 0,
+    "branches": 0,
+    "outlines": 0,
+    "bytes": 578,
+    "sha256": "f1b9c2a91893aa0d317eb2bf4323d8a9f0aec9b162c85222929f0cdabb723c0d"
+  },
+  "B": {
+    "file": "B.json",
+    "title": "老书：雾港",
+    "chapters": 30,
+    "branches": 2,
+    "outlines": 30,
+    "bytes": 61959,
+    "sha256": "36bc2f19aedb3690ef19acedb9ff797c8caa598349dd55eec11b69d346d24aed"
+  },
+  "C": {
+    "file": "C.json",
+    "title": "大书：百盏灯",
+    "chapters": 100,
+    "branches": 3,
+    "outlines": 100,
+    "bytes": 298028,
+    "sha256": "2cace83429d015083f1137860efc4ab278819c20e531860b011ccb163b8d1988"
+  },
+  "D": {
+    "file": "D.json",
+    "title": "未完细纲：三十五章",
+    "chapters": 0,
+    "branches": 0,
+    "outlines": 35,
+    "bytes": 12033,
+    "sha256": "7f9293494d19fbf1f6b1a1e385db4801a1c00d259a14645e4a3a8f3e29a0f084"
+  },
+  "E": {
+    "file": "E.json",
+    "title": "完结细纲：十二章",
+    "chapters": 0,
+    "branches": 0,
+    "outlines": 12,
+    "bytes": 4708,
+    "sha256": "ace3c4faa4783f20cf779177b5da7509994dd761da4210d0d346146701c9f759"
+  },
+  "F": {
+    "file": "F.json",
+    "title": "手写长章",
+    "chapters": 1,
+    "branches": 0,
+    "outlines": 0,
+    "bytes": 26090,
+    "sha256": "accc3e35880ae73ded6556885a774f338c3fb14890513948b35227127f569761"
+  }
+}
