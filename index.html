@@ -1142,9 +1142,10 @@
         <div v-if="getCurrentStylePrompt()" class="text-[11px] p-2 rounded-md line-clamp-3" style="background:var(--bg-inset);color:var(--tx3);line-height:1.5">
           {{ getCurrentStylePrompt() }}
         </div>
-        <div class="flex gap-2 mt-2">
+        <div class="flex flex-wrap gap-2 mt-2">
           <button @click="addWritingStyle()" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--accent-soft);color:var(--accent)">+ 添加自定义文风</button>
           <button @click="showAiStyleGen=true" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)">AI批量生成文风</button>
+          <button type="button" @click="openStyleSource" class="btn-ghost text-xs" style="min-height:44px">文风来源</button>
         </div>
         <!-- AI文风生成输入 -->
         <div v-if="showAiStyleGen" class="mt-2 p-3 rounded-lg" style="background:var(--bg-inset);border:1px solid var(--bd)">
@@ -5218,6 +5219,23 @@
 <!-- ════════════════════════════════════════════
      全局设置面板
      ════════════════════════════════════════════ -->
+<div v-if="showStyleSource" data-moyun-modal="style-source" role="dialog" aria-modal="true" aria-label="文风来源" class="fixed inset-0 z-[95] flex items-center justify-center md:p-4" style="background:var(--overlay)">
+  <section data-moyun-modal-panel class="card flex flex-col w-full h-full md:h-auto md:max-h-[92vh] min-w-0" style="max-width:1100px">
+    <header class="p-4 flex items-center justify-between gap-2"><span class="label">文风来源</span><button type="button" class="btn-ghost" style="min-height:44px" @click="showStyleSource=false">关闭</button></header>
+    <div class="px-4 pb-4 overflow-y-auto min-h-0 flex-1">
+      <p v-if="isSnowwingPresetLocked()" class="text-xs mb-3" style="color:var(--warn)">白鸟已接管文风。两种来源均不发送；仍可提炼并保存文风，解除锁定后使用。</p>
+      <div class="flex flex-wrap gap-2 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍素材</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">查看其他书素材</button></div>
+      <div class="flex flex-wrap gap-3 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" :aria-pressed="styleSource.mode==='library'" :disabled="isSnowwingPresetLocked()" @click="setStyleSourceMode('library')">文风库（默认）</button><button type="button" class="btn-ghost" style="min-height:44px" :aria-pressed="styleSource.mode==='favorites'" :disabled="isSnowwingPresetLocked() || !favoriteMaterialRows.length" @click="setStyleSourceMode('favorites')">喜欢范文</button></div>
+      <template v-if="styleSource.mode==='favorites' || isSnowwingPresetLocked()">
+        <p class="text-xs mb-2" style="color:var(--tx3)">只模仿语感、句式和节奏，不复用情节。已选 {{selectedStyleChars}} 字；跨书快照独立保存在本书，来源更新需手动同步。</p>
+        <div class="flex flex-wrap gap-2 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
+        <material-list :rows="styleMaterialRows" :selectable="true" :selected="styleSource.copies.map(row=>row.key)" @choose="toggleStyleMaterial" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
+        <div v-for="copy in styleSource.copies.filter(row=>isStyleCopyUpdated(row))" :key="copy.key" class="flex flex-wrap items-center gap-2 text-xs mt-2"><span>{{copy.chapterTitle}} · 来源有新版本</span><button type="button" class="btn-ghost" style="min-height:44px" @click="refreshStyleCopy(copy)">更新范文副本</button></div>
+      </template>
+    </div>
+    <footer class="p-4 shrink-0"><button v-if="styleSource.mode==='favorites' || isSnowwingPresetLocked()" type="button" class="btn-primary" style="min-height:44px" :disabled="!styleSource.copies.length || isDistillingStyle" v-moyun-tip="'会额外请求一次 AI；结果不合格时自动重试一次，可能再产生一次费用。'" @click="distillFavoriteStyle">{{isDistillingStyle?'提炼中…':'提炼文风'}}</button></footer>
+  </section>
+</div>
 <div v-if="summaryBackfillPicker.open" data-moyun-modal="summary-backfill" role="dialog" aria-modal="true" aria-label="选择补摘要章节" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
   <div data-moyun-modal-panel tabindex="-1" class="card w-full max-w-lg p-4 flex flex-col gap-3" style="max-height:90dvh">
     <div class="flex justify-between items-center"><strong>补摘要 · 选择章节</strong><button type="button" data-moyun-modal-close @click="summaryBackfillPicker.open=false" class="btn-ghost min-h-[44px]" aria-label="关闭补摘要选择">×</button></div>
@@ -6674,7 +6692,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=62308d16c092"></script>
+<script src="./assets/js/moyun.js?v=22493b7885f5"></script>
 <!-- PART_1_END -->
 </body>
 </html>

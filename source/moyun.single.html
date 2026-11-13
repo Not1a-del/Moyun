@@ -3230,9 +3230,10 @@ img[role="button"]:focus-visible {
         <div v-if="getCurrentStylePrompt()" class="text-[11px] p-2 rounded-md line-clamp-3" style="background:var(--bg-inset);color:var(--tx3);line-height:1.5">
           {{ getCurrentStylePrompt() }}
         </div>
-        <div class="flex gap-2 mt-2">
+        <div class="flex flex-wrap gap-2 mt-2">
           <button @click="addWritingStyle()" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--accent-soft);color:var(--accent)">+ 添加自定义文风</button>
           <button @click="showAiStyleGen=true" class="text-[10px] px-3 py-1 rounded-md font-bold" style="background:var(--warn-soft);color:var(--warn)">AI批量生成文风</button>
+          <button type="button" @click="openStyleSource" class="btn-ghost text-xs" style="min-height:44px">文风来源</button>
         </div>
         <!-- AI文风生成输入 -->
         <div v-if="showAiStyleGen" class="mt-2 p-3 rounded-lg" style="background:var(--bg-inset);border:1px solid var(--bd)">
@@ -7306,6 +7307,23 @@ img[role="button"]:focus-visible {
 <!-- ════════════════════════════════════════════
      全局设置面板
      ════════════════════════════════════════════ -->
+<div v-if="showStyleSource" data-moyun-modal="style-source" role="dialog" aria-modal="true" aria-label="文风来源" class="fixed inset-0 z-[95] flex items-center justify-center md:p-4" style="background:var(--overlay)">
+  <section data-moyun-modal-panel class="card flex flex-col w-full h-full md:h-auto md:max-h-[92vh] min-w-0" style="max-width:1100px">
+    <header class="p-4 flex items-center justify-between gap-2"><span class="label">文风来源</span><button type="button" class="btn-ghost" style="min-height:44px" @click="showStyleSource=false">关闭</button></header>
+    <div class="px-4 pb-4 overflow-y-auto min-h-0 flex-1">
+      <p v-if="isSnowwingPresetLocked()" class="text-xs mb-3" style="color:var(--warn)">白鸟已接管文风。两种来源均不发送；仍可提炼并保存文风，解除锁定后使用。</p>
+      <div class="flex flex-wrap gap-2 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍素材</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">查看其他书素材</button></div>
+      <div class="flex flex-wrap gap-3 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" :aria-pressed="styleSource.mode==='library'" :disabled="isSnowwingPresetLocked()" @click="setStyleSourceMode('library')">文风库（默认）</button><button type="button" class="btn-ghost" style="min-height:44px" :aria-pressed="styleSource.mode==='favorites'" :disabled="isSnowwingPresetLocked() || !favoriteMaterialRows.length" @click="setStyleSourceMode('favorites')">喜欢范文</button></div>
+      <template v-if="styleSource.mode==='favorites' || isSnowwingPresetLocked()">
+        <p class="text-xs mb-2" style="color:var(--tx3)">只模仿语感、句式和节奏，不复用情节。已选 {{selectedStyleChars}} 字；跨书快照独立保存在本书，来源更新需手动同步。</p>
+        <div class="flex flex-wrap gap-2 mb-3"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
+        <material-list :rows="styleMaterialRows" :selectable="true" :selected="styleSource.copies.map(row=>row.key)" @choose="toggleStyleMaterial" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
+        <div v-for="copy in styleSource.copies.filter(row=>isStyleCopyUpdated(row))" :key="copy.key" class="flex flex-wrap items-center gap-2 text-xs mt-2"><span>{{copy.chapterTitle}} · 来源有新版本</span><button type="button" class="btn-ghost" style="min-height:44px" @click="refreshStyleCopy(copy)">更新范文副本</button></div>
+      </template>
+    </div>
+    <footer class="p-4 shrink-0"><button v-if="styleSource.mode==='favorites' || isSnowwingPresetLocked()" type="button" class="btn-primary" style="min-height:44px" :disabled="!styleSource.copies.length || isDistillingStyle" v-moyun-tip="'会额外请求一次 AI；结果不合格时自动重试一次，可能再产生一次费用。'" @click="distillFavoriteStyle">{{isDistillingStyle?'提炼中…':'提炼文风'}}</button></footer>
+  </section>
+</div>
 <div v-if="summaryBackfillPicker.open" data-moyun-modal="summary-backfill" role="dialog" aria-modal="true" aria-label="选择补摘要章节" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
   <div data-moyun-modal-panel tabindex="-1" class="card w-full max-w-lg p-4 flex flex-col gap-3" style="max-height:90dvh">
     <div class="flex justify-between items-center"><strong>补摘要 · 选择章节</strong><button type="button" data-moyun-modal-close @click="summaryBackfillPicker.open=false" class="btn-ghost min-h-[44px]" aria-label="关闭补摘要选择">×</button></div>
@@ -20878,7 +20896,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     const PRESET_FIELDS=['promptPipeline','presets','promptPresets','narrativePerson','writingStyles','currentWritingStyleId','activeStyleIds','atmosphereEnabled','atmospherePrompt','dialogueTypes','personalityTagPresets','nsfwSettings','nsfwSystemPrompt','nsfwInjectionPrompt','discussionPrompt','oneKeySystemPrompt','promptComposerConfig'];
     const BOOK_FIELDS=['memoryLibrary','lastWritingUsage','promptPresets','narrativePerson','novel','storyBible','chapters','characters','branchList','activeBranchId','branchData','staleMarks','chapterOutlines','chapterIndexDrafts','foreshadowMatrix','summaries','coverImage','modPacks','modPrivateData','imageProfiles','activeProfileId','interruptedDraft','_avatars','_imageCache'];
     const TRANSFER_LABELS={memoryLibrary:'记忆库',lastWritingUsage:'上轮Token用量',promptPresets:'新版写作预设',_avatars:'角色立绘附件',_imageCache:'正文图片缓存',novel:'书籍设定',title:'书名',theme:'主题',synopsis:'简介',worldView:'世界观',negativePrompt:'负面提示词',outline:'故事大纲',volumes:'卷纲',storyBible:'创作设定',project:'项目承诺',world:'世界总览',entries:'资料条目',events:'事件时间线',chapters:'正文章节',characters:'角色',branchList:'故事分支',activeBranchId:'当前分支',branchData:'分支规划数据',staleMarks:'待核对标记',chapterOutlines:'细纲',chapterIndexDrafts:'章节索引',foreshadowMatrix:'暗线计划',summaries:'总结',coverImage:'封面',modPacks:'MOD',modPrivateData:'MOD 私有数据',imageProfiles:'生图配置',activeProfileId:'当前生图配置',interruptedDraft:'中断草稿',promptPipeline:'流水线',presets:'预设指令',writingStyles:'文风设置',currentWritingStyleId:'当前文风选择',activeStyleIds:'叠加文风',atmosphereEnabled:'氛围开关',atmospherePrompt:'氛围提示词',narrativePerson:'叙事视角',dialogueTypes:'对话风格',personalityTagPresets:'性格标签',nsfwSettings:'增强选项',nsfwSystemPrompt:'增强系统提示词',nsfwInjectionPrompt:'增强对话',discussionPrompt:'讨论提示词',oneKeySystemPrompt:'一键成书提示词',promptComposerConfig:'自定义发送楼层'};
-    Object.assign(TRANSFER_LABELS,{reviewStates:'待审修改与撤销',settings:'设定修改',reverse:'细纲反推卷纲',immersiveHandwritingDrafts:'沉浸手写草稿',immersiveExpansionReviews:'沉浸扩写待审'});
+    Object.assign(TRANSFER_LABELS,{favoriteClips:'喜欢素材快照',styleSources:'文风来源与范文副本',reviewStates:'待审修改与撤销',settings:'设定修改',reverse:'细纲反推卷纲',immersiveHandwritingDrafts:'沉浸手写草稿',immersiveExpansionReviews:'沉浸扩写待审'});
     function validateTransferJson(value,depth=0) {
       if(depth>40)throw Error('JSON 嵌套过深');
       if(value===null || typeof value!=='object')return;
@@ -21567,6 +21585,8 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     ]);
 
     /* ═══ 文风系统 ═══ */
+    // 提炼规则原文来自文风蒸馏器1.5，保留JSON包装与防复述重试话术。
+    const FAVORITE_DISTILL_RULES = {"retry":{"instruction":"你是文学风格分析师。上一次的蒸馏输出不合格，本次必须产出严格符合格式的风格分析指南。","promptTemplate":"你上一次的输出不符合要求：你直接复述或转写了原文，而没有进行风格分析。\n\n请重新分析下面的文本样本，严格遵守：\n1. 禁止输出、复述、转写或引用原文的任何段落。\n2. 只输出风格分析指南，正文必须包含「## 风格概述」「## 核心特点」「## 写作示例」等章节标题，禁止把原文当作正文。\n\n输出格式（不要有任何开场白）：\n---\nname: [风格名]\ndescription: [一句话概括]\n---\n\n# 写作风格指南\n（正文含：## 风格概述 / ## 核心特点 / ## 特色表达 / ## 写作示例（### 推荐写法、### 避免写法）/ ## 注意事项）\n\n## JSON 输出包装\n风格指南正文写完后，另起一行输出分隔符 \u003c\u003c\u003cJSON\u003e\u003e\u003e ，随后输出一个 JSON 对象（不要 Markdown 代码块）：\n{\"name\":\"风格名\",\"summary\":\"30字内概括\",\"prompt\":\"可执行文风规则，500字符内，含句式/节奏/口吻/感官/情绪指令与禁令\",\"samples\":\"典型句4句，\\n分隔，按该文风原创\",\"forbidden\":\"禁忌项，\\n分隔\",\"guide\":\"完整风格指南 Markdown 全文\"}\nguide 字段必须与正文指南一致。只输出指南 + \u003c\u003c\u003cJSON\u003e\u003e\u003e + JSON，不要其他内容。\n\n## 上次的不合格输出\n{{input.lastOutput}}\n\n## 文本样本（供重新分析，禁止复制）\n{{input.sourceText}}"},"single":{"instruction":"你是文学风格分析师。你的唯一任务是从下面的小说文本样本中提炼写作风格，并输出一份风格指南。\n\n## 严格禁止\n- 禁止复述、转写、引用或输出原文内容本身（包括样本的开头、中间、结尾的任何段落）。\n- 你输出的每一句话都必须是对原文风格的分析，而不是原文本身。\n- 禁止保留原文中的专有名词（人名、地名、组织名、道具名）；示例一律原创，用中性代称（他、她、那座城）。\n- 禁止使用「文笔细腻」「意境深远」「画面感强」等空泛形容词，每条规则必须可执行。\n\n## 输入判别（先做再分析）\n- 若输入是聊天记录 JSONL：只分析 role=assistant（AI）消息的文本，忽略 role=user 行与命令前缀；内嵌 HTML/CSS 界面块不是正文，剥离后分析。\n- 若输入是角色卡定义（含 name+description+first_mes 等角色字段、chara_card_v3 规格）或角色外貌/性格解析清单：这不是可蒸馏的正文样本，输出空数组 [] 并结束。","promptTemplate":"请对【用户输入】sourceText 中的范文执行文风蒸馏，按下面的 Markdown 模板输出一份写作风格指南。\n\n## 输出格式（直接输出以下结构，不要任何开场白、解释或多余内容）\n\n---\nname: [风格名，4-10字]\ndescription: [一句话风格概括，30字以内]\n---\n\n# 写作风格指南\n\n## 风格概述\n[2-3句话描述整体风格]\n\n## 核心特点\n- 叙事视角：[说明]\n- 语言风格：[说明]\n- 对话特点：[说明]\n- 描写手法：[说明]\n\n## 特色表达\n列举5-10个特色词汇或表达方式\n\n## 写作示例\n### 推荐写法\n[1-2个按该文风原创的简短示例]\n### 避免写法\n[1-2个该文风明确不会出现的写法示例]\n\n## 注意事项\n[2-3条关键要点]\n\n## JSON 输出包装\n风格指南正文写完后，另起一行输出分隔符 \u003c\u003c\u003cJSON\u003e\u003e\u003e ，随后输出一个 JSON 对象（不要 Markdown 代码块）：\n{\"name\":\"风格名\",\"summary\":\"30字内概括\",\"prompt\":\"可执行文风规则，500字符内，含句式/节奏/口吻/感官/情绪指令与禁令\",\"samples\":\"典型句4句，\\n分隔，按该文风原创\",\"forbidden\":\"禁忌项，\\n分隔\",\"guide\":\"完整风格指南 Markdown 全文\"}\nguide 字段必须与正文指南一致。只输出指南 + \u003c\u003c\u003cJSON\u003e\u003e\u003e + JSON，不要其他内容。\n\n【范文】\n{{input.materialText}}"}};
     const FAVORITE_CHAR_WARNING = 30000;
     const favoriteScope = ref('current');
     const favoriteSelection = ref({chapterId:'', updateId:''});
@@ -21614,6 +21634,10 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       const book = books.value.find(book => book.id === row.bookId);
       const target = row.bookId === currentBookId.value ? novel.value : book?.novel;
       if (!target) return; target.favoriteClips = (target.favoriteClips || []).filter(item => item.id !== row.id);
+      Object.values(novel.value.styleSources || {}).forEach(state => {
+        state.copies = state.copies.filter(copy => copy.key !== row.bookId + ':' + row.id);
+        if (!state.copies.length && state.mode === 'favorites') { state.mode = 'library'; showToast('喜欢范文已空，已切回文风库', 'info'); }
+      });
       saveDataNow('取消喜欢');
     }
     async function jumpToFavorite(row) {
@@ -21622,7 +21646,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if (String(row.branchId || 'main') !== activeBranchId.value) switchBranch(row.branchId || 'main');
       const idx = visibleChapters.value.findIndex(ch => ch.id === row.chapterId);
       if (idx < 0) { showToast('原文已删除，喜欢快照仍保留', 'info'); return; }
-      showSettings_modal.value = false; mobileSidebarOpen.value = false; scrollToChapter(idx);
+      showStyleSource.value = false; showSettings_modal.value = false; mobileSidebarOpen.value = false; scrollToChapter(idx);
       await nextTick();
       if (row.paragraphIndex != null) document.querySelector('[data-favorite-paragraph="' + row.chapterId + ':' + row.paragraphIndex + '"]')?.scrollIntoView({block:'center'});
     }
@@ -21631,6 +21655,90 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       const ch = visibleChapters.value.find(ch => ch.id === row.chapterId); if (!ch) return;
       if (row.paragraphIndex == null) saveFavoriteClip(ch, visibleChapters.value.indexOf(ch), null, cleanNarrativeChapterContent(ch), row.id);
       else { favoriteSelection.value = {chapterId:ch.id,updateId:row.id}; showToast('请在章节里选择对应的新段落，替换这条快照', 'info'); }
+    }
+    const showStyleSource = ref(false), isDistillingStyle = ref(false);
+    const styleSource = computed(() => novel.value.styleSources?.[activeBranchId.value] || {mode:'library',copies:[]});
+    function writableStyleSource() {
+      novel.value.styleSources ||= {};
+      return novel.value.styleSources[activeBranchId.value] ||= {mode:'library',copies:[]};
+    }
+    const selectedStyleChars = computed(() => styleSource.value.copies.reduce((n,row) => n + String(row.snapshot || '').length,0));
+    function sourceForStyleCopy(copy) {
+      return copy.bookId === currentBookId.value ? currentFavoriteClips().find(row => row.id === copy.id) : books.value.find(book => book.id === copy.bookId)?.novel?.favoriteClips?.find(row => row.id === copy.id);
+    }
+    function isStyleCopyUpdated(copy) { const row = sourceForStyleCopy(copy); return !!row && row.snapshot !== copy.snapshot; }
+    const styleMaterialRows = computed(() => {
+      const rows = favoriteMaterialRows.value.map(row => ({...row,sourceUpdated:styleSource.value.copies.some(copy => copy.key === row.bookId + ':' + row.id && isStyleCopyUpdated(copy))}));
+      const keys = new Set(rows.map(row => row.bookId + ':' + row.id));
+      return rows.concat(styleSource.value.copies.filter(copy => !keys.has(copy.key)).map(copy => ({...copy,status:copy.status || '独立范文副本',sourceUpdated:isStyleCopyUpdated(copy)})));
+    });
+    function openStyleSource() {
+      favoriteScope.value = 'current';
+      if (styleSource.value.mode === 'favorites' && !styleSource.value.copies.length) { writableStyleSource().mode = 'library'; showToast('喜欢范文已空，已切回文风库', 'info'); saveData(); }
+      showStyleSource.value = true;
+    }
+    function setStyleSourceMode(mode) {
+      if (isSnowwingPresetLocked()) return;
+      if (mode === 'favorites' && !favoriteMaterialRows.value.length && !styleSource.value.copies.length) return;
+      writableStyleSource().mode = mode; saveData();
+    }
+    function toggleStyleMaterial(row) {
+      const state = writableStyleSource(), key = row.bookId + ':' + row.id, index = state.copies.findIndex(copy => copy.key === key);
+      if (index >= 0) state.copies.splice(index,1);
+      else state.copies.push(deepClone({...row,key,sourceCharacterNames:row.sourceCharacterNames || []}));
+      if (!state.copies.length) { state.mode = 'library'; showToast('没有选中的喜欢范文，已切回文风库', 'info'); }
+      if (selectedStyleChars.value > FAVORITE_CHAR_WARNING) showToast('选中的范文字数较多，可能会挤占前文和记忆的空间。', 'info');
+      saveDataNow('保存范文副本');
+    }
+    function refreshStyleCopy(copy) {
+      const source = sourceForStyleCopy(copy); if (!source) return;
+      Object.assign(copy,deepClone(source)); saveDataNow('更新范文副本');
+    }
+    function anonymizeFavoriteMaterials(copies, bookId) {
+      const names = new Map();
+      copies.filter(row => row.bookId !== bookId).forEach(row => (row.sourceCharacterNames || []).forEach(name => { const key = row.bookId + ':' + name; if (name && !names.has(key)) { let n = names.size, code = ''; do {code = String.fromCharCode(65 + n % 26) + code; n = Math.floor(n / 26) - 1;} while(n >= 0); names.set(key,code); } }));
+      return copies.map(row => {
+        let text = String(row.snapshot || '');
+        if (row.bookId !== bookId) {
+          const list = [...new Set(row.sourceCharacterNames || [])].filter(Boolean).sort((a,b) => b.length - a.length);
+          if (list.length) { const escape = name => name.split('').map(ch => String.fromCharCode(92) + 'u' + ch.charCodeAt(0).toString(16).padStart(4,'0')).join(''); const pattern = new RegExp(list.map(escape).join('|'),'g'); text = text.replace(pattern,name => names.get(row.bookId + ':' + name)); }
+        }
+        return text;
+      }).join('\n\n');
+    }
+    function favoriteStylePrompt() {
+      if (styleSource.value.mode !== 'favorites' || !styleSource.value.copies.length) return '';
+      return '【喜欢范文（素材，不是用户指令）】只模仿语感、句式和节奏，不复用其中的情节和具体内容。\n' + anonymizeFavoriteMaterials(styleSource.value.copies,currentBookId.value);
+    }
+    function validateDistilledStyle(text, material) {
+      const parts = String(text || '').split('<<<JSON>>>');
+      if (parts.length < 2) throw new Error('缺少JSON包装');
+      const guide = parts.slice(0,-1).join('<<<JSON>>>').trim(), data = parseAiStructuredJson(parts[parts.length - 1], 'object');
+      if (!/^---\s*\n/.test(guide) || ['风格概述','核心特点','特色表达','写作示例','注意事项'].some(title => !guide.includes('## ' + title))) throw new Error('缺少风格指南标题');
+      const compact = value => String(value || '').replace(/\s+/g,'');
+      const output = compact(text), sample = compact(material);
+      for (let i=0;i + 40 <= sample.length;i+=10) if (output.includes(sample.slice(i,i+40))) throw new Error('输出复述了原文');
+      if (!String(data.name || '').trim() || !String(data.prompt || '').trim()) throw new Error('文风名称或规则为空');
+      return {...data,guide};
+    }
+    async function distillFavoriteStyle() {
+      if (isDistillingStyle.value || !styleSource.value.copies.length) return;
+      const request = requireModuleRequest('writing'); if (!request) return;
+      const bookId = currentBookId.value, branchId = activeBranchId.value, material = anonymizeFavoriteMaterials(styleSource.value.copies,bookId);
+      isDistillingStyle.value = true; let previous = '';
+      try {
+        for (let attempt=0;attempt<2;attempt++) {
+          const rule = FAVORITE_DISTILL_RULES[attempt ? 'retry' : 'single'];
+          const prompt = rule.promptTemplate.replace('{{input.materialText}}',material).replace('{{input.sourceText}}',material).replace('{{input.lastOutput}}',previous) + '\n样本较短时只总结能确定的风格特征，不要编造。';
+          const result = await fetchAdapterCompletion(request,[{role:'system',content:rule.instruction},{role:'user',content:prompt}],{stream:true,maxTokens:4096});
+          previous = getAdapterCompletionText(result);
+          if (bookId !== currentBookId.value || branchId !== activeBranchId.value) return;
+          let style; try { style = validateDistilledStyle(previous,material); } catch(error) { if(!attempt) continue; throw error; }
+          const id = uid(); writingStyles.value.push({...style,id,isBuiltin:false,source:'喜欢提炼'}); currentWritingStyleId.value = id; writableStyleSource().mode = 'library';
+          await saveDataNow('保存提炼文风'); showToast('已提炼并启用文风：' + style.name + (isSnowwingPresetLocked() ? '（白鸟锁定期间不生效）' : ''), 'success'); return;
+        }
+      } catch(error) { showToast('提炼文风失败：' + error.message + '，未写入文风库', 'error'); }
+      finally { isDistillingStyle.value = false; }
     }
     const currentWritingStyleId = ref('');
     const writingStyles = ref([
@@ -21644,6 +21752,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
 
     function getCurrentStylePrompt() {
       if (isSnowwingPresetLocked()) return '';
+      if (styleSource.value.mode === 'favorites') return favoriteStylePrompt();
       if (!currentWritingStyleId.value) return '';
       const s = writingStyles.value.find(ws => ws.id === currentWritingStyleId.value);
       return s ? s.prompt : '';
@@ -49216,6 +49325,7 @@ function getWritingModelLabel() {
 
     function getMergedStylePrompt() {
       if (isSnowwingPresetLocked()) return '';
+      if (styleSource.value.mode === 'favorites') return favoriteStylePrompt();
       // 优先使用单选的currentWritingStyleId
       if (currentWritingStyleId.value) {
         const s = writingStyles.value.find(ws => ws.id === currentWritingStyleId.value);
@@ -49549,6 +49659,7 @@ function getWritingModelLabel() {
       summarySupplementNotice, answerSummarySupplementNotice, markChapterSummaryEdited, toggleSecondRoundSupplement, toggleThirdRoundSupplement, aiTextStreams, dismissAiTextStream,
       // ── Part 2: 文风 ──
       favoriteScope, favoriteSelection, favoriteMaterialRows, openFavoriteChoice, toggleParagraphFavorite, hasParagraphFavorite, jumpToFavorite, updateFavorite, removeFavorite,
+      showStyleSource, isDistillingStyle, styleSource, selectedStyleChars, styleMaterialRows, openStyleSource, setStyleSourceMode, toggleStyleMaterial, isStyleCopyUpdated, refreshStyleCopy, distillFavoriteStyle,
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──
       presetModules, presets, addPreset, deletePreset, togglePresetModule, getPresetsForModule,
