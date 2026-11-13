@@ -1418,8 +1418,8 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   [id^="settings-panel-"] button,
   .moyun-workbench button{min-width:44px;min-height:46px}
   .moyun-workbench .moyun-wb-back-writing{min-width:0;min-height:36px;width:auto}
-  .moyun-soft-bottom-composer button{min-width:36px;min-height:36px}
-  .moyun-soft-bottom-composer .btn-primary{min-height:36px}
+  .moyun-soft-bottom-composer button{min-width:44px;min-height:44px}
+  .moyun-soft-bottom-composer .btn-primary{min-height:44px}
   .moyun-workbench .moyun-wb-operation button{min-height:32px}
   .moyun-workbench .moyun-wb-mode-tabs button{min-width:0;min-height:28px}
   .moyun-workbench .moyun-action-status button{min-height:32px}

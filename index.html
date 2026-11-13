@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=d478ea155cb5">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=e99b756c8f1c">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -2983,7 +2983,8 @@
 
       <!-- 底部控制栏（大纲/细纲面板打开时隐藏） -->
       <div v-show="!immersiveMode && !novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer sticky bottom-0 md:bottom-8 z-10">
-        <div class="moyun-composer-card rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
+        <button v-if="composerCollapsed" type="button" @click="composerCollapsed=false" class="btn-primary min-h-[44px] block mx-auto" data-composer-expand>展开写作输入{{ nextChapterPrompt || priorityRequirement ? '（有未发送内容）' : '' }}</button>
+        <div v-else class="moyun-composer-card rounded-2xl p-3 flex flex-col gap-3 max-w-2xl mx-auto"
              style="background:var(--bg-card);border:1px solid var(--bd);box-shadow:var(--sh2)">
           <div v-if="settings.showTokenUsage" data-writing-token-usage class="flex flex-wrap gap-x-5 gap-y-1 text-xs" style="color:var(--tx2);font-variant-numeric:tabular-nums" aria-live="polite">
             <span>输入 <strong>{{ formatTokenUsage(lastWritingUsage?.prompt) }}</strong></span>
@@ -3001,7 +3002,11 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
           </div>
+          <label class="label flex items-center gap-2 min-h-[44px]" v-moyun-tip="'本轮优先要求高于文风、预设和剧情要求，保留细纲关键事件；发送前额外调用一次团队开书审查员。'"><input type="checkbox" v-model="priorityEnabled" @change="togglePriorityRequirement" data-priority-toggle>最高优先</label>
+          <textarea v-if="priorityEnabled" v-model="priorityRequirement" data-priority-input class="textarea-field text-sm w-full" rows="2" placeholder="最高优先要求（只对本轮生效）" aria-label="最高优先要求"></textarea>
           <div class="moyun-composer-icon-row" data-moyun-composer-icons>
+            <button type="button" @click="requestComposerAction('collapse')" class="btn-ghost min-h-[44px] text-xs" v-moyun-tip="'收起输入区，保留尚未发送的内容。'">收起</button>
+            <button type="button" @click="clearNextChapterPrompt" class="btn-ghost min-h-[44px] text-xs">清空</button>
             <button v-for="entry in (modUiHostSlots.mainToolbar||[])" :key="getModUiEntryKey(entry)" @click="runModUiAction(entry)" :class="getModMainToolbarButtonClass(entry)" :style="getModMainToolbarButtonStyle(entry)">{{ getModMainToolbarButtonLabel(entry) }}</button>
             <button type="button" @click="openRealContextSafeView" class="moyun-composer-icon-btn btn-ghost" title="真实上下文" aria-label="真实上下文">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -3051,7 +3056,7 @@
               </label>
             </div>
             <div class="moyun-composer-toolbar flex items-center gap-2 flex-wrap justify-end">
-              <button data-moyun-composer-generate @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating" class="btn-primary text-sm py-2 px-5 shadow-lg" :style="(!writingGenerationReady&&!isGenerating)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ isGenerating ? '停止' : '提笔续写' }}</button>
+              <button data-moyun-composer-generate @click="startGeneration" :disabled="!writingGenerationReady&&!isGenerating&&!priorityReviewBusy" class="btn-primary text-sm py-2 px-5 shadow-lg min-h-[44px]" :style="(!writingGenerationReady&&!isGenerating&&!priorityReviewBusy)?'opacity:.5':''" :title="writingGenerationReady || isGenerating ? '' : '请先在连接中心配置正文生成 API'">{{ priorityReviewBusy ? '停止审查' : isGenerating ? '停止' : '提笔续写' }}</button>
             </div>
           </div>
         </div>
@@ -6659,7 +6664,7 @@
        style="background:var(--bg-card)">
     <div class="px-4 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
       <h3 class="text-base font-bold" style="color:var(--tx)">✏ 剧情输入</h3>
-      <button type="button" data-moyun-modal-close @click="showFullscreenInput=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭剧情输入" title="关闭">
+      <button type="button" data-moyun-modal-close @click="requestComposerAction('close')" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭剧情输入" title="关闭">
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     </div>
@@ -6668,9 +6673,10 @@
               style="background:transparent;color:var(--tx);line-height:1.8;border:none"
               @input="restoreComposerPromptCaret($event)"
               autofocus></textarea>
+    <div class="px-4 shrink-0"><label class="label flex gap-2 items-center min-h-[44px]" v-moyun-tip="'发送前额外调用一次审查员，冲突时可另开独立分支。'"><input type="checkbox" v-model="priorityEnabled" @change="togglePriorityRequirement">最高优先</label><textarea v-if="priorityEnabled" v-model="priorityRequirement" class="textarea-field w-full" rows="2" placeholder="最高优先要求" aria-label="最高优先要求"></textarea></div>
     <div class="px-4 py-3 flex justify-end gap-2 shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(max(12px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
-      <button @click="clearNextChapterPrompt" class="btn-ghost text-xs px-4 py-2">清空</button>
-      <button type="button" data-moyun-modal-close @click="showFullscreenInput=false" class="btn-primary text-sm px-6 py-2">完成</button>
+      <button @click="clearNextChapterPrompt" class="btn-ghost text-xs px-4 py-2 min-h-[44px]">清空</button>
+      <button type="button" data-moyun-modal-close @click="requestComposerAction('close')" class="btn-primary text-sm px-6 py-2 min-h-[44px]">完成</button>
     </div>
   </div>
 </transition>
@@ -6693,7 +6699,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=4f95bae21137"></script>
+<script src="./assets/js/moyun.js?v=76a8fd149249"></script>
 <!-- PART_1_END -->
 </body>
 </html>

@@ -18,7 +18,7 @@ must('handoffSummaries','按分支保存卷末总结');
 must("String(volume?.summary || '') + '\\n'",'计划卷纲变更会使卷末总结失效');
 no('refreshGeminiInputNonce','Gemini随机零宽前缀已移除');
 no("while (start > 0 && out[start - 1].role === 'user')",'Gemini不再搬移连续用户层');
-must('const index = marked.length ? marked[marked.length - 1] : -1','Gemini没有明确作者输入时不猜测最后一条user层');
+must('for (const index of marked.reverse())','Gemini逐条处理明确标记的作者输入，没有标记时不猜测最后一条user层');
 const parseStart=source.indexOf('function parseVolumeHandoffText('), parseEnd=source.indexOf('    function buildVolumeConstraintPrompt',parseStart);
 assert.ok(parseStart>=0&&parseEnd>parseStart,'卷末交接解析器存在');
 const parseCode=source.slice(parseStart,parseEnd).replace(/^\s*function parseVolumeHandoffText/,'function parseVolumeHandoffText');

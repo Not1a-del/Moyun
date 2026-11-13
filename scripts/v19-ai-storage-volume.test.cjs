@@ -129,10 +129,10 @@ test('V-13 view preserves the pending proposal and switching branch prevents lat
   assert.equal(confirmations[0].config.choices.some(x=>x.id==='view'),true);confirmations[0].callback('view');assert.equal(confirmations.length,2);
   ctx.activeBranchId.value='side';confirmations[1].callback('add');assert.equal(ctx.novelVolumes.value.length,1);
 });
-test('V-06/V-07/V-08 context includes only current writing requirement and adjacent bridge or actual handoff',()=>{
+test('V-06/V-07/V-08 context includes current volume plan and requirement, adjacent bridge or actual handoff',()=>{
   const volumes=[{id:'v1',title:'first',startChapter:1,endChapter:10,summary:'FORBIDDEN_SUMMARY',bridge:'previous bridge'}, {id:'v2',title:'second',startChapter:11,endChapter:20,summary:'FORBIDDEN_CURRENT_SUMMARY',writingRequirement:'current requirement',bridge:'current bridge'}, {id:'v3',title:'FORBIDDEN_OTHER_VOLUME',startChapter:21,endChapter:30}];
   const {ctx}=volumeContext({normalizeNovelVolumes:x=>x,getVolumeForChapter:n=>volumes.find(v=>v.startChapter<=n&&n<=v.endChapter),getVolumeHandoff:()=>null,activeBranchId:{value:'main'}});ctx.novel.value.volumes=volumes;
-  const prompt=ctx.buildVolumeConstraintPrompt(12);assert.match(prompt,/previous bridge/);assert.match(prompt,/current requirement/);assert.match(prompt,/current bridge/);assert.doesNotMatch(prompt,/FORBIDDEN/);
+  const prompt=ctx.buildVolumeConstraintPrompt(12);assert.match(prompt,/previous bridge/);assert.match(prompt,/current requirement/);assert.match(prompt,/current bridge/);assert.match(prompt,/FORBIDDEN_CURRENT_SUMMARY/);assert.doesNotMatch(prompt,/FORBIDDEN_SUMMARY|FORBIDDEN_OTHER_VOLUME/);
   ctx.getVolumeHandoff=()=>({content:'actual handoff'});assert.match(ctx.buildVolumeConstraintPrompt(12),/actual handoff/);
   assert.doesNotThrow(()=>ctx.buildVolumeConstraintPrompt(1));assert.doesNotThrow(()=>ctx.buildVolumeConstraintPrompt(30));
 });

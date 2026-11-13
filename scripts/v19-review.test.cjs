@@ -13,8 +13,8 @@ function extract(from, to) {
 }
 function reviewContext(extra = {}) {
   let sequence=0;
-  const staleMarks=[];
-  const ctx = vm.createContext({ uid:()=>`r${++sequence}`, deepClone:clone, chapterOutlines:{value:[]},staleMarks,markStale:(...args)=>staleMarks.push(args), ...extra });
+  const staleMarkCalls=[],staleMarks={value:[]};
+  const ctx = vm.createContext({ uid:()=>`r${++sequence}`, deepClone:clone, chapterOutlines:{value:[]},summaries:{value:[]},staleMarks,staleMarkCalls,markStale:(...args)=>{staleMarkCalls.push(args);staleMarks.value.push(args);}, ...extra });
   vm.runInContext(extract('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'), ctx);
   vm.runInContext(extract('    function reportOutlineContinuityImpact(', '    async function replanEmptyOutlinesAfterOutlineReview('),ctx);
   return ctx;
@@ -189,7 +189,7 @@ test('reverse outline pending volume metadata survives refresh, applies with out
   ctx.reverseOutlineState.value={status:'idle'};outlineReview.value={revisions:[]};ctx.restoreReviewStates({novel:saved});
   assert.equal(ctx.reverseOutlineState.value.pendingVolumes[0].id,'new');assert.equal(ctx.reverseOutlineState.value.status,'review');
   ctx.requestOutlineReviewApply(false);assert.equal(ctx.novel.value.outline,'新大纲');assert.equal(ctx.novel.value.volumes[0].id,'new');assert.equal(ctx.novel.value.unfinishedMode,true);assert.equal(outlineReview.value.reverse,undefined);
-  assert.equal(ctx.novel.value.outlineImpact.volumes,1);assert.ok(ctx.staleMarks.some(args=>args[0]==='卷'&&args[1]==='new'));
+  assert.equal(ctx.novel.value.outlineImpact.volumes,1);assert.ok(ctx.staleMarkCalls.some(args=>args[0]==='卷'&&args[1]==='new'));
   ctx.undoOutlineRevisionApply();assert.equal(ctx.novel.value.outline,'原大纲');assert.equal(ctx.novel.value.volumes[0].id,'old');assert.equal(ctx.novel.value.unfinishedMode,false);assert.equal(outlineReview.value.reverse.pendingCount,20);
   ctx.rejectAllRevisions();assert.equal(ctx.novel.value.volumes[0].id,'old');assert.equal(outlineReview.value.reverse,undefined);
 });

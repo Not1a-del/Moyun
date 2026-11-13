@@ -152,6 +152,7 @@ const pieces = [
   slice('    function buildNsfwMessages(userPrompt, options = {}) {', '    /* ═══ 其余状态（占位，后续Part填充） ═══ */'),
   // G'：nextChapterPrompt ref 与 normalizeNoOutputTimeout 供 R 切片的 buildChapterMessages 使用
   sliceInclusive('    const nextChapterPrompt = ref(\'\');', '    const nextChapterPrompt = ref(\'\');'),
+  'const priorityEnabled = ref(false), priorityRequirement = ref(\'\');',
   fnBlock('normalizeNoOutputTimeout'),
   fnBlock('buildMemoryHistory'),
   fnBlock('isSummaryInCurrentBranch'),
