@@ -3259,6 +3259,12 @@ img[role="button"]:focus-visible {
         </div>
       </div>
 
+      <div class="divider"></div>
+      <div id="settings-search-favorites" data-settings-section="favorites">
+        <label class="label">喜欢查看</label>
+        <div class="flex flex-wrap gap-2 mb-2"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
+        <material-list :rows="favoriteMaterialRows" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
+      </div>
       <!-- 环境氛围增强 -->
       <div class="divider"></div>
       <div>
@@ -4816,8 +4822,9 @@ img[role="button"]:focus-visible {
               <div v-if="!ch.isEditing" class="px-5 md:px-10 py-6 md:py-10 prose paragraph-comment-layer">
 <!-- 中文注释：段评专用段落循环，将章节正文拆成自然段并在每段末尾挂载评论气泡。 -->
                 <template v-for="(para, pIdx) in getChapterParagraphs(ch, idx)" :key="para.key">
-                  <div class="paragraph-comment-line">
+                  <div class="paragraph-comment-line" :data-favorite-paragraph="ch.id+':'+pIdx">
                     <span v-html="para.html"></span>
+                    <button v-if="favoriteSelection.chapterId===ch.id && para.text" type="button" class="paragraph-comment-bubble" style="min-width:44px;min-height:44px" @click.stop="toggleParagraphFavorite(ch,idx,pIdx,para.text)" :aria-pressed="hasParagraphFavorite(ch.id,pIdx)">{{hasParagraphFavorite(ch.id,pIdx)?'♥':'♡'}}</button>
 <!-- 中文注释：按钮控件，触发保存、生成、导入、打开弹窗或 MOD 白名单动作。 -->
                     <button v-if="isParagraphCommentsEnabled() && para.text" @click.stop="openParagraphComments(idx, pIdx, para.text)"
                             class="paragraph-comment-bubble" :class="{'generating': isParagraphCommentGenerating(ch, pIdx, para.text)}"
@@ -4925,6 +4932,7 @@ img[role="button"]:focus-visible {
                   <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
+                    <button type="button" @click.stop="openFavoriteChoice(ch,idx)" class="btn-ghost text-[11px] px-3 py-2" style="min-height:44px">喜欢</button>
                     <button type="button" @click.stop="checkChapterContinuity(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :disabled="idx>=visibleChapters.length-1">衔接检查</button>
                     <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前正文另存一份旧稿，之后可用章节标题右侧的 ‹ › 翻回">存为旧稿</button>
                     <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)"
@@ -10104,16 +10112,20 @@ const MoyunTip = (() => {
   }
   return {mounted(el,binding){
     const state={value:binding.value,touch:false};
-    state.enter=e=>{if(e.pointerType==='mouse')show(el,state.value);};
+    state.enter=e=>{if(e.pointerType==='mouse'){state.touch=false;show(el,state.value);}};
     state.focus=()=>{if(!state.touch)show(el,state.value);};
     state.down=e=>{state.touch=e.pointerType!=='mouse';if(state.touch)show(el,state.value,true);};
     state.leave=()=>{if(!state.touch&&owner===el)hide();};
     el.addEventListener('pointerenter',state.enter);el.addEventListener('focus',state.focus);el.addEventListener('pointerdown',state.down);el.addEventListener('pointerleave',state.leave);el.addEventListener('blur',state.leave);el._moyunTip=state;
   },updated(el,binding){el._moyunTip.value=binding.value;},unmounted(el){const s=el._moyunTip;if(owner===el)hide();el.removeEventListener('pointerenter',s.enter);el.removeEventListener('focus',s.focus);el.removeEventListener('pointerdown',s.down);el.removeEventListener('pointerleave',s.leave);el.removeEventListener('blur',s.leave);delete el._moyunTip;}};
 })();
+const MaterialList = {
+  props:{rows:Array,selectable:Boolean,selected:Array}, emits:['jump','remove','update','choose'],
+  template:`<div class="space-y-2"><p v-if="!rows.length" class="text-xs" style="color:var(--tx3)">暂无喜欢素材，可在章节底部“更多”中添加。</p><article v-for="row in rows" :key="row.bookId+':'+row.id" class="card p-3 min-w-0"><div class="flex items-center gap-2 min-w-0"><input v-if="selectable" type="checkbox" style="min-width:24px;min-height:44px" :checked="selected.includes(row.bookId+':'+row.id)" @change="$emit('choose',row)" :aria-label="'选择'+row.chapterTitle"><button type="button" class="btn-ghost text-xs text-left flex-1 min-w-0 break-words" style="min-height:44px;color:var(--accent);text-decoration:underline" :disabled="row.status==='原文已删除'" @click="$emit('jump',row)">{{row.bookTitle}} · {{row.chapterTitle}}</button></div><p class="text-xs truncate">{{row.snapshot}}</p><div class="flex flex-wrap items-center gap-2 text-xs" style="color:var(--tx3)"><span>{{row.wordCount}}字 · {{row.status || '已喜欢'}}</span><span v-if="row.sourceUpdated" class="moyun-role-badge">来源有新版本</span><button v-if="row.status==='原文已修改'" type="button" class="btn-ghost" style="min-height:44px" @click="$emit('update',row)">更新为当前版本</button><button type="button" class="btn-ghost" style="min-height:44px" @click="$emit('remove',row)">取消喜欢</button></div></article></div>`
+};
 createApp({
   directives: { 'moyun-tip': MoyunTip },
-  components: { ReviewPanel, BranchPanel },
+  components: { ReviewPanel, BranchPanel, MaterialList },
   setup() {
 
     /* ═══ 核心数据 ═══ */
@@ -17090,6 +17102,7 @@ function copyLastChapterContextText() {
         syncInterruptedDraftToCurrentBook();
         bk.lastWritingUsage = snap(lastWritingUsage.value);
         bk.memoryLibrary = snap(memoryLibrary.value);
+        refreshFavoriteStatuses();
         bk.novel = snap(novel.value);
         bk.chapters = snap(chapters.value);
         bk.characters = snap(structuredCharacters.value);
@@ -21554,6 +21567,71 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     ]);
 
     /* ═══ 文风系统 ═══ */
+    const FAVORITE_CHAR_WARNING = 30000;
+    const favoriteScope = ref('current');
+    const favoriteSelection = ref({chapterId:'', updateId:''});
+    function currentFavoriteClips() { return Array.isArray(novel.value.favoriteClips) ? novel.value.favoriteClips : []; }
+    function favoriteStatus(row) {
+      const ch = chapters.value.find(ch => ch.id === row.chapterId && String(ch.branchId || 'main') === String(row.branchId || 'main'));
+      if (!ch) return '原文已删除';
+      const text = row.paragraphIndex == null ? cleanNarrativeChapterContent(ch) : getChapterParagraphs(ch, 0)[row.paragraphIndex]?.text || '';
+      return text === row.snapshot ? '' : '原文已修改';
+    }
+    function refreshFavoriteStatuses() { currentFavoriteClips().forEach(row => { row.status = favoriteStatus(row); }); }
+    const favoriteMaterialRows = computed(() => {
+      const current = currentFavoriteClips().filter(row => String(row.branchId || 'main') === String(activeBranchId.value || 'main')).map(row => ({...row,bookId:currentBookId.value,bookTitle:novel.value.title || '无题',status:favoriteStatus(row)}));
+      if (favoriteScope.value !== 'all') return current;
+      // 其他书只读已保存的喜欢列表，不加载或展开正文。
+      return current.concat(books.value.filter(book => book.id !== currentBookId.value).flatMap(book => (book.novel?.favoriteClips || []).map(row => ({...row,bookId:book.id,bookTitle:book.title || book.novel?.title || '无题'}))));
+    });
+    function saveFavoriteClip(ch, idx, paragraphIndex, text, updateId = '') {
+      if (!String(text || '').trim()) return;
+      if (!Array.isArray(novel.value.favoriteClips)) novel.value.favoriteClips = [];
+      const list = novel.value.favoriteClips, old = list.find(row => row.id === updateId);
+      const row = {id:old?.id || uid(),chapterId:ch.id,chapterTitle:getDisplayChapterTitle(ch,idx),branchId:activeBranchId.value,paragraphIndex,snapshot:text,wordCount:getCleanWordCount(text),at:Date.now(),status:'',sourceCharacterNames:structuredCharacters.value.map(ch => ch.name).filter(Boolean)};
+      if (old) Object.assign(old,row); else list.push(row);
+      if (list.reduce((n,row) => n + row.wordCount,0) > FAVORITE_CHAR_WARNING) showToast('喜欢素材的总字数较多，建议定期导出书籍备份', 'info');
+      saveDataNow('保存喜欢素材');
+    }
+    function openFavoriteChoice(ch, idx) {
+      openConfirm({title:'喜欢',message:'整篇保留完整快照；段落模式可在每段旁逐一选择。',choices:[{id:'whole',label:'整篇喜欢'},{id:'paragraph',label:'段落喜欢'},{id:'done',label:'结束选择'}]}, action => {
+        if (action === 'whole') {
+          const old = currentFavoriteClips().find(row => row.chapterId === ch.id && row.paragraphIndex == null);
+          if (old) removeFavorite({...old,bookId:currentBookId.value}); else saveFavoriteClip(ch,idx,null,cleanNarrativeChapterContent(ch));
+        }
+        favoriteSelection.value = {chapterId:action === 'paragraph' ? ch.id : '',updateId:''};
+      });
+    }
+    function hasParagraphFavorite(id, index) { return currentFavoriteClips().some(row => row.chapterId === id && row.paragraphIndex === index); }
+    function toggleParagraphFavorite(ch, idx, index, text) {
+      const updateId = favoriteSelection.value.updateId;
+      const old = currentFavoriteClips().find(row => row.chapterId === ch.id && row.paragraphIndex === index);
+      if (old && !updateId) removeFavorite({...old,bookId:currentBookId.value});
+      else saveFavoriteClip(ch,idx,index,text,updateId);
+      if (updateId) { favoriteSelection.value = {chapterId:'',updateId:''}; showToast('已更新快照，后续参考新版本', 'success'); }
+    }
+    function removeFavorite(row) {
+      const book = books.value.find(book => book.id === row.bookId);
+      const target = row.bookId === currentBookId.value ? novel.value : book?.novel;
+      if (!target) return; target.favoriteClips = (target.favoriteClips || []).filter(item => item.id !== row.id);
+      saveDataNow('取消喜欢');
+    }
+    async function jumpToFavorite(row) {
+      if (row.status === '原文已删除') return;
+      if (row.bookId !== currentBookId.value) { await saveDataNow('跨书查看喜欢'); if (!loadBook(row.bookId)) return; }
+      if (String(row.branchId || 'main') !== activeBranchId.value) switchBranch(row.branchId || 'main');
+      const idx = visibleChapters.value.findIndex(ch => ch.id === row.chapterId);
+      if (idx < 0) { showToast('原文已删除，喜欢快照仍保留', 'info'); return; }
+      showSettings_modal.value = false; mobileSidebarOpen.value = false; scrollToChapter(idx);
+      await nextTick();
+      if (row.paragraphIndex != null) document.querySelector('[data-favorite-paragraph="' + row.chapterId + ':' + row.paragraphIndex + '"]')?.scrollIntoView({block:'center'});
+    }
+    async function updateFavorite(row) {
+      await jumpToFavorite(row);
+      const ch = visibleChapters.value.find(ch => ch.id === row.chapterId); if (!ch) return;
+      if (row.paragraphIndex == null) saveFavoriteClip(ch, visibleChapters.value.indexOf(ch), null, cleanNarrativeChapterContent(ch), row.id);
+      else { favoriteSelection.value = {chapterId:ch.id,updateId:row.id}; showToast('请在章节里选择对应的新段落，替换这条快照', 'info'); }
+    }
     const currentWritingStyleId = ref('');
     const writingStyles = ref([
       {id:'ws1',name:'网文爽文风',prompt:'节奏明快，爽点密集。打脸情节要痛快，金手指要突出。多用短句增强节奏感。对话要干脆利落。',isBuiltin:true},
@@ -46499,6 +46577,7 @@ function getWritingModelLabel() {
       {tab:'editable',target:'settings-search-suggestion-persona',title:'AI 建议人设',keywords:'建议提示词 生成方向 自定义身份 suggestion persona jianyi renwu'},
       {tab:'editable',target:'settings-search-editable-prompts',title:'提示词流水线',keywords:'系统提示词 内置提示词 文风 风格 调整 核心规则 system prompt'},
       {tab:'editable',target:'settings-search-atmosphere',title:'环境氛围增强',keywords:'氛围环境描写加强 atmosphere prompt huanjing fenwei'},
+      {tab:'editable',target:'settings-search-favorites',title:'喜欢查看',keywords:'喜欢 范文 段落 整篇 快照 全部书籍 收藏'},
       {tab:'editable',target:'settings-search-editable-characters',title:'角色可编辑信息',keywords:'角色卡 人物描述 说话风格 台词 关系 角色专属提示词 avatar renwu'},
       {tab:'editable',target:'settings-search-review-personas',title:'书评人设',keywords:'点评人格 书评团 persona review prompt pinglun renge'},
       {tab:'mods',target:'settings-search-plugin-manager',title:'插件与 MOD 管理',keywords:'安装 导入 JSON 权限 事件总线 资产包 宿主弹窗 AI工具 工作流 主题 UI 开发者预览 mod plugin'},
@@ -49469,6 +49548,7 @@ function getWritingModelLabel() {
       // v0.0.13 req2：二轮补写开关。
       summarySupplementNotice, answerSummarySupplementNotice, markChapterSummaryEdited, toggleSecondRoundSupplement, toggleThirdRoundSupplement, aiTextStreams, dismissAiTextStream,
       // ── Part 2: 文风 ──
+      favoriteScope, favoriteSelection, favoriteMaterialRows, openFavoriteChoice, toggleParagraphFavorite, hasParagraphFavorite, jumpToFavorite, updateFavorite, removeFavorite,
       currentWritingStyleId, writingStyles, getCurrentStylePrompt, getStyleById, addWritingStyle, deleteWritingStyle,
       // ── Part 2: 预设 ──
       presetModules, presets, addPreset, deletePreset, togglePresetModule, getPresetsForModule,

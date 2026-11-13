@@ -1171,6 +1171,12 @@
         </div>
       </div>
 
+      <div class="divider"></div>
+      <div id="settings-search-favorites" data-settings-section="favorites">
+        <label class="label">喜欢查看</label>
+        <div class="flex flex-wrap gap-2 mb-2"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
+        <material-list :rows="favoriteMaterialRows" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
+      </div>
       <!-- 环境氛围增强 -->
       <div class="divider"></div>
       <div>
@@ -2728,8 +2734,9 @@
               <div v-if="!ch.isEditing" class="px-5 md:px-10 py-6 md:py-10 prose paragraph-comment-layer">
 <!-- 中文注释：段评专用段落循环，将章节正文拆成自然段并在每段末尾挂载评论气泡。 -->
                 <template v-for="(para, pIdx) in getChapterParagraphs(ch, idx)" :key="para.key">
-                  <div class="paragraph-comment-line">
+                  <div class="paragraph-comment-line" :data-favorite-paragraph="ch.id+':'+pIdx">
                     <span v-html="para.html"></span>
+                    <button v-if="favoriteSelection.chapterId===ch.id && para.text" type="button" class="paragraph-comment-bubble" style="min-width:44px;min-height:44px" @click.stop="toggleParagraphFavorite(ch,idx,pIdx,para.text)" :aria-pressed="hasParagraphFavorite(ch.id,pIdx)">{{hasParagraphFavorite(ch.id,pIdx)?'♥':'♡'}}</button>
 <!-- 中文注释：按钮控件，触发保存、生成、导入、打开弹窗或 MOD 白名单动作。 -->
                     <button v-if="isParagraphCommentsEnabled() && para.text" @click.stop="openParagraphComments(idx, pIdx, para.text)"
                             class="paragraph-comment-bubble" :class="{'generating': isParagraphCommentGenerating(ch, pIdx, para.text)}"
@@ -2837,6 +2844,7 @@
                   <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
+                    <button type="button" @click.stop="openFavoriteChoice(ch,idx)" class="btn-ghost text-[11px] px-3 py-2" style="min-height:44px">喜欢</button>
                     <button type="button" @click.stop="checkChapterContinuity(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :disabled="idx>=visibleChapters.length-1">衔接检查</button>
                     <button @click.stop="saveAsVersion(idx)" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--info-soft);color:var(--info)" title="把当前正文另存一份旧稿，之后可用章节标题右侧的 ‹ › 翻回">存为旧稿</button>
                     <button @click.stop="aiRewriteSummary(idx)" :disabled="rewritingSummaryIdx>=0" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--accent-soft);color:var(--accent)"
@@ -6666,7 +6674,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=13c519be886d"></script>
+<script src="./assets/js/moyun.js?v=62308d16c092"></script>
 <!-- PART_1_END -->
 </body>
 </html>
