@@ -70,4 +70,21 @@ async function runFloatingFieldBrowserChecks(dark=false) {
  const overflow=document.documentElement.scrollWidth>innerWidth;assert(!overflow,'no horizontal scroll');
  return {passed:true,viewport:[innerWidth,innerHeight],dark,positions,tip,connectionSaved:true};
 }
-if(typeof module!=='undefined')module.exports={runCharacterIsolationBrowserChecks,runFloatingFieldBrowserChecks};
+async function startSummaryBackfillBrowserCheck(enabled=false){
+ const s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState,assert=(v,m)=>{if(!v)throw Error(m);};
+ const id='nine-summary-'+Date.now(),chapters=Array.from({length:30},(_,i)=>({id:id+'-'+i,title:'第'+(i+1)+'章 灯塔',content:'第'+(i+1)+'章正文。'+ '海上灯火。'.repeat(5),summary:i<5?'':'原摘要'+i,branchId:'main'}));
+ s.books.push({id,title:'补摘要验收',novel:{title:'补摘要验收',volumes:[]},chapters,characters:[]});s.loadBook(id);s.modPacks=[];s.showSettings_modal=false;s.currentTab='chapters';s.mobileSidebarOpen=true;s.settings.geminiTestInput=enabled;s.settings.preventTruncation=enabled;s.settings.streamEnabled=true;
+ const made=s.createConnectionProfile({name:'补摘要假模型'+Date.now(),templateId:'openai-compatible',baseUrl:'https://nine-fixes.invalid/v1',defaultModel:'gemini-summary-mock',apiKey:'test-only',lastTest:{status:'ok'}});assert(made.ok,'summary profile');s.setModuleRouteProfile('summary',made.profile.id);
+ const original=window.fetch,calls=[];window.__nineP3={calls,original,enabled,id,pending:false};
+ window.fetch=async(url,init={})=>{if(!String(url).includes('nine-fixes.invalid'))return original(url,init);const body=JSON.parse(init.body);calls.push(body);if(calls.length===1){const tool=body.tools?.some(t=>t.function?.name==='output_reply');return new Response(JSON.stringify({choices:[{message:tool?{tool_calls:[{id:'r',type:'function',function:{name:'output_reply',arguments:JSON.stringify({content:'第一章完整摘要'})}}]}:{content:'第一章完整摘要'},finish_reason:'stop'}]}),{headers:{'content-type':'application/json'}});}
+  const payload=body.tools?.length?{choices:[{delta:{tool_calls:[{index:0,id:'r2',type:'function',function:{name:'output_reply',arguments:'{"content":"第二章半截摘要'}}]},finish_reason:null}]}:{choices:[{delta:{content:'第二章半截摘要'},finish_reason:null}]};
+  return new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('data: '+JSON.stringify(payload)+'\n\n'));window.__nineP3.pending=true;init.signal.addEventListener('abort',()=>{try{c.error(new DOMException('stop','AbortError'));}catch{}},{once:true});}}),{headers:{'content-type':'text/event-stream'}});
+ };
+ s.openSummaryBackfill();assert(s.selectedSummaryBackfillCount===5,'five selected');assert(calls.length===0,'picker no request');s.confirmSummaryBackfill();assert(s.showConfirm,'second confirmation');s.cancelConfirm();assert(calls.length===0,'cancel no request');s.confirmSummaryBackfill();s.execConfirm();
+ return {started:s.summaryBackfill.running,enabled,selected:5,requests:calls.length};
+}
+async function finishSummaryBackfillBrowserCheck(){
+ const s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState,t=window.__nineP3,assert=(v,m)=>{if(!v)throw Error(m);};assert(t.pending,'second stream reached');assert(s.summaryBackfill.completed===1,'first saved');assert(s.visibleChapters[0].summary==='第一章完整摘要','first complete');assert(s.visibleChapters[1].summary==='第二章半截摘要','partial visible');s.stopSummaryBackfill();window.fetch=t.original;
+ const receipt={enabled:t.enabled,requests:t.calls.length,models:t.calls.map(c=>c.model),first:s.visibleChapters[0].summary,second:s.visibleChapters[1].summary,incomplete:s.visibleChapters[1].summaryIncomplete,third:s.visibleChapters[2].summary,bookId:t.id};window.__nineP3.receipt=receipt;return receipt;
+}
+if(typeof module!=='undefined')module.exports={runCharacterIsolationBrowserChecks,runFloatingFieldBrowserChecks,startSummaryBackfillBrowserCheck,finishSummaryBackfillBrowserCheck};

@@ -105,6 +105,8 @@ function runtime(options = {}) {
     saveDataNow:async reason => { saves.push({ reason, novel:JSON.parse(JSON.stringify(scope.novel.value)), chapters:JSON.parse(JSON.stringify(chapters.value)) }); return true; },
     requireModuleRequest:key=>{requestModuleKeys.push(key);return { model:'mock' };}, fetchAdapterCompletion:options.fetch || (async()=>({ text:'【新内容开始】新增正文。【新内容结束】' })), getAdapterCompletionText:value => value.text, aiRawResponseHistory:[], rememberAiRawResponse:raw=>scope.aiRawResponseHistory.push({raw,at:Date.now()}),
     parseAiStructured:ctx.parseAiStructured,
+    // 预算本身由 v19-summary-backfill 测试执行；此处仅隔离扩写的停止/迟到响应行为。
+    buildPreviousChapterContextForAi:()=>'',
     parseChapter:raw => ({ title:'新章', content:raw }),
     stopActiveGeneration:()=>{ scope._activeGenerationRun = null; scope.streamContent.value = ''; },
     clearInterruptedDraftState:()=>{ scope.interruptedContent.value = ''; },

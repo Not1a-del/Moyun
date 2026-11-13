@@ -748,15 +748,15 @@ function extractSnowwingCotAuthorContextFromMessages(messages) {
   const evidence = [
     '【本轮作者大纲/细纲证据】',
     '总纲状态：' + (totalText ? '已注入正文请求' : '正文请求未携带可见总纲；不得把缺席当成“总纲为空”或自行补全。'),
-    totalText ? '总纲原文：\n' + totalText.slice(0, 7000) : '',
+    totalText ? '总纲原文：\n' + totalText : '',
     '当前章及前后细纲状态：' + (detailedText ? '已注入正文请求' : '正文请求未携带可见细纲；保持未知，不得声称已读取到空内容。'),
-    detailedText ? '细纲原文：\n' + detailedText.slice(0, 7000) : ''
+    detailedText ? '细纲原文：\n' + detailedText : ''
   ].filter(Boolean).join('\n');
   return {
     hasOutline: !!totalText,
     hasDetailedOutline: !!detailedText,
-    outlineText: totalText.slice(0, 7000),
-    detailedOutlineText: detailedText.slice(0, 7000),
+    outlineText: totalText,
+    detailedOutlineText: detailedText,
     evidence
   };
 }
@@ -1629,6 +1629,7 @@ createApp({
       return '【卷纲硬性边界】当前正在写' + current.title + '（第' + current.startChapter + '-' + current.endChapter + '章）。只能推进本章及本卷范围；卷纲属于计划，不等于已发生事实，实际正文优先。下一卷起笔核对只用于交接，不能在本卷提前兑现后卷事件、引入后卷专属人物或揭晓秘密。\n'
         + '本卷写作内容要求（只约束本卷，不等于已发生事实）：\n' + (current.writingRequirement || '（未填写）') + '\n'
         + (previous ? '上一卷交接（有实际交接时以正文事实为准，否则仅是待实现的计划）：\n' + (previousHandoff?.content || previous.bridge || '（未填写）') + '\n' : '')
+        + (previousHandoff?.actualOutline?'上一卷实际卷纲修正：\n'+previousHandoff.actualOutline+'\n':'')
         + '本卷结尾留给下一卷的衔接点：\n' + (current.bridge || '（未填写）');
     }
     const chapters = ref([]);
@@ -3248,7 +3249,7 @@ createApp({
       const isCurrent = () => currentBookId.value === sourceBook && structuredCharacters.value.includes(character);
       isAiSupplementingStoryBible.value = true;
       try {
-        const prompt = '你是小说角色编辑。只补充该角色空白字段，不推翻已有事实。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。\n返回JSON：{"name":"角色名","desc":"人物档案","personalityTags":[],"dialogueType":"","speakingStyle":"","exampleDialogues":[],"characterPrompt":"","relationships":[],"avatarPrompt":""}。\n当前角色：' + JSON.stringify(character) + '\n大纲：' + (getLatestOutlineTextForAi() || '（空）') + '\n细纲：' + chapterOutlines.value.map((o,i) => '第' + (i+1) + '章：' + (o.content || '')).join('\n\n') + '\n正文：' + visibleChapters.value.map((c,i) => '第' + (i+1) + '章：' + cleanNarrativeChapterContent(c)).join('\n\n').slice(-18000);
+        const prompt = '你是小说角色编辑。只补充该角色空白字段，不推翻已有事实。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。\n返回JSON：{"name":"角色名","desc":"人物档案","personalityTags":[],"dialogueType":"","speakingStyle":"","exampleDialogues":[],"characterPrompt":"","relationships":[],"avatarPrompt":""}。\n当前角色：' + JSON.stringify(character) + '\n大纲：' + (getLatestOutlineTextForAi() || '（空）') + '\n细纲：' + chapterOutlines.value.map((o,i) => '第' + (i+1) + '章：' + (o.content || '')).join('\n\n') + '\n正文：' + buildPreviousChapterContextForAi(visibleChapters.value,{fullN:visibleChapters.value.length,wholeChapters:true});
         const fields = ['desc','dialogueType','speakingStyle','characterPrompt','avatarPrompt'];
         const fill = (key,value) => { if (isCurrent() && !String(character[key] || '').trim()) character[key] = value; };
         const charFiller = createWorkbenchStreamFiller(fields.map(key => ({key,names:[key]})),fill);
@@ -3772,6 +3773,7 @@ createApp({
     const settings = ref({
       apiUrl: '', apiKey: '', model: '',
       contextFullChapters: 3, contextSummaryChapters: 10,
+      contextHistoryCharLimit: 15000,
       contextOutlineBefore: 1, contextOutlineAfter: 2,
       contextUseFullText: true, contextUseChapterSummaries: true, contextUseRangeSummaries: true,
       contextUseOutline: true, contextCompactMode: false, contextUseFinalCheck: true, contextUseContextLimit: true,
@@ -5019,7 +5021,7 @@ createApp({
       const tags = Object.entries(immersiveExpandTags.value).map(([i, kind]) => (kind === 'insert' ? '◆插' : kind === 'start' ? '▶起' : '◀止') + '位于' + (Number(i) < immersiveExpandParagraphs.value.length ? 'P' + (Number(i) + 1) + '之前' : '全文末尾')).join('；');
       const index = immersiveChapterIndex.value >= 0 ? immersiveChapterIndex.value : visibleChapters.value.length;
       const outline = chapterOutlines.value[index], next = chapterOutlines.value[index + 1];
-      const context = '\n本章细纲：' + String(outline?.content || '') + '\n上章末尾：' + String(visibleChapters.value[index - 1]?.content || '').slice(-1200) + '\n下一章细纲首句：' + (String(next?.content || '').match(/[^。！？\r\n]+[。！？]?/)?.[0] || '无');
+      const context = '\n本章细纲：' + String(outline?.content || '') + '\n上章末尾：' + buildPreviousChapterContextForAi(visibleChapters.value.slice(0,index),{fullN:1,wholeChapters:true}) + '\n下一章细纲首句：' + (String(next?.content || '').match(/[^。！？\r\n]+[。！？]?/)?.[0] || '无');
       const format = immersiveExpandWhole.value ? '返回 JSON 数组，每条包含“段落编号”(P1等)、“插入或替换”(插入在该段之后/替换该段)、“新文字”、“理由”、“定位句”(原文的独特句子)。不要重复全文。' : '只返回标签内的新文字，用【新内容开始】…【新内容结束】包住。区间扩写需返回含原剧情的完整扩写段落；禁止返回标签外原文。';
       return '模式：' + immersiveExpandHint.value + '。标签：' + (tags || (immersiveExpandWhole.value ? '整篇' : '全文末尾')) + '。目标增加约' + (Number(immersiveExpandTarget.value) || 500) + '字。要求：' + (immersiveExpandPrompt.value.trim() || '保持剧情和人称，展开细节。') + '\n' + format + context + '\n全文（当前分支，编号固定）：\n' + rows;
     }
@@ -6818,6 +6820,7 @@ function copyLastChapterContextText() {
     function normalizeContextSettings() {
       const defaults = {
         contextUseFullText: true,
+        contextHistoryCharLimit: 15000,
         contextUseChapterSummaries: true,
         contextUseRangeSummaries: true,
         contextUseOutline: true,
@@ -6839,6 +6842,7 @@ function copyLastChapterContextText() {
         if (settings.value[key] === undefined || settings.value[key] === null || settings.value[key] === '') settings.value[key] = defaults[key];
       });
       if (!['auto', 'stream', 'nonstream'].includes(String(settings.value.outlineRequestMode || ''))) settings.value.outlineRequestMode = 'auto';
+      settings.value.contextHistoryCharLimit=Math.max(0,Number(settings.value.contextHistoryCharLimit)||0);
       settings.value.noOutputTimeoutSec = normalizeNoOutputTimeout(settings.value.noOutputTimeoutSec);
       settings.value.detailedOutlineBatchSize = Math.min(10, Math.max(1, Number(settings.value.detailedOutlineBatchSize) || 5));
       if (settings.value.detailedOutlineOnlyEmpty === undefined) settings.value.detailedOutlineOnlyEmpty = true;
@@ -6883,7 +6887,6 @@ function copyLastChapterContextText() {
       const currentChNum = Math.max(1, Number(currentChapterNoOverride) || (visibleChapters.value.length + 1));
       const before = settings.value.contextOutlineBefore ?? 1;
       const after = settings.value.contextOutlineAfter ?? 2;
-      const outlineLimit = settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxOutlineChars) || 5000, 5000) : (Number(settings.value.contextMaxOutlineChars) || 8000);
       let result = '';
       let currentOutline = '';
       let hasFutureTitles = false;
@@ -6894,7 +6897,7 @@ function copyLastChapterContextText() {
           if (chNum === currentChNum) {
             currentOutline = stripOutlineLengthDirectives(co.content || '');
             result += '═══════ 【本章细纲 · 第' + chNum + '章 · ' + (co.title || '') + '】 ═══════\n';
-            result += clipContextText(currentOutline, Math.max(1200, Math.floor(outlineLimit * 0.5)), { keepHead: true }) + '\n';
+            result += currentOutline + '\n';
             result += '═══════ 本章细纲结束 ═══════\n\n';
           } else if (chNum < currentChNum) {
             result += '（前文参考 · 第' + chNum + '章 · 已写完，仅供了解前情）\n';
@@ -6916,7 +6919,7 @@ function copyLastChapterContextText() {
         result += '- 当本章细纲的事件全部写完后，自然收尾并结束本章\n';
         result += '- 如果字数还没到目标但细纲已写完，用场景描写和人物心理充实，不要编造新剧情\n';
       }
-      return clipContextText(result, outlineLimit, { keepHead: true });
+      return result; // 当前细纲不属于前文预算，必须完整保留。
     }
 
     /* ═══ 其余状态（占位，后续Part填充） ═══ */
@@ -7186,7 +7189,7 @@ function copyLastChapterContextText() {
     }
     function teamDetailPrompt(plan, volume, setting, outline) {
       const table = buildTeamSettingTable(plan);
-      return '你是细纲员。只生成第' + volume.startChapter + '-' + volume.endChapter + '章，严格按卷内范围逐章输出，每章用“## 第N章 标题”开头，且不要写范围外章节。' + (plan.unfinishedMode ? '这是未完模式，禁止写结局，只留悬念。' : '') + '\n' + table + '\n本卷写作要求：' + volume.writingRequirement + '\n本卷衔接点：' + volume.bridge + '\n设定员摘要：' + JSON.stringify(setting || {}) + '\n大纲员摘要：' + String(outline?.outline || '').slice(0,5000) + '\n上一批末章摘要：' + String(volume.previousBatch || '无') + '\n输出细纲。';
+      return '你是细纲员。只生成第' + volume.startChapter + '-' + volume.endChapter + '章，严格按卷内范围逐章输出，每章用“## 第N章 标题”开头，且不要写范围外章节。' + (plan.unfinishedMode ? '这是未完模式，禁止写结局，只留悬念。' : '') + '\n' + table + '\n本卷写作要求：' + volume.writingRequirement + '\n本卷衔接点：' + volume.bridge + '\n设定员摘要：' + JSON.stringify(setting || {}) + '\n大纲员摘要：' + String(outline?.outline || '') + '\n上一批末章摘要：' + String(volume.previousBatch || '无') + '\n输出细纲。';
     }
     function buildTeamChapterBatches(volume, size = 5) {
       const start = Math.max(1, Number(volume?.startChapter) || 1), end = Math.max(start, Number(volume?.endChapter) || start);
@@ -7280,7 +7283,7 @@ function copyLastChapterContextText() {
     async function reviewTeamDraft(draft, controller) {
       const request = getModuleRequestConfig('team-review'); if (!request.ok) return {status:'incomplete',message:'审查员模型未配置'};
       const summaries = (draft.chapterOutlines || []).map(item => '第' + item.chapterNo + '章 ' + item.title + '：' + String(item.content || '').slice(0,80)).join('\n');
-      const prompt = '你是审查员，只读摘要，不读正文全文。请输出 JSON：{"status":"ok|issues","facts":[{"text":"","fulfilled":true,"reason":""}],"issues":[{"kind":"","message":"","fixable":false}]}。检查用户原话是否落实、名字和卷范围是否一致、章节是否断层，未完模式是否偷偷写结局。\n' + buildTeamSettingTable(teamPlan.value) + '\n【大纲】' + String(draft.outline || '').slice(0,6000) + '\n【卷纲】' + JSON.stringify(draft.volumes) + '\n【细纲摘要】\n' + summaries;
+      const prompt = '你是审查员，只读摘要，不读正文全文。请输出 JSON：{"status":"ok|issues","facts":[{"text":"","fulfilled":true,"reason":""}],"issues":[{"kind":"","message":"","fixable":false}]}。检查用户原话是否落实、名字和卷范围是否一致、章节是否断层，未完模式是否偷偷写结局。\n' + buildTeamSettingTable(teamPlan.value) + '\n【大纲】' + String(draft.outline || '') + '\n【卷纲】' + JSON.stringify(draft.volumes) + '\n【细纲摘要】\n' + summaries;
       try {
         const raw = await okStreamFetch(prompt,'team-review',controller?.signal,{taskType:'team-review',retries:0});
         const parsed = parseAiStructuredJson(raw,'object');
@@ -7755,24 +7758,7 @@ function copyLastChapterContextText() {
     }
     function buildMemoryHistory(context, chapterOffset = 0) {
       if(!memoryLibrary.value.settings.enabled)return null;
-      const keep=memoryLibrary.value.settings.summaryKeepChapters, cutoff=Math.max(0,context.length-keep);
-      const rows=getValidMemoryRows(context), byId=new Map(rows.filter(m=>m.enabled!==false).map(m=>[m.chapterId,m]));
-      const older=new Set(context.slice(0,cutoff).map(ch=>String(ch.id)));
-      const groups=validMemoryGroups(rows).filter(g=>g.sourceMemories.every(m=>older.has(m.chapterId)));
-      const grouped=new Set(groups.flatMap(g=>g.sourceMemories.map(m=>m.chapterId)));
-      let hasSummaryContext=false;
-      const parts=context.map((ch,i)=>{
-        const id=String(ch.id), header='第'+(i+1+Number(chapterOffset || 0))+'章 '+String(ch.title || '')+'\n'+formatSnowwingChapterStoryTimeContext(ch);
-        if(i<cutoff && grouped.has(id)){
-          const group=groups.find(g=>g.sourceMemories[0].chapterId===id);if(!group)return '';
-          hasSummaryContext=true;return header+'【合并记忆，仅为已发生事实】\n'+group.text;
-        }
-        const m=i<cutoff ? byId.get(id) : null;
-        if(m){hasSummaryContext=true;return header+'【逐章记忆】\n'+m.text;}
-        // 缺失、禁用或过期的记忆回退正文，不会静默把这一章忘掉。
-        return header+cleanNarrativeChapterContent(ch);
-      }).filter(Boolean);
-      return {text:parts.length?'【前文剧情与长期记忆】\n'+parts.join('\n\n')+'\n请继续写下一章。':'请写第一章。',hasSummaryContext};
+      return buildBudgetedChapterHistory(context,{chapterOffset});
     }
     async function indexMemoryRows(context,signal,assertScope) {
       const req=getMemoryRequest('embedding'), fingerprint=memoryEmbeddingFingerprint(req);
@@ -11863,7 +11849,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       const prompt = `你是小说角色设计师。根据以下信息设计一个可直接写入角色表的完整角色。
     小说: ${novel.value.title || '未定'}
     世界观: ${novel.value.worldView || '暂无'}
-    大纲: ${(novel.value.outline || '暂无').substring(0, 800)}
+    大纲: ${(novel.value.outline || '暂无')}
     已有角色: ${charactersPromptString.value}
     用户描述: ${aiCharDesc.value}
     返回JSON: {"name":"角色名","desc":"详细描述(外貌性格背景能力关系,200字以上)","personalityTags":["标签1","标签2"],"dialogueType":"对话类型ID","speakingStyle":"说话风格描述(80-150字)","exampleDialogues":["典型台词1","典型台词2","典型台词3"],"characterPrompt":"写作该角色时的专属提示词(100-200字)","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述(20字以内)"}],"avatarPrompt":"英文生图关键词，可为空"}
@@ -11903,7 +11889,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       const prompt = '你是小说角色设定补完助手。请在不推翻已有设定的前提下，补全当前角色缺失字段。\n\n' +
         '小说: ' + (novel.value.title || '未定') + '\n' +
         '世界观: ' + (novel.value.worldView || '暂无') + '\n' +
-        '大纲: ' + (novel.value.outline || '暂无').substring(0, 800) + '\n' +
+        '大纲: ' + (novel.value.outline || '暂无') + '\n' +
         '所有角色: ' + charactersPromptString.value + '\n\n' +
         '当前角色JSON: ' + JSON.stringify({
           name: char.name || '', desc: char.desc || '', personalityTags: char.personalityTags || [],
@@ -11950,7 +11936,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       const prompt = `根据以下设定生成${requestedCount}个角色。
     小说: ${novel.value.title || '未定'}
     世界观: ${novel.value.worldView || '暂无'}
-    大纲: ${(novel.value.outline || '暂无').substring(0, 500)}
+    大纲: ${(novel.value.outline || '暂无')}
     已有角色(避免雷同): ${charactersPromptString.value}
     ${batchCharPrompt.value ? '要求: ' + batchCharPrompt.value : ''}
     返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","personalityTags":["标签"],"dialogueType":"对话类型ID","speakingStyle":"说话风格","exampleDialogues":["典型台词"],"characterPrompt":"写作约束","relationships":[{"targetName":"已有角色或本批角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}],"avatarPrompt":"英文生图关键词，可为空"}
@@ -20908,10 +20894,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     function buildModMemorySummaryPrompt(source, config, options = {}) {
       const spec = config.detailSpec || MOD_MEMORY_SUMMARY_DETAIL_SPECS.balanced;
       const raw = String(source.content || '');
-      const maxChars = Math.max(1200, Number(config.maxSourceChars) || 24000);
-      const material = raw.length <= maxChars
-        ? raw
-        : raw.slice(0, Math.floor(maxChars * 0.68)) + '\n\n【正文中段因请求预算省略；不得把省略处当作已知事实】\n\n' + raw.slice(-Math.floor(maxChars * 0.28));
+      const material = raw; // 目标章节不是前文；长期记忆必须覆盖完整正文。
       const retryCorrection = options?.retryCorrection === true
         ? '【纠正重试】上一次输出把宿主独立保存的章节时间改写进了总结正文。本次必须从人物、事件、状态或证据开始；全文任意位置均不得复写当前章节的日期、年号、月日、时辰或可与其一一对应的时段组合。确有正文证据的历史关系、先后关系或计划可保留，但不得把它们写成当前章节的时间框架。'
         : '';
@@ -30787,8 +30770,8 @@ function getModHubPermissionLabels(mod) {
         if (formattedBatchContext) prompt += formattedBatchContext + '\n';
       }
       prompt += '大纲（当前最新版本，生成前强制刷新读取）:\n' + getLatestOutlineTextForAi() + '\n';
-      const existingBody = (visibleChapters.value || []).map((c, i) => '第' + (i + 1) + '章：' + cleanNarrativeChapterContent(c)).join('\n\n');
-      if (existingBody.trim()) prompt += '【正文优先依据｜已发生剧情】\n' + clipContextText(existingBody, 12000, { keepHead:false }) + '\n';
+      const existingBody = buildPreviousChapterContextForAi(visibleChapters.value,{fullN:visibleChapters.value.length,wholeChapters:true});
+      if (existingBody.trim()) prompt += '【正文优先依据｜已发生剧情】\n' + existingBody + '\n';
       const timeline = (storyBible.value?.world?.events || []).map(e => '第' + (e.chapterNo || '?') + '章：' + (e.summary || e.title || '')).join('\n');
       if (timeline.trim()) prompt += '【事件时间线（辅助记忆）】\n' + timeline + '\n';
       if (existingBody.trim()) prompt += '生成后续细纲时，正文与时间线优先于大纲；必须自然承接已发生剧情，大纲仅作为框架。\n';
@@ -33114,7 +33097,7 @@ function getModHubPermissionLabels(mod) {
           sourceStoryTimes.push(storyTime);
           content += '剧情时间（独立元数据）：' + storyTime + '\n';
         }
-        content += cleanNarrativeChapterContent(vChaps[i]).substring(0,3000) + '\n\n';
+        content += cleanNarrativeChapterContent(vChaps[i]) + '\n\n';
       }
       let prompt = '请总结以下小说内容('+s+'-'+e+'章)。准确概括核心剧情、人物发展、伏笔。2000字以上。直接输出。\n\n' + content;
       // 中文注释：总结模块也接入 MOD 规则与声明式钩子，让共创插件可以安全补充总结偏好。
@@ -34563,6 +34546,46 @@ function getWritingModelLabel() {
 
     // 中文注释：v0.0.17 新预设系统配套——前文组装独立函数，返回 hasSummaryContext 供 COT 动态记忆段判定。
     // 组装逻辑与我方 v0.0.16 前文块逐字一致，仅把"是否有总结进入上下文"提取为返回值。
+    function buildBudgetedChapterHistory(context, options = {}) {
+      const rows=Array.isArray(context)?context:[],cfg=settings.value,offset=Number(options.chapterOffset)||0;
+      const memoryEnabled=!!memoryLibrary.value.settings.enabled;
+      const summaryFor=i=>cfg.contextUseRangeSummaries===false?null:summaries.value.find(s=>s.type!=='volume-handoff'&&s.useForContext&&isSummaryInCurrentBranch(s,i+offset)&&i+offset+1>=s.startChapter&&i+offset+1<=s.endChapter&&Number(s.endChapter)<=rows.length+offset);
+      const fullN=cfg.contextUseFullText===false?0:(options.fullN ?? (memoryEnabled?memoryLibrary.value.settings.summaryKeepChapters:(cfg.contextCompactMode?Math.min(Number(cfg.contextFullChapters)||1,2):Number(cfg.contextFullChapters)||3)));
+      const perChapter=options.wholeChapters||memoryEnabled||cfg.contextUseContextLimit===false?Infinity:(cfg.contextCompactMode?Math.min(Number(cfg.contextMaxFullChapterChars)||2500,2500):Number(cfg.contextMaxFullChapterChars)||5000);
+      const limit=Math.max(0,Number(cfg.contextHistoryCharLimit ?? 15000)||0),rawById=new Map();let remaining=limit,olderOnly=false;
+      // 原文只占用户给的预算；较早或超长章节同时补摘要/记忆，不再悄悄丢掉。
+      for(let i=rows.length-1;i>=0;i--){if(i<rows.length-fullN||olderOnly||summaryFor(i)||(options.preferSummaries&&cleanNarrativeChapterSummary(rows[i])&&!rows[i].summaryIncomplete))continue;const raw=cleanNarrativeChapterContent(rows[i]),n=Math.min(raw.length,perChapter,remaining);if(n>0){rawById.set(i,raw.slice(-n));remaining-=n;}if(raw.length>n)olderOnly=true;}
+      const memories=memoryEnabled?getValidMemoryRows(rows).filter(m=>m.enabled!==false):[],byId=new Map(memories.map(m=>[String(m.chapterId),m]));
+      const older=new Set(rows.filter((ch,i)=>!rawById.has(i)).map(ch=>String(ch.id)));
+      const groups=memoryEnabled?validMemoryGroups(memories).filter(g=>g.sourceMemories.every(m=>older.has(String(m.chapterId)))):[];
+      const emitted=new Set(),missingChapters=[],parts=[];let hasSummaryContext=false;
+      for(let i=0;i<rows.length;i++){
+        const ch=rows[i],no=i+offset+1,raw=rawById.get(i)||'',body=cleanNarrativeChapterContent(ch),header='第'+no+'章 '+String(ch.title||'');
+        const needsReplacement=!raw||raw.length<body.length;
+        let replacement='';
+        if(needsReplacement){
+          const group=groups.find(g=>g.sourceMemories.some(m=>String(m.chapterId)===String(ch.id)));
+          const range=summaryFor(i);
+          const memory=byId.get(String(ch.id)),summary=cfg.contextUseChapterSummaries===false?'':cleanNarrativeChapterSummary(ch);
+          if(group){const key='g:'+group.id;if(!emitted.has(key)){replacement='【合并记忆，仅为已发生事实】\n'+group.text;emitted.add(key);}}
+          else if(memory)replacement='【逐章记忆】\n'+memory.text;
+          else if(range){const key='s:'+range.id;if(!emitted.has(key)){replacement='【第'+range.startChapter+'-'+range.endChapter+'章总结】\n'+formatSnowwingSummaryStoryTimesContext(range)+cleanNarrativeSourceText(range.content,{keepSummaryTail:true});emitted.add(key);}}
+          else if(summary&&!ch.summaryIncomplete)replacement=summary;
+          else if(body)missingChapters.push(no);
+          if(replacement){hasSummaryContext=true;parts.push(replacement.startsWith('【第')?replacement+'\n\n':header+(memoryEnabled?'\n':': ')+replacement+'\n');}
+        }
+        if(raw)parts.push(header+'\n'+formatSnowwingChapterStoryTimeContext(ch)+raw+'\n\n');
+      }
+      return {text:rows.length?(memoryEnabled?'【前文剧情与长期记忆】\n':'【前文剧情】\n')+parts.join('')+'\n请继续写下一章。':'请写第一章。',hasSummaryContext,missingChapters,rawChars:limit-remaining};
+    }
+    function notifyMissingChapterHistory(history) {
+      const missing=[...new Set(history?.missingChapters||[])];
+      if(missing.length)showToast('第 '+missing.join('、')+' 章缺少摘要，本次少带了'+(missing.length===1?'这一章':'这些章节')+'，可在目录底部点补摘要补齐。','warning');
+    }
+    function buildPreviousChapterContextForAi(context,options={}){
+      const history=buildBudgetedChapterHistory(context,options);if(options.notify!==false)notifyMissingChapterHistory(history);
+      return history.text+'\n'+buildVolumeConstraintPrompt(context.length+1);
+    }
     function buildChapterHistoryContext(contextChapters) {
       const allContext = Array.isArray(contextChapters) ? contextChapters : visibleChapters.value;
       const targetChapterNo = allContext.length + 1;
@@ -34575,39 +34598,8 @@ function getWritingModelLabel() {
       const scopedContext = handoffReady ? allContext.filter((_, i) => i + 1 > Number(previousVolume.endChapter || 0)) : allContext;
       const chapterOffset = handoffReady ? Number(previousVolume.endChapter || 0) : 0;
       const handoffPrefix = handoffReady ? '【上一卷卷末交接｜只保留上一卷实际总结，不再注入上一卷正文】\n' + handoff.content + (handoff.actualOutline ? '\n【上一卷实际卷纲修正】\n' + handoff.actualOutline : '') + '\n\n' : '';
-      const memory = buildMemoryHistory(scopedContext, chapterOffset);
-      if (memory) return handoffPrefix ? { text:handoffPrefix + memory.text, hasSummaryContext:true } : memory;
-      const vc = scopedContext;
-      const fullN = settings.value.contextUseFullText === false ? 0 : (settings.value.contextCompactMode ? Math.min(Number(settings.value.contextFullChapters) || 1, 2) : (Number(settings.value.contextFullChapters) || 3));
-      const sumN = settings.value.contextUseChapterSummaries === false ? 0 : (settings.value.contextCompactMode ? Math.min(Number(settings.value.contextSummaryChapters) || 0, 6) : (Number(settings.value.contextSummaryChapters) || 10));
-      const maxFullChars = settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxFullChapterChars) || 2500, 2500) : (Number(settings.value.contextMaxFullChapterChars) || 5000);
-      const maxSummaryChars = settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxChapterSummaryChars) || 300, 300) : (Number(settings.value.contextMaxChapterSummaryChars) || 600);
-      let hasSummaryContext = false;
-      let text = '';
-      if (vc.length > 0) {
-        let ctx = '【前文剧情】\n';
-        for (let i = 0; i < vc.length; i++) {
-          const usedSummary = settings.value.contextUseRangeSummaries === false ? null : summaries.value.find(s =>
-            s.useForContext && isSummaryInCurrentBranch(s, i + chapterOffset) && i + chapterOffset >= (s.startChapter-1) && i + chapterOffset <= (s.endChapter-1)
-          );
-          if (usedSummary && i + chapterOffset === usedSummary.startChapter - 1) {
-            const summaryBody = clipContextText(cleanNarrativeSourceText(usedSummary.content, { keepSummaryTail: true }), maxSummaryChars * 3, { keepHead: true });
-            if (summaryBody) hasSummaryContext = true;
-            ctx += '【第' + usedSummary.startChapter + '-' + usedSummary.endChapter + '章总结】\n' + formatSnowwingSummaryStoryTimesContext(usedSummary) + summaryBody + '\n\n';
-            i = usedSummary.endChapter - chapterOffset - 1;
-          } else if (fullN > 0 && i >= vc.length - fullN) {
-            ctx += '第' + (i+chapterOffset+1) + '章 ' + vc[i].title + '\n' + formatSnowwingChapterStoryTimeContext(vc[i]) + clipContextText(cleanNarrativeChapterContent(vc[i]), maxFullChars) + '\n\n';
-          } else if (sumN > 0 && i >= vc.length - fullN - sumN) {
-            const chapterSummary = cleanNarrativeChapterSummary(vc[i]);
-            if (chapterSummary) hasSummaryContext = true;
-            ctx += '第' + (i+chapterOffset+1) + '章 ' + vc[i].title + ': ' + clipContextText(chapterSummary || '无摘要', maxSummaryChars, { keepHead: true }) + '\n';
-          }
-        }
-        text = handoffPrefix + ctx + '\n请继续写下一章。';
-      } else {
-        text = '请写第一章。';
-      }
-      return { text, hasSummaryContext };
+      const history=buildBudgetedChapterHistory(scopedContext,{chapterOffset});
+      return {...history,text:handoffPrefix+history.text,hasSummaryContext:!!handoffPrefix||history.hasSummaryContext};
     }
 
     // 构建章节生成的消息列表
@@ -34629,6 +34621,7 @@ function getWritingModelLabel() {
       const lengthContract = getChapterLengthContract(options.wordCountTarget);
       // 中文注释：v0.0.17 起前文组装提取为 buildChapterHistoryContext，同时返回 hasSummaryContext 供 COT 动态记忆段判定。
       const historyContext = buildChapterHistoryContext(contextChapters);
+      if(options.reportHistoryGaps)notifyMissingChapterHistory(historyContext);
       generationContext.hasSummaryContext = historyContext.hasSummaryContext;
       generationContext.deferHostCot = true;
       // 中文注释：⑦剧情时间——上一章带【...】格式的时间时才要求模型续写本章时间；新书/无时间线时不强加，防止凭空造历法。
@@ -34829,18 +34822,18 @@ function getWritingModelLabel() {
         .map(item => '[' + String(item?.role || 'user') + ']\n' + String(item?.content || '').trim())
         .filter(Boolean)
         .join('\n\n')
-        .slice(-12000);
+        ;
       const promptContext = [
         authorEvidence,
         '【正文请求末端上下文】\n' + (tailContext || '无')
-      ].filter(Boolean).join('\n\n').slice(0, 21000);
+      ].filter(Boolean).join('\n\n');
       const userContext = sourceMessages
         .filter(item => item && item.role !== 'system')
         .map(item => String(item.content || '').trim())
         .filter(Boolean)
         .slice(-4)
         .join('\n\n')
-        .slice(-4200);
+        ;
       const moduleLine = Array.isArray(snowwingCotContext.modules) && snowwingCotContext.modules.length
         ? snowwingCotContext.modules.slice(0, 10).join('；')
         : '白鸟推演模块';
@@ -35270,6 +35263,7 @@ function getWritingModelLabel() {
             wordCountTarget: generationContext.wordCountTarget,
             sequenceTotal: run.total,
             sequenceIndex: run.total - run.remaining + 1,
+            reportHistoryGaps: true,
             printLog: false
           }));
       const snowwingCotContext = (rerollSnapshot && rerollSnapshot.snowwingCotContext)
@@ -36454,34 +36448,13 @@ function getWritingModelLabel() {
       }
       if (outline) prompt += '\n【当前大纲 · 计划】\n' + clipPlan(outline) + '\n';
       const currentVolume = volumeFor(nextChapterNo);
-      if (String(currentVolume?.summary || '').trim()) prompt += '\n【目标卷纲 · 计划】' + (currentVolume.title || '') + '\n' + clipPlan(currentVolume.summary) + '\n';
+      if (String(currentVolume?.summary || '').trim()) prompt += '\n【目标卷纲 · 计划】' + (currentVolume.title || '') + '\n' + currentVolume.summary + '\n';
       const targetDetail = detailFor(nextChapterNo - 1);
-      if (targetDetail) prompt += '\n【目标细纲 · 第' + nextChapterNo + '章 · 待写计划】\n' + clipPlan(targetDetail) + '\n';
+      if (targetDetail) prompt += '\n【目标细纲 · 第' + nextChapterNo + '章 · 待写计划】\n' + targetDetail + '\n';
       const nextDetail = detailFor(nextChapterNo);
       if (nextDetail) prompt += '\n【后续细纲边界 · 第' + (nextChapterNo + 1) + '章 · 不提前展开】\n' + clipContextText(nextDetail, 800, { keepHead:true }) + '\n';
-      if (vc.length) {
-        prompt += '\n【最近章节 · 摘要为空按细纲→大纲→正文取材】\n';
-        const start = Math.max(0, vc.length - 5);
-        const usedRanges = new Set();
-        for (let index = start; index < vc.length; index++) {
-          const ch = vc[index], no = index + 1;
-          let text = cleanNarrativeChapterSummary(ch).trim(), source = '摘要 · 已发生';
-          if (!text) {
-            const range = (summaries.value || []).find(s => s.useForContext && Number(s.startChapter) <= no && Number(s.endChapter) >= no && Number(s.endChapter) <= vc.length && String(s.content || '').trim());
-            if (range) {
-              if (usedRanges.has(range)) continue;
-              text = cleanNarrativeSourceText(range.content, { keepSummaryTail:true }).trim();
-              if (text) { source = '范围摘要 · 第' + range.startChapter + '—' + range.endChapter + '章 · 已发生'; usedRanges.add(range); }
-            }
-          }
-          if (!text) { text = cleanNarrativeSourceText(detailFor(index)).trim(); source = '细纲 · 计划参考'; }
-          if (!text) { text = cleanNarrativeSourceText(volumeFor(no)?.summary || '').trim() || outline; source = '大纲 · 计划参考'; }
-          if (!text) { text = replaceInlineImageTags(cleanNarrativeChapterContent(ch), () => '').trim(); source = '正文 · 已发生'; }
-          const limit = source.startsWith('正文') ? (Number(settings.value.contextMaxFullChapterChars) || 5000) : (source.includes('摘要') ? (Number(settings.value.contextMaxChapterSummaryChars) || 900) : 2400);
-          prompt += '第' + no + '章 ' + (ch.title || '') + '【来源：' + source + '】\n'
-            + (text ? clipContextText(text, limit, { keepHead:!source.startsWith('正文') }) : '暂无可用剧情资料；不要推断本章发生了什么。') + '\n';
-        }
-      } else prompt += '当前还没有章节，请提供第一章的开局建议。\n';
+      if(vc.length)prompt+='\n'+buildPreviousChapterContextForAi(vc,{fullN:5,preferSummaries:true,notify:options.notifyHistoryGaps!==false});
+      else prompt+='当前还没有章节，请提供第一章的开局建议。\n';
       if (String(nextChapterPrompt.value || '').trim()) prompt += '\n【作者当前剧情要求】\n' + nextChapterPrompt.value.trim() + '\n';
       const presetSugg = getPresetsForModule('suggestion');
       if (presetSugg) prompt += '\n补充指令:\n' + presetSugg + '\n';
@@ -36968,7 +36941,7 @@ function getWritingModelLabel() {
             let prompt = '你是小说角色设计师。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。请生成角色JSON。\n\n';
             prompt += '书名: ' + R.title + '\n主题: ' + newBookForm.value.theme + '\n';
             if (R.worldView) prompt += '世界观: ' + R.worldView.substring(0, 500) + '\n';
-            if (R.outline) prompt += '大纲: ' + R.outline.substring(0, 500) + '\n';
+            if (R.outline) prompt += '大纲: ' + R.outline + '\n';
             prompt += '\n必须严格输出JSON对象，不要代码块。结构如下：\n';
             prompt += '{"characters": [';
             prompt += '{"name":"角色名","desc":"详细描述200字以上"';
@@ -37702,6 +37675,7 @@ function getWritingModelLabel() {
       {tab:'context',target:'settings-search-detailed-outline-word-count',title:'细纲字数参考',keywords:'所有章节细纲总长度 按批次平摊 xigang zishu'},
       {tab:'context',target:'settings-search-suggestion-word-count',title:'建议字数参考',keywords:'AI建议方向长度 suggestion jianyi zishu'},
       {tab:'context',target:'settings-search-character-word-count',title:'角色资料字数参考',keywords:'人物角色设定长度 character renwu zishu'},
+      {tab:'context',target:'settings-search-history-limit',title:'前文字数上限',keywords:'截断 省费用 旧章节 摘要 记忆 前文预算 补摘要'},
       {tab:'context',target:'settings-search-outline-range',title:'细纲注入范围',keywords:'前文章数 后文章数 当前章节附近 细纲范围 zhigang注入'},
       ...moduleModelConfig.map(mod=>({tab:'context',target:'settings-search-route-'+mod.key,title:'模块模型分配｜'+mod.name,keywords:mod.name+' '+mod.desc+' API 模型 路由 分配 连接 luyou fenpei '+(mod.key==='writing'?'zhengwen续写':mod.key==='supplement'?'二轮补写':mod.key==='character'?'角色人物':mod.key==='outline'?'大纲细纲':mod.key==='summary'?'章节总结':mod.key==='imagetext'?'封面立绘':mod.key==='suggestion'?'预设建议':mod.key==='review'?'书评':mod.key==='comments'?'读者评论':'')})),
       {tab:'editable',target:'settings-search-editable-preview',title:'发送预览',keywords:'查看实际请求内容 prompt system user assistant 编辑来源 自定义楼层 tijian tishi'},
@@ -38837,7 +38811,7 @@ function getWritingModelLabel() {
       let fullContent = '小说标题：' + (novel.value.title || '') + '\n世界观：' + (novel.value.worldView || '') + '\n\n';
       const vc = visibleChapters.value;
       for (let i = 0; i < vc.length; i++) {
-        fullContent += '第' + (i+1) + '章 ' + vc[i].title + '\n' + cleanNarrativeChapterContent(vc[i]).substring(0, 2000) + '\n\n';
+        fullContent += '第' + (i+1) + '章 ' + vc[i].title + '\n' + cleanNarrativeChapterContent(vc[i]) + '\n\n';
       }
 
       // 增加预设中的书评指令
@@ -39360,7 +39334,74 @@ function getWritingModelLabel() {
       const ch = visibleChapters.value[idx]; if (ch) ch.showComments = !ch.showComments;
     }
 
-    function aiRewriteSummary(idx) {
+    const summaryBackfillPicker=ref({open:false,bookId:'',branchId:'main',rows:[],allComplete:false});
+    const summaryBackfill=ref({running:false,completed:0,total:0,bookId:'',branchId:'main'});
+    const selectedSummaryBackfillCount=computed(()=>summaryBackfillPicker.value.rows.filter(r=>r.selected).length);
+    let summaryBackfillJob=null;
+    function openSummaryBackfill(){
+      const rows=visibleChapters.value.map((ch,i)=>({id:ch.id,no:i+1,title:getDisplayChapterTitle(ch,i),hasSummary:!!String(ch.summary||'').trim()&&!ch.summaryIncomplete,selected:!String(ch.summary||'').trim()||!!ch.summaryIncomplete}));
+      summaryBackfillPicker.value={open:true,bookId:String(currentBookId.value),branchId:String(activeBranchId.value),rows,allComplete:rows.length>0&&rows.every(r=>r.hasSummary)};
+    }
+    function confirmSummaryBackfill(){
+      const picker=summaryBackfillPicker.value,rows=picker.rows.filter(r=>r.selected);if(!rows.length||summaryBackfill.value.running)return;
+      openConfirm({title:'确认补摘要费用',message:'将额外请求 '+rows.length+' 次 AI，确定开始吗？',confirmText:'确定开始'},()=>{
+        if(summaryBackfill.value.running)return;
+        if(String(currentBookId.value)!==picker.bookId||String(activeBranchId.value)!==picker.branchId){showToast('书籍或分支已切换，请重新选择章节','warning');return;}
+        picker.open=false;startSummaryBackfill(rows);
+      });
+    }
+    function adoptSummaryCandidate(ch){
+      if(!ch?.summaryCandidate)return;ch.summary=ch.summaryCandidate.content;ch.summaryIncomplete=!!ch.summaryCandidate.incomplete;ch.summaryMissing=ch.summaryIncomplete;delete ch.summaryCandidate;markChapterSummaryEdited(ch);saveDataNow('采用摘要候选');
+    }
+    function setChapterSummaryResult(ch,baseSummary,text,incomplete=false,lastPartial=''){
+      const content=String(text||'').trim();if(!content)return;
+      // 只改本章摘要字段；生成期间作者编辑过摘要时保留旧值，把新结果放候选。
+      if(String(ch.summary||'')!==baseSummary&&String(ch.summary||'')!==lastPartial){ch.summaryCandidate={content,incomplete,at:Date.now()};return;}
+      if(incomplete&&baseSummary.trim()){ch.summaryCandidate={content,incomplete:true,at:Date.now()};return;}
+      ch.summary=content;ch.summaryIncomplete=incomplete;ch.summaryMissing=incomplete;ch.summaryRepairReason=incomplete?'摘要生成中止，已保留收到的内容':'';
+      if(!incomplete)delete ch.summaryCandidate;
+    }
+    async function requestChapterSummary(ch,no,request,options={}){
+      const cleanContent=cleanNarrativeChapterContent(ch);if(!cleanContent)throw Error('第 '+no+' 章无正文');
+      const prompt='请为以下章节生成精炼的剧情摘要。150-300字。直接输出。\n\n第'+no+'章 '+ch.title+'\n\n'+cleanContent;
+      const bible=options.bible??buildStoryBibleWritingContextPackage({currentChapterNo:no,nameMatchText:(ch.title||'')+' '+cleanContent});
+      const context=bible?.worldText?'\n\n【关联设定】\n'+bible.worldText:'';
+      return fetchAdapterCompletion(request,buildNsfwMessages(prompt+context,{taskType:'summary'}),{stream:true,omitTemperature:true,signal:options.signal,onTextDelta:options.onTextDelta});
+    }
+    function stopSummaryBackfill(){
+      if(!summaryBackfillJob)return;summaryBackfillJob.stopped=true;summaryBackfillJob.controller.abort();
+      // 半截摘要在每次流式回调已挂进章节，关页时现有应急备份也会一起保存。
+      saveDataNow('中止补摘要');
+    }
+    async function startSummaryBackfill(rows){
+      const request=requireModuleRequest('summary','总结 API');if(!request||summaryBackfill.value.running)return;
+      const bookId=String(currentBookId.value),branchId=String(activeBranchId.value),targets=rows.map(row=>({...row,ch:visibleChapters.value.find(ch=>ch.id===row.id),bible:buildStoryBibleWritingContextPackage({currentChapterNo:row.no})})).filter(row=>row.ch);
+      const job={controller:new AbortController(),stopped:false};summaryBackfillJob=job;summaryBackfill.value={running:true,completed:0,total:targets.length,bookId,branchId};showToast('已开始补录摘要','success');
+      try{
+        for(const row of targets){
+          if(job.stopped)break;
+          const ch=row.ch,baseSummary=String(ch.summary||''),sourceText=cleanNarrativeChapterContent(ch);let partial='',lastPartial='';
+          const exists=()=>{const list=String(currentBookId.value)===bookId?chapters.value:books.value.find(b=>String(b.id)===bookId)?.chapters;return list?.some(c=>c===ch||c.id===ch.id);};
+          try{
+            const result=await requestChapterSummary(ch,row.no,request,{bible:row.bible,signal:job.controller.signal,onTextDelta:(_delta,full)=>{
+              partial=cleanAIResponse(full);if(!exists()||!partial)return;
+              setChapterSummaryResult(ch,baseSummary,partial,true,lastPartial);if(!baseSummary.trim()&&ch.summary===partial)lastPartial=partial;saveData();
+            }});
+            if(job.stopped)throw new DOMException('已中止','AbortError');
+            const text=getAdapterCompletionText(result);if(!text)throw Error('AI 返回空摘要');if(!exists())continue;
+            // 正文在并行生成/编辑时发生变化，新摘要仅作为候选，不覆盖作者当前内容。
+            if(cleanNarrativeChapterContent(ch)!==sourceText)ch.summaryCandidate={content:text,incomplete:false,at:Date.now(),reason:'原文已修改'};
+            else setChapterSummaryResult(ch,baseSummary,text,false,lastPartial);
+            if(!await saveDataNow('逐章补摘要：第 '+row.no+' 章')){job.stopped=true;break;}summaryBackfill.value.completed++;
+          }catch(error){
+            partial=partial||String(error?.partialText||'');
+            if(exists()&&partial)setChapterSummaryResult(ch,baseSummary,partial,true,lastPartial);
+            await saveDataNow('保留中止摘要');if(error?.name!=='AbortError')showToast('第 '+row.no+' 章补摘要失败：'+sanitizeApiErrorDetail(error.message||error),'error');break;
+          }
+        }
+      }finally{summaryBackfill.value.running=false;summaryBackfillJob=null;showToast(job.stopped?'补摘要已中止，已收到的内容已保留':'补摘要任务已结束（'+summaryBackfill.value.completed+'/'+summaryBackfill.value.total+'）','info');}
+    }
+    async function aiRewriteSummary(idx) {
       const ch = visibleChapters.value[idx];
       const cleanContent = cleanNarrativeChapterContent(ch);
       if (!ch || !cleanContent) { showToast('该章无正文', 'error'); return; }
@@ -39371,19 +39412,15 @@ function getWritingModelLabel() {
       if (!run) return;
       rewritingSummaryIdx.value = idx;
 
-      const prompt = '请为以下章节生成精炼的剧情摘要。150-300字。直接输出。' + '\n\n第'+(idx+1)+'章 '+ch.title+'\n\n'+cleanContent;
-      const summaryBible = buildStoryBibleWritingContextPackage({ currentChapterNo: idx + 1, nameMatchText: (ch.title || '') + ' ' + cleanContent.slice(0, 5000) });
-      const summaryContext = summaryBible?.worldText ? '\n\n【关联设定】\n' + summaryBible.worldText : '';
-
-      fetchAdapterCompletion(request, buildNsfwMessages(prompt + summaryContext, { taskType:'summary' }), { stream:true, omitTemperature:true, signal:run.controller.signal })
-      .then(result=>{
+      const baseSummary=String(ch.summary||'');
+      try{
+        const result=await requestChapterSummary(ch,idx+1,request,{signal:run.controller.signal});
         if (!isBookScopedAiRunCurrent(run) || !chapters.value.some(item => item === ch || item?.id === ch.id)) return;
         const summary = getAdapterCompletionText(result);
-        if (summary) { ch.summary = summary; ch.summaryMissing=false;ch.summaryRepairReason=''; saveData(); showToast('第'+(idx+1)+'章摘要已生成', 'success'); }
+        if (summary) { setChapterSummaryResult(ch,baseSummary,summary);await saveDataNow('生成章节摘要');showToast('第'+(idx+1)+'章摘要已生成', 'success'); }
         else showToast('AI返回为空', 'error');
-      })
-      .catch(e=>{ if (e?.name !== 'AbortError' && isBookScopedAiRunCurrent(run)) showToast('失败: '+sanitizeApiErrorDetail(e.message || e),'error'); })
-      .finally(()=>{finishBookScopedAiRun(run);rewritingSummaryIdx.value=-1});
+      }catch(e){if(e?.name!=='AbortError'&&isBookScopedAiRunCurrent(run))showToast('失败: '+sanitizeApiErrorDetail(e.message||e),'error');}
+      finally{finishBookScopedAiRun(run);rewritingSummaryIdx.value=-1;}
     }
 
 
@@ -40481,6 +40518,7 @@ function getWritingModelLabel() {
     });
 
     function handleBeforeUnloadSave() {
+      if(summaryBackfillJob)stopSummaryBackfill();
       // 中文注释：页面关闭前先写同步 localStorage 兜底，再尽力写 IndexedDB，降低关闭浏览器后丢稿概率。
       if (storageLoadFailed) return;
       // 中文注释：关闭页面时若正在生成，先把流式已收到的正文（含被塞进推理通道的情况）抢救为中断草稿，避免关页丢稿。
@@ -40761,6 +40799,7 @@ function getWritingModelLabel() {
       /* Part 9: AI改标题/摘要 */
       rewritingTitleIdx, rewritingSummaryIdx,
       aiRewriteTitle, aiRewriteSummary,
+      summaryBackfillPicker,summaryBackfill,selectedSummaryBackfillCount,openSummaryBackfill,confirmSummaryBackfill,startSummaryBackfill,stopSummaryBackfill,adoptSummaryCandidate,buildBudgetedChapterHistory,
 	  
       // ── 每章书评系统 ──
 	  generateChapterComments, regenerateComments, likeComment, likeReply, toggleChapterComments,

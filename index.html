@@ -840,7 +840,8 @@
 
 
     <!-- ───── 目录 Tab ───── -->
-    <div v-show="currentTab==='chapters'" class="absolute inset-0 overflow-y-auto p-2">
+    <div v-show="currentTab==='chapters'" class="absolute inset-0 flex flex-col min-h-0">
+      <div class="flex-1 min-h-0 overflow-y-auto p-2" data-toc-scroll>
       <div class="space-y-0.5">
         <div v-for="group in tocVolumeGroups" :key="group.id" class="moyun-toc-group">
           <div v-if="group.title" class="moyun-toc-volume-head">
@@ -874,12 +875,22 @@
           <div v-if="ch.showSummary" class="px-4 pb-2">
             <textarea v-model="ch.summary" @change="markChapterSummaryEdited(ch)" rows="3" placeholder="本章摘要..."
                       class="textarea-field text-[11px]" style="background:var(--bg-inset)"></textarea>
+            <div v-if="ch.summaryIncomplete" class="text-[11px]" style="color:var(--warn)">未完成：保留了中止前收到的摘要。</div>
+            <div v-if="ch.summaryCandidate" class="card p-2 mt-1 text-[11px]">
+              <div style="color:var(--warn)">{{ ch.summaryCandidate.incomplete ? '未完成的新摘要候选' : '新摘要候选（原摘要已被编辑）' }}</div>
+              <p class="whitespace-pre-wrap">{{ ch.summaryCandidate.content }}</p>
+              <button type="button" @click="adoptSummaryCandidate(ch)" class="btn-ghost min-h-[44px]">采用</button>
+            </div>
           </div>
         </template>
           </div>
         </div>
       </div>
       <div v-if="visibleChapters.length===0" class="text-center py-12 text-sm" style="color:var(--tx3)">暂无章节</div>
+      </div>
+      <div class="px-4 py-3 shrink-0" style="border-top:1px solid var(--bd)">
+        <button type="button" data-summary-backfill v-moyun-tip="'会额外请求 AI，产生费用；选好章节并再次确认后才会开始。'" @click="summaryBackfill.running ? stopSummaryBackfill() : openSummaryBackfill()" class="btn-primary w-full py-3 rounded-xl min-h-[44px]">{{ summaryBackfill.running ? '中止（'+summaryBackfill.completed+'/'+summaryBackfill.total+'）' : '补摘要' }}</button>
+      </div>
     </div>
 
 
@@ -5199,6 +5210,18 @@
 <!-- ════════════════════════════════════════════
      全局设置面板
      ════════════════════════════════════════════ -->
+<div v-if="summaryBackfillPicker.open" data-moyun-modal="summary-backfill" role="dialog" aria-modal="true" aria-label="选择补摘要章节" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
+  <div data-moyun-modal-panel tabindex="-1" class="card w-full max-w-lg p-4 flex flex-col gap-3" style="max-height:90dvh">
+    <div class="flex justify-between items-center"><strong>补摘要 · 选择章节</strong><button type="button" data-moyun-modal-close @click="summaryBackfillPicker.open=false" class="btn-ghost min-h-[44px]" aria-label="关闭补摘要选择">×</button></div>
+    <p v-if="summaryBackfillPicker.allComplete" class="text-xs" style="color:var(--tx3)">本书所有章节都已有摘要，勾选的章节将重新生成。</p>
+    <div class="flex-1 min-h-0 overflow-y-auto space-y-1">
+      <label v-for="row in summaryBackfillPicker.rows" :key="row.id" class="flex items-center gap-3 min-h-[44px] text-xs"><input type="checkbox" v-model="row.selected" class="w-5 h-5 shrink-0"><span class="min-w-0 break-words">第 {{ row.no }} 章 · {{ row.title }} <span style="color:var(--tx3)">{{ row.hasSummary ? '已有摘要' : '缺少完整摘要' }}</span></span></label>
+      <p v-if="!summaryBackfillPicker.rows.length" class="text-xs">本书尚无章节。</p>
+    </div>
+    <div class="text-xs">已选 {{ selectedSummaryBackfillCount }} 章，预计请求 {{ selectedSummaryBackfillCount }} 次</div>
+    <button type="button" @click="confirmSummaryBackfill" :disabled="!selectedSummaryBackfillCount" class="btn-primary min-h-[44px] disabled:opacity-50">开始补录</button>
+  </div>
+</div>
 <transition name="pop">
   <div v-if="showSettings_modal" data-moyun-region="settings-modal" data-moyun-modal="settings" data-moyun-initial-focus="[data-settings-tab][aria-selected='true']"
        role="dialog" aria-modal="true" aria-labelledby="moyun-settings-title"
@@ -5511,6 +5534,8 @@
 
           <div class="divider"></div>
           <label id="settings-search-outline-range" class="label">细纲注入范围</label>
+          <label id="settings-search-history-limit" class="block text-xs">前文字数上限<input v-model.number="settings.contextHistoryCharLimit" @change="normalizeContextSettings();saveData()" type="number" min="0" step="1000" class="input-field text-center mt-1" aria-label="前文字数上限" style="min-height:44px"></label>
+          <p class="text-[11px]" style="color:var(--tx3)">上限越小越省费用，但越依赖摘要和记忆。只限制前文原文，摘要、卷纲、卷末交接和当前细纲不计入；0 表示不带前文原文。</p>
           <div class="text-[10px] mb-2" style="color:var(--tx4)">AI写作时读取当前章前后几章的细纲（防止多章生成串味）</div>
           <div class="flex gap-4">
             <div class="flex-1">
@@ -6641,7 +6666,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=53e073b95d2f"></script>
+<script src="./assets/js/moyun.js?v=ae8055032294"></script>
 <!-- PART_1_END -->
 </body>
 </html>
