@@ -4423,7 +4423,7 @@ img[role="button"]:focus-visible {
               <span v-if="getStaleMark('细纲',co.id)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">待核对</span>
               <span v-if="getChapterOutlineRunStatusLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineRunStatusStyle(ci)">{{ getChapterOutlineRunStatusLabel(ci) }}</span>
               <span v-if="getChapterOutlineQualityLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineQualityStyle(ci)">{{ getChapterOutlineQualityLabel(ci) }}</span>
-              <button type="button" class="btn-ghost text-xs min-h-[44px]" @click.stop="forkBranch(ci)" :disabled="activeBranchId!=='main' || !visibleChapters[ci]" :title="activeBranchId!=='main' ? '支线里不能再分叉' : !visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '从这章之后另写一条剧情'">从这章分支</button>
+              <button type="button" class="btn-ghost text-xs min-h-[44px]" @click.stop="forkBranch(ci)" :disabled="!visibleChapters[ci]" :title="!visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '完整复制至本章，在此之后另写一条剧情'">从这章分支</button>
               <button @click.stop="removeChapterOutline(ci)" @keydown.stop class="moyun-do-card-action" title="删除本章细纲" :aria-label="'删除第' + (ci + 1) + '章细纲'"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s" :style="co.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
@@ -4726,7 +4726,7 @@ img[role="button"]:focus-visible {
         <!-- 逐章渲染 -->
         <div v-for="(ch, idx) in visibleChapters" :key="ch.id||idx" :id="'chapter-'+idx" data-moyun-region="editor" class="mb-4">
           <!-- 插入线 -->
-          <div v-if="idx>0" @click="insertChapterAt(idx)" class="insert-line">
+          <div v-if="idx>0 && idx>=getBranchForkEnd(activeBranchId)" @click="insertChapterAt(idx)" class="insert-line">
             <div class="insert-line-bar"></div>
             <div class="insert-line-btn">+ 插入章节</div>
             <div class="insert-line-bar"></div>
@@ -4929,8 +4929,8 @@ img[role="button"]:focus-visible {
                   <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">编辑</button>
                   <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">复制</button>
                   <button @click.stop="rerollChapter(idx)" :disabled="!ch.regenSnapshot" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--ok-soft);color:var(--ok)" :style="!ch.regenSnapshot?'opacity:.4;cursor:not-allowed':''" :title="ch.regenSnapshot?'用与首次生成完全相同的提示词与注入（含白鸟）重新生成本章，原稿转历史稿':'旧章或导入章没有可精确复现的注入快照，改用分支重写'">重新生成</button>
-                  <button type="button" data-chapter-fork @click.stop="forkBranch(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留本章，在本章之后另写一条剧情，无需 AI'">从这章分支</button>
-                  <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
+                  <button type="button" data-chapter-fork @click.stop="forkBranch(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" title="完整复制至本章，在此之后另写一条剧情，无需 AI">从这章分支</button>
+                  <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
                     <button type="button" @click.stop="openFavoriteChoice(ch,idx)" class="btn-ghost text-[11px] px-3 py-2" style="min-height:44px">喜欢</button>
@@ -8485,14 +8485,15 @@ img[role="button"]:focus-visible {
 <div v-if="transferState" data-moyun-modal="section-transfer" :data-moyun-modal-locked="transferBusy?'true':'false'" role="dialog" aria-modal="true" aria-labelledby="section-transfer-title" class="fixed inset-0 z-[250] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
   <div class="moyun-feature-dialog" data-moyun-modal-panel tabindex="-1">
     <div class="moyun-preview-toolbar mb-3"><h2 id="section-transfer-title" class="font-bold flex-1">{{ transferState.title }}</h2><button type="button" data-moyun-modal-close :disabled="transferBusy" @click="closeTransfer" class="btn-ghost text-xs">取消</button></div>
-    <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind!=='book'" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
-    <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind==='preset-export'?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
+    <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind.startsWith('preset')" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
+    <div v-if="transferState.branches.length" class="card p-3 mb-3"><div class="label">选择分支（至少一条）</div><label v-for="row in transferState.branches" :key="row.id" class="flex items-center gap-3 min-h-[44px] text-xs break-words"><input type="checkbox" v-model="row.selected"><span class="min-w-0">{{ row.name }} · {{ row.chapterCount }} 章 · 上级：{{ row.parentName }}</span></label><p class="text-xs" style="color:var(--tx3)">未选择主线时，最早创建的所选分支成为主线；未随行的上级挂到新主线下。</p></div>
+    <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind.endsWith('export')?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
     <div v-if="transferState.kind==='book'" class="moyun-preview-toolbar mb-3"><label class="text-xs">导入目标 <select v-model="transferState.target" class="select-field text-xs"><option value="new">新建一本书</option><option value="current">合入当前书</option></select></label><p class="text-xs" style="color:var(--tx3)">项目树来自所选文件。新版写作预设可按区块选择，未勾选内容保留。</p></div>
     <div v-if="transferState.kind==='preset-import' || (transferState.kind==='book' && transferState.target==='current')" class="mb-3"><label class="text-xs">写入策略 <select v-model="transferState.strategy" class="select-field text-xs"><option value="append">额外新增（保留原有，分配新 ID）</option><option value="replace">{{ transferState.kind==='book'?'同 ID 项覆盖，其余保留':'覆盖所选预设区块' }}</option></select></label><p class="text-xs mt-2" style="color:var(--tx3)">未勾选区块不变。标量设置采用勾选文件中的值；数组按上述策略处理。同名但不同 ID 的内容不会被当作同一项。</p></div>
     <div v-if="transferState.mode==='selected'" class="mb-3"><div class="moyun-preview-toolbar mb-2"><input v-model="transferQuery" class="input-field text-xs flex-1" placeholder="筛选项目树" aria-label="筛选导入区块"><button type="button" @click="selectTransferRows(true)" class="btn-ghost text-xs">全选</button><button type="button" @click="selectTransferRows(false)" class="btn-ghost text-xs">全不选</button></div><div class="moyun-transfer-tree"><label v-for="row in visibleTransferRows" :key="row.key"><input type="checkbox" v-model="row.selected"><span :style="{paddingLeft:Math.min(3,row.path.length-1)*8+'px'}"><span style="color:var(--tx3)">{{ row.group }}</span> / {{ row.path.length > 1 ? row.label.slice(row.group.length + 3) : row.label }}</span></label><button v-if="visibleTransferRows.length>=transferLimit" type="button" @click="transferLimit+=60" class="btn-ghost text-xs">显示更多项目</button></div><p class="text-xs mt-2">已选择 {{ selectedTransferCount }} / {{ transferState.rows.length }} 项</p></div>
     <p v-if="transferError" role="alert" class="text-xs mb-3" style="color:var(--err)">{{ transferError }}</p>
     <p v-if="transferState.kind==='book'" class="text-xs mb-3" style="color:var(--tx3)">建议同时选择关联的角色、资料、分支与章节。未随文件导入且当前书不存在的引用会由既有修复器清理；孤立章节归入主线。</p>
-    <div class="moyun-preview-toolbar"><button type="button" :disabled="transferBusy || (transferState.mode==='selected' && !selectedTransferCount)" @click="executeTransfer" class="btn-primary text-xs">{{ transferBusy?'正在保存…':(transferState.kind==='preset-export'?'确认导出':'确认导入') }}</button><span v-if="transferBusy" role="status" class="text-xs">请等待本地存储完成</span></div>
+    <div class="moyun-preview-toolbar"><button type="button" :disabled="transferBusy || (transferState.mode==='selected' && !selectedTransferCount) || (transferState.branches.length && !transferState.branches.some(row=>row.selected))" @click="executeTransfer" class="btn-primary text-xs">{{ transferBusy?'正在保存…':(transferState.kind.endsWith('export')?'确认导出':'确认导入') }}</button><span v-if="transferBusy" role="status" class="text-xs">请等待本地存储完成</span></div>
   </div>
 </div>
 
@@ -16311,16 +16312,7 @@ function copyLastChapterContextText() {
 
     /* 可见章节（分支过滤） */
     const visibleChapters = computed(() => {
-      const bid = activeBranchId.value;
-      if (bid === 'main' || branchList.value.length <= 1) {
-        return chapters.value.filter(ch => !ch.branchId || ch.branchId === 'main');
-      }
-      const bi = branchList.value.find(b => b.id === bid);
-      if (!bi) return chapters.value.filter(ch => !ch.branchId || ch.branchId === 'main');
-      const mc = chapters.value.filter(ch => !ch.branchId || ch.branchId === 'main');
-      const found = bi.forkFromChapterId ? mc.findIndex(ch => ch.id === bi.forkFromChapterId) : -1;
-      const forkEnd = found >= 0 ? found + 1 : (Number.isInteger(Number(bi.forkIndex)) ? Math.max(0, Number(bi.forkIndex) + 1) : 0);
-      return mc.slice(0, forkEnd).concat(chapters.value.filter(ch => ch.branchId === bid));
+      return chapters.value.filter(ch => String(ch.branchId || 'main') === String(activeBranchId.value));
     });
 
     const chapterWordCountCache = new WeakMap();
@@ -17792,6 +17784,7 @@ function copyLastChapterContextText() {
     }
 
     function loadBook(id) {
+      if (branchCopyBusy && id !== currentBookId.value) { showToast('正在保存分支副本，请稍后切换书籍','info'); return false; }
       const book = books.value.find(b => b.id === id);
       if (!book) return false;
       if (String(id || '') !== String(currentBookId.value || '')) stopOutlineRunsForBookChange();
@@ -20947,6 +20940,40 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     const visibleTransferRows=computed(()=>{const query=transferQuery.value.trim().toLowerCase();return (transferState.value?.rows||[]).filter(x=>!query||x.label.toLowerCase().includes(query)).slice(0,transferLimit.value);});
     const selectedTransferCount=computed(()=>(transferState.value?.rows||[]).filter(x=>x.selected).length);
     function selectTransferRows(selected){for(const row of transferState.value?.rows||[])if(!transferQuery.value||row.label.includes(transferQuery.value))row.selected=selected;}
+    // 中文注释：每条分支都是完整副本，筛选时同步裁掉各分支数据，并确定新的主线。
+    function selectBookBranches(data, selectedIds) {
+      const out=deepClone(data), rows=data.branchList || [{id:'main',name:'主线'}], selected=new Set(selectedIds);
+      const kept=rows.filter(row=>selected.has(row.id));
+      if(!kept.length)throw Error('请至少选择一条分支');
+      const root=kept.find(row=>row.id==='main') || kept.slice().sort((a,b)=>(Number(a.createdAt)||0)-(Number(b.createdAt)||0))[0];
+      const mapId=id=>String(id||'main')===root.id?'main':String(id||'main');
+      out.branchList=kept.map(row=>({...row,id:mapId(row.id),parentId:row.id===root.id?null:(selected.has(row.parentId)?mapId(row.parentId):'main')}));
+      const filterRows=items=>(items || []).filter(row=>selected.has(String(row.branchId||'main'))).map(row=>({...row,branchId:mapId(row.branchId)}));
+      if(out.chapters)out.chapters=filterRows(out.chapters);
+      if(out.summaries)out.summaries=filterRows(out.summaries);
+      const mapScopes=object=>Object.fromEntries(Object.entries(object||{}).filter(([id])=>selected.has(id)).map(([id,value])=>[mapId(id),value]));
+      if(out.branchData){out.branchData=mapScopes(out.branchData);for(const item of Object.values(out.branchData))for(const mark of item.staleMarks||[])mark.branchId=mapId(mark.branchId);const main=out.branchData.main||{};for(const key of ['chapterOutlines','chapterIndexDrafts','foreshadowMatrix','staleMarks'])out[key]=deepClone(main[key]||[]);}
+      if(out.novel){
+        if(out.novel.favoriteClips)out.novel.favoriteClips=filterRows(out.novel.favoriteClips);
+        if(out.novel.styleSources){out.novel.styleSources=mapScopes(out.novel.styleSources);const own=new Set((out.novel.favoriteClips||[]).map(row=>row.id));for(const state of Object.values(out.novel.styleSources))for(const copy of state.copies||[])if(own.has(copy.id))copy.branchId=mapId(copy.branchId);}
+        for(const volume of out.novel.volumes||[]) {
+          if(volume.handoffSummaries){volume.handoffSummaries=mapScopes(volume.handoffSummaries);for(const [id,row] of Object.entries(volume.handoffSummaries))row.branchId=id;}
+          if(root.id!=='main'){const handoff=volume.handoffSummaries?.main;volume.actualSummary=handoff?.content||'';volume.actualOutline=handoff?.actualOutline||'';volume.handoffSourceHash=handoff?.sourceHash||'';}
+        }
+      }
+      const chapterIds=new Set((out.chapters||[]).map(ch=>ch.id));
+      if(out.memoryLibrary){out.memoryLibrary.memories=filterRows(out.memoryLibrary.memories);out.memoryLibrary.groups=(out.memoryLibrary.groups||[]).filter(row=>row.sourceMemories?.every(item=>chapterIds.has(item.chapterId)));}
+      function filterMod(value,key=''){
+        if(Array.isArray(value))return value.filter(row=>!row||typeof row!=='object'||(!row.branchScopeId&&!row.branchId)||selected.has(String(row.branchScopeId||row.branchId))).map(row=>filterMod(row));
+        if(value&&typeof value==='object'){const entries=key==='scopes'?Object.entries(mapScopes(value)):Object.entries(value);return Object.fromEntries(entries.map(([k,v])=>[k,filterMod(v,k)]));}
+        return ['branchId','branchScopeId','sourceChapterBranchId','copiedFromBranchId'].includes(key)?mapId(value):value;
+      }
+      if(out.modPrivateData)out.modPrivateData=filterMod(out.modPrivateData);
+      if(out.interruptedDraft){if(!selected.has(String(out.interruptedDraft.branchId||'main')))out.interruptedDraft=null;else out.interruptedDraft.branchId=mapId(out.interruptedDraft.branchId);}
+      if(out._imageCache)out._imageCache=Object.fromEntries(Object.entries(out._imageCache).filter(([key])=>key.startsWith('img_v17_')?chapterIds.has(decodeURIComponent(key.split(':')[1]||'')):[...chapterIds].some(id=>key.startsWith('img_'+id+'_'))));
+      out.activeBranchId=selected.has(String(data.activeBranchId||'main'))?mapId(data.activeBranchId):'main';
+      return out;
+    }
     function transferSelectionPayload() {
       const state=transferState.value;
       const rows=state.mode==='all'?state.rows:state.rows.filter(r=>r.selected);
@@ -20961,11 +20988,13 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
         }
       }
       function compact(x){if(Array.isArray(x))return x.filter(v=>v!==undefined).map(compact);if(x&&typeof x==='object')return Object.fromEntries(Object.entries(x).map(([k,v])=>[k,compact(v)]));return x;}
-      return compact(result);
+      const payload=compact(result);
+      return state.branches?.length ? selectBookBranches({...payload,branchList:pendingTransferData.branchList},state.branches.filter(row=>row.selected).map(row=>row.id)) : payload;
     }
     function initTransfer(kind,data,title,filename='') {
       pendingTransferData=data;transferQuery.value='';transferLimit.value=60;transferError.value='';
-      transferState.value={kind,title,filename,sourceBookId:currentBookId.value,mode:'all',target:'new',strategy:'append',rows:makeTransferRows(data,kind==='book'?BOOK_FIELDS:PRESET_FIELDS)};
+      const branchRows=data.branchList?.length>1?data.branchList.map(row=>({...row,selected:true,chapterCount:(data.chapters||[]).filter(ch=>String(ch.branchId||'main')===row.id).length,parentName:data.branchList.find(parent=>parent.id===row.parentId)?.name||'无'})):[];
+      transferState.value={kind,title,filename,sourceBookId:currentBookId.value,mode:'all',target:'new',strategy:'append',branches:branchRows,rows:makeTransferRows(data,kind.startsWith('book')?BOOK_FIELDS:PRESET_FIELDS)};
     }
     function closeTransfer(){if(transferBusy.value)return;transferState.value=null;pendingTransferData=null;transferError.value='';}
     function sanitizePresetBundle(data) {
@@ -21068,7 +21097,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if(strategy==='append'){
         function allocate(x,key=''){if(['modPacks','modPrivateData'].includes(key)||!x||typeof x!=='object')return;if(Array.isArray(x)){x.forEach(v=>allocate(v,key));return;}if(x.id&&x.id!=='main'){remap.set(String(x.id),uid());}Object.entries(x).forEach(([k,v])=>allocate(v,k));}
         allocate(clone);
-        function rewrite(x,key=''){if(['classicProfileId','embeddingProfileId'].includes(key))return x;if(typeof x==='string')return (/Id$|Ids$/.test(key)||key==='id'||key==='links')?(remap.get(x)||x):x;if(Array.isArray(x))return x.map(v=>rewrite(v,key));if(x&&typeof x==='object')return Object.fromEntries(Object.entries(x).map(([k,v])=>[k,rewrite(v,k)]));return x;}
+        function rewrite(x,key=''){if(['classicProfileId','embeddingProfileId'].includes(key))return x;if(typeof x==='string')return (/Id$|Ids$/.test(key)||key==='id'||key==='links')?(remap.get(x)||x):x;if(Array.isArray(x))return x.map(v=>rewrite(v,key));if(x&&typeof x==='object')return Object.fromEntries(Object.entries(x).map(([k,v])=>[['branchData','styleSources','handoffSummaries','scopes'].includes(key)?remap.get(k)||k:k,rewrite(v,k)]));return x;}
         Object.assign(clone,rewrite(clone));
       }
       function merge(a,b){
@@ -21084,6 +21113,8 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
         target.memoryLibrary.groups=[...groups.values()];
       }
       if(target.novel?.title)target.title=target.novel.title;
+      const ownLikes=new Map((target.novel?.favoriteClips||[]).map(row=>[row.id,row]));
+      for(const state of Object.values(target.novel?.styleSources||{}))for(const copy of state.copies||[]){const own=ownLikes.get(copy.id);if(own){copy.bookId=target.id;copy.key=target.id+':'+copy.id;copy.chapterId=own.chapterId;copy.branchId=own.branchId;}}
       if(clone.interruptedDraft)target.interruptedDraft={...target.interruptedDraft,bookId:target.id};
       if(clone._avatars)for(const [id,image] of Object.entries(clone._avatars)){const char=target.characters?.find(x=>x.id===(remap.get(id)||id));if(char&&typeof image==='string')char.avatarBase64=image;}
       if(clone.promptPresets!==undefined){
@@ -21114,6 +21145,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       try{
         const data=transferSelectionPayload();
         if(state.kind==='preset-export'){downloadTransferJson({_type:'moyun_writer_presets',schemaVersion:1,exportedAt:new Date().toISOString(),data:sanitizePresetBundle(data)},'墨韵预设.json');}
+        else if(state.kind==='book-export'){downloadTransferJson({...data,_type:pendingTransferData._type,_exportVersion:7,_exportMode:pendingTransferData._exportMode},state.filename||'墨韵书籍.json');}
         else if(state.kind==='preset-import'){
           if(_bookScopedAiRuns.size||isGenerating.value)throw Error('请先停止当前 AI 任务，再导入预设');
           rollback=deepClone(currentPresetBundle());applyPresetPayload(data,state.strategy,state.mode==='selected');
@@ -21148,7 +21180,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
           if(!imageProfiles.value.some(x=>x.id===activeProfileId.value))activeProfileId.value=imageProfiles.value[0]?.id||'';
           if(!await saveDataNow('分区导入小说'))throw Error('书籍保存失败，已撤回本次变更');
         }
-        transferBusy.value=false;closeTransfer();showToast('已完成'+(state.kind==='preset-export'?'导出':'导入'),'success');
+        transferBusy.value=false;closeTransfer();showToast('已完成'+(state.kind.endsWith('export')?'导出':'导入'),'success');
       }catch(e){
         const imageRecovery=await Promise.allSettled([...importedImageRollback].map(async([key,value])=>{await ImageStore.set(key,value||null,{strict:true});inlineImageRecords.delete(key);inlineImageStates.delete(key);}));
         if(state.kind==='preset-import'&&rollback){const refs={promptPresets,promptPipeline,presets,writingStyles,currentWritingStyleId,activeStyleIds,atmosphereEnabled,atmospherePrompt,narrativePerson,dialogueTypes,personalityTagPresets,nsfwSettings,nsfwSystemPrompt,nsfwInjectionPrompt,discussionPrompt,oneKeySystemPrompt,promptComposerConfig};Object.keys(rollback).forEach(k=>refs[k].value=rollback[k]);}
@@ -29460,18 +29492,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
 
     function getModMemorySummaryContextChapters(branchId = getModMemoryActiveBranchScopeId()) {
       const target = String(branchId || 'main').trim() || 'main';
-      if (target === getModMemoryActiveBranchScopeId()) return visibleChapters.value;
-      const mainChapters = chapters.value.filter(ch => !ch.branchId || ch.branchId === 'main');
-      if (target === 'main' || branchList.value.length <= 1) return mainChapters;
-      const branch = branchList.value.find(item => item && String(item.id || '') === target);
-      if (!branch) return [];
-      if (!branch.forkFromChapterId) return chapters.value.filter(ch => ch.branchId === target);
-      const inherited = [];
-      for (const chapter of mainChapters) {
-        inherited.push(chapter);
-        if (chapter.id === branch.forkFromChapterId) break;
-      }
-      return inherited.concat(chapters.value.filter(ch => ch.branchId === target));
+      return chapters.value.filter(ch => String(ch.branchId || 'main') === target);
     }
 
     function getModMemorySummaryStoryTime(text = '') {
@@ -30755,19 +30776,27 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     }
 
     // 中文注释：分支创建只复制分叉点以前已完成的摘要证据；未完成/失败任务不会借由复制变成另一条故事线的事实。
-    function cloneModMemorySummaryScopeForBranch(mod, sourceBranchId, targetBranchId, sourceChapterIds = []) {
+    function cloneModMemorySummaryScopeForBranch(mod, sourceBranchId, targetBranchId, sourceChapterIds = [], chapterIdMap = new Map()) {
       if (!mod || !isModPermissionEnabled(mod, 'storage:own') || !isModPermissionEnabled(mod, 'data:table')) return 0;
       const store = getModMemorySummaryStore(mod.id);
       const sourceScope = getModMemorySummaryScope(mod, sourceBranchId, false);
       if (!sourceScope || !Array.isArray(sourceScope.entries)) return 0;
       const targetScope = getModMemorySummaryScope(mod, targetBranchId, true);
       const allowed = new Set((sourceChapterIds || []).map(String));
-      const sourceEntries = sourceScope.entries.filter(entry => entry && entry.status === 'completed' && (!allowed.size || allowed.has(String(entry.sourceChapterId || ''))));
+      const sourceEntries = sourceScope.entries.filter(entry => entry && entry.status === 'completed' && allowed.has(String(entry.sourceChapterId || '')));
+      const copiedSource = entry => {
+        const id = chapterIdMap.get(entry.sourceChapterId) || entry.sourceChapterId;
+        const chapter = chapters.value.find(ch => ch.id === id);
+        if (!chapter || !chapterIdMap.size) return {sourceChapterId:id};
+        const {content, ...metadata} = buildModMemorySummarySource(chapter, entry.sourceChapterIndex || 0, targetBranchId);
+        return {...metadata,sourceChapterHash:metadata.sourceHash};
+      };
       let copied = 0;
       sourceEntries.forEach(entry => {
-        if (targetScope.entries.some(item => item && String(item.sourceChapterId || '') === String(entry.sourceChapterId || ''))) return;
+        if (targetScope.entries.some(item => item && String(item.sourceChapterId || '') === String(chapterIdMap.get(entry.sourceChapterId) || entry.sourceChapterId || ''))) return;
         const next = Object.assign({}, deepClone(entry), {
-          id: getModMemorySummaryEntryId(targetBranchId, entry.sourceChapterId),
+          ...copiedSource(entry),
+          id: getModMemorySummaryEntryId(targetBranchId, chapterIdMap.get(entry.sourceChapterId) || entry.sourceChapterId),
           branchScopeId: targetBranchId,
           copiedFromBranchId: sourceBranchId,
           copiedAt: Date.now(),
@@ -30783,16 +30812,17 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
           const old = rows.find(row => row && String(row.branchScopeId || 'main') === String(sourceBranchId || 'main') && String(row.sourceChapterId || '') === String(entry.sourceChapterId || '') && row.status === 'completed' && row.enabled !== false);
           if (!old) return;
           const copy = Object.assign({}, old, {
-            id: 'memory-summary-' + simpleHash(String(targetBranchId || 'main') + '::' + String(entry.sourceChapterId || '')),
+            ...copiedSource(entry),
+            id: 'memory-summary-' + simpleHash(String(targetBranchId || 'main') + '::' + String(chapterIdMap.get(entry.sourceChapterId) || entry.sourceChapterId || '')),
             branchScopeId: targetBranchId,
-            sourceChapterBranchId: old.sourceChapterBranchId || sourceBranchId,
+            sourceChapterBranchId: targetBranchId,
             copiedFromBranchId: sourceBranchId,
             copiedAt: Date.now(),
             updatedAt: Date.now(),
             enabled: true,
             status: 'completed'
           });
-          const existing = rows.find(row => row && String(row.branchScopeId || 'main') === String(targetBranchId || 'main') && String(row.sourceChapterId || '') === String(entry.sourceChapterId || ''));
+          const existing = rows.find(row => row && String(row.branchScopeId || 'main') === String(targetBranchId || 'main') && String(row.sourceChapterId || '') === String(chapterIdMap.get(entry.sourceChapterId) || entry.sourceChapterId || ''));
           if (existing) Object.assign(existing, copy);
           else rows.push(copy);
         });
@@ -30805,9 +30835,9 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       return copied;
     }
 
-    function cloneModMemorySummaryScopesForBranch(sourceBranchId, targetBranchId, sourceChapterIds = []) {
+    function cloneModMemorySummaryScopesForBranch(sourceBranchId, targetBranchId, sourceChapterIds = [], chapterIdMap = new Map()) {
       let copied = 0;
-      modPacks.value.forEach(mod => { copied += cloneModMemorySummaryScopeForBranch(mod, sourceBranchId, targetBranchId, sourceChapterIds); });
+      modPacks.value.forEach(mod => { copied += cloneModMemorySummaryScopeForBranch(mod, sourceBranchId, targetBranchId, sourceChapterIds, chapterIdMap); });
       return copied;
     }
 
@@ -40840,6 +40870,7 @@ function getModHubPermissionLabels(mod) {
     }
 
     function insertChapterAt(idx) {
+      if (activeBranchId.value !== 'main' && idx < getBranchForkEnd(activeBranchId.value)) { showToast('新章节只能接在分叉点之后', 'info'); return; }
       const insertedChapterNo = Math.max(1, Number(idx) + 1);
       // 找到真实插入位置
       let realIdx = chapters.value.length;
@@ -41225,6 +41256,8 @@ function getModHubPermissionLabels(mod) {
     }
 
     function moveChapter(fromVisibleIdx, toVisibleIdx) {
+      const forkEnd = getBranchForkEnd(activeBranchId.value);
+      if ((fromVisibleIdx < forkEnd) !== (toVisibleIdx < forkEnd)) { showToast('不能跨分叉点重排章节', 'info'); return; }
       // 在 splice 前先捕获可见章节快照（避免 computed 更新后索引错位）
       const visChaps = [...visibleChapters.value];
       const fromCh = visChaps[fromVisibleIdx];
@@ -41773,11 +41806,11 @@ function getModHubPermissionLabels(mod) {
     const branchPanelView = ref('list');
     const selectedBranchPanelId = ref('');
     function buildBranchRouteMap(rows = [], chapters = []) {
-      const list=(Array.isArray(rows)?rows:[]).filter(row=>row?.id),source=Array.isArray(chapters)?chapters:[],main=source.filter(ch=>!ch?.branchId||ch.branchId==='main');
+      const list=(Array.isArray(rows)?rows:[]).filter(row=>row?.id),source=Array.isArray(chapters)?chapters:[];
       const nodes=list.map((row,index)=>{
-        const id=String(row.id),found=main.findIndex(ch=>ch?.id===row.forkFromChapterId),fork=Number(row.forkIndex),forkChapter=id==='main'?0:found>=0?found+1:(Number.isInteger(fork)?Math.max(0,fork+1):0);
-        const parent=String(source.find(ch=>ch?.id===row.forkFromChapterId)?.branchId||row.parentId||'main');
-        return {id,name:String(row.name||(id==='main'?'主线':'分支 '+index)),parentId:parent===id?'main':parent,forkChapter,chapterCount:id==='main'?main.length:Math.min(forkChapter,main.length)+source.filter(ch=>ch?.branchId===id).length};
+        const id=String(row.id);
+        const parent=String(row.parentId||'main');
+        return {id,name:String(row.name||(id==='main'?'主线':'分支 '+index)),parentId:parent===id?'main':parent,forkChapter:id==='main'?0:Math.max(0,Number(row.forkIndex)+1 || 0),chapterCount:source.filter(ch=>String(ch?.branchId||'main')===id).length};
       });
       const ids=new Set(nodes.map(n=>n.id)),positions={},visiting=new Set(),visited=new Set();let leaf=0;
       const place=(id,depth)=>{
@@ -41818,6 +41851,7 @@ function getModHubPermissionLabels(mod) {
     function setBranchNote(value){const branch=branchList.value.find(row=>row.id===selectedBranchPanelId.value);if(branch){branch.note=String(value||'').slice(0,200);saveData();}}
 
     function canChangeBranch() {
+      if (branchCopyBusy) { showToast('正在保存分支副本，请稍后','info'); return false; }
       if (isGenerating.value || _isPreparingGenerationRecall || _activeGenerationRun || isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || isGeneratingCharacterDraft.value || isReviewing.value || _bookScopedAiRuns.size) {
         showToast('请先停止当前 AI 任务，再切换、创建或删除分支', 'info');return false;
       }
@@ -41884,35 +41918,72 @@ function getModHubPermissionLabels(mod) {
       }, () => { searchHistory.value = []; });
     }
 
-    let branchForkPending = false;
+    let branchForkPending = false, branchCopyBusy = false;
+    async function createIndependentBranch(forkIndex, options = {}) {
+      const parentId = options.parentId || activeBranchId.value, bookId = currentBookId.value;
+      if (branchCopyBusy || parentId !== activeBranchId.value) return false;
+      persistCurrentBranchData();
+      const source = visibleChapters.value.slice(0, Math.max(0, Number(forkIndex) + 1));
+      const original = {chapters:chapters.value.slice(),branches:deepClone(branchList.value),data:deepClone(branchData.value),novel:deepClone(novel.value),summaries:deepClone(summaries.value),memory:deepClone(memoryLibrary.value),mods:deepClone(modPrivateData.value)};
+      const id = options.id || uid(), idMap = new Map(source.map(ch => [ch.id,uid()]));
+      let number=1; while(branchList.value.some(row => row.name === '分支 ' + number))number++;
+      const branch = {id,name:options.name || '分支 ' + number,parentId,forkChapterId:source.at(-1)?.id || null,forkFromChapterId:source.at(-1)?.id || null,forkIndex:source.length-1,createdAt:Date.now()};
+      const copiedImages=[];
+      branchCopyBusy=true;
+      try {
+        // 中文注释：新章节拥有独立图片缓存，删除或改写任意上级都不影响副本。
+        const images=await ImageStore.exportBook(bookId,source.map(ch=>ch.id));
+        for(const [key,value] of Object.entries(images)) {
+          const parts=key.split(':');let nextKey='';
+          if(key.startsWith('img_v17_') && idMap.has(decodeURIComponent(parts[1]||''))) {parts[1]=encodeURIComponent(idMap.get(decodeURIComponent(parts[1])));nextKey=parts.join(':');}
+          else for(const [oldId,newId] of idMap)if(key.startsWith('img_'+oldId+'_')){nextKey='img_'+newId+'_'+key.slice(('img_'+oldId+'_').length);break;}
+          if(nextKey){copiedImages.push(nextKey);await ImageStore.set(nextKey,deepClone(value),{strict:true});}
+        }
+        const copies = source.map(ch => ({...deepClone(ch),id:idMap.get(ch.id),branchId:id,isExpanded:false}));
+        chapters.value.push(...copies); branchList.value.push(branch);
+        branchData.value[id] = createBranchPlanningData(source.length-1,parentId);
+        summaries.value.push(...summaries.value.filter(row => String(row.branchId || 'main') === parentId && Number(row.endChapter || Infinity) <= source.length).map(row => ({...deepClone(row),id:uid(),branchId:id})));
+        const memories = memoryLibrary.value.memories.filter(row => String(row.branchId || 'main') === parentId && idMap.has(row.chapterId)).map(row => ({...deepClone(row),chapterId:idMap.get(row.chapterId),branchId:id}));
+        memoryLibrary.value.memories.push(...memories);
+        memoryLibrary.value.groups.push(...memoryLibrary.value.groups.filter(row => row.sourceMemories?.length && row.sourceMemories.every(item => idMap.has(item.chapterId))).map(row => ({...deepClone(row),key:uid(),sourceMemories:row.sourceMemories.map(item => ({...deepClone(item),chapterId:idMap.get(item.chapterId)}))})));
+        const favoriteMap = new Map();
+        const likes = currentFavoriteClips().filter(row => String(row.branchId || 'main') === parentId && idMap.has(row.chapterId)).map(row => { const nextId=uid();favoriteMap.set(row.id,nextId);return {...deepClone(row),id:nextId,chapterId:idMap.get(row.chapterId),branchId:id}; });
+        novel.value.favoriteClips = currentFavoriteClips().concat(likes);
+        if (novel.value.styleSources?.[parentId]) {
+          const state=deepClone(novel.value.styleSources[parentId]);
+          state.copies = state.copies.filter(row => row.bookId !== bookId || favoriteMap.has(row.id)).map(row => row.bookId === bookId ? {...row,id:favoriteMap.get(row.id),key:bookId+':'+favoriteMap.get(row.id),chapterId:idMap.get(row.chapterId),branchId:id} : row);
+          if(!state.copies.length)state.mode='library'; novel.value.styleSources[id]=state;
+        }
+        novelVolumes.value.forEach(volume => { if(Number(volume.endChapter) <= source.length) {const handoff=getVolumeHandoff(volume,parentId);if(handoff) {volume.handoffSummaries ||= {};volume.handoffSummaries[id]={...deepClone(handoff),branchId:id};}} });
+        cloneModMemorySummaryScopesForBranch(parentId,id,source.map(ch=>ch.id),idMap);
+        activeBranchId.value=id;loadBranchScopedData(id);currentChapterIndex.value=-1;
+        if(!await saveDataNow('保存完整分支副本'))throw new Error('分支副本保存失败');
+        if(bookId!==currentBookId.value)throw new Error('保存期间书籍已变化');
+        return branch;
+      } catch(error) {
+        if(bookId===currentBookId.value) {
+          chapters.value=original.chapters;branchList.value=original.branches;branchData.value=original.data;novel.value=original.novel;summaries.value=original.summaries;memoryLibrary.value=original.memory;modPrivateData.value=original.mods;activeBranchId.value=parentId;loadBranchScopedData(parentId);
+          await saveDataNow('撤回未完成的分支复制');
+        }
+        await Promise.allSettled(copiedImages.map(key=>ImageStore.delete(key)));
+        showToast('创建分支失败：'+error.message+'，已撤回未完成副本','error');return false;
+      } finally { branchCopyBusy=false; }
+    }
     async function forkBranch(chapterIdx, prompt, editConfirmed=false) {
-      if (activeBranchId.value !== 'main') { showToast('支线里不能再创建分支，请先切回主线', 'warning'); return; }
-      if (branchForkPending || !canChangeBranch()) return;
-      const bookId=currentBookId.value,sourceId=visibleChapters.value[chapterIdx]?.id,context=showDetailedOutlineInMain.value?'细纲':'正文';
+      if (branchForkPending || !canChangeBranch()) return false;
+      const bookId=currentBookId.value, parentId=activeBranchId.value, sourceId=visibleChapters.value[chapterIdx]?.id;
       if (!editConfirmed && visibleChapters.value.some(ch=>ch.isEditing)) {
-        openConfirm({title:'创建分支',message:'当前有章节正在编辑，创建分支会离开该编辑视图。未保存的草稿会保留；建议先保存再创建。',confirmText:'仍然创建'},()=>{if(bookId===currentBookId.value)forkBranch(chapterIdx,prompt,true);});return;
+        openConfirm({title:'创建分支',message:'当前有章节正在编辑，建议先保存再创建；未保存的草稿也会保留。',confirmText:'仍然创建'},()=>{if(bookId===currentBookId.value)forkBranch(chapterIdx,prompt,true);}); return false;
       }
       branchForkPending=true;
       try {
-      if (!(await confirmStorageHeadroom('新建分支')) || bookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
-      const vc = visibleChapters.value;
-      chapterIdx=sourceId?vc.findIndex(ch=>ch.id===sourceId):-1;
-      const src = vc[chapterIdx]; if (!src) return;
-      persistCurrentBranchData();
-      const sourceBranchId = activeBranchId.value;
-      const inheritedChapterIds = vc.slice(0, Math.max(0, chapterIdx) + 1).map(chapter => String(chapter?.id || '')).filter(Boolean);
-      const newId = uid();
-      let branchNo=1;while(branchList.value.some(row=>row.name==='分支 '+branchNo))branchNo++;
-      const nm = '分支 ' + branchNo;
-      branchList.value.push({id:newId,name:nm,forkFromChapterId:src.id,forkIndex:chapterIdx});
-      branchData.value[newId] = createBranchPlanningData(chapterIdx, sourceBranchId);
-      const copiedSummaryEntries = cloneModMemorySummaryScopesForBranch(sourceBranchId, newId, inheritedChapterIds);
-      activeBranchId.value = newId;
-      loadBranchScopedData(newId);
-      currentChapterIndex.value = -1;
-      if (prompt) nextChapterPrompt.value = prompt;
-      saveData(); showToast('已创建「'+nm+'」' + (copiedSummaryEntries ? '，已复制 ' + copiedSummaryEntries + ' 条已完成总结记忆' : ''), 'success');
-      showBranchPanel.value=false;toggleBranchPanel(null,context);
+        if (!await confirmStorageHeadroom('新建分支') || bookId!==currentBookId.value || parentId!==activeBranchId.value || !canChangeBranch()) return false;
+        const index=sourceId?visibleChapters.value.findIndex(ch=>ch.id===sourceId):-1;
+        if (sourceId && index<0) return false;
+        const branch=await createIndependentBranch(index,{parentId});
+        if (!branch) return false;
+        if(prompt)nextChapterPrompt.value=prompt;
+        showToast('已创建「'+branch.name+'」，前文与上级独立保存','success');showBranchPanel.value=false;toggleBranchPanel(null,'正文');return branch;
       } finally {branchForkPending=false;}
     }
 
@@ -41925,7 +41996,7 @@ function getModHubPermissionLabels(mod) {
       const branchChapterCount = chapters.value.filter(ch => ch && ch.branchId === bid).length;
       openConfirm({
         title: '删除分支',
-        message: '确定删除分支「' + (branch?.name || '未命名分支') + '」？其中的章节将一并删除，无法找回。',
+        message: '确定删除分支「' + (branch?.name || '未命名分支') + '」？本分支下还有 ' + branchList.value.filter(row=>row.parentId===bid).length + ' 条子分支，它们的内容不受影响。',
         confirmText: '删除分支',
         impactLines: ['将删除该分支正文：' + branchChapterCount + ' 章', '将删除该分支细纲：' + readBranchPlanningRows(branchData.value[bid],bid,'chapterOutlines').length + ' 章', '约占用 ' + (new TextEncoder().encode(JSON.stringify({planning:branchData.value[bid],chapters:chapters.value.filter(ch=>ch.branchId===bid)})).length/1024).toFixed(1) + ' KB', '主线与其他分支不受影响']
       }, () => {
@@ -41934,9 +42005,17 @@ function getModHubPermissionLabels(mod) {
         summaries.value=summaries.value.filter(sum=>String(sum.branchId||'main')!==bid);
         showBranchPanel.value=false;
         const deletedSummaryEntries = deleteModMemorySummaryScopesForBranch(bid);
+        const removedIds=new Set(chapters.value.filter(ch=>ch.branchId===bid).map(ch=>ch.id));
         chapters.value = chapters.value.filter(ch => ch.branchId !== bid);
+        const parentId=branch.parentId || 'main';
+        branchList.value.forEach(row=>{if(row.parentId===bid)row.parentId=parentId;});
+        novel.value.favoriteClips=currentFavoriteClips().filter(row=>row.branchId!==bid);
+        if(novel.value.styleSources)delete novel.value.styleSources[bid];
+        novelVolumes.value.forEach(volume=>{if(volume.handoffSummaries)delete volume.handoffSummaries[bid];});
+        memoryLibrary.value.memories=memoryLibrary.value.memories.filter(row=>row.branchId!==bid);
+        memoryLibrary.value.groups=memoryLibrary.value.groups.filter(row=>!row.sourceMemories.some(item=>removedIds.has(item.chapterId)));
         branchList.value = branchList.value.filter(b => b.id !== bid);
-        if (activeBranchId.value === bid) { activeBranchId.value = 'main'; loadBranchScopedData('main'); currentChapterIndex.value = -1; }
+        if (activeBranchId.value === bid) { activeBranchId.value = parentId; loadBranchScopedData(parentId); currentChapterIndex.value = -1; }
         saveData(); showToast('已删除' + (deletedSummaryEntries ? '，并清理该分支 ' + deletedSummaryEntries + ' 条总结记忆' : ''), 'success');
       });
     }
@@ -41959,50 +42038,16 @@ function getModHubPermissionLabels(mod) {
 
     function regenerateChapter(idx) {
       if (!canChangeBranch()) return;
-      if (activeBranchId.value !== 'main') { showToast('支线里不能再创建分支，请先切回主线', 'warning'); return; }
-      const prerequisites = getWritingGenerationPrerequisites(false);
-      if (!prerequisites) {
-        openConfirm({title:'分支重写需要正文模型',message:'分支重写会调用 AI 生成替代章节。请先在连接中心配置并分配正文模型；如果只想创建分支后自己写，请点“从这章分支”。',confirmText:'打开连接中心'},()=>openSettingsTab('api'));
-        return;
-      }
-      const sourceBookId=currentBookId.value;
-      const vc = visibleChapters.value.slice();
-      const target = vc[idx];
-      if (!target) { showToast('未找到要重写的章节', 'error'); return; }
-      const forkIdx = idx > 0 ? idx - 1 : -1;
-      openInputPrompt({
-        title: '分支重写第' + (idx + 1) + '章',
-        message: '原章节会完整保留在当前分支；留空则沿用原章节逻辑重写。',
-        placeholder: '写下这次重写的方向或要求（可留空）',
-        initialValue: '',
-        multiline: true,
-        confirmText: '开始重写'
-      }, async promptText => {
-        if (sourceBookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
-        if (!(await confirmStorageHeadroom('新建分支'))) return;
-        if (sourceBookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
-        const prompt = String(promptText || '');
-        let branchNo = 1;
-        while (branchList.value.some(item => item.name === '分支 ' + branchNo)) branchNo++;
-        const pendingBranch = {
-          id: uid(),
-          name: '分支 ' + branchNo,
-          forkFromChapterId: forkIdx >= 0 ? (vc[forkIdx]?.id || null) : null,
-          forkIndex: forkIdx
-        };
-        startGeneration({
-          mode: 'rewrite',
-          count: 1,
-          writingModel: prerequisites.model,
-          pendingBranch,
-          targetBranchId: pendingBranch.id,
-          currentChapterNo: idx + 1,
-          messageOptions: {
-            contextChapters: vc.slice(0, idx),
-            currentChapterNo: idx + 1,
-            promptOverride: prompt || ''
-          }
-        });
+      const prerequisites=getWritingGenerationPrerequisites(false);
+      if(!prerequisites){openConfirm({title:'分支重写需要正文模型',message:'请先在连接中心配置并分配正文模型。',confirmText:'打开连接中心'},()=>openSettingsTab('api'));return;}
+      const bookId=currentBookId.value,parentId=activeBranchId.value,target=visibleChapters.value[idx];if(!target)return;
+      openInputPrompt({title:'分支重写第'+(idx+1)+'章',message:'原章保留在当前分支，新分支完整复制上一章及之前的内容。',multiline:true,initialValue:'',confirmText:'开始重写'},async prompt=>{
+        if(bookId!==currentBookId.value||parentId!==activeBranchId.value||!canChangeBranch())return;
+        if(!await confirmStorageHeadroom('新建分支'))return;
+        if(bookId!==currentBookId.value||parentId!==activeBranchId.value||!canChangeBranch())return;
+        const index=visibleChapters.value.findIndex(ch=>ch.id===target.id);if(index<0)return;
+        const branch=await createIndependentBranch(index-1,{parentId});if(!branch)return;
+        startGeneration({mode:'rewrite',count:1,writingModel:prerequisites.model,targetBranchId:branch.id,currentChapterNo:index+1,messageOptions:{contextChapters:visibleChapters.value.slice(),currentChapterNo:index+1,promptOverride:String(prompt||'')}});
       });
     }
 
@@ -42066,14 +42111,7 @@ function getModHubPermissionLabels(mod) {
     /* ═══ 总结系统 ═══ */
     const summaries = ref([]);
     function isSummaryInCurrentBranch(summary, chapterIndex = -1) {
-      const owner = String(summary?.branchId || 'main');
-      if (owner === String(activeBranchId.value || 'main')) return true;
-      if (summary?.kind === 'volume-handoff') return false;
-      if (owner !== 'main' || activeBranchId.value === 'main') return false;
-      const branch = branchList.value.find(item => String(item?.id || '') === String(activeBranchId.value));
-      const forkEnd = getBranchForkEnd(activeBranchId.value);
-      const summaryEnd = Number(summary?.endChapter) || Number(summary?.startChapter) || Infinity;
-      return summaryEnd <= forkEnd;
+      return String(summary?.branchId || 'main') === String(activeBranchId.value || 'main');
     }
     const visibleSummaries = computed(() => summaries.value.filter(summary => isSummaryInCurrentBranch(summary)));
     // 目录只计算一次卷范围，章号始终使用当前分支的可见顺序。
@@ -42373,45 +42411,13 @@ function getWritingModelLabel() {
       const fork = Number(branchList.value.find(row => String(row?.id) === String(branchId))?.forkIndex);
       return branchId !== 'main' && Number.isInteger(fork) && fork >= 0 ? fork + 1 : 0;
     }
-    function stripInheritedOutline(row) {
-      const copy = deepClone(row);
-      delete copy.history; delete copy.aiInput;
-      copy.isExpanded = false;
-      return copy;
-    }
-    function planningRowSignature(row) {
-      if (!row) return '';
-      const copy = Object.assign({}, row);
-      delete copy.isExpanded; delete copy.aiInput; delete copy.history;
-      return JSON.stringify(copy);
-    }
+
+
     function readBranchPlanningRows(item, branchId, key) {
-      if (String(branchId) === 'main') return deepClone(item?.[key] || []);
-      const prefix = key === 'chapterOutlines' ? 'outline' : 'index', forkEnd = getBranchForkEnd(branchId);
-      const inherited = (branchData.value.main?.[key] || []).filter(row => Number(row?.chapterNo) <= forkEnd).map(row => key === 'chapterOutlines' ? stripInheritedOutline(row) : deepClone(row));
-      const byNo = new Map(inherited.map(row => [Number(row.chapterNo), row]));
-      Object.entries(item?.[prefix + 'Edits'] || {}).forEach(([key,row]) => {
-        const base=inherited.find(old=>String(old.id||'')===key), no=Number(base?.chapterNo || row?.chapterNo || key);
-        if (!Number.isFinite(no)) return;
-        if (row === null) byNo.delete(no); else byNo.set(no,{...deepClone(row),chapterNo:no});
-      });
-      (item?.[prefix + 'Tail'] || []).forEach(row => byNo.set(Number(row.chapterNo), deepClone(row)));
-      return [...byNo.values()].sort((a,b) => Number(a.chapterNo)-Number(b.chapterNo));
+      return deepClone(item?.[key] || []);
     }
-    function writeBranchPlanningRows(rows, branchId, key, baseline = branchData.value.main?.[key] || []) {
-      const prefix = key === 'chapterOutlines' ? 'outline' : 'index', forkEnd = getBranchForkEnd(branchId);
-      const source = key === 'chapterOutlines' ? (rows || []).map(normalizeChapterOutline) : normalizeChapterIndexDrafts(rows);
-      const edits = {}, tail = [];
-      source.forEach(row => {
-        const no = Number(row.chapterNo);
-        if (no > forkEnd) tail.push(deepClone(row));
-        else {
-          const base=baseline.find(item=>item.id && item.id===row.id) || baseline.find(item=>Number(item.chapterNo)===no);
-          if(planningRowSignature(row)!==planningRowSignature(base)||row.history?.length)edits[base?.id || no]=deepClone(row);
-        }
-      });
-      baseline.filter(row => Number(row?.chapterNo) <= forkEnd).forEach(row => { if (!source.some(item => row.id ? item.id===row.id : Number(item.chapterNo)===Number(row.chapterNo))) edits[row.id || row.chapterNo]=null; });
-      return { [prefix + 'Edits']:edits, [prefix + 'Tail']:tail };
+    function writeBranchPlanningRows(rows, branchId, key) {
+      return { [key]:key === 'chapterOutlines' ? (rows || []).map(normalizeChapterOutline) : normalizeChapterIndexDrafts(rows) };
     }
     function branchDarklinesAtFork(rows, forkEnd) {
       return normalizeForeshadowMatrix(deepClone(rows || [])).map(row => {
@@ -42422,25 +42428,12 @@ function getWritingModelLabel() {
       });
     }
     function normalizeBranchData(raw, legacy = {}) {
-      const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-      const main = source.main && typeof source.main === 'object' ? source.main : legacy;
-      const result = { main:{ chapterOutlines:(Array.isArray(main.chapterOutlines) ? main.chapterOutlines : []).map(normalizeChapterOutline), chapterIndexDrafts:normalizeChapterIndexDrafts(main.chapterIndexDrafts || []), foreshadowMatrix:normalizeForeshadowMatrix(main.foreshadowMatrix || []), staleMarks:normalizeStaleMarks(main.staleMarks || []), updatedAt:Number(main.updatedAt) || Date.now() } };
-      Object.entries(source).forEach(([id,item]) => {
-        if (id === 'main' || !item || !branchList.value.some(row => String(row?.id) === id)) return;
-        const convert = key => {
-          const prefix = key === 'chapterOutlines' ? 'outline' : 'index';
-          if (item[prefix+'Edits'] && Array.isArray(item[prefix+'Tail'])) return { [prefix+'Edits']:deepClone(item[prefix+'Edits']), [prefix+'Tail']:deepClone(item[prefix+'Tail']) };
-          const inheritedKey = 'inherited' + key.charAt(0).toUpperCase() + key.slice(1);
-          const current = Array.isArray(item[key]) ? item[key] : result.main[key];
-          const baseline = Array.isArray(item[inheritedKey]) ? item[inheritedKey] : result.main[key];
-          // Earlier previews copied main history. Only actual branch edits retain it.
-          const rows = key === 'chapterOutlines' ? current.filter(Boolean).map(row => planningRowSignature(row) === planningRowSignature(baseline.find(old => old?.chapterNo === row.chapterNo)) ? stripInheritedOutline(row) : row) : current;
-          return writeBranchPlanningRows(rows,id,key,baseline);
-        };
-        result[id] = { ...convert('chapterOutlines'), ...convert('chapterIndexDrafts'), foreshadowMatrix:normalizeForeshadowMatrix(item.foreshadowMatrix || result.main.foreshadowMatrix), staleMarks:normalizeStaleMarks(item.staleMarks), updatedAt:Number(item.updatedAt) || Date.now() };
+      const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}, result = {};
+      branchList.value.forEach(branch => {
+        const item = source[branch.id] || (branch.id === 'main' ? legacy : {});
+        result[branch.id] = {chapterOutlines:(item.chapterOutlines || []).map(normalizeChapterOutline),chapterIndexDrafts:normalizeChapterIndexDrafts(item.chapterIndexDrafts || []),foreshadowMatrix:normalizeForeshadowMatrix(item.foreshadowMatrix || []),staleMarks:normalizeStaleMarks(item.staleMarks || []),updatedAt:Number(item.updatedAt) || Date.now()};
       });
-      trimBranchStaleMarks(result);
-      return result;
+      trimBranchStaleMarks(result); return result;
     }
     function trimBranchStaleMarks(data) {
       const all=Object.values(data).flatMap(item=>item.staleMarks||[]).sort((a,b)=>Number(b.at)-Number(a.at));
@@ -42449,13 +42442,12 @@ function getWritingModelLabel() {
       Object.values(data).forEach(item=>{item.staleMarks=(item.staleMarks||[]).filter(mark=>keep.has(mark.id));});
     }
     function createBranchPlanningData(forkIndex, parentId = activeBranchId.value) {
-      const fork = Number(forkIndex), forkEnd = Number.isInteger(fork) && fork >= 0 ? fork + 1 : 0;
-      const parent = branchData.value[String(parentId || 'main')] || branchData.value.main || {};
-      return { outlineEdits:{}, outlineTail:[], indexEdits:{}, indexTail:[], foreshadowMatrix:branchDarklinesAtFork(parent.foreshadowMatrix, forkEnd), staleMarks:[], updatedAt:Date.now() };
+      const end = Math.max(0, Number(forkIndex) + 1), parent = branchData.value[parentId] || {};
+      return {chapterOutlines:deepClone((parent.chapterOutlines || []).filter((row,index) => Number(row.chapterNo || index+1) <= end)),chapterIndexDrafts:deepClone((parent.chapterIndexDrafts || []).filter(row => Number(row.chapterNo) <= end)),foreshadowMatrix:branchDarklinesAtFork(parent.foreshadowMatrix,end),staleMarks:[],updatedAt:Date.now()};
     }
-    function mergeInheritedOutlineData(item, branchId) { return readBranchPlanningRows(item,branchId,'chapterOutlines'); }
-    function mergeInheritedRows(item, branchId, key) { return readBranchPlanningRows(item,branchId,key); }
-    function mergeInheritedForeshadowData(item) { return normalizeForeshadowMatrix(deepClone(item?.foreshadowMatrix || [])); }
+
+
+
     function persistCurrentBranchData() {
       const id = String(activeBranchId.value || 'main');
       const planning = id === 'main' ? { chapterOutlines:deepClone(chapterOutlines.value), chapterIndexDrafts:normalizeChapterIndexDrafts(chapterIndexDrafts.value) }
@@ -42463,16 +42455,10 @@ function getWritingModelLabel() {
       return branchData.value[id] = { ...planning, foreshadowMatrix:normalizeForeshadowMatrix(deepClone(foreshadowMatrix.value)), staleMarks:normalizeStaleMarks(staleMarks.value), updatedAt:Date.now() };
     }
     function loadBranchScopedData(branchId = activeBranchId.value) {
-      const id = String(branchId || 'main');
-      if (!branchData.value[id] && id !== 'main') {
-        // Legacy branches shared the whole plan. Preserve their tail on first entry.
-        const main = branchData.value.main || {};
-        branchData.value[id] = { ...writeBranchPlanningRows((main.chapterOutlines || []).map(stripInheritedOutline),id,'chapterOutlines'), ...writeBranchPlanningRows(main.chapterIndexDrafts || [],id,'chapterIndexDrafts'), foreshadowMatrix:branchDarklinesAtFork(main.foreshadowMatrix,getBranchForkEnd(id)), staleMarks:[], updatedAt:Date.now() };
-      }
-      const item = branchData.value[id] || branchData.value.main || {};
-      chapterOutlines.value = mergeInheritedOutlineData(item,id);
-      chapterIndexDrafts.value = mergeInheritedRows(item,id,'chapterIndexDrafts');
-      foreshadowMatrix.value = mergeInheritedForeshadowData(item);
+      const item = branchData.value[String(branchId || 'main')] || {};
+      chapterOutlines.value = readBranchPlanningRows(item,branchId,'chapterOutlines');
+      chapterIndexDrafts.value = readBranchPlanningRows(item,branchId,'chapterIndexDrafts');
+      foreshadowMatrix.value = normalizeForeshadowMatrix(deepClone(item.foreshadowMatrix || []));
       staleMarks.value = normalizeStaleMarks(item.staleMarks || []);
     }
 
@@ -44171,8 +44157,7 @@ function getWritingModelLabel() {
     // 主生成入口
     async function startGeneration(options = {}) {
       if (isGenerating.value || _isPreparingGenerationRecall || _activeGenerationRun) {
-        if (options.pendingBranch) showToast('请先停止当前生成任务', 'error');
-        else stopActiveGeneration('manualAbort');
+        stopActiveGeneration('manualAbort');
         return;
       }
       const requestModuleKey = options.moduleKey || 'writing';
@@ -44812,22 +44797,7 @@ function getWritingModelLabel() {
         // 折叠所有章节
         visibleChapters.value.forEach(c => c.isExpanded = false);
 
-        let chapterBranchId = runOptions.targetBranchId || activeBranchId.value;
-        const pendingBranch = runOptions.pendingBranch;
-        if (pendingBranch) {
-          persistCurrentBranchData();
-          branchList.value.push({
-            id: pendingBranch.id,
-            name: pendingBranch.name,
-            forkFromChapterId: pendingBranch.forkFromChapterId || null,
-            forkIndex: Number.isFinite(Number(pendingBranch.forkIndex)) ? Number(pendingBranch.forkIndex) : -1
-          });
-          branchData.value[pendingBranch.id] = createBranchPlanningData(pendingBranch.forkIndex, activeBranchId.value);
-          activeBranchId.value = pendingBranch.id;
-          loadBranchScopedData(pendingBranch.id);
-          currentChapterIndex.value = -1;
-          chapterBranchId = pendingBranch.id;
-        }
+        const chapterBranchId = runOptions.targetBranchId || activeBranchId.value;
 
         // 添加新章节
         chapters.value.push({
@@ -44925,11 +44895,11 @@ function getWritingModelLabel() {
         // 中文注释：模型自己收尾却只写到目标零头时，此前只报"已生成"，用户不数字数根本发现不了亏了多少。
         // 内容照旧保留，但提示要把实际/目标摆出来；严重不足再给一次确认式重掷，不确认就不再调模型。
         const shortfall = classifyChapterLengthShortfall(getCleanWordCount(newCh.content || ''), getChapterLengthContract(generationContext.wordCountTarget));
-        const doneMessage = pendingBranch ? ('「' + pendingBranch.name + '」分支重写完成') : ('第' + visibleChapters.value.length + '章已生成');
+        const doneMessage = '第' + visibleChapters.value.length + '章已生成';
         showToast(shortfall
           ? doneMessage + '，但只写了 ' + shortfall.actual + '/' + shortfall.target + ' 字（' + shortfall.percent + '%），已保留'
           : doneMessage, shortfall ? 'warn' : 'success');
-        if (shortfall && shortfall.severe && !pendingBranch && runOptions.mode !== 'reroll' && _remainingCount <= 1) {
+        if (shortfall && shortfall.severe && runOptions.mode !== 'reroll' && _remainingCount <= 1) {
           const shortIdx = visibleChapters.value.length - 1;
           const shortChapterId = newCh.id;
           const shortChapterNo = shortIdx + 1;
@@ -44982,7 +44952,6 @@ function getWritingModelLabel() {
           }, 1500);
         } else {
           finishGenerationRun(runId);
-          if (pendingBranch) {showBranchPanel.value=false;toggleBranchPanel(null,'正文');}
         }
       }
 
@@ -47118,8 +47087,8 @@ function getWritingModelLabel() {
         message: '请选择导出方式。备份请选「全量备份」；分享给他人请选「干净分享稿」。关闭弹窗或点击取消不会下载文件。',
         impactLines: [
           '全量备份：章节及历史稿、角色、总结、细纲、暗线计划、MOD 数据、新版写作预设与插图历史，用于恢复书籍',
-          '不包含 API Key（恢复后需重新填写）；旧版流水线、文风等作家偏好请另行导出预设',
-          '干净分享稿：仅书名、世界观、章节名与清洗后正文；不含 CoT/工具记录/预设/MOD，正文分支会合并，不能用于完整恢复',
+          '不包含 API Key（恢复后需重新填写）；包含文风库与喜欢范文选择，旧版流水线请另行导出预设',
+          '有分支时可勾选导出；干净分享稿只含书名、世界观与清洗正文，保留所选分支，但不含历史稿、总结或设定',
           '仅正文：书名、章节名与清洗后的正文，不含世界观'
         ],
         choices: [
@@ -47177,6 +47146,7 @@ function getWritingModelLabel() {
           summaries: exClone(summaries.value),
           // 中文注释：v0.0.17 新预设随全量备份迁移；旧预设体系字段（presets/promptPipeline 等）不在全量备份范围，维持原状。
           promptPresets: exClone(promptPresets.value),
+          writingStyles:exClone(writingStyles.value),currentWritingStyleId:currentWritingStyleId.value,activeStyleIds:exClone(activeStyleIds.value),
           narrativePerson: narrativePerson.value,
           coverImage: coverImage.value,
           modPacks: exClone(modPacks.value),
@@ -47188,6 +47158,7 @@ function getWritingModelLabel() {
           interruptedDraft: buildCurrentInterruptedDraftRecord(),
           _imageCache: imageCache
         };
+        if(data.branchList.length>1){if(imageBackupFailed||!saved)showToast(imageBackupFailed?'图片缓存读取失败，本次备份不含图片缓存，请另存重要图片':'浏览器保存失败，本次将从内存导出，请保管下载文件','warning');initTransfer('book-export',data,'导出书籍分支',(data.novel.title||'未命名书稿')+'_全量备份.json');return;}
         const jsonStr = JSON.stringify(data);
         const blob = new Blob([jsonStr], { type: 'application/json' });
         const a = document.createElement('a');
@@ -47240,6 +47211,7 @@ function getWritingModelLabel() {
           novel: isContentOnly ? { title } : { title, worldView: cleanBookExportWorldView(novel.value.worldView) },
           chapters: buildCleanBookExportChapters()
         };
+        if(branchList.value.length>1){data.branchList=snapshotForSerialize(branchList.value);data.chapters=data.chapters.map((ch,index)=>({...ch,id:chapters.value[index].id,branchId:chapters.value[index].branchId||'main'}));initTransfer('book-export',data,'导出书籍分支',title+(isContentOnly?'_正文':'_分享书稿')+'.json');return;}
         showToast('正在打包数据...', 'info');
         const jsonStr = JSON.stringify(data, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -49773,7 +49745,7 @@ function getWritingModelLabel() {
       streamContent, streamCotContent, streamNativeThinking, streamToolTimeline, streamCotActive, lastGenerationCot, lastGenerationNativeThinking, lastGenerationToolTimeline, abortController, interruptedContent, isInterrupted, interruptedIssue, interruptedCanContinue, interruptedThinkingText, interruptedThinkingOnly, interruptedBodyLooksLikeReasoning, copyInterruptedThinking, copyInterruptedBody,
       genElapsed, genCharCount, genRate, genStalled, streamReasoningCharCount, reasoningHeavyNoBody,
       startGeneration, discardInterrupted, saveInterruptedAsChapter, continueGeneration,
-      nextChapterPrompt, composerPromptRef, fullscreenInputRef, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, autosizeComposerPrompt, restoreComposerPromptCaret, clearNextChapterPrompt, wordCountTarget, generateCount,
+      getBranchForkEnd, nextChapterPrompt, composerPromptRef, fullscreenInputRef, keepNextChapterPrompt, lastUsedNextChapterPrompt, saveNextChapterPromptPreference, reuseLastNextChapterPrompt, autosizeComposerPrompt, restoreComposerPromptCaret, clearNextChapterPrompt, wordCountTarget, generateCount,
       // ── Part 4: AI建议 ──
       suggestionPersona, generateSuggestion, buildSuggestionPrompt,
 

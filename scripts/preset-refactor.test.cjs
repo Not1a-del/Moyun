@@ -640,6 +640,7 @@ if (process.env.MOYUN_CAPTURE) {
       buildSanitizedModPrivateDataForExport: () => ({}),
       buildCurrentInterruptedDraftRecord: () => null,
       saveDataNow: async () => true,
+      branchCopyBusy: false,
       // 图片为独立 IDB 存储边界；此 fixture 无图片，备份回空表。
       ImageStore: { exportBook: async () => ({}) },
       saveData: noop,

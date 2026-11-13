@@ -2335,7 +2335,7 @@
               <span v-if="getStaleMark('细纲',co.id)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">待核对</span>
               <span v-if="getChapterOutlineRunStatusLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineRunStatusStyle(ci)">{{ getChapterOutlineRunStatusLabel(ci) }}</span>
               <span v-if="getChapterOutlineQualityLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineQualityStyle(ci)">{{ getChapterOutlineQualityLabel(ci) }}</span>
-              <button type="button" class="btn-ghost text-xs min-h-[44px]" @click.stop="forkBranch(ci)" :disabled="activeBranchId!=='main' || !visibleChapters[ci]" :title="activeBranchId!=='main' ? '支线里不能再分叉' : !visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '从这章之后另写一条剧情'">从这章分支</button>
+              <button type="button" class="btn-ghost text-xs min-h-[44px]" @click.stop="forkBranch(ci)" :disabled="!visibleChapters[ci]" :title="!visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '完整复制至本章，在此之后另写一条剧情'">从这章分支</button>
               <button @click.stop="removeChapterOutline(ci)" @keydown.stop class="moyun-do-card-action" title="删除本章细纲" :aria-label="'删除第' + (ci + 1) + '章细纲'"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s" :style="co.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
@@ -2638,7 +2638,7 @@
         <!-- 逐章渲染 -->
         <div v-for="(ch, idx) in visibleChapters" :key="ch.id||idx" :id="'chapter-'+idx" data-moyun-region="editor" class="mb-4">
           <!-- 插入线 -->
-          <div v-if="idx>0" @click="insertChapterAt(idx)" class="insert-line">
+          <div v-if="idx>0 && idx>=getBranchForkEnd(activeBranchId)" @click="insertChapterAt(idx)" class="insert-line">
             <div class="insert-line-bar"></div>
             <div class="insert-line-btn">+ 插入章节</div>
             <div class="insert-line-bar"></div>
@@ -2841,8 +2841,8 @@
                   <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">编辑</button>
                   <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">复制</button>
                   <button @click.stop="rerollChapter(idx)" :disabled="!ch.regenSnapshot" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--ok-soft);color:var(--ok)" :style="!ch.regenSnapshot?'opacity:.4;cursor:not-allowed':''" :title="ch.regenSnapshot?'用与首次生成完全相同的提示词与注入（含白鸟）重新生成本章，原稿转历史稿':'旧章或导入章没有可精确复现的注入快照，改用分支重写'">重新生成</button>
-                  <button type="button" data-chapter-fork @click.stop="forkBranch(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留本章，在本章之后另写一条剧情，无需 AI'">从这章分支</button>
-                  <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
+                  <button type="button" data-chapter-fork @click.stop="forkBranch(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" title="完整复制至本章，在此之后另写一条剧情，无需 AI">从这章分支</button>
+                  <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" title="保留原章，在上一章后创建新分支并生成替代章节">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
                     <button type="button" @click.stop="openFavoriteChoice(ch,idx)" class="btn-ghost text-[11px] px-3 py-2" style="min-height:44px">喜欢</button>
@@ -6397,14 +6397,15 @@
 <div v-if="transferState" data-moyun-modal="section-transfer" :data-moyun-modal-locked="transferBusy?'true':'false'" role="dialog" aria-modal="true" aria-labelledby="section-transfer-title" class="fixed inset-0 z-[250] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay)">
   <div class="moyun-feature-dialog" data-moyun-modal-panel tabindex="-1">
     <div class="moyun-preview-toolbar mb-3"><h2 id="section-transfer-title" class="font-bold flex-1">{{ transferState.title }}</h2><button type="button" data-moyun-modal-close :disabled="transferBusy" @click="closeTransfer" class="btn-ghost text-xs">取消</button></div>
-    <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind!=='book'" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
-    <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind==='preset-export'?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
+    <p class="text-xs mb-3 break-words" style="color:var(--tx3)">{{ transferState.filename }} · 已识别 {{ transferState.rows.length }} 项。确认前不会更改数据。</p><p v-if="transferState.kind.startsWith('preset')" class="text-xs mb-3" style="color:var(--tx3)">预设文件只含提示词资产和自定义楼层。含书籍上下文的自动消息覆盖不会分享或导入。</p>
+    <div v-if="transferState.branches.length" class="card p-3 mb-3"><div class="label">选择分支（至少一条）</div><label v-for="row in transferState.branches" :key="row.id" class="flex items-center gap-3 min-h-[44px] text-xs break-words"><input type="checkbox" v-model="row.selected"><span class="min-w-0">{{ row.name }} · {{ row.chapterCount }} 章 · 上级：{{ row.parentName }}</span></label><p class="text-xs" style="color:var(--tx3)">未选择主线时，最早创建的所选分支成为主线；未随行的上级挂到新主线下。</p></div>
+    <div class="moyun-preview-toolbar mb-3"><label class="text-xs"><input type="radio" value="all" v-model="transferState.mode"> 全部{{ transferState.kind.endsWith('export')?'导出':'导入' }}</label><label class="text-xs"><input type="radio" value="selected" v-model="transferState.mode"> 选择指定区块</label></div>
     <div v-if="transferState.kind==='book'" class="moyun-preview-toolbar mb-3"><label class="text-xs">导入目标 <select v-model="transferState.target" class="select-field text-xs"><option value="new">新建一本书</option><option value="current">合入当前书</option></select></label><p class="text-xs" style="color:var(--tx3)">项目树来自所选文件。新版写作预设可按区块选择，未勾选内容保留。</p></div>
     <div v-if="transferState.kind==='preset-import' || (transferState.kind==='book' && transferState.target==='current')" class="mb-3"><label class="text-xs">写入策略 <select v-model="transferState.strategy" class="select-field text-xs"><option value="append">额外新增（保留原有，分配新 ID）</option><option value="replace">{{ transferState.kind==='book'?'同 ID 项覆盖，其余保留':'覆盖所选预设区块' }}</option></select></label><p class="text-xs mt-2" style="color:var(--tx3)">未勾选区块不变。标量设置采用勾选文件中的值；数组按上述策略处理。同名但不同 ID 的内容不会被当作同一项。</p></div>
     <div v-if="transferState.mode==='selected'" class="mb-3"><div class="moyun-preview-toolbar mb-2"><input v-model="transferQuery" class="input-field text-xs flex-1" placeholder="筛选项目树" aria-label="筛选导入区块"><button type="button" @click="selectTransferRows(true)" class="btn-ghost text-xs">全选</button><button type="button" @click="selectTransferRows(false)" class="btn-ghost text-xs">全不选</button></div><div class="moyun-transfer-tree"><label v-for="row in visibleTransferRows" :key="row.key"><input type="checkbox" v-model="row.selected"><span :style="{paddingLeft:Math.min(3,row.path.length-1)*8+'px'}"><span style="color:var(--tx3)">{{ row.group }}</span> / {{ row.path.length > 1 ? row.label.slice(row.group.length + 3) : row.label }}</span></label><button v-if="visibleTransferRows.length>=transferLimit" type="button" @click="transferLimit+=60" class="btn-ghost text-xs">显示更多项目</button></div><p class="text-xs mt-2">已选择 {{ selectedTransferCount }} / {{ transferState.rows.length }} 项</p></div>
     <p v-if="transferError" role="alert" class="text-xs mb-3" style="color:var(--err)">{{ transferError }}</p>
     <p v-if="transferState.kind==='book'" class="text-xs mb-3" style="color:var(--tx3)">建议同时选择关联的角色、资料、分支与章节。未随文件导入且当前书不存在的引用会由既有修复器清理；孤立章节归入主线。</p>
-    <div class="moyun-preview-toolbar"><button type="button" :disabled="transferBusy || (transferState.mode==='selected' && !selectedTransferCount)" @click="executeTransfer" class="btn-primary text-xs">{{ transferBusy?'正在保存…':(transferState.kind==='preset-export'?'确认导出':'确认导入') }}</button><span v-if="transferBusy" role="status" class="text-xs">请等待本地存储完成</span></div>
+    <div class="moyun-preview-toolbar"><button type="button" :disabled="transferBusy || (transferState.mode==='selected' && !selectedTransferCount) || (transferState.branches.length && !transferState.branches.some(row=>row.selected))" @click="executeTransfer" class="btn-primary text-xs">{{ transferBusy?'正在保存…':(transferState.kind.endsWith('export')?'确认导出':'确认导入') }}</button><span v-if="transferBusy" role="status" class="text-xs">请等待本地存储完成</span></div>
   </div>
 </div>
 
@@ -6692,7 +6693,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=d26faa08e4d3"></script>
+<script src="./assets/js/moyun.js?v=4f95bae21137"></script>
 <!-- PART_1_END -->
 </body>
 </html>

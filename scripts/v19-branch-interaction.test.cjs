@@ -1,10 +1,11 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../source/moyun.single.html'),'utf8');
+const {branchHarness}=require('./v19-branch-harness.cjs');
 const section=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 function switchHarness(){
  const ref=value=>({value}),c={currentBookId:ref('book'),isGenerating:ref(false),isGeneratingOutline:ref(false),isGeneratingDO:ref(false),outlineAiEditingIdx:ref(-1),isGeneratingCharacterDraft:ref(false),isReviewing:ref(false),_isPreparingGenerationRecall:false,_activeGenerationRun:null,_bookScopedAiRuns:new Map(),activeBranchId:ref('main'),branchList:ref([{id:'main'},{id:'b'}]),showBranchPanel:ref(true),visibleChapters:ref([]),chapters:ref([]),currentChapterIndex:ref(0),persistCurrentBranchData(){},closeContinuityCheck(){},cancelMemoryWork(){},cancelSuggestionRun(){},loadBranchScopedData(){},saveData(){},showToast(message){c.message=message;},openConfirm(cfg,cb){c.confirm=cb;}};
- vm.createContext(c);
+ c.branchCopyBusy=false;vm.createContext(c);
  if(source.includes('    function canChangeBranch('))vm.runInContext(section('    function canChangeBranch(','    function switchBranch('),c);
  vm.runInContext(section('    function switchBranch(','    // 中文注释：侧栏示例'),c);return c;
 }
@@ -22,15 +23,14 @@ test('桌面默认显示图形，手机默认列表',()=>{
  for(const width of [320,767,768,1280]){const c={window:{innerWidth:width,innerHeight:800},branchPanelContext:{},selectedBranchPanelId:{},activeBranchId:{value:'main'},branchPanelView:{},branchPanelStyle:{},showBranchPanel:{value:false}};vm.createContext(c);vm.runInContext(section('    function toggleBranchPanel(','    function enterSelectedBranch('),c);c.toggleBranchPanel();assert.equal(c.branchPanelView.value,width<768?'list':'map');}
 });
 function forkHarness(){
- const c=switchHarness();Object.assign(c,{currentBookId:{value:'book'},showDetailedOutlineInMain:{value:false},branchData:{value:{}},nextChapterPrompt:{},uid:()=> 'new',confirmStorageHeadroom:async()=>true,createBranchPlanningData:()=>({}),cloneModMemorySummaryScopesForBranch:()=>0,toggleBranchPanel(){c.showBranchPanel.value=true;}});c.visibleChapters.value=[{id:'c1'},{id:'c2'}];
- vm.runInContext(section('    let branchForkPending =','    function deleteBranch('),c);return c;
+ const {c}=branchHarness();c.branchList.value.push({id:'b',parentId:'main'});c.chapters.value=c.chapters.value.slice(0,2);return c;
 }
 test('快速重复点击新建分支只创建一次；容量确认期间切书不能写错书',async()=>{
- const c=forkHarness();await Promise.all([c.forkBranch(1),c.forkBranch(1)]);assert.equal(c.branchList.value.length,3);assert.equal(c.activeBranchId.value,'new');assert.equal(c.showBranchPanel.value,true);
+ const c=forkHarness();await Promise.all([c.forkBranch(1),c.forkBranch(1)]);assert.equal(c.branchList.value.length,3);assert.notEqual(c.activeBranchId.value,'main');assert.equal(c.showBranchPanel.value,true);
  const d=forkHarness();let resolve;d.confirmStorageHeadroom=()=>new Promise(r=>resolve=r);const run=d.forkBranch(1);d.currentBookId.value='other';resolve(true);await run;assert.equal(d.branchList.value.length,2);assert.equal(d.activeBranchId.value,'main');
 });
 test('容量确认期间章节重排仍从原来的章节分叉',async()=>{
- const c=forkHarness();let resolve;c.confirmStorageHeadroom=()=>new Promise(r=>resolve=r);const run=c.forkBranch(1);c.visibleChapters.value.reverse();resolve(true);await run;const branch=c.branchList.value.find(row=>row.id==='new');assert.equal(branch.forkFromChapterId,'c2');assert.equal(branch.forkIndex,0);
+ const c=forkHarness();let resolve;c.confirmStorageHeadroom=()=>new Promise(r=>resolve=r);const run=c.forkBranch(1);c.chapters.value.reverse();resolve(true);await run;const branch=c.branchList.value.find(row=>row.id===c.activeBranchId.value);assert.equal(branch.forkChapterId,'c2');assert.equal(branch.forkIndex,0);
 });
 test('生成中删除分支必须被拦截；切书后旧的切换确认不能作用到新书',()=>{
  const c=switchHarness();Object.assign(c,{readBranchPlanningRows:()=>[],branchData:{value:{}},TextEncoder});vm.runInContext(section('    function deleteBranch(','    function renameBranch('),c);c.isGenerating.value=true;c.deleteBranch('b');assert.equal(c.confirm,undefined);assert.match(c.message,/停止/);
