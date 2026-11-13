@@ -1986,7 +1986,7 @@
         <div v-if="isGeneratingOutline && aiSupplementSegmentProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ aiSupplementSegmentProgress }}</div>
         </div>
       </div>
-      <textarea v-model="outlineInput" placeholder="输入对大纲的修改意见；未提及内容会要求AI保留..." rows="2"
+      <textarea v-model="outlineInput" placeholder="可要求读取全部细纲并整理、重新划分卷纲；其他内容按修改意见保留..." rows="2"
                 class="textarea-field text-sm moyun-wb-outline-prompt" data-moyun-outline-prompt style="border-radius:10px;resize:none"></textarea>
       <div v-if="getOutlineAiDisabledReason()" id="moyun-outline-disabled-reason" class="moyun-action-status" role="status">
         <span>{{ getOutlineAiDisabledReason() }}</span>
@@ -2375,7 +2375,7 @@
             </section>
             <!-- 中文注释：单章细纲 AI 工具只改当前卡片，补写会保留原有核心事件，修改会保留未提及内容。 -->
             <div class="p-2 rounded-lg space-y-1.5" style="background:var(--bg-inset);border:1px solid var(--bd)">
-              <textarea v-model="co.aiInput" rows="2" placeholder="本章细纲修改/补写要求（例如：加强冲突、补环境、调整结尾钩子）..." class="textarea-field text-[10px]" style="resize:vertical"></textarea>
+              <textarea v-model="co.aiInput" rows="2" placeholder="可修改本章，也可要求读取全部细纲并整理、重新划分卷纲（先审阅后应用）..." class="textarea-field text-[10px]" style="resize:vertical"></textarea>
               <div class="moyun-do-toolbar">
                 <span class="text-[9px]" style="color:var(--tx3)">只作用于第{{ ci+1 }}章，不覆盖其他章节。</span>
                 <!-- 中文注释：单章 AI 一跑就禁掉所有章的按钮，原来所有章的提示都是同一句“本章细纲正在生成”，
@@ -6666,7 +6666,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=ae8055032294"></script>
+<script src="./assets/js/moyun.js?v=13c519be886d"></script>
 <!-- PART_1_END -->
 </body>
 </html>

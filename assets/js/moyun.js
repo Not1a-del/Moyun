@@ -28434,6 +28434,22 @@ function getModHubPermissionLabels(mod) {
 
     // 中文注释：修订一旦审完仍可撤销；部分应用保留未选原文和待审项。
     function checkRevisionsComplete() {
+      if (outlineReview.value.workbenchVolumes) {
+        if (outlineRevisions.value.some(r => r.type !== 0 && r.status === 'pending')) { persistReviewStates(); return; }
+        const plan = outlineReview.value.workbenchVolumes;
+        if (outlineRevisions.value.filter(r => r.type !== 0).every(r => r.status === 'accepted')) {
+          if (JSON.stringify(novel.value.volumes || []) !== plan.baseline) showToast('卷纲后来已有修改，本次候选未覆盖，请重新整理', 'warning');
+          else {
+            novel.value.volumes = normalizeNovelVolumes(plan.rows);
+            plan.rows.forEach(row => {
+              if (row.handoff) saveVolumeHandoffEdit(row, activeBranchId.value, row.handoff, {edited:false});
+              markVolumePlanStale(row, '工作台重新整理卷纲，请核对卷内细纲与交接');
+            });
+            if (outlineReview.value.undo) outlineReview.value.undo.after = novel.value.outline;
+          }
+        }
+        delete outlineReview.value.workbenchVolumes; outlineReview.value.revisions = []; persistReviewStates(); return;
+      }
       const pending = outlineRevisions.value.some(r => r.type!==0 && r.status==='pending');
       novel.value.outline = applyRevisions(outlineRevisions.value);
       if (outlineReview.value.undo) outlineReview.value.undo.after = novel.value.outline;
@@ -30146,7 +30162,50 @@ function getModHubPermissionLabels(mod) {
       return String(novel.value?.outline || '').trim();
     }
 
+    function isVolumeWorkbenchRequest(text) {
+      return /卷纲|分卷|划分.*卷|整理.*卷/.test(String(text || ''));
+    }
+    function buildWorkbenchPlanningContext() {
+      // 规划资料不是前文正文，不参与原文字数裁剪；所有读取都来自当前书的实时数据。
+      const details = chapterOutlines.value.map((row, i) => '第' + (i + 1) + '章 ' + (row.title || '') + '\n' + (row.content || '')).join('\n\n');
+      const volumes = novelVolumes.value.map((row, i) => {
+        const handoff = getVolumeHandoff(row);
+        return { number:i + 1, ...row, handoff, actualSummary:row.actualSummary, actualOutline:row.actualOutline };
+      });
+      return '\n【全书最新大纲】\n' + getLatestOutlineTextForAi() + '\n【全部细纲（计划，非已发生事实）】\n' + details + '\n【现有卷纲与分支交接】\n' + JSON.stringify(volumes) + '\n';
+    }
+    async function planWorkbenchVolumes(input) {
+      const request = requireModuleRequest('outline'); if (!request) return false;
+      if (isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value >= 0) { showToast('请先结束当前纲要任务', 'info'); return false; }
+      if (outlineRevisions.value.some(row => row.type !== 0 && row.status === 'pending')) { showToast('请先处理已有的待审修改', 'info'); return false; }
+      const bookId = currentBookId.value, branchId = activeBranchId.value, baseline = JSON.stringify(novel.value.volumes || []);
+      const controller = new AbortController(); outlineAbortController.value = controller; isGeneratingOutline.value = true;
+      try {
+        const messages = [{role:'system',content:'你是卷纲编辑。读取全部细纲和既有交接，按作者要求整理或重新划分卷纲。允许增减卷数，不改细纲关键事件。只返回JSON对象 {"volumes":[{"number":1,"title":"卷名","startChapter":1,"endChapter":10,"summary":"卷纲","writingRequirement":"写作要求","bridge":"衔接点","handoff":{"content":"本卷已发生事实总结","actualOutline":"实际卷纲修正"}}]}。范围从1开始连续不重叠，覆盖已有细纲与作者要求的章数。交接只记录已发生事实；未要求修改的交接不返回handoff，保留原值。'},
+          {role:'user',content:buildWorkbenchPlanningContext()}, {role:'user',content:String(input),_moyunUserInput:true}];
+        const result = await fetchAdapterCompletion(request, messages, {stream:true,maxTokens:12000,signal:controller.signal,onTextDelta:(_d, text) => { outlineStreamPreview.value = text; }});
+        if (controller.signal.aborted || bookId !== currentBookId.value || branchId !== activeBranchId.value) return false;
+        const parsed = parseAiStructuredJson(getAdapterCompletionText(result), 'object');
+        if (!Array.isArray(parsed?.volumes) || !parsed.volumes.length) throw new Error('未返回可用的卷纲');
+        const total = Math.max(chapterOutlines.value.length, visibleChapters.value.length, ...parsed.volumes.map(row => Number(row.endChapter) || 0));
+        if (!validateVolumeRanges(parsed.volumes, total)) throw new Error('卷范围必须从第1章开始连续、不重叠且覆盖全部章节');
+        const rows = parsed.volumes.map((row, i) => {
+          const old = novelVolumes.value[i];
+          const value = {...old, ...row, id:old?.id || uid()};
+          value.handoffSummaries = deepClone(old?.handoffSummaries || {});
+          return value;
+        });
+        const before = JSON.stringify(novel.value.volumes || [], null, 2), after = JSON.stringify(rows, null, 2);
+        if (before === after) { showToast('卷纲没有变化', 'info'); return true; }
+        // 卷范围必须整组应用，复用红绿审阅，避免半接收造成章节范围重叠。
+        outlineReview.value = { ...createReviewState('outline'), revisions:[{id:uid(),type:-1,text:before,status:'pending',selected:true,groupId:'volume-plan'},{id:uid(),type:1,text:after,status:'pending',selected:true,groupId:'volume-plan'}], workbenchVolumes:{rows,baseline} };
+        persistReviewStates(); showOutlineInMain.value = true; showDetailedOutlineInMain.value = false;
+        showToast('卷纲整理已生成，请在红绿对比中接受或拒绝；原卷纲尚未改变', 'success'); return true;
+      } catch (error) { if (error.name !== 'AbortError') showToast('整理卷纲失败：' + error.message, 'error'); return false; }
+      finally { if (outlineAbortController.value === controller) { outlineAbortController.value = null; isGeneratingOutline.value = false; outlineStreamPreview.value = ''; } }
+    }
     async function generateOutline() {
+      if (isVolumeWorkbenchRequest(outlineInput.value)) return planWorkbenchVolumes(outlineInput.value);
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲模块 API', 'error'); return; }
       if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || singleDetailedOutlineAbortController.value) { showToast('细纲正在生成，请等待当前任务完成', 'info'); return; }
@@ -30176,6 +30235,7 @@ function getModHubPermissionLabels(mod) {
         if (outlineCharacterText) prompt += '角色:\n' + outlineCharacterText + '\n';
       }
       prompt += getOutlineGenerationModContext();
+      prompt += buildWorkbenchPlanningContext();
       const darklinePlanContext = buildForeshadowPromptContext([], { includeAll:true });
       if (darklinePlanContext) prompt += '\n' + darklinePlanContext;
       const volumeContext = novelVolumes.value.map((vol, index) => '第' + (index + 1) + '卷｜' + (vol.title || '未命名卷') + '｜章节 ' + vol.startChapter + '-' + vol.endChapter + '｜框架摘要：' + (String(vol.summary || '（空）').split(String.fromCharCode(10)).join('；'))).join('\n');
@@ -30613,6 +30673,7 @@ function getModHubPermissionLabels(mod) {
 
     // 中文注释：单章细纲 AI 修改/补写，只更新当前章卡片；补写模式保留原核心事件，修改模式保留未提及内容。
     async function aiRewriteChapterOutline(ci, mode = 'rewrite') {
+      if (isVolumeWorkbenchRequest(chapterOutlines.value[ci]?.aiInput)) return planWorkbenchVolumes(chapterOutlines.value[ci].aiInput);
       const request = getModuleRequestConfig('outline');
       if (!request.ok) { showToast(request.reason || '请配置大纲模块 API','error'); return; }
       if (isGeneratingDO.value || detailedOutlineAbortController.value) { showToast('批量细纲正在生成，请等待当前任务完成', 'info'); return; }
@@ -30647,7 +30708,7 @@ function getModHubPermissionLabels(mod) {
         const detailedOutlineCharacterText = resolveContextPackageCharacterText(detailedOutlineContextPackage);
         if (detailedOutlineCharacterText) prompt += '本章角色资料:\n' + detailedOutlineCharacterText + '\n';
       }
-      if (getLatestOutlineTextForAi()) prompt += '全书大纲（当前最新版本）:\n' + getLatestOutlineTextForAi() + '\n';
+      prompt += buildWorkbenchPlanningContext();
       prompt += getOutlineGenerationModContext();
       const prev = chapterOutlines.value[ci - 1];
       const next = chapterOutlines.value[ci + 1];
