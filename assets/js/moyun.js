@@ -3209,46 +3209,25 @@ createApp({
       }
       finally { isAiSupplementingStoryBible.value = false; clearAiSupplementSegmentProgress(); }
     }
-        async function aiSupplementSelectedCharacter(character = selectedWorkbenchCharacter.value) {
+    async function aiSupplementSelectedCharacter(character = selectedWorkbenchCharacter.value) {
       if (!character || isAiSupplementingStoryBible.value) return;
-      const request = getModuleRequestConfig('writing');
-      if (!request.ok) { showToast(request.reason || '请先配置写作 API', 'error'); return; }
+      const request = getModuleRequestConfig('character');
+      if (!request.ok) { showToast(request.reason || '请先配置角色 API','error'); return; }
+      const sourceBook = currentBookId.value;
+      const isCurrent = () => currentBookId.value === sourceBook && structuredCharacters.value.includes(character);
       isAiSupplementingStoryBible.value = true;
-      workbenchAiStreamPreview.value = '';
-      clearAiSupplementSegmentProgress();
       try {
-        const prompt = '你是小说角色编辑.请完整阅读当前大纲、细纲、正文、资料条目和该角色已有档案，只补充空白字段，不覆盖已有内容，不臆造与事实冲突的信息。\n硬性要求：JSON 的每个字段（desc/currentState/publicGoal/realNeed/fear/innerConflict/speakingStyle/characterPrompt）都必须填写实际内容，禁止留空或写“无/暂无”；素材不足时基于现有信息给出合理推断并在句末标注“（据现有信息推断）”。currentState 控制在 60 字以内，其余字段 30-120 字。\n仅输出 JSON：{"desc":"","currentState":"","publicGoal":"","realNeed":"","fear":"","innerConflict":"","speakingStyle":"","characterPrompt":""}。\n【当前角色】\n' + JSON.stringify({ name:character.name, desc:character.desc, profile:character.profile, speakingStyle:character.speakingStyle, characterPrompt:character.characterPrompt }) + '\n【大纲】\n' + (getLatestOutlineTextForAi() || '（空）') + '\n【细纲】\n' + (chapterOutlines.value || []).map((o,i) => '第' + (i+1) + '章：' + (o.content || '')).join('\n\n') + '\n【正文】\n' + (visibleChapters.value || []).map((c,i) => '第' + (i+1) + '章：' + cleanNarrativeChapterContent(c)).join('\n\n').slice(-18000);
-        // v0.0.10 req2：角色档案流式回填——模型逐字段输出时，卡片对应输入框同步出字。
-        const charFiller = createWorkbenchStreamFiller([
-          { key:'desc', names:['desc','简介'] },
-          { key:'currentState', names:['currentState','当前状态'] },
-          { key:'publicGoal', names:['publicGoal','公开目标'] },
-          { key:'realNeed', names:['realNeed','真实需求'] },
-          { key:'fear', names:['fear','恐惧'] },
-          { key:'innerConflict', names:['innerConflict','内在冲突'] },
-          { key:'speakingStyle', names:['speakingStyle','语言风格'] },
-          { key:'characterPrompt', names:['characterPrompt','角色提示词'] }
-        ], (key, value) => {
-          if (key === 'desc') { if (!String(character.desc || '').trim()) character.desc = value; }
-          else if (key === 'speakingStyle' || key === 'characterPrompt') { if (!String(character[key] || '').trim()) character[key] = value; }
-          else {
-            if (!character.profile) character.profile = {};
-            if (!String(character.profile[key] || '').trim()) character.profile[key] = value;
-          }
-          // v0.0.10 补充轮 S3：小字进度——角色档案字段段（共8段）。
-          const charFilled = k => k === 'desc' ? String(character.desc || '').trim() : k === 'speakingStyle' || k === 'characterPrompt' ? String(character[k] || '').trim() : String(character.profile?.[k] || '').trim();
-          const done = ['desc','currentState','publicGoal','realNeed','fear','innerConflict','speakingStyle','characterPrompt'].filter(charFilled).length;
-          aiSupplementSegmentProgress.value = '已补充到第 ' + done + '/8 段（角色档案）';
-        });
-        const result = await fetchAdapterCompletion(request, [{ role:'user', content:prompt }], { stream:true, temperature:0.2, onTextDelta: charFiller });
-        const raw = cleanAIResponse(getAdapterCompletionText(result)); const parsed = parseAiStructuredJson(raw, 'object');
-        if (!String(character.desc || '').trim() && String(parsed.desc || '').trim()) character.desc = String(parsed.desc).trim();
-        if (!character.profile) character.profile = {};
-        ['currentState','publicGoal','realNeed','fear','innerConflict'].forEach(key => { if (!String(character.profile[key] || '').trim() && String(parsed[key] || '').trim()) character.profile[key] = String(parsed[key]).trim(); });
-        ['speakingStyle','characterPrompt'].forEach(key => { if (!String(character[key] || '').trim() && String(parsed[key] || '').trim()) character[key] = String(parsed[key]).trim(); });
-        touchSelectedCharacterWorkbench(); showToast('角色档案已流式补充完成', 'success');
-      } catch (e) { if (e?.name !== 'AbortError') showToast('角色补充失败：' + sanitizeApiErrorDetail(e.message || e), 'error'); }
-      finally { isAiSupplementingStoryBible.value = false; clearAiSupplementSegmentProgress(); }
+        const prompt = '你是小说角色编辑。只补充该角色空白字段，不推翻已有事实。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。\n返回JSON：{"name":"角色名","desc":"人物档案","personalityTags":[],"dialogueType":"","speakingStyle":"","exampleDialogues":[],"characterPrompt":"","relationships":[],"avatarPrompt":""}。\n当前角色：' + JSON.stringify(character) + '\n大纲：' + (getLatestOutlineTextForAi() || '（空）') + '\n细纲：' + chapterOutlines.value.map((o,i) => '第' + (i+1) + '章：' + (o.content || '')).join('\n\n') + '\n正文：' + visibleChapters.value.map((c,i) => '第' + (i+1) + '章：' + cleanNarrativeChapterContent(c)).join('\n\n').slice(-18000);
+        const fields = ['desc','dialogueType','speakingStyle','characterPrompt','avatarPrompt'];
+        const fill = (key,value) => { if (isCurrent() && !String(character[key] || '').trim()) character[key] = value; };
+        const charFiller = createWorkbenchStreamFiller(fields.map(key => ({key,names:[key]})),fill);
+        const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt,{taskType:'character'}), {stream:true,temperature:0.2,onTextDelta: charFiller});
+        if (!isCurrent()) return;
+        const parsed = sanitizeCharacterGenerationResult([parseAiStructuredJson(getAdapterCompletionText(result),'object')]).characters[0] || {};
+        fields.forEach(key => { if (typeof parsed[key] === 'string') fill(key,parsed[key].trim()); });
+        for (const key of ['personalityTags','exampleDialogues']) if (!character[key]?.length && Array.isArray(parsed[key])) character[key] = parsed[key].map(String);
+        touchSelectedCharacterWorkbench(); showToast('角色档案已流式补充完成','success');
+      } finally { isAiSupplementingStoryBible.value = false; }
     }
 
     function isStoryBibleIdPicked(list, id) {
@@ -7171,7 +7150,7 @@ function copyLastChapterContextText() {
     function teamSpecialistPrompt(id, plan) {
       const table = buildTeamSettingTable(plan);
       if (id === 'settings') return '你是设定员。依据下方设定总表和用户原话，输出 JSON：{"title":"","synopsis":"","worldView":"","negativePrompt":""}。只能补充不矛盾的细节。\n' + table + '\n用户原话：' + teamBrief.value;
-      if (id === 'characters') return '你是角色员。严格使用设定总表中的书名、角色名和卷名，输出 JSON：{"characters":[{"name":"","desc":"","personalityTags":[],"speakingStyle":"","exampleDialogues":[],"relationships":[],"characterPrompt":""}]}。角色名不得改写。\n' + table + '\n用户原话：' + teamBrief.value;
+      if (id === 'characters') return '你是角色员。严格使用设定总表中的书名、角色名和卷名，输出 JSON：{"characters":[{"name":"","desc":"","personalityTags":[],"dialogueType":"","speakingStyle":"","exampleDialogues":[],"relationships":[],"characterPrompt":"","avatarPrompt":""}]}。角色名不得改写。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。\n' + table + '\n用户原话：' + teamBrief.value;
       return '你是大纲卷纲员。严格使用设定总表中的名称和章节范围，输出 JSON：{"outline":"","volumes":[{"number":1,"title":"","startChapter":1,"endChapter":10,"summary":"","writingRequirement":"","bridge":""}],"chapterIndexDrafts":[{"chapterNo":1,"title":"","goal":""}]}。未完模式必须禁止写结局。\n' + table + '\n用户原话：' + teamBrief.value;
     }
     function teamDetailPrompt(plan, volume, setting, outline) {
@@ -7197,7 +7176,7 @@ function copyLastChapterContextText() {
         if (!repaired.ok || repaired.errors?.length) throw new Error(repaired.errors?.map(item=>item.message).join('；') || '格式异常，请重试该专员');
         const parsed = repaired.value || {}; let result;
         if (id === 'settings') result = {title:String(parsed.title || ''),synopsis:String(parsed.synopsis || parsed.summary || ''),worldView:String(parsed.worldView || parsed.world || ''),negativePrompt:String(parsed.negativePrompt || parsed.negative || '')};
-        else if (id === 'characters') result = {characters:Array.isArray(parsed) ? parsed : (Array.isArray(parsed.characters) ? parsed.characters : [])};
+        else if (id === 'characters') result = sanitizeCharacterGenerationResult(parsed);
         else result = {outline:String(parsed.outline || parsed.mainOutline || ''),volumes:Array.isArray(parsed.volumes) ? parsed.volumes : [],chapterIndexDrafts:Array.isArray(parsed.chapterIndexDrafts) ? parsed.chapterIndexDrafts : []};
         if (id === 'characters' && !result.characters.some(item=>String(item?.name||'').trim())) throw new Error('角色员没有返回有效角色，请重试该块');
         if (row) { row.status = 'done'; row.elapsed = ((Date.now() - started) / 1000).toFixed(1) + 's'; row.result = result; } return result;
@@ -7466,7 +7445,6 @@ function copyLastChapterContextText() {
       const c = okCfg;
       let textReqs = 0, imgReqs = 0, outTokens = 0;
       const needsCore = c.genTitle || c.genSynopsis || c.genWorldView || c.genNegative || c.genOutline || c.genDetailed || c.genCover;
-      const needsCharPreset = c.charCount > 0 || c.genPipeline || c.genStyles || c.genPresets || (c.genCharAvatar && c.charCount > 0);
       const detailedReqs = c.genDetailed ? getOneKeyDetailedBatchCount() : 0;
       // 中文注释：设定/大纲/封面关键词合并为 1 次文本请求；封面图片本身仍然单独走生图 API。
       if (needsCore) {
@@ -7478,11 +7456,14 @@ function copyLastChapterContextText() {
         textReqs += detailedReqs;
         outTokens += Math.round(getOneKeyDetailedWordTarget() * 1.5);
       }
-      // 中文注释：角色、预设、角色立绘关键词合并到同一组文本请求；角色超过 5 个时额外拆 1 次，避免单次 JSON 太长导致失败。
-      if (needsCharPreset) {
+      // 角色只生成角色设定，勾选的全书配置独立计费、独立请求。
+      if (c.charCount > 0) {
         textReqs++;
         if (c.charCount > 5) textReqs++;
         outTokens += c.charCount * (500 + (c.genCharTags?100:0) + (c.genCharStyle?200:0) + (c.genCharDialogues?200:0) + (c.genCharRel?150:0) + (c.genCharPrompt?200:0) + (c.genCharAvatar?120:0));
+      }
+      if (c.genPipeline || c.genStyles || c.genPresets) {
+        textReqs++;
         outTokens += (c.genPipeline?2000:0) + (c.genStyles?c.styleCount*400:0) + (c.genPresets?c.presetCount*500:0);
       }
       if (c.genCover) imgReqs++;
@@ -11184,6 +11165,7 @@ function cleanAIResponse(text) {
       { key:'name', label:'姓名', fieldType:'text' },
       { key:'desc', label:'人物简介', fieldType:'text' },
       { key:'personalityTags', label:'性格标签', fieldType:'list', maxLen:10 },
+      { key:'dialogueType', label:'对话类型', fieldType:'text' },
       { key:'speakingStyle', label:'说话风格', fieldType:'text' },
       { key:'exampleDialogues', label:'示例台词', fieldType:'list', maxLen:8 },
       { key:'characterPrompt', label:'写作约束', fieldType:'text' },
@@ -11205,7 +11187,7 @@ function cleanAIResponse(text) {
       return JSON.stringify({
         id:String(character.id || ''), name:String(character.name || ''), desc:String(character.desc || ''),
         personalityTags:Array.isArray(character.personalityTags) ? character.personalityTags.map(String) : [],
-        speakingStyle:String(character.speakingStyle || ''),
+        speakingStyle:String(character.speakingStyle || ''), dialogueType:String(character.dialogueType || ''),
         exampleDialogues:Array.isArray(character.exampleDialogues) ? character.exampleDialogues.map(String) : [],
         characterPrompt:String(character.characterPrompt || ''), avatarPrompt:String(character.avatarPrompt || ''),
         relationships:(Array.isArray(character.relationships) ? character.relationships : []).map(rel => ({
@@ -11690,7 +11672,7 @@ function cleanAIResponse(text) {
       try {
         const response = await fetchAdapterCompletion(
           request,
-          buildNsfwMessages(String(options.prompt || ''), { taskType:'character' }),
+          buildNsfwMessages(String(options.prompt || '') + '\n和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。', { taskType:'character' }),
           { stream:true, signal:controller.signal, maxTokens:Number(options.maxTokens || 4096), temperature:0.7, onTextDelta:(_delta,full) => { if (activeCharacterDraftRunId === runId && currentBookId.value === sourceBookId) { characterDraftReview.value.message = full; characterDraftReview.value.rawPreview = full; } } }
         );
         if (controller.signal.aborted || activeCharacterDraftRunId !== runId || currentBookId.value !== sourceBookId) return false;
@@ -11853,7 +11835,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     大纲: ${(novel.value.outline || '暂无').substring(0, 800)}
     已有角色: ${charactersPromptString.value}
     用户描述: ${aiCharDesc.value}
-    返回JSON: {"name":"角色名","desc":"详细描述(外貌性格背景能力关系,200字以上)","personalityTags":["标签1","标签2"],"speakingStyle":"说话风格描述(80-150字)","exampleDialogues":["典型台词1","典型台词2","典型台词3"],"characterPrompt":"写作该角色时的专属提示词(100-200字)","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述(20字以内)"}],"avatarPrompt":"英文生图关键词，可为空"}
+    返回JSON: {"name":"角色名","desc":"详细描述(外貌性格背景能力关系,200字以上)","personalityTags":["标签1","标签2"],"dialogueType":"对话类型ID","speakingStyle":"说话风格描述(80-150字)","exampleDialogues":["典型台词1","典型台词2","典型台词3"],"characterPrompt":"写作该角色时的专属提示词(100-200字)","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述(20字以内)"}],"avatarPrompt":"英文生图关键词，可为空"}
     要求：只输出纯JSON，不要代码块标记。`;
       isGeneratingChar.value = true;
       try {
@@ -11901,7 +11883,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
           })),
           characterPrompt: char.characterPrompt || '', avatarPrompt: char.avatarPrompt || ''
         }) + '\n\n' +
-        '返回JSON: {"name":"角色名","desc":"可补强的描述","personalityTags":["标签"],"speakingStyle":"说话风格","exampleDialogues":["台词"],"characterPrompt":"专属提示词","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述(20字以内)"}],"avatarPrompt":"英文生图关键词"}\n' +
+        '返回JSON: {"name":"角色名","desc":"可补强的描述","personalityTags":["标签"],"dialogueType":"对话类型ID","speakingStyle":"说话风格","exampleDialogues":["台词"],"characterPrompt":"专属提示词","relationships":[{"targetName":"已有角色名","type":"关系类型","attitude":"态度描述(20字以内)"}],"avatarPrompt":"英文生图关键词"}\n' +
         '要求：保留已有核心设定，不要制造矛盾；关系只能指向已有角色；只输出纯JSON，不要代码块。';
       try {
         await startCharacterAiDraft({
@@ -11940,7 +11922,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     大纲: ${(novel.value.outline || '暂无').substring(0, 500)}
     已有角色(避免雷同): ${charactersPromptString.value}
     ${batchCharPrompt.value ? '要求: ' + batchCharPrompt.value : ''}
-    返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","personalityTags":["标签"],"speakingStyle":"说话风格","exampleDialogues":["典型台词"],"characterPrompt":"写作约束","relationships":[{"targetName":"已有角色或本批角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}],"avatarPrompt":"英文生图关键词，可为空"}
+    返回JSON数组，每个角色含: {"name":"角色名","desc":"详细描述(200字以上)","personalityTags":["标签"],"dialogueType":"对话类型ID","speakingStyle":"说话风格","exampleDialogues":["典型台词"],"characterPrompt":"写作约束","relationships":[{"targetName":"已有角色或本批角色名","type":"关系类型(如恋人/对手/师徒)","attitude":"态度描述(20字)"}],"avatarPrompt":"英文生图关键词，可为空"}
     要求：角色之间必须有明确的关系网络，每个角色至少与1个其他角色有关系。
     不要代码块标记。`;
       try {
@@ -36738,13 +36720,22 @@ function getWritingModelLabel() {
 
 
 
+    function sanitizeCharacterGenerationResult(payload) {
+      // AI 的角色响应只能写入角色字段，多返回的全书配置一律丢弃。
+      const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.characters) ? payload.characters : [];
+      const fields = ['name','desc','personalityTags','dialogueType','speakingStyle','exampleDialogues','characterPrompt','relationships','avatarPrompt'];
+      return { characters:rows.filter(row => row && typeof row === 'object' && !Array.isArray(row)).map(row => Object.fromEntries(fields.filter(key => row[key] !== undefined).map(key => [key,row[key]]))),
+        dialogueStyles:(Array.isArray(payload?.dialogueStyles) ? payload.dialogueStyles : []).filter(row => row && typeof row === 'object').map(row => Object.fromEntries(['id','label','icon','prompt','isCustom'].filter(key => row[key] !== undefined).map(key => [key,row[key]]))) };
+    }
+    let oneKeyRetryTarget = '';
+    let oneKeyLastConfig = null;
     function getOneKeyRequiredModelKeys(c = okCfg) {
       const keys = [];
       const needsCore = c.genTitle || c.genSynopsis || c.genWorldView || c.genNegative || c.genOutline || c.genDetailed || c.genCover;
-      const needsCharPreset = c.charCount > 0 || c.genPipeline || c.genStyles || c.genPresets || (c.genCharAvatar && c.charCount > 0);
       if (needsCore) keys.push('settings');
       if (c.genDetailed) keys.push('outline');
-      if (needsCharPreset) keys.push('character');
+      if (c.charCount > 0) keys.push('character');
+      if (c.genPipeline || c.genStyles || c.genPresets) keys.push('suggestion');
       return Array.from(new Set(keys));
     }
 
@@ -36770,8 +36761,10 @@ function getWritingModelLabel() {
 
       // ★★★ 核心修复：先保存旧书 → 再创建新书并切换 → 然后才修改数据 ★★★
       syncBookData(); // 保存旧书完整状态
-      const nid = createNewBook(newBookForm.value.title || '生成中...', newBookForm.value.theme, newBookForm.value.worldView);
-      loadBook(nid);  // 切换到新空书，此后所有对novel.value的修改都只影响新书
+      const retrying = oneKeyRetryTarget === currentBookId.value;
+      const nid = retrying ? currentBookId.value : createNewBook(newBookForm.value.title || '生成中...', newBookForm.value.theme, newBookForm.value.worldView);
+      oneKeyRetryTarget = '';
+      if (!retrying) { oneKeyLastConfig = deepClone(c); loadBook(nid); }
       // ═══ 关键：临时启用NSFW，确保wrapPromptWithNSFW生效 ═══
       novel.value.isAdultMode = !!c.adultMode;
       novel.value.theme = newBookForm.value.theme;
@@ -36781,16 +36774,16 @@ function getWritingModelLabel() {
       // 构建步骤
       const steps = [];
       const needsCore = c.genTitle || c.genSynopsis || c.genWorldView || c.genNegative || c.genOutline || c.genDetailed || c.genCover;
-      const needsCharPreset = c.charCount > 0 || c.genPipeline || c.genStyles || c.genPresets || (c.genCharAvatar && c.charCount > 0);
       if (needsCore) steps.push({ id: 'core', label: '📖 设定与大纲', status: 'pending' });
-      // 中文注释：角色、预设、对话风格、立绘关键词合并为同一个文本模块，避免后台多出隐藏文本 API。
-      if (needsCharPreset) steps.push({ id: 'chars', label: '👥 角色与预设' + (c.charCount > 0 ? ' (' + c.charCount + '个)' : ''), status: 'pending' });
+      if (c.charCount > 0) steps.push({ id: 'chars', label: '👥 角色设定 (' + c.charCount + '个)', status: 'pending' });
+      if (c.genPipeline || c.genStyles || c.genPresets) steps.push({ id: 'presets', label: '预设与文风', status: 'pending' });
       if (c.genCover) steps.push({ id: 'cover', label: '🖼️ 封面生成', status: 'pending' });
       if (c.genCharAvatar && c.charCount > 0) steps.push({ id: 'avatars', label: '🎨 角色立绘', status: 'pending' });
       okSteps.value = steps;
 
       // 结果容器
       const R = { title: newBookForm.value.title || '', synopsis: '', worldView: newBookForm.value.worldView || '', negative: '', outline: '', volumes:[], volumeTotal:0, detailedOutlines: [], chapterIndexDrafts: [], foreshadowMatrix: [], storyCheckStats: null, chars: [], dialogueStyles: [], styles: [], presets: [], pipeline: {}, coverBase64: '', coverPrompt: '' };
+      if (retrying) Object.assign(R,{title:novel.value.title,synopsis:novel.value.synopsis,worldView:novel.value.worldView});
 
       try {
         for (let si = 0; si < steps.length; si++) {
@@ -36940,9 +36933,8 @@ function getWritingModelLabel() {
             }
 
           } else if (step.id === 'chars') {
-            // ── 角色 + 预设 + 立绘关键词（合并文本请求） ──
-            // 中文注释：这里把原本“角色请求、对话风格请求、预设请求、立绘关键词请求”合并，减少后台文本 API 次数。
-            let prompt = '你是小说角色与写作系统配置设计大师。请为以下小说生成一份完整JSON配置。\n\n';
+            // 角色请求只描述角色，不允许顺便产生全书配置。
+            let prompt = '你是小说角色设计师。和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。请生成角色JSON。\n\n';
             prompt += '书名: ' + R.title + '\n主题: ' + newBookForm.value.theme + '\n';
             if (R.worldView) prompt += '世界观: ' + R.worldView.substring(0, 500) + '\n';
             if (R.outline) prompt += '大纲: ' + R.outline.substring(0, 500) + '\n';
@@ -36956,36 +36948,29 @@ function getWritingModelLabel() {
             if (c.genCharRel) prompt += ',"relationships":[{"targetName":"对方名","type":"关系类型","attitude":"态度"}]';
             if (c.genCharAvatar) prompt += ',"avatarPrompt":"英文逗号分隔NovelAI立绘标签，含性别、发色、瞳色、服装、表情、姿势、背景"';
             prompt += '}],';
-            prompt += '"dialogueStyles":[{"id":"英文id","label":"中文名称3字以内","icon":"emoji","prompt":"详细说话风格80-150字","isCustom":true}],';
-            prompt += '"pipeline":{},"styles":[],"presets":[]}\n';
+            prompt += '"dialogueStyles":[{"id":"英文id","label":"中文名称3字以内","icon":"emoji","prompt":"详细说话风格80-150字","isCustom":true}]}\n';
             prompt += '\n角色数量必须为 ' + c.charCount + ' 个。';
-            if (c.genPipeline) prompt += '\npipeline 需包含 pre、scene、post 三项。';
-            if (c.genStyles) prompt += '\nstyles 需生成 ' + c.styleCount + ' 个，方向：' + (c.styleHint || '自动匹配小说主题') + '。';
-            if (c.genPresets) prompt += '\npresets 需生成 ' + c.presetCount + ' 个，方向：' + (c.presetHint || '自动匹配小说主题') + '，每个包含 name、content、applyTo。';
             prompt += '\n不需要的字段可以返回空对象或空数组，但 characters 必须完整。';
-            // 中文注释：角色超过 5 个时，实际拆成两次角色文本请求；第一次同时带预设，第二次只补剩余角色，和预估次数保持一致。
-            if (c.charCount > 5) prompt += '\n本次只生成前5个角色，并额外生成 dialogueStyles/pipeline/styles/presets。';
+            // 角色超过五个时仍拆两次，第一次只附角色的对话类型模板。
+            if (c.charCount > 5) prompt += '\n本次只生成前5个角色及其对话类型模板。';
 
             const text = await okStreamFetch(prompt, 'character', signal);
             try {
               let raw = text;
               const obj = raw.match(/\{[\s\S]*\}/);
               if (obj) raw = obj[0];
-              const parsed = parseAiStructuredJson(raw, 'object');
-              R.chars = Array.isArray(parsed) ? parsed : (parsed.characters || []);
+              const parsed = sanitizeCharacterGenerationResult(parseAiStructuredJson(raw, 'object'));
+              R.chars = parsed.characters.slice(0, c.charCount > 5 ? 5 : c.charCount);
               R.dialogueStyles = parsed.dialogueStyles || [];
-              if (parsed.pipeline) R.pipeline = parsed.pipeline;
-              if (parsed.styles) R.styles = parsed.styles;
-              if (parsed.presets) R.presets = parsed.presets;
               if (c.charCount > 5 && R.chars.length < c.charCount && !signal.aborted) {
                 const leftCount = c.charCount - R.chars.length;
                 // 中文注释：第二次只补剩余角色和立绘关键词，不再重复生成预设/文风，避免覆盖第一次结果。
                 const morePrompt = '继续为同一本小说补充生成剩余 ' + leftCount + ' 个不同角色。\n书名: ' + R.title + '\n主题: ' + newBookForm.value.theme + '\n已生成角色名: ' + R.chars.map(ch => ch.name).join('、') + '\n\n严格输出JSON对象：{"characters":[{"name":"角色名","desc":"详细描述200字以上","personalityTags":["标签"],"dialogueType":"cute/seductive/tsundere/cold/scholar/chuuni","speakingStyle":"说话风格","exampleDialogues":["台词1","台词2","台词3"],"characterPrompt":"角色写作指令","relationships":[],"avatarPrompt":"英文逗号分隔NovelAI立绘标签"}]}。不要代码块。';
-                const moreText = await okStreamFetch(morePrompt, 'character', signal);
+                const moreText = await okStreamFetch(morePrompt + '\n和角色有关的说话方式、口癖、写作约束，只能填在角色设定里。', 'character', signal);
                 let moreRaw = moreText;
                 const moreObj = moreRaw.match(/\{[\s\S]*\}/);
                 if (moreObj) moreRaw = moreObj[0];
-                const moreParsed = parseAiStructuredJson(moreRaw, 'object');
+                const moreParsed = sanitizeCharacterGenerationResult(parseAiStructuredJson(moreRaw, 'object'));
                 const moreChars = Array.isArray(moreParsed) ? moreParsed : (moreParsed.characters || []);
                 R.chars = R.chars.concat(moreChars).slice(0, c.charCount);
               }
@@ -37031,7 +37016,7 @@ function getWritingModelLabel() {
               throw new Error('角色生成结果为空或解析失败');
             }
 
-          // 中文注释：对话风格已在角色与预设合并请求里生成，不再额外请求一次文本 API。
+          // 对话类型模板属于角色设定，随角色请求保留。
           if (R.dialogueStyles && R.dialogueStyles.length > 0) {
             R.dialogueStyles.forEach(dt => { dt.id = dt.id || uid(); dt.isCustom = true; });
           }
@@ -37053,9 +37038,9 @@ function getWritingModelLabel() {
               let raw = text;
               const parsed = parseAiStructuredJson(raw, 'object');
 
-              if (parsed.pipeline) R.pipeline = parsed.pipeline;
-              if (parsed.styles) R.styles = parsed.styles;
-              if (parsed.presets) R.presets = parsed.presets;
+              if (c.genPipeline && parsed.pipeline) R.pipeline = parsed.pipeline;
+              if (c.genStyles && Array.isArray(parsed.styles)) R.styles = parsed.styles;
+              if (c.genPresets && Array.isArray(parsed.presets)) R.presets = parsed.presets;
             } catch (e) {
               console.warn('预设解析失败', e);
               throw new Error('预设与文风解析失败');
@@ -37096,7 +37081,7 @@ function getWritingModelLabel() {
               const ch = R.chars[ai];
               okStream.value = '正在生成「' + (ch.name || '角色' + (ai + 1)) + '」的立绘... (' + (ai + 1) + '/' + R.chars.length + ')';
               try {
-                // 中文注释：优先复用“角色与预设”模块里每个角色的 avatarPrompt，避免每张立绘前再额外调用文本 API 提取标签。
+                // 中文注释：优先复用角色模块里每个角色的 avatarPrompt，避免每张立绘前再额外调用文本 API 提取标签。
                 const tags = ch.avatarPrompt || ch._avatarPrompt || ((ch.name || '') + ', character portrait, full body, detailed clothing, expressive pose, novel illustration');
                 ch._avatarPrompt = tags;
                 const prof = getActiveProfile();
@@ -37160,7 +37145,7 @@ function getWritingModelLabel() {
                   dialogueType: ch.dialogueType||'', relationships: [], characterPrompt: ch.characterPrompt||'',
                   _expanded:false, _sec_tags:false, _sec_dialogueType:false, _sec_style:false,
                   _sec_examples:false, _sec_rel:false, _sec_prompt:false, _sec_avatar:false,
-                  avatarBase64: ch._avatarBase64||null, avatarPrompt: ch._avatarPrompt||'' };
+                  avatarBase64: ch._avatarBase64||null, avatarPrompt: ch.avatarPrompt||ch._avatarPrompt||'' };
               });
               // ═══ 修复：即时应用角色关系 ═══
               if (c.genCharRel) {
@@ -37231,7 +37216,7 @@ function getWritingModelLabel() {
             dialogueType: ch.dialogueType||'', relationships: [], characterPrompt: ch.characterPrompt||'',
             _expanded:false, _sec_tags:false, _sec_dialogueType:false, _sec_style:false,
             _sec_examples:false, _sec_rel:false, _sec_prompt:false, _sec_avatar:false,
-            avatarBase64: ch._avatarBase64||null, avatarPrompt: ch._avatarPrompt||'' };
+            avatarBase64: ch._avatarBase64||null, avatarPrompt: ch.avatarPrompt||ch._avatarPrompt||'' };
         });
         if (c.genCharRel) {
           R.chars.forEach((ch, i) => {
@@ -37258,15 +37243,13 @@ function getWritingModelLabel() {
       // 预设
       if (R.pipeline && Object.keys(R.pipeline).length > 0) {
         const pl = promptPipeline.value;
-        if (R.pipeline.pre) { const l = pl.find(p => p.key === 'pre'); if (l) l.content = R.pipeline.pre; }
-        if (R.pipeline.scene) { const l = pl.find(p => p.key === 'scene'); if (l) l.content = R.pipeline.scene; }
-        if (R.pipeline.post) { const l = pl.find(p => p.key === 'post'); if (l) l.content = R.pipeline.post; }
+        for (const key of ['pre','scene','post']) { const content = String(R.pipeline[key] || '').trim(); const l = pl.find(p => p.key === key); if (content && l) l.content = content; }
       }
       if (R.styles.length > 0) {
-        R.styles.forEach(s => { writingStyles.value.push({ id: uid(), name: s.name||'新文风', prompt: s.prompt||'', isBuiltin: false }); });
+        R.styles.filter(s => typeof s?.prompt === 'string' && s.prompt.trim()).forEach(s => { writingStyles.value.push({ id: uid(), name: s.name||'新文风', prompt: s.prompt.trim(), isBuiltin: false }); });
       }
       if (R.presets.length > 0) {
-        R.presets.forEach(p => { presets.value.push({ id: uid(), name: p.name||'新预设', content: p.content||'', enabled: p.enabled !== false, applyTo: p.applyTo||['writing'], isBuiltin: false, _expanded: false }); });
+        R.presets.filter(p => typeof p?.content === 'string' && p.content.trim()).forEach(p => { presets.value.push({ id: uid(), name: p.name||'新预设', content: p.content.trim(), enabled: false, applyTo: p.applyTo||['writing'], isBuiltin: false, _expanded: false }); });
       }
 
       saveData();
@@ -37283,6 +37266,7 @@ function getWritingModelLabel() {
     }
 
     function retryOneKeyModule(stepId) {
+      oneKeyRetryTarget = currentBookId.value;
       // 中文注释：失败后不强制用户重新勾选全部配置，只把一键开书配置切到失败模块，方便单独重开。
       const current = {
         theme: novel.value.theme || newBookForm.value.theme || '',
@@ -37301,7 +37285,7 @@ function getWritingModelLabel() {
       okCfg.genPresets = false;
       okCfg.genCover = false;
       okCfg.genCharAvatar = false;
-      okCfg.charCount = Math.max(structuredCharacters.value.length || 0, okCfg.charCount || 0);
+      okCfg.charCount = 0;
       if (stepId === 'core') {
         okCfg.genTitle = true;
         okCfg.genSynopsis = true;
@@ -37310,11 +37294,11 @@ function getWritingModelLabel() {
         okCfg.genOutline = true;
         okCfg.genDetailed = chapterOutlines.value.length > 0;
       } else if (stepId === 'chars') {
-        okCfg.charCount = Math.max(structuredCharacters.value.length || 1, okCfg.charCount || 1);
+        okCfg.charCount = Math.max(oneKeyLastConfig?.charCount || 1, structuredCharacters.value.length || 1);
       } else if (stepId === 'presets') {
-        okCfg.genPipeline = true;
-        okCfg.genStyles = true;
-        okCfg.genPresets = true;
+        okCfg.genPipeline = !!oneKeyLastConfig?.genPipeline;
+        okCfg.genStyles = !!oneKeyLastConfig?.genStyles;
+        okCfg.genPresets = !!oneKeyLastConfig?.genPresets;
       } else if (stepId === 'cover') {
         okCfg.genCover = true;
       } else if (stepId === 'avatars') {

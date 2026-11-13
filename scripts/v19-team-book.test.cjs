@@ -73,6 +73,7 @@ test('角色员走 team-character 模型路由，失败块保留错误状态供�
     uid:() => 'id', DOMException, Date
   });
   vm.runInContext(extract('    function parseAiJsonSyntax(', '    function parseCharacterAiJsonEnvelope('),ctx);
+  vm.runInContext(extract('    function sanitizeCharacterGenerationResult(', '    function getOneKeyRequiredModelKeys('),ctx);
   vm.runInContext(extract('    async function runTeamBlock(', '    async function runTeamDetailBlock(') + '; globalThis.runTeamBlock = runTeamBlock;', ctx);
   await ctx.runTeamBlock('characters');
   assert.equal(calls[0].modelKey, 'team-character');

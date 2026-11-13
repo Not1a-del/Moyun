@@ -23,6 +23,7 @@ function harness(extra={}){
     ...extra
   });
   vm.runInContext(extract('    function parseAiJsonSyntax(', '    function parseCharacterAiJsonEnvelope('),ctx);
+  vm.runInContext(extract('    function sanitizeCharacterGenerationResult(', '    function getOneKeyRequiredModelKeys('),ctx);
   vm.runInContext(extract('    function parseChapterNoValue(', '    // v0.0.11 修复3：细纲流式落卡'),ctx);
   vm.runInContext(extract('    function validateVolumeRanges(', '    async function prepareVolumePlan(')+extract('    function teamPlanFallback(', '    function getOneKeyDetailedChapterCount('),ctx);
   const queue=values=>{ctx.okStreamFetch=async(prompt,modelKey,signal,options)=>{calls.push({prompt,modelKey,aborted:signal?.aborted,options:clone(options)});const value=values.shift();if(value instanceof Error)throw value;if(value===undefined)throw Error('Fake response queue exhausted');return typeof value==='function'?value({signal,prompt,options}):value;};};
