@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=f44f397344db">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=ed0039591197">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -842,7 +842,24 @@
     <!-- ───── 目录 Tab ───── -->
     <div v-show="currentTab==='chapters'" class="absolute inset-0 overflow-y-auto p-2">
       <div class="space-y-0.5">
-        <template v-for="(ch,ci) in visibleChapters" :key="ch.id || ci">
+        <div v-for="group in tocVolumeGroups" :key="group.id" class="moyun-toc-group">
+          <div v-if="group.title" class="moyun-toc-volume-head">
+            <div class="min-w-0 flex-1">
+              <div class="moyun-toc-volume-title">{{ group.title }}</div>
+              <div v-if="group.volume" class="moyun-toc-meta">第 {{ group.volume.startChapter }}–{{ group.volume.endChapter }} 章 · 已写 {{ group.chapters.length }} 章</div>
+            </div>
+            <button v-if="group.volume" type="button" class="btn-ghost moyun-toc-handoff-toggle" @click="toggleTocVolumeHandoff(group.volume)" :aria-expanded="String(tocHandoffEditor?.volumeId===group.id)" :aria-label="'查看'+group.title+'交接'">交接 {{ tocHandoffEditor?.volumeId===group.id ? '▾' : '▸' }}</button>
+          </div>
+          <div v-if="group.volume && tocHandoffEditor?.volumeId===group.id" class="moyun-toc-handoff" :data-volume-handoff="group.id">
+            <div v-if="group.stale" class="moyun-toc-handoff-stale" role="status">卷末交接已过期，请核对后保存或重新生成。<button type="button" class="btn-ghost" @click="regenerateVolumeHandoff(group.volume)">重新生成</button></div>
+            <p v-if="!group.handoff" class="moyun-toc-meta">本卷写完最后一章后会自动生成交接，也可以现在手动填写</p>
+            <label class="block">本卷正文总结<textarea v-model="tocHandoffEditor.content" rows="5" class="textarea-field" :aria-label="group.title+'本卷正文总结'"></textarea></label>
+            <details><summary>实际卷纲修正</summary><textarea v-model="tocHandoffEditor.actualOutline" rows="4" class="textarea-field" :aria-label="group.title+'实际卷纲修正'"></textarea></details>
+            <p class="moyun-toc-meta">{{ group.handoff?.at ? '生成/保存：'+new Date(group.handoff.at).toLocaleString() : '尚未生成交接' }} · 分支：{{ currentBranchName }}</p>
+            <div class="flex flex-wrap gap-2"><button type="button" class="btn-primary" @click="saveVolumeHandoffEdit(group.volume,activeBranchId,tocHandoffEditor) && showToast('卷末交接已保存','success')">保存</button><button type="button" class="btn-ghost" @click="regenerateVolumeHandoff(group.volume)">重新生成</button></div>
+          </div>
+          <div class="space-y-0.5" :class="group.title ? 'moyun-toc-chapters' : ''">
+        <template v-for="({ chapter:ch, index:ci }) in group.chapters" :key="ch.id || ci">
           <div @click="scrollToChapter(ci);mobileSidebarOpen=false"
                class="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
                :style="currentChapterIndex===ci?'background:var(--bg-card);box-shadow:var(--sh1)':''">
@@ -859,6 +876,8 @@
                       class="textarea-field text-[11px]" style="background:var(--bg-inset)"></textarea>
           </div>
         </template>
+          </div>
+        </div>
       </div>
       <div v-if="visibleChapters.length===0" class="text-center py-12 text-sm" style="color:var(--tx3)">暂无章节</div>
     </div>
@@ -909,7 +928,7 @@
                  :style="sum.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
           </div>
           <div v-if="sum.isExpanded" class="px-3 pb-3 space-y-2" style="border-top:1px solid var(--bd)">
-            <textarea v-model="sum.content" @change="saveData()" rows="6" class="textarea-field text-xs"></textarea>
+            <textarea v-model="sum.content" @change="saveSummaryEdit(sum)" rows="6" class="textarea-field text-xs" :aria-label="sum.kind==='volume-handoff' ? (sum.volumeTitle || '卷末交接')+'内容' : '章节范围总结内容'"></textarea>
             <div v-if="sum.kind==='volume-handoff'" class="text-[10px] leading-relaxed whitespace-pre-wrap p-2 rounded" style="background:var(--bg-inset);color:var(--tx3)">原计划卷纲：{{ sum.plan || '未记录' }}\n\n实际卷纲修正：{{ sum.actualOutline || '未记录' }}</div>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -1832,7 +1851,7 @@
 
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
-        <h2 class="moyun-wb-title">故事大纲</h2><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'大纲')">⑂ {{ currentBranchName }} ▾</button>
+        <h2 class="moyun-wb-title">故事大纲</h2><button type="button" data-branch-entry="大纲" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'大纲')">⑂ {{ currentBranchName }} ▾</button>
         <div class="moyun-wb-subtitle">结构化总纲、修订审阅和拆细纲前检查</div>
       </div>
       <div class="moyun-wb-header-actions">
@@ -1977,7 +1996,7 @@
 
     <div class="moyun-wb-header shrink-0">
       <div class="moyun-wb-heading">
-        <h2 class="moyun-wb-title">细纲详情</h2><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'细纲')">⑂ {{ currentBranchName }} ▾</button>
+        <h2 class="moyun-wb-title">细纲详情</h2><button type="button" data-branch-entry="细纲" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'细纲')">⑂ {{ currentBranchName }} ▾</button>
         <div class="moyun-wb-subtitle">分批生成、逐章检查、失败重试和正文前打磨</div>
       </div>
       <div class="moyun-wb-header-actions">
@@ -2122,11 +2141,11 @@
           </div>
         </div>
 
-        <div v-if="longformWorkbenchView==='foreshadow'" class="space-y-2"><button type="button" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'暗线')">⑂ {{ currentBranchName }} ▾</button>
+        <div v-if="longformWorkbenchView==='foreshadow'" class="space-y-2"><button type="button" data-branch-entry="暗线" class="btn-ghost text-xs px-2 py-2" @click="toggleBranchPanel($event,'暗线')">⑂ {{ currentBranchName }} ▾</button>
           <div class="moyun-darkline-boundary">
             <div>
               <div class="moyun-darkline-boundary-title">暗线回收计划 · 宿主规划层</div>
-              <div class="moyun-darkline-boundary-copy">这里按主线章号排布置、推进、计划回收与实际回收；支线不会自动改写共享计划。白鸟“雪翼伏笔池”负责写作运行时状态、记忆联动和生成后分析。两层不会暗中同步。</div>
+              <div class="moyun-darkline-boundary-copy">这里按当前分支的章号排布置、推进、计划回收与实际回收，各分支独立保存。白鸟“雪翼伏笔池”负责写作运行时状态、记忆联动和生成后分析。两层不会暗中同步。</div>
               <div class="moyun-darkline-layer-list">
                 <span class="moyun-darkline-layer"><strong>墨韵</strong> 大纲/细纲排期与查漏</span>
                 <span class="moyun-darkline-layer"><strong>白鸟</strong> 实际埋入、轻触、升级与回收</span>
@@ -2277,10 +2296,9 @@
                    : getChapterOutlineQuality(ci).status==='empty'
                      ? 'border-left:3px solid var(--bd2)'
                      : 'border-left:3px solid var(--warn)'">
-          <div @click="toggleChapterOutline(ci)" @keydown.enter.prevent="toggleChapterOutline(ci)" @keydown.space.prevent="toggleChapterOutline(ci)"
-               role="button" tabindex="0" :aria-expanded="co.isExpanded" :aria-label="(co.title || '第'+(ci+1)+'章') + '细纲，' + (co.isExpanded ? '收起' : '展开')"
+          <div @click="toggleChapterOutline(ci)"
                class="moyun-do-card-head px-3 py-2 cursor-pointer select-none" :style="co.isExpanded?'background:var(--bg-inset)':''">
-            <div class="moyun-do-titleline">
+            <div class="moyun-do-titleline" role="button" tabindex="0" :aria-expanded="co.isExpanded" :aria-label="(co.title || '第'+(ci+1)+'章') + '细纲，' + (co.isExpanded ? '收起' : '展开')" @keydown.enter.prevent="toggleChapterOutline(ci)" @keydown.space.prevent="toggleChapterOutline(ci)">
               <span class="moyun-do-index">{{ ci+1 }}</span>
               <div class="min-w-0">
                 <div class="text-sm font-bold text-truncate" style="color:var(--tx)">{{ co.title || '第'+(ci+1)+'章' }}</div>
@@ -2299,7 +2317,7 @@
               <span v-if="getStaleMark('细纲',co.id)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:var(--warn-soft);color:var(--warn)">待核对</span>
               <span v-if="getChapterOutlineRunStatusLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineRunStatusStyle(ci)">{{ getChapterOutlineRunStatusLabel(ci) }}</span>
               <span v-if="getChapterOutlineQualityLabel(ci)" class="text-[9px] px-1.5 py-0.5 rounded font-bold" :style="getChapterOutlineQualityStyle(ci)">{{ getChapterOutlineQualityLabel(ci) }}</span>
-              <button type="button" class="btn-ghost text-xs" @click.stop="forkBranch(ci)" :disabled="activeBranchId!=='main' || !visibleChapters[ci]" :title="activeBranchId!=='main' ? '支线里不能再分叉' : !visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '从这章之后另写一条剧情'">从这章分支</button>
+              <button type="button" class="btn-ghost text-xs min-h-[44px]" @click.stop="forkBranch(ci)" :disabled="activeBranchId!=='main' || !visibleChapters[ci]" :title="activeBranchId!=='main' ? '支线里不能再分叉' : !visibleChapters[ci] ? '本章尚未写正文，不能创建分支' : '从这章之后另写一条剧情'">从这章分支</button>
               <button @click.stop="removeChapterOutline(ci)" @keydown.stop class="moyun-do-card-action" title="删除本章细纲" :aria-label="'删除第' + (ci + 1) + '章细纲'"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="color:var(--tx4);transition:transform .2s" :style="co.isExpanded?'transform:rotate(180deg)':''"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
             </div>
@@ -2597,7 +2615,7 @@
             <button @click="currentTab='outline';openOutlineWorkbench()" class="btn-ghost text-xs px-4 py-2">③ 编写大纲</button>
           </div>
         </div>
-        <div class="flex justify-center mb-4"><button type="button" class="btn-ghost text-xs px-3 py-2 rounded-full" @click="toggleBranchPanel($event,'正文')">⑂ {{ currentBranchName }} ▾</button></div>
+        <div class="flex justify-center mb-4"><button type="button" data-branch-entry="正文" class="btn-ghost text-xs px-3 py-2 rounded-full" @click="toggleBranchPanel($event,'正文')">⑂ {{ currentBranchName }} ▾</button></div>
 
         <!-- 逐章渲染 -->
         <div v-for="(ch, idx) in visibleChapters" :key="ch.id||idx" :id="'chapter-'+idx" data-moyun-region="editor" class="mb-4">
@@ -2804,7 +2822,8 @@
                   <button @click.stop="startChapterEdit(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">编辑</button>
                   <button @click.stop="copyChapter(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]">复制</button>
                   <button @click.stop="rerollChapter(idx)" :disabled="!ch.regenSnapshot" class="text-[11px] px-3 py-2 min-h-[36px] rounded-md" style="background:var(--ok-soft);color:var(--ok)" :style="!ch.regenSnapshot?'opacity:.4;cursor:not-allowed':''" :title="ch.regenSnapshot?'用与首次生成完全相同的提示词与注入（含白鸟）重新生成本章，原稿转历史稿':'旧章或导入章没有可精确复现的注入快照，改用分支重写'">重新生成</button>
-                  <button @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
+                  <button type="button" data-chapter-fork @click.stop="forkBranch(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留本章，在本章之后另写一条剧情，无需 AI'">从这章分支</button>
+                  <button type="button" data-chapter-rewrite @click.stop="regenerateChapter(idx)" :disabled="activeBranchId!=='main'" class="btn-ghost text-[11px] px-3 py-2 min-h-[44px]" :title="activeBranchId!=='main' ? '支线里不能再分叉，请先回到主线' : '保留原章，在上一章后创建新分支并生成替代章节'">分支重写</button>
                   <button @click.stop="ch._showMoreActions=!ch._showMoreActions" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :aria-expanded="ch._showMoreActions?'true':'false'" title="更多章节操作">{{ ch._showMoreActions ? '收起 ▴' : '更多 ▾' }}</button>
                   <template v-if="ch._showMoreActions">
                     <button type="button" @click.stop="checkChapterContinuity(idx)" class="btn-ghost text-[11px] px-3 py-2 min-h-[36px]" :disabled="idx>=visibleChapters.length-1">衔接检查</button>
@@ -4705,7 +4724,7 @@
         <div v-for="row in teamBlocks" :key="row.id" class="card p-3 flex items-start gap-3">
           <span class="text-base">{{ row.status==='done' ? '✅' : row.status==='running' ? '🔄' : row.status==='error' ? '⚠️' : row.status==='stopped' ? '⏹' : '⏳' }}</span>
           <div class="min-w-0 flex-1"><div class="text-xs font-bold" :style="row.status==='error'?'color:var(--err)':'color:var(--tx)'">{{ row.label }}</div><div class="text-[10px] mt-1" style="color:var(--tx3)">{{ row.status==='done'?'完成':row.status==='running'?'进行中':row.status==='error'?'失败':row.status==='stopped'?'已停止':'排队' }}<span v-if="row.elapsed"> · {{ row.elapsed }}</span></div><div v-if="row.error" class="text-[10px] mt-1 break-words" style="color:var(--err)">{{ row.error }}</div></div>
-          <div v-if="row.status==='error'" class="flex gap-1 shrink-0"><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="retryTeamBlock(row.id)">重试</button><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="viewTeamRaw(row.id)">原文</button></div>
+          <div v-if="row.status==='error' || row.status==='stopped'" class="flex gap-1 shrink-0"><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="retryTeamBlock(row.id)">重试</button><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="viewTeamRaw(row.id)">原文</button></div>
         </div>
         <pre v-if="teamRawView" class="text-[10px] leading-relaxed whitespace-pre-wrap break-words p-3 rounded-xl max-h-[180px] overflow-auto" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ teamRawView }}</pre>
       </div>
@@ -4732,24 +4751,25 @@
 
       <!-- ═══ 团队完成阶段 ═══ -->
       <div v-else-if="newBookMode==='team'" class="flex-1 overflow-y-auto p-5 space-y-4" data-team-book-review>
-        <div class="text-center"><div class="text-4xl mb-2">{{ teamDraft ? '🧾' : '⏹' }}</div><div class="text-lg font-black" style="color:var(--tx)">{{ teamDraft ? '方案已生成，等待写入' : '团队开书已停止' }}</div><div class="text-xs mt-2" style="color:var(--tx3)">{{ teamDraft ? '审查结果仅供你检查；点击写入后才会创建新书。' : '书库没有写入半成品。' }}</div></div>
+        <div class="text-center"><div class="text-4xl mb-2">{{ teamBlocks.some(row=>row.status==='stopped') ? '⏹' : teamBlocks.some(row=>row.status==='error') ? '⚠️' : '🧾' }}</div><div class="text-lg font-black" style="color:var(--tx)">{{ teamBlocks.some(row=>row.status==='stopped') ? '团队开书已暂停' : teamBlocks.some(row=>row.status==='error') ? '团队开书有未完成区块' : '团队开书完成，等待写入' }}</div><div class="text-xs mt-2" style="color:var(--tx3)">{{ teamBlocks.some(row=>row.status==='stopped' || row.status==='error') ? '已完成内容和已返回的细纲部分均已保留，书库尚未写入。' : '审查结果仅供你检查；点击写入后才会创建新书。' }}</div></div>
         <template v-if="teamDraft">
           <section class="card p-4 space-y-3"><div class="flex items-center justify-between gap-3"><div><div class="text-sm font-black" style="color:var(--tx)">{{ teamDraft.title }}</div><div class="text-xs mt-1" style="color:var(--tx3)">{{ teamDraft.synopsis || '暂无简介' }}</div></div><span class="text-[10px] px-2 py-1 rounded-full" :style="teamReview?.status==='incomplete'?'background:var(--warn-soft);color:var(--warn)':'background:var(--ok-soft);color:var(--ok)'">{{ teamReview?.status==='incomplete'?'审查未完成':teamReview?.status==='issues'?'发现问题':'审查完成' }}</span></div>
             <div v-if="teamReview?.message" class="moyun-action-status" role="status"><span>{{ teamReview.message }}</span></div>
             <div v-if="teamReview?.facts?.length" class="space-y-1"><div class="label">用户要求落实情况</div><div v-for="(fact,index) in teamReview.facts" :key="index" class="text-xs p-2 rounded-lg" :style="fact.fulfilled===false?'background:var(--warn-soft);color:var(--warn)':'background:var(--ok-soft);color:var(--tx2)'">{{ fact.fulfilled===false?'待补':'已落实' }} · {{ fact.text }}<span v-if="fact.reason">：{{ fact.reason }}</span></div></div>
             <div v-if="teamReview?.issues?.length" class="space-y-1"><div class="label">审查提示</div><div v-for="(issue,index) in teamReview.issues" :key="index" class="text-xs p-2 rounded-lg" style="background:var(--warn-soft);color:var(--warn)">{{ issue.message || issue.kind }}</div></div>
             <div v-if="teamReview?.status==='issues'" class="flex flex-wrap gap-2"><button v-for="row in teamBlocks.filter(item=>['settings','characters','outline'].includes(item.id))" :key="row.id" class="btn-ghost text-xs" :disabled="row.status==='running'" @click="retryTeamBlock(row.id)">让{{ row.label }}重做这一块</button></div>
-            <div v-if="teamDraft.needsFill?.length" class="moyun-action-status" role="alert"><span>未完成块：{{ teamDraft.needsFill.join('、') }}。可先写入已完成部分，也可以在下方单独重试。</span></div>
-            <div v-if="teamBlocks.some(row => row.status==='error')" class="space-y-2" data-team-book-failed-blocks>
-              <div class="label">失败块</div>
-              <div v-for="row in teamBlocks.filter(item => item.status==='error')" :key="'failed-' + row.id" class="p-3 rounded-xl flex items-start gap-3" style="background:var(--warn-soft);border:1px solid var(--bd)">
-                <div class="min-w-0 flex-1"><div class="text-xs font-bold" style="color:var(--warn)">{{ row.label }}</div><div class="text-[10px] mt-1 break-words" style="color:var(--tx3)">{{ row.error || '该块未完成' }}</div></div>
+            <div v-if="teamDraft.needsFill?.length || teamReview?.status==='incomplete'" class="moyun-action-status" role="alert"><span>未完成项：{{ teamBlocks.filter(row=>row.status!=='done').map(row=>row.label).join('、') || '审查员' }}。已完成部分会保留，可重试未完成区块，或调整模型后再试。</span></div>
+            <div v-if="teamBlocks.some(row => row.status==='error' || row.status==='stopped' || row.status==='pending')" class="space-y-2" data-team-book-failed-blocks>
+              <div class="label">未完成区块</div>
+              <div v-for="row in teamBlocks.filter(item => item.status==='error' || item.status==='stopped' || item.status==='pending')" :key="'failed-' + row.id" class="p-3 rounded-xl flex items-start gap-3" style="background:var(--warn-soft);border:1px solid var(--bd)">
+                <div class="min-w-0 flex-1"><div class="text-xs font-bold" style="color:var(--warn)">{{ row.label }}</div><div class="text-[10px] mt-1 break-words" style="color:var(--tx3)">{{ row.error || '该块尚未完成' }}</div></div>
                 <div class="flex gap-1 shrink-0"><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="retryTeamBlock(row.id)">重试</button><button type="button" class="btn-ghost text-[10px] px-2 py-1" @click="viewTeamRaw(row.id)">原文</button></div>
               </div>
             </div>
             <pre v-if="teamRawView" class="text-[10px] leading-relaxed whitespace-pre-wrap break-words p-3 rounded-xl max-h-[180px] overflow-auto" style="background:var(--bg-inset);color:var(--tx3);border:1px solid var(--bd)">{{ teamRawView }}</pre>
           </section>
-          <div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn-primary text-sm px-4 py-2" :disabled="teamDraft.committing" @click="commitTeamDraft()">{{ teamDraft.committing ? '正在写入…' : teamDraft.needsFill?.length ? '完整写入' : '接受并写入' }}</button><button v-if="teamDraft.needsFill?.length" type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="commitPartialTeamDraft">先写入已完成部分</button><button type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="teamPhase='review';oneKeyPhase='config'">返回方案</button></div>
+          <div v-if="teamBlocks.some(row=>row.status!=='done')" class="flex flex-wrap justify-center gap-2" data-team-book-incomplete-actions><button type="button" class="btn-primary text-sm px-4 py-2" @click="retryIncompleteTeamBlocks">重试未完成区块</button><button type="button" class="btn-ghost text-sm px-4 py-2" @click="openTeamBookRouteSettings">调整 API 后重试</button></div>
+          <div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn-primary text-sm px-4 py-2" :disabled="teamDraft.committing || !!teamDraft.needsFill?.length" @click="commitTeamDraft()">{{ teamDraft.committing ? '正在写入…' : teamDraft.needsFill?.length ? '重试后再完整写入' : '接受并写入' }}</button><button v-if="teamDraft.needsFill?.length" type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="commitPartialTeamDraft">先写入已完成部分</button><button type="button" class="btn-ghost text-sm px-4 py-2" :disabled="teamDraft.committing" @click="teamPhase='review';oneKeyPhase='config'">返回方案</button></div>
         </template>
       </div>
 
@@ -4791,7 +4811,7 @@
         </template>
         <template v-else>
           <button v-if="okFailedSteps.length" @click="openNewBookModal" class="btn-ghost text-sm px-4 py-2">返回配置</button>
-          <button type="button" data-moyun-modal-close @click="showNewBook=false;oneKeyPhase='config'" class="btn-primary text-sm px-6 py-2">关闭</button>
+          <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-primary text-sm px-6 py-2">关闭</button>
         </template>
       </div>
 
@@ -5279,6 +5299,30 @@
 
         <!-- ═══ 上下文与功能 ═══ -->
         <div v-show="activeSettingsTab==='context'" id="settings-panel-context" role="tabpanel" aria-labelledby="settings-tab-context" class="space-y-4">
+          <div v-if="teamBookRoutesOpen" id="settings-search-team-book-routes" class="space-y-4">
+            <div class="flex items-start justify-between gap-3 p-3 rounded-xl" style="background:var(--accent-soft);border:1px solid var(--bd)">
+              <div><div class="text-sm font-bold" style="color:var(--tx)">团队开书 · 逐项 API 配置</div><p class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">每位成员可单独选 API。留空时跟随上方的统一配置；若统一配置也未指定，则沿用原来的设定、角色、大纲模块配置。</p></div>
+              <button type="button" class="btn-ghost text-xs px-3 py-2 shrink-0" @click="teamBookRoutesOpen=false">返回上下文</button>
+            </div>
+            <div id="settings-search-team-book-existing-routes" class="p-3 rounded-xl flex items-start justify-between gap-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
+              <div class="min-w-0"><div class="text-xs font-bold" style="color:var(--tx)">让单独微调的模型用于已有书籍</div><p class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">开启后，团队开书里单独指定给设定员、角色员、大纲与细纲员的 API，也会用于已有书籍对应的设定、角色、大纲和细纲生成。关闭后，这些选择只用于团队开书。</p></div>
+              <button type="button" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.teamBookApplyRoutesToExisting!==false" aria-label="团队开书模型用于已有书籍同类生成" @click="setTeamBookApplyRoutesToExisting(settings.teamBookApplyRoutesToExisting===false)"><span class="toggle-track" :class="settings.teamBookApplyRoutesToExisting!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+            </div>
+            <fieldset v-for="route in teamBookRouteConfig" :key="route.key" :id="'settings-search-'+route.key" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+              <legend class="px-1 text-xs font-bold" style="color:var(--tx)">{{ route.name }}</legend>
+              <div class="text-[10px] leading-relaxed" style="color:var(--tx3)">{{ route.description }}<span v-if="route.key==='team-outline'"> 章节细纲也使用这项配置。</span></div>
+              <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
+                <input type="radio" :name="'team-route-'+route.key" value="" :checked="getModuleRouteProfileId(route.key)===''" @change="setModuleRouteProfile(route.key,'')">
+                <span class="text-[10px]" style="color:var(--tx)">跟随上方统一配置</span><span class="ml-auto text-[9px] text-right" style="color:var(--tx3)">{{ getTeamBookRouteSummary(route.key) }}</span>
+              </label>
+              <label v-for="profile in getAssignableConnectionProfiles()" :key="profile.id" class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)">
+                <input type="radio" :name="'team-route-'+route.key" :value="profile.id" :checked="getModuleRouteProfileId(route.key)===profile.id" @change="setModuleRouteProfile(route.key,profile.id)">
+                <span class="text-[10px] font-bold" style="color:var(--tx)">{{ profile.name }}</span><span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ profile.defaultModel }}</span>
+              </label>
+              <div v-if="getAssignableConnectionProfiles().length===0" class="text-[9px]" style="color:var(--tx3)">暂无已测试可用配置，请先在“连接中心”测试并保存。</div>
+            </fieldset>
+          </div>
+          <div v-else class="space-y-4">
           <!-- 中文注释：上下文省 token 配置直接影响正文生成请求，可按模型窗口大小选择是否发送全文/摘要/长期总结。 -->
           <div id="settings-search-context-intro" class="p-3 rounded-xl space-y-2" style="background:var(--accent-soft);border:1px solid var(--bd)">
             <div class="text-xs font-bold" style="color:var(--tx)">这些设置决定模型本次能参考什么、由哪个模型处理</div>
@@ -5480,6 +5524,13 @@
           </div>
 		  
           <div class="divider"></div>
+          <section id="settings-search-team-book" class="p-3 rounded-xl space-y-2" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <div><div class="text-xs font-bold" style="color:var(--tx)">团队开书</div><p class="text-[10px] mt-1 leading-relaxed" style="color:var(--tx3)">策划员、设定员、角色员、大纲与细纲员、审查员共同完成“一句话开书”。可在这里让整个团队共用一个 API、使用全局默认 API，或沿用原有模块配置；进入下一页后还能逐个调整。</p></div>
+            <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)"><input type="radio" name="team-book-unified-route" value="__module_routes__" :checked="getTeamBookUnifiedRouteMode()==='__module_routes__'" @change="setTeamBookUnifiedRoute('__module_routes__')"><span class="text-[10px]" style="color:var(--tx)">沿用各模块当前配置</span></label>
+            <label class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)"><input type="radio" name="team-book-unified-route" value="__default__" :checked="getTeamBookUnifiedRouteMode()==='__default__'" @change="setTeamBookUnifiedRoute('__default__')"><span class="text-[10px]" style="color:var(--tx)">统一使用全局默认 API</span></label>
+            <label v-for="profile in getAssignableConnectionProfiles()" :key="profile.id" class="flex items-center gap-2 p-2 rounded cursor-pointer" style="border:1px solid var(--bd)"><input type="radio" name="team-book-unified-route" :value="profile.id" :checked="getTeamBookUnifiedRouteMode()===profile.id" @change="setTeamBookUnifiedRoute(profile.id)"><span class="text-[10px] font-bold" style="color:var(--tx)">{{ profile.name }}</span><span class="ml-auto text-[9px]" style="color:var(--tx3)">{{ profile.defaultModel }}</span></label>
+            <button type="button" class="btn-ghost text-xs px-3 py-2" @click="teamBookRoutesOpen=true">逐项调整团队开书 API →</button>
+          </section>
           <div class="flex items-center justify-between mb-2"><label class="label mb-0">模块 API 配置分配</label><button @click="resetModuleRoutes" class="text-[9px] px-2 py-0.5 rounded" style="color:var(--tx3);border:1px solid var(--bd)">全部跟随默认</button></div>
           <div class="text-[10px] mb-3" style="color:var(--tx4)">每个模块只能选择一个配置；模型使用所选配置的默认模型。</div>
           <div class="space-y-2">
@@ -5503,6 +5554,7 @@
               </label>
               <div v-if="getAssignableConnectionProfiles().length===0" class="text-[9px] mt-2" style="color:var(--tx3)">暂无已测试可用配置，请先在“连接中心”测试并保存。</div>
             </fieldset>
+          </div>
           </div>
         </div>
 
@@ -6311,9 +6363,9 @@
 </button>
 <button v-if="immersiveMode" type="button" class="immersive-reveal-toolbar" aria-label="显示沉浸工具条" @click="immersiveToolbarHidden=false"><span v-if="immersiveToolbarHidden">显示工具条</span></button>
 <div v-if="immersiveMode" class="immersive-toolbar" :class="{'is-hidden': immersiveToolbarHidden}" aria-label="沉浸写作工具">
-  <button type="button" class="btn-ghost" @click="enterImmersiveWriting" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='write'">手写</button>
-  <button type="button" class="btn-ghost" @click="enterImmersiveExpansion" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='expand'">扩写</button>
-  <button type="button" class="btn-ghost" @click="openImmersiveContinue" :disabled="immersiveExpandBusy" :aria-pressed="immersivePromptVisible">AI续写</button>
+  <button type="button" class="btn-ghost" @click="enterImmersiveWriting" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='write'" title="进入当前章节的手写草稿，不调用 AI">手写当前章</button>
+  <button type="button" class="btn-ghost" @click="enterImmersiveExpansion" :disabled="immersiveExpandBusy" :aria-pressed="immersiveToolMode==='expand'" title="调用 AI 扩写或改写当前章节">AI扩写</button>
+  <button type="button" class="btn-ghost" @click="openImmersiveContinue" :disabled="immersiveExpandBusy" :aria-pressed="immersivePromptVisible" title="调用 AI 根据当前写作内容续写">AI续写</button>
 </div>
 <div v-if="immersiveMode && immersivePromptVisible" class="immersive-continue-panel" aria-label="沉浸 AI 续写">
   <div class="flex items-center justify-between gap-2 mb-2"><strong class="text-xs">AI续写</strong><button type="button" class="btn-ghost text-xs px-3 py-2" @click="immersivePromptVisible=false">收起</button></div>
@@ -6589,7 +6641,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=9a370383bf9c"></script>
+<script src="./assets/js/moyun.js?v=3f0988e4c6ae"></script>
 <!-- PART_1_END -->
 </body>
 </html>

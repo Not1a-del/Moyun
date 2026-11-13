@@ -88,7 +88,7 @@ test('handoff distinguishes a new chapter, continuation, and regeneration withou
 
 function runtime(options = {}) {
   const ref = value => ({ value });
-  const timers = new Map(), saves = [], runs = new Map(); let token = 0;
+  const timers = new Map(), saves = [], runs = new Map(), requestModuleKeys = []; let token = 0;
   const chapters = ref(options.chapters || [{ id:'c1', title:'第一章', content:'原正文。', branchId:'main' }]);
   const scope = {
     ref, computed:fn => ({ get value() { return fn(); } }),
@@ -99,15 +99,16 @@ function runtime(options = {}) {
     streamContent:ref(''), interruptedContent:ref(''), isInterrupted:ref(false), _activeGenerationRun:null, nextChapterPrompt:ref(''),
     splitSnowwingChapterStoryTime:text => ({ content:text }), getSnowwingChapterStoryTime:() => '', normalizeSnowwingStoryTime:()=>'',
     normalizeManualChapterTitle:title => title, getDisplayChapterTitle:ch => ch.title, syncChapterTitleReferences:()=>{}, notifyModMemoryChapterChanged:()=>{}, runModEventHandlers:()=>{},
+    staleCalls:[], markBodyContinuityStale:(chapter,no)=>scope.staleCalls.push({id:chapter.id,no}),
     getCleanWordCount:text => String(text).replace(/\s/g, '').length, buildDefaultChapterTitle:n => '第' + n + '章',
     uid:() => 'id-' + (++token), deepClone:value => JSON.parse(JSON.stringify(value)), showToast:()=>{}, saveData:()=>{},
     saveDataNow:async reason => { saves.push({ reason, novel:JSON.parse(JSON.stringify(scope.novel.value)), chapters:JSON.parse(JSON.stringify(chapters.value)) }); return true; },
-    requireModuleRequest:()=>({ model:'mock' }), fetchAdapterCompletion:options.fetch || (async()=>({ text:'【新内容开始】新增正文。【新内容结束】' })), getAdapterCompletionText:value => value.text, aiRawResponseHistory:[], rememberAiRawResponse:raw=>scope.aiRawResponseHistory.push({raw,at:Date.now()}),
+    requireModuleRequest:key=>{requestModuleKeys.push(key);return { model:'mock' };}, fetchAdapterCompletion:options.fetch || (async()=>({ text:'【新内容开始】新增正文。【新内容结束】' })), getAdapterCompletionText:value => value.text, aiRawResponseHistory:[], rememberAiRawResponse:raw=>scope.aiRawResponseHistory.push({raw,at:Date.now()}),
     parseAiStructured:ctx.parseAiStructured,
     parseChapter:raw => ({ title:'新章', content:raw }),
     stopActiveGeneration:()=>{ scope._activeGenerationRun = null; scope.streamContent.value = ''; },
     clearInterruptedDraftState:()=>{ scope.interruptedContent.value = ''; },
-    startGeneration:()=>{}, continueGeneration:()=>{},
+    startGeneration:options=>{scope.lastStartGenerationOptions=options;}, continueGeneration:options=>{scope.lastContinueGenerationOptions=options;},
     beginBookScopedAiRun(key) { const run = { key, id:++token, sourceBookId:scope.currentBookId.value, controller:new AbortController() }; runs.set(key, run); return run; },
     isBookScopedAiRunCurrent:run => runs.get(run.key) === run && !run.controller.signal.aborted && run.sourceBookId === scope.currentBookId.value,
     finishBookScopedAiRun:run => { if (runs.get(run.key) === run) runs.delete(run.key); }
@@ -123,7 +124,7 @@ function runtime(options = {}) {
     function toggleImmersive() { immersiveMode.value = !immersiveMode.value; }
     globalThis.api = { immersiveMode, immersiveToolMode, immersiveExpandTags, immersiveExpandTagTool, immersiveExpandWhole, immersiveExpandSource, immersiveExpandReview, immersiveExpandBusy, immersiveWritingText, immersiveDraftStatus, immersiveChapterIndex, immersiveNewDraft, immersiveNewTitle, enterImmersiveWriting, enterImmersiveExpansion, onImmersiveWritingInput, saveImmersiveWriting, runImmersiveExpansion, stopImmersiveExpansion, resetImmersiveTools, beginImmersiveWritingFromGeneration, applyImmersiveExpansion, updateImmersiveReview, discardImmersiveExpansion, setImmersiveExpandTagTool, toggleImmersiveExpandTag };
   `, context);
-  return { context, api:context.api, timers, saves, runs };
+  return { context, api:context.api, timers, saves, runs, requestModuleKeys };
 }
 
 test('handwriting autosaves the editable draft after two seconds, then Save changes the official text', async () => {
@@ -138,6 +139,7 @@ test('handwriting autosaves the editable draft after two seconds, then Save chan
   assert.equal(api.immersiveDraftStatus.value, '草稿已保存');
   api.saveImmersiveWriting();
   assert.equal(context.chapters.value[0].content, '手写修改。');
+  assert.deepEqual(context.staleCalls,[{id:'c1',no:1}]);
 });
 
 test('short stopped AI output becomes a new persisted draft and never pollutes the old chapter', () => {
@@ -165,6 +167,31 @@ test('stopping an in-flight expansion unlocks immediately and a late response ca
   resolve({ text:'【新内容开始】晚到结果。【新内容结束】' }); await pending;
   assert.equal(api.immersiveExpandReview.value, null);
   assert.equal(context.chapters.value[0].content, '原正文。');
+});
+
+test('沉浸 AI 扩写和续写使用独立路由，工具栏清楚标出 AI', async () => {
+  const { context, api, requestModuleKeys } = runtime();
+  api.enterImmersiveExpansion(); await api.runImmersiveExpansion();
+  assert.equal(requestModuleKeys.at(-1),'immersive-expand');
+  await vm.runInContext('sendImmersiveContinue()',context);
+  assert.equal(context.lastStartGenerationOptions.moduleKey,'immersive-continue');
+  context.isInterrupted.value=true;context.interruptedContent.value='中断正文';
+  await vm.runInContext('sendImmersiveContinue()',context);
+  assert.equal(context.lastContinueGenerationOptions.moduleKey,'immersive-continue');
+  const toolbar=source.slice(source.indexOf('class="immersive-toolbar"'),source.indexOf('class="immersive-continue-panel"'));
+  assert.match(toolbar,/手写当前章/);assert.match(toolbar,/AI扩写/);assert.match(toolbar,/title="调用 AI 根据当前写作内容续写/);assert.doesNotMatch(toolbar,/调用 AI 续写当前章节/);
+});
+
+test('沉浸 AI 扩写和续写拥有独立可搜索的上下文 API 配置', () => {
+  const moduleStart=source.indexOf('const moduleModelConfig = [');
+  const moduleConfig=source.slice(moduleStart,source.indexOf('    ];',moduleStart)+6);
+  const searchStart=source.indexOf('const settingsSearchCatalog = [');
+  const searchCatalog=source.slice(searchStart,source.indexOf('    ];',searchStart)+6);
+  assert.match(moduleConfig,/key:'immersive-expand', name:'沉浸模式 AI 扩写'/);
+  assert.match(moduleConfig,/key:'immersive-continue', name:'沉浸模式 AI 续写'/);
+  assert.ok(searchCatalog.includes("target:'settings-search-route-"));
+  assert.ok(searchCatalog.includes("title:'模块模型分配｜'+mod.name"));
+  assert.ok(searchCatalog.includes("keywords:mod.name+' '+mod.desc"));
 });
 
 test('switching branch rejects a late response even before view cleanup', async () => {

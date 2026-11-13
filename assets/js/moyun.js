@@ -738,6 +738,10 @@ function extractSnowwingCotAuthorContextFromMessages(messages) {
   }
   const totalText = outlineText
     .replace(detailedRe, '')
+    // 避免模型把后续章当成本章内容：预告与执行铁律都不是总纲证据。
+    .replace(/(?:^|\n)（后续预告 · 第[^\n]+）\n[\s\S]*?(?=\n\n|\n【|$)/g, '')
+    .replace(/(?:^|\n)以下只是后续章节的标题，用来判断本章写到哪里停；其中的事件一律不得在本章出现或铺垫。\n(?:第\d+章 · [^\n]*(?:\n|$))*/g, '')
+    .replace(/(?:^|\n)【铁律】[^\n]*(?:\n-[^\n]*)*/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   const detailedText = detailedParts.join('\n\n');
@@ -1230,7 +1234,61 @@ const ImageStore = (() => {
   };
 })();
 
-const BranchPanel={props:['route','activeId','selectedId','view','stats','panelStyle','context'],emits:['close','select','view','enter','rename','delete','note'],template:"<div data-moyun-modal=\"branch-panel\" class=\"moyun-branch-overlay\" @click.self=\"$emit('close')\" @keydown.esc.stop=\"$emit('close')\"><section role=\"dialog\" aria-modal=\"true\" aria-label=\"故事分支\" tabindex=\"-1\" data-moyun-modal-panel class=\"moyun-branch-panel\" :style=\"panelStyle\">\n<header class=\"flex items-center justify-between gap-2\"><b>故事分支 · {{ context }}</b><button type=\"button\" data-moyun-modal-close class=\"btn-ghost\" @click=\"$emit('close')\">关闭</button></header>\n<div class=\"moyun-wb-mode-tabs\"><button :class=\"{active:view==='list'}\" @click=\"$emit('view','list')\">列表</button><button :class=\"{active:view==='map'}\" @click=\"$emit('view','map')\">图</button></div>\n<div class=\"moyun-branch-content\"><div v-if=\"view==='list'\" class=\"space-y-2\"><button v-for=\"node in route.nodes\" :key=\"node.id\" class=\"moyun-branch-row\" :aria-pressed=\"selectedId===node.id\" @click=\"$emit('select',node.id)\"><span><b>{{ node.name }}</b><span v-if=\"node.id===activeId\"> · 当前</span><small>{{ node.statLabel }}</small></span><span>{{ selectedId===node.id?'已选':'选择' }}</span></button></div>\n<div v-else class=\"overflow-auto\"><svg :viewBox=\"'0 0 '+route.width+' '+route.height\" :style=\"{width:route.width+'px',height:route.height+'px'}\" role=\"img\" aria-label=\"分支路线图\"><path v-for=\"edge in route.edges\" :key=\"edge.to\" :d=\"'M '+(route.positions[edge.from].x*170+85)+' '+(route.positions[edge.from].y*80+48)+' C '+(route.positions[edge.from].x*170+85)+' '+(route.positions[edge.to].y*80+10)+', '+(route.positions[edge.to].x*170+85)+' '+(route.positions[edge.from].y*80+65)+', '+(route.positions[edge.to].x*170+85)+' '+(route.positions[edge.to].y*80+20)\" fill=\"none\" :stroke=\"edge.to===activeId?'var(--accent)':'var(--bd2)'\" stroke-width=\"2\"/><g v-for=\"node in route.nodes\" :key=\"node.id\" role=\"button\" tabindex=\"0\" :aria-label=\"node.name\" @click=\"$emit('select',node.id)\" @keydown.enter=\"$emit('select',node.id)\"><rect :x=\"route.positions[node.id].x*170+15\" :y=\"route.positions[node.id].y*80+20\" width=\"140\" height=\"38\" rx=\"8\" :fill=\"node.id===activeId?'var(--accent-soft)':'var(--bg-card)'\" :stroke=\"node.id===selectedId?'var(--accent)':'var(--bd)'\" :stroke-width=\"node.id===selectedId?3:1\"/><text :x=\"route.positions[node.id].x*170+85\" :y=\"route.positions[node.id].y*80+44\" text-anchor=\"middle\" font-size=\"12\" fill=\"var(--tx)\">{{ node.name.length>9?node.name.slice(0,9)+'…':node.name }}</text></g></svg></div></div>\n<div class=\"text-xs\" style=\"color:var(--tx3)\">{{ stats.outlineCount }} 章细纲 · {{ stats.darklineCount }} 条暗线 · 与主线不同 {{ stats.different }} 条 · 约 {{ stats.kb }} KB</div>\n<label v-if=\"selectedId!=='main'\" class=\"text-xs\">本分支走向<textarea :value=\"stats.note\" @change=\"$emit('note',$event.target.value)\" maxlength=\"200\" rows=\"2\" class=\"textarea-field mt-1\" placeholder=\"可不填，最多 200 字\"></textarea></label>\n<p class=\"text-xs\" style=\"color:var(--tx3)\">在已写正文的章节或细纲卡片上点“从这章分支”。{{ route.nodes.length>8?'分支较多，请留意占用并导出备份。':'' }}</p>\n<footer class=\"flex gap-2\"><button type=\"button\" class=\"btn-primary flex-1\" @click=\"$emit('enter')\">进入</button><button type=\"button\" class=\"btn-ghost flex-1\" :disabled=\"selectedId==='main'\" @click=\"$emit('rename')\">改名</button><button type=\"button\" class=\"btn-ghost flex-1\" :disabled=\"selectedId==='main'\" @click=\"$emit('delete')\">删除</button></footer>\n</section></div>"};
+const BranchPanel = {
+  props:['route','activeId','selectedId','view','stats','panelStyle','context'],
+  emits:['close','select','view','enter','rename','delete','note'],
+  data(){return {drag:null,suppressClick:false};},
+  computed:{
+    activePath(){
+      const ids=new Set([this.activeId]);let id=this.activeId;
+      while(id){const edge=this.route.edges.find(row=>row.to===id);if(!edge||ids.has(edge.from))break;ids.add(edge.from);id=edge.from;}
+      return ids;
+    }
+  },
+  mounted(){this.centerActive();},
+  watch:{view(){this.centerActive();}},
+  methods:{
+    centerActive(){this.$nextTick(()=>{const el=this.$refs.map,pos=this.route.positions[this.activeId];if(el&&pos){el.scrollLeft=Math.max(0,pos.x*220+110-el.clientWidth/2);el.scrollTop=Math.max(0,pos.y*112+54-el.clientHeight/2);}});},
+    select(id){if(!this.suppressClick)this.$emit('select',id);},
+    startDrag(event){if(event.pointerType==='mouse'&&event.button===0)this.drag={x:event.clientX,y:event.clientY,left:event.currentTarget.scrollLeft,top:event.currentTarget.scrollTop};},
+    dragMap(event){if(!this.drag)return;if(event.buttons!==1){this.endDrag();return;}const dx=event.clientX-this.drag.x,dy=event.clientY-this.drag.y;if(Math.abs(dx)+Math.abs(dy)>4){this.suppressClick=true;event.currentTarget.setPointerCapture(event.pointerId);event.currentTarget.scrollLeft=this.drag.left-dx;event.currentTarget.scrollTop=this.drag.top-dy;}},
+    endDrag(){this.drag=null;setTimeout(()=>{this.suppressClick=false;},0);}
+  },
+  template: `
+<div data-moyun-modal="branch-panel" class="moyun-branch-overlay" @click.self="$emit('close')" @keydown.esc.stop="$emit('close')">
+  <section role="dialog" aria-modal="true" aria-label="故事分支" tabindex="-1" data-moyun-modal-panel class="moyun-branch-panel" :style="panelStyle">
+    <header class="flex items-center justify-between gap-2"><b>故事分支 · {{ context }}</b><button type="button" data-moyun-modal-close class="btn-ghost" @click="$emit('close')">关闭</button></header>
+    <div class="moyun-wb-mode-tabs"><button type="button" :class="{active:view==='list'}" @click="$emit('view','list')">列表</button><button type="button" :class="{active:view==='map'}" @click="$emit('view','map')">图</button></div>
+    <div class="moyun-branch-content space-y-3">
+      <div v-if="view==='list'" class="space-y-2">
+        <div v-for="node in route.nodes" :key="node.id" class="moyun-branch-row" :data-selected="selectedId===node.id">
+          <button type="button" class="moyun-branch-select" :aria-pressed="selectedId===node.id" @click="select(node.id)"><b>{{ node.name }}</b><span v-if="node.id===activeId"> · 当前</span><small>{{ node.statLabel }}</small><small>约 {{ node.kb }} KB</small></button>
+          <button type="button" data-branch-enter :data-branch-id="node.id" class="btn-ghost shrink-0 px-3" :aria-label="'进入'+node.name" @click="$emit('enter',node.id)">进入</button>
+        </div>
+      </div>
+      <div v-else>
+        <p class="text-xs mb-2" style="color:var(--tx3)">点选节点后进入，双击可快速进入。拖动或滑动查看其他分支。</p>
+        <div ref="map" data-branch-map class="moyun-branch-map" @pointerdown="startDrag" @pointermove="dragMap" @pointerup="endDrag" @pointercancel="endDrag" @pointerleave="endDrag" @dragstart.prevent>
+          <svg :viewBox="'0 0 '+route.width+' '+route.height" :style="{width:route.width+'px',height:route.height+'px'}" role="group" aria-label="分支路线图">
+            <path v-for="edge in route.edges" :key="edge.to" :data-active-route="activePath.has(edge.to)" :d="'M '+(route.positions[edge.from].x*220+110)+' '+(route.positions[edge.from].y*112+88)+' C '+(route.positions[edge.from].x*220+110)+' '+(route.positions[edge.from].y*112+104)+', '+(route.positions[edge.to].x*220+110)+' '+(route.positions[edge.to].y*112)+', '+(route.positions[edge.to].x*220+110)+' '+(route.positions[edge.to].y*112+12)" fill="none" :stroke="activePath.has(edge.to)?'var(--accent)':'var(--bd2)'" stroke-width="2"/>
+            <g v-for="node in route.nodes" :key="node.id" data-branch-node :data-branch-id="node.id" class="moyun-branch-node" role="button" tabindex="0" :aria-label="node.name+'，'+node.statLabel+(node.id===activeId?'，当前分支':'')" :aria-pressed="selectedId===node.id" @click="select(node.id)" @dblclick="$emit('enter',node.id)" @keydown.enter.prevent="select(node.id)" @keydown.space.prevent="select(node.id)">
+              <title>{{ node.name }} · {{ node.statLabel }} · 约 {{ node.kb }} KB</title>
+              <rect :x="route.positions[node.id].x*220+10" :y="route.positions[node.id].y*112+12" width="200" height="76" rx="8" :fill="node.id===activeId?'var(--accent-soft)':'var(--bg-card)'" :stroke="node.id===selectedId||activePath.has(node.id)?'var(--accent)':'var(--bd)'" :stroke-width="node.id===selectedId?3:1"/>
+              <text :x="route.positions[node.id].x*220+22" :y="route.positions[node.id].y*112+34" font-size="13" font-weight="600" fill="var(--tx)">{{ (node.name.length>10?node.name.slice(0,10)+'…':node.name)+(node.id===activeId?' · 当前':'') }}</text>
+              <text v-for="(line,i) in node.statLines" :key="i" :x="route.positions[node.id].x*220+22" :y="route.positions[node.id].y*112+55+i*17" font-size="11" fill="var(--tx3)">{{ line }}</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="text-xs" style="color:var(--tx3)">已选：{{ stats.name }} · {{ stats.outlineCount }} 章细纲 · {{ stats.darklineCount }} 条暗线 · 与主线不同 {{ stats.different }} 条 · 约 {{ stats.kb }} KB</div>
+      <label v-if="selectedId!=='main'" class="block text-xs">本分支走向<textarea :value="stats.note" @change="$emit('note',$event.target.value)" maxlength="200" rows="2" class="textarea-field mt-1" placeholder="可不填，最多 200 字"></textarea></label>
+      <p class="text-xs" style="color:var(--tx3)">在章节或细纲卡片上点“从这章分支”，原章会保留。{{ route.nodes.length>8?'分支较多，请留意占用并导出备份。':'' }}</p>
+    </div>
+    <footer class="flex gap-2"><button type="button" class="btn-primary flex-1" @click="$emit('enter',selectedId)">进入</button><button type="button" class="btn-ghost flex-1" :disabled="selectedId==='main'" @click="$emit('rename')">改名</button><button type="button" class="btn-ghost flex-1" :disabled="selectedId==='main'" @click="$emit('delete')">删除</button></footer>
+  </section>
+</div>
+`
+};
 
 /* ──── Vue 应用 ──── */
 const ReviewPanel = {
@@ -1511,11 +1569,11 @@ createApp({
       if (changed) saveData();
       return changed;
     }
-    function getVolumeForChapter(chapterNo) { const no = Math.max(1, Number(chapterNo) || 1); return normalizeNovelVolumes(novel.value.volumes).find(v => no >= v.startChapter && no <= v.endChapter) || null; }
+    function getVolumeForChapter(chapterNo, volumes = normalizeNovelVolumes(novel.value.volumes)) { const no = Math.max(1, Number(chapterNo) || 1); return volumes.find(v => no >= v.startChapter && no <= v.endChapter) || null; }
     function getVolumeHandoff(volume, branchId = activeBranchId.value) {
       if (!volume || !branchId) return null;
       const row = volume.handoffSummaries && typeof volume.handoffSummaries === 'object' ? volume.handoffSummaries[String(branchId)] : null;
-      if (row && typeof row === 'object' && String(row.content || '').trim()) return row;
+      if (row && typeof row === 'object' && (String(row.content || row.actualOutline || '').trim() || row.edited)) return row;
       // 兼容本轮功能上线前的单分支旧字段；旧内容只有在当前分支为 main 时可继续使用。
       if (String(branchId) === 'main' && String(volume.actualSummary || '').trim()) return { content:String(volume.actualSummary), actualOutline:String(volume.actualOutline || ''), sourceHash:String(volume.handoffSourceHash || '') };
       return null;
@@ -3744,7 +3802,31 @@ createApp({
     const CONNECTION_CENTER_VERSION = 3;
     const CONNECTION_CREDENTIALS_DB_KEY = 'connection_credentials_v1';
     // v0.0.13 req2：新增 supplement（续写补写）模块 key，供二轮补写选择专用模型；未分配时自动跟随正文模块。
-    const CONNECTION_MODULE_KEYS = ['writing','supplement','settings','character','imagetext','outline','suggestion','review','summary','comments','translate'];
+    const CONNECTION_MODULE_KEYS = ['writing','supplement','immersive-expand','immersive-continue','settings','character','imagetext','outline','suggestion','review','summary','comments','translate','team-book','team-planner','team-settings','team-character','team-outline','team-review'];
+    const TEAM_BOOK_ROUTE_CONFIG = [
+      {key:'team-planner',name:'策划员',description:'把用户的一段话拆成可执行方案。',fallbackModule:'settings'},
+      {key:'team-settings',name:'设定员',description:'整理简介、世界观和设定。',fallbackModule:'settings'},
+      {key:'team-character',name:'角色员',description:'生成人物资料和角色卡。',fallbackModule:'character'},
+      {key:'team-outline',name:'大纲与细纲员',description:'生成全书大纲、卷纲、章节索引和分批细纲。',fallbackModule:'outline'},
+      {key:'team-review',name:'审查员',description:'检查用户要求、设定一致性和章节衔接。',fallbackModule:'settings'}
+    ];
+    const TEAM_BOOK_EXISTING_ROUTE_KEYS = {settings:'team-settings',character:'team-character',outline:'team-outline'};
+    function resolveTeamBookRouteSelection(moduleKey,moduleRoutes={},options={}) {
+      const key=String(moduleKey||'').trim(), ownId=String(moduleRoutes?.[key]?.profileId||'').trim();
+      if(key==='team-book') return {profileId:ownId,useDefault:!ownId&&options.useDefault===true};
+      const teamRoute=TEAM_BOOK_ROUTE_CONFIG.find(item=>item.key===key);
+      if(teamRoute) {
+        if(ownId) return {profileId:ownId,sourceKey:key};
+        const sharedId=String(moduleRoutes?.['team-book']?.profileId||'').trim();
+        if(sharedId) return {profileId:sharedId,sourceKey:'team-book'};
+        if(options.useDefault===true) return {profileId:'',useDefault:true,sourceKey:'default'};
+        return {profileId:'',fallbackKey:teamRoute.fallbackModule,sourceKey:teamRoute.fallbackModule};
+      }
+      const teamOverrideKey=options.applyToExisting===false?'':(TEAM_BOOK_EXISTING_ROUTE_KEYS[key]||'');
+      const teamOverrideId=String(moduleRoutes?.[teamOverrideKey]?.profileId||'').trim();
+      if(teamOverrideId) return {profileId:teamOverrideId,sourceKey:teamOverrideKey};
+      return {profileId:ownId,sourceKey:ownId?key:'default'};
+    }
     const PROVIDER_TEMPLATES = Object.freeze([
       { id:'openai-compatible', name:'OpenAI 兼容接口', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true },
       { id:'kimi-open-platform', name:'Kimi 开放平台', adapterId:'openai-compatible', source:'builtin-template', canDiscoverModels:true, defaultBaseUrl:'https://api.moonshot.cn/v1' },
@@ -3876,6 +3958,47 @@ createApp({
       return String(connectionCenter.value.moduleRoutes?.[String(moduleKey || '')]?.profileId || '');
     }
 
+    function getModuleRouteSelection(moduleKey, skipTeamRoutes = false) {
+      return resolveTeamBookRouteSelection(moduleKey,connectionCenter.value.moduleRoutes,{
+        applyToExisting:!skipTeamRoutes && settings.value.teamBookApplyRoutesToExisting !== false,
+        useDefault:settings.value.teamBookUseDefaultProfile === true
+      });
+    }
+
+    function getTeamBookUnifiedRouteMode() {
+      if (settings.value.teamBookUseDefaultProfile === true) return '__default__';
+      return getModuleRouteProfileId('team-book') || '__module_routes__';
+    }
+
+    function setTeamBookUnifiedRoute(value) {
+      const id = value === '__default__' || value === '__module_routes__' ? '' : String(value || '').trim();
+      if (id) {
+        const status = getConnectionProfileStatus(getConnectionProfile(id));
+        if (!status.ok) { showToast(status.reason || '该 API 配置不可用', 'error'); return false; }
+      }
+      settings.value.teamBookUseDefaultProfile = value === '__default__';
+      connectionCenter.value.moduleRoutes['team-book'] = {profileId:id};
+      saveDataNow('保存团队开书 API 配置');
+      return true;
+    }
+
+    function getTeamBookRouteSummary(moduleKey) {
+      const selection = getModuleRouteSelection(moduleKey);
+      const resolved = selection.fallbackKey
+        ? resolveModuleConnection(selection.fallbackKey,{skipTeamRoutes:true})
+        : resolveModuleConnection(moduleKey);
+      return resolved.profile ? getConnectionProfileDisplay(resolved.profile) : (selection.useDefault ? '跟随全局默认 API 配置' : resolved.reason || '沿用现有模块配置');
+    }
+
+    function setTeamBookApplyRoutesToExisting(value) {
+      settings.value.teamBookApplyRoutesToExisting = !!value;
+      saveDataNow('保存团队开书模型联动设置');
+    }
+
+    function openTeamBookRouteSettings() {
+      activeSettingsTab.value = 'context'; teamBookRoutesOpen.value = true; showSettings_modal.value = true;
+    }
+
     // v0.0.13 req2：续写补写模块「跟随正文模块」时在 UI 上显示实际跟随的配置。
     function getSupplementFollowProfile() {
       const resolved = resolveModuleConnection('supplement');
@@ -3903,6 +4026,7 @@ createApp({
     function resetModuleRoutes() {
       const doReset = () => {
         CONNECTION_MODULE_KEYS.forEach(key => { connectionCenter.value.moduleRoutes[key] = { profileId:'' }; });
+        settings.value.teamBookUseDefaultProfile = false;
         saveDataNow('重置模块 API 配置分配');
         showToast('已全部改为跟随默认配置', 'success');
       };
@@ -4895,7 +5019,7 @@ createApp({
     async function runImmersiveExpansion() {
       if (immersiveExpandBusy.value || immersiveExpandReview.value) return;
       if (immersiveExpandMode.value === 'range' && !getImmersiveExpansionBounds(immersiveExpandSource.value, 'range', immersiveExpandTags.value)) { showToast('请先放好起、止标签', 'warning'); return; }
-      const request = requireModuleRequest('writing', '正文生成 API'); if (!request) return;
+      const request = requireModuleRequest('immersive-expand', '沉浸模式 AI 扩写 API'); if (!request) return;
       const source = immersiveExpandSource.value; if (!source.trim()) { showToast('正文为空，无法扩写', 'warning'); return; }
       const run = beginBookScopedAiRun('immersive-expansion'); if (!run) return;
       Object.assign(run, { source, branchId:activeBranchId.value, chapterId:immersiveWritingChapter.value?.id });
@@ -4970,7 +5094,7 @@ createApp({
       immersivePromptVisible.value = false;
       if (immersiveToolMode.value === 'write') await saveDataNow('AI续写前保留手写草稿');
       immersiveToolMode.value = '';
-      if (isInterrupted.value && interruptedContent.value.trim()) continueGeneration(); else startGeneration({ mode:'generate' });
+      if (isInterrupted.value && interruptedContent.value.trim()) continueGeneration({moduleKey:'immersive-continue'}); else startGeneration({mode:'generate',moduleKey:'immersive-continue'});
     }
     function beginImmersiveWritingFromGeneration() {
       const run = _activeGenerationRun;
@@ -6752,6 +6876,7 @@ function copyLastChapterContextText() {
       const outlineLimit = settings.value.contextCompactMode ? Math.min(Number(settings.value.contextMaxOutlineChars) || 5000, 5000) : (Number(settings.value.contextMaxOutlineChars) || 8000);
       let result = '';
       let currentOutline = '';
+      let hasFutureTitles = false;
 
       chapterOutlines.value.forEach((co, idx) => {
         const chNum = idx + 1;
@@ -6765,8 +6890,10 @@ function copyLastChapterContextText() {
             result += '（前文参考 · 第' + chNum + '章 · 已写完，仅供了解前情）\n';
             result += clipContextText(stripOutlineLengthDirectives(co.content || ''), 200, { keepHead: true }) + '\n\n';
           } else {
-            result += '（后续预告 · 第' + chNum + '章 · 绝对禁止提前展开）\n';
-            result += clipContextText(stripOutlineLengthDirectives(co.content || ''), 100, { keepHead: true }) + '...\n\n';
+            // 避免模型把后续章当成本章内容：这里只提供停笔边界的标题，不发送后续细纲正文。
+            if (!hasFutureTitles) result += '以下只是后续章节的标题，用来判断本章写到哪里停；其中的事件一律不得在本章出现或铺垫。\n';
+            hasFutureTitles = true;
+            result += '第' + chNum + '章 · ' + (co.title || '') + '\n';
           }
         }
       });
@@ -6928,6 +7055,7 @@ function copyLastChapterContextText() {
 
     // v0.0.19 项目5：一段话团队开书。结果先放内存草稿，确认并完成审查后才创建书并一次写入。
     const newBookMode = ref('manual');
+    const teamBookRoutesOpen = ref(false);
     const teamPhase = ref('input');
     const teamBrief = ref('');
     const teamReplanInput = ref('');
@@ -6958,6 +7086,7 @@ function copyLastChapterContextText() {
       newBookMode.value = 'team'; oneKeyPhase.value = 'config'; teamPhase.value = 'input';
       teamBrief.value = ''; teamReplanInput.value = ''; teamPlan.value = null; teamPlanRaw.value = '';
       teamPlanNeedsManual.value = false; teamBlocks.value = []; teamDraft.value = null; teamReview.value = null; teamRawView.value = '';
+      teamBookRoutesOpen.value = false;
       teamPlanOptions.unfinishedMode = false; teamPlanOptions.chapterCount = 10; showNewBook.value = true; newBookCloseBaseline = getNewBookCloseSnapshot();
     }
     function cancelTeamPlanner() {
@@ -6967,6 +7096,7 @@ function copyLastChapterContextText() {
       if (teamPhase.value === 'planning') teamPhase.value = 'input';
     }
     function backToManualBook() {
+      if (keepTeamDraftBeforeExit()) return false;
       cancelTeamPlanner();
       teamExistingBookId = ''; teamAppendMode = false;
       newBookMode.value = 'manual'; oneKeyPhase.value = 'config';
@@ -7008,14 +7138,14 @@ function copyLastChapterContextText() {
       return '你是策划员。把用户的一段话拆成可执行的团队开书方案，只输出短 JSON，不要代码块，不要解释。JSON 必须包含 userFacts（每项含 text 和 source，用户明确内容标“用户”）、titleCandidates、genre、tone、characters（name、summary）、volumes（number、title、startChapter、endChapter、summary、writingRequirement、bridge）、unfinishedMode、chapterCount、uncertainties、tasks。默认一段 10 章、1 卷；用户明确章数或卷数时照用户要求。未完模式必须明确禁止写结局。用户原话：\n' + String(brief || '').trim();
     }
     async function splitTeamPlan(brief = teamBrief.value) {
-      const request = getModuleRequestConfig('settings');
+      const request = getModuleRequestConfig('team-planner');
       if (!request.ok) { showToast(request.reason || '请先到连接中心配置策划员模型', 'error'); return false; }
       const text = String(brief || '').trim(); if (!text) { showToast('先写一段你的想法', 'error'); return false; }
       teamBrief.value = text; teamPhase.value = 'planning'; teamPlanRaw.value = ''; teamPlanNeedsManual.value = false;
       const runId = ++_teamRunId;
       const controller = new AbortController(); _teamAbort = controller;
       try {
-        const raw = await okStreamFetch(buildTeamPlannerPrompt(text),'settings',controller.signal,{taskType:'teamPlanner',retries:1});
+        const raw = await okStreamFetch(buildTeamPlannerPrompt(text),'team-planner',controller.signal,{taskType:'teamPlanner',retries:1});
         if (controller.signal.aborted || runId !== _teamRunId) return false;
         teamPlanRaw.value = raw;
         const repaired = await repairAiStructured(raw,{root:'object',required:['userFacts','titleCandidates'],request,signal:controller.signal,isCurrent:()=>runId===_teamRunId,format:'JSON 对象，包含 userFacts、titleCandidates、characters、volumes、chapterCount、tasks；只整理原文，不编造事实'});
@@ -7056,7 +7186,7 @@ function copyLastChapterContextText() {
     }
     async function runTeamBlock(id, options = {}) {
       const plan = teamPlan.value || teamPlanFallback(teamBrief.value); const controller = options.controller || _teamAbort; const row = teamBlocks.value.find(item => item.id === id); if (row) { row.status = 'running'; row.startedAt = Date.now(); row.error = ''; }
-      const started = Date.now(); const modelKey = id === 'settings' ? 'settings' : id === 'characters' ? 'character' : 'outline';
+      const started = Date.now(); const modelKey = id === 'settings' ? 'team-settings' : id === 'characters' ? 'team-character' : 'team-outline';
       try {
         if (controller?.signal?.aborted) throw new DOMException('团队开书已停止','AbortError');
         const raw = await okStreamFetch(teamSpecialistPrompt(id, plan), modelKey, controller?.signal, {taskType:'team-' + id, retries:1});
@@ -7084,7 +7214,7 @@ function copyLastChapterContextText() {
         for (let attempt=0; missing.length && attempt<3; attempt++) {
           if (controller?.signal?.aborted) throw new DOMException('团队开书已停止','AbortError');
           const prompt = teamDetailPrompt(plan,volume,setting,outline) + (attempt || kept.size ? '\n上次错误：缺少第' + missing.join('、') + '章。本次只补这些章，其他章已经保留，禁止重复输出。' : '');
-          raw = await okStreamFetch(prompt,'outline',controller?.signal,{taskType:'team-detailed-outline',retries:0});
+          raw = await okStreamFetch(prompt,'team-outline',controller?.signal,{taskType:'team-detailed-outline',retries:0});
           if (controller?.signal?.aborted) throw new DOMException('团队开书已停止','AbortError');
           if (row) row.raw = raw;
           const check = parseAiStructured(raw,{marked:true});
@@ -7138,11 +7268,11 @@ function copyLastChapterContextText() {
       return unify({title:plan.titleCandidates?.[0] || settingsResult.title || '新书',synopsis:settingsResult.synopsis || '',worldView:settingsResult.worldView || '',negativePrompt:settingsResult.negativePrompt || '',outline:outlineResult.outline || '',characters,volumes,chapterOutlines:details,chapterIndexDrafts,foreshadowMatrix:[],unfinishedMode:!!plan.unfinishedMode,nameIssues,needsFill:[]});
     }
     async function reviewTeamDraft(draft, controller) {
-      const request = getModuleRequestConfig('settings'); if (!request.ok) return {status:'incomplete',message:'审查员模型未配置'};
+      const request = getModuleRequestConfig('team-review'); if (!request.ok) return {status:'incomplete',message:'审查员模型未配置'};
       const summaries = (draft.chapterOutlines || []).map(item => '第' + item.chapterNo + '章 ' + item.title + '：' + String(item.content || '').slice(0,80)).join('\n');
       const prompt = '你是审查员，只读摘要，不读正文全文。请输出 JSON：{"status":"ok|issues","facts":[{"text":"","fulfilled":true,"reason":""}],"issues":[{"kind":"","message":"","fixable":false}]}。检查用户原话是否落实、名字和卷范围是否一致、章节是否断层，未完模式是否偷偷写结局。\n' + buildTeamSettingTable(teamPlan.value) + '\n【大纲】' + String(draft.outline || '').slice(0,6000) + '\n【卷纲】' + JSON.stringify(draft.volumes) + '\n【细纲摘要】\n' + summaries;
       try {
-        const raw = await okStreamFetch(prompt,'settings',controller?.signal,{taskType:'team-review',retries:0});
+        const raw = await okStreamFetch(prompt,'team-review',controller?.signal,{taskType:'team-review',retries:0});
         const parsed = parseAiStructuredJson(raw,'object');
         const judged = Array.isArray(parsed.facts) ? parsed.facts : [];
         const planned = Array.isArray(teamPlan.value?.userFacts) ? teamPlan.value.userFacts : [];
@@ -7163,23 +7293,73 @@ function copyLastChapterContextText() {
       }
       catch (error) { return {status:'incomplete',message:'审查未完成：' + (error?.message || '返回格式无法解析'),raw:String(error?.partialText || '')}; }
     }
-    async function startTeamGeneration() {
-      const plan = teamPlan.value || teamPlanFallback(teamBrief.value); const missing = ['settings','character','outline'].filter(key => !getModuleRequestConfig(key).ok); if (missing.length) { showToast('开始前请配置模型：' + missing.map(key => moduleModelConfig.find(item => item.key === key)?.name || key).join('、'),'error'); return false; }
+    function getTeamBlockRequestKey(id) {
+      if (id === 'settings') return 'team-settings';
+      if (id === 'characters') return 'team-character';
+      if (id === 'outline') return 'team-outline';
+      if (id === 'review') return 'team-review';
+      return 'team-outline';
+    }
+    function buildTeamBlockRows(plan) {
+      const volumes = plan.volumes?.length ? plan.volumes : teamPlanFallback(teamBrief.value).volumes;
+      const batchSize = Math.min(10, Math.max(1, Number(settings.value.detailedOutlineBatchSize) || 5));
+      const rows = [{id:'settings',label:'设定员',status:'pending'},{id:'characters',label:'角色员',status:'pending'},{id:'outline',label:'大纲卷纲员',status:'pending'}];
+      volumes.forEach(volume => buildTeamChapterBatches(volume,batchSize).forEach(batch => rows.push({id:'details-' + volume.number + '-' + batch.startChapter,label:'细纲员 · 第' + volume.number + '卷 · ' + batch.startChapter + '-' + batch.endChapter + '章',status:'pending',volume:Object.assign({},volume,batch)})));
+      rows.push({id:'review',label:'审查员',status:'pending'});
+      return rows;
+    }
+    function syncTeamDraftFromBlocks() {
+      const specialists = Object.fromEntries(teamBlocks.value.filter(item => ['settings','characters','outline'].includes(item.id) && item.result).map(item => [item.id,item.result]));
+      teamDraft.value = buildTeamDraft(specialists,collectTeamDetailResults());
+      teamDraft.value.needsFill = teamBlocks.value.filter(item => item.id !== 'review' && item.status !== 'done').map(item => item.label);
+      return teamDraft.value;
+    }
+    async function runTeamReview(controller) {
+      let row = teamBlocks.value.find(item => item.id === 'review');
+      if (!row) { row = {id:'review',label:'审查员',status:'pending'}; teamBlocks.value.push(row); }
+      if (!teamDraft.value?.outline) {
+        teamReview.value = {status:'incomplete',message:'大纲员未完成，审查无法运行'};
+        row.status = 'error'; row.error = teamReview.value.message; return teamReview.value;
+      }
+      row.status = 'running'; row.error = '';
+      const result = await reviewTeamDraft(teamDraft.value,controller);
+      if (controller?.signal?.aborted) return result;
+      teamReview.value = result; row.result = result;
+      row.status = result.status === 'incomplete' ? 'error' : 'done';
+      row.error = result.status === 'incomplete' ? result.message : '';
+      return result;
+    }
+    async function startTeamGeneration(options = {}) {
+      const resume = options.resume === true, plan = teamPlan.value || teamPlanFallback(teamBrief.value);
+      if (!resume) { teamBlocks.value = buildTeamBlockRows(plan); teamDraft.value = null; teamReview.value = null; teamRawView.value = ''; }
+      if (!teamBlocks.value.length) { showToast('没有可继续的团队任务，请重新接受开书方案','warning'); return false; }
+      const contentPending = teamBlocks.value.some(item => item.id !== 'review' && item.status !== 'done');
+      const reviewRow = teamBlocks.value.find(item => item.id === 'review');
+      if (resume && contentPending && reviewRow?.status === 'done') { reviewRow.status = 'pending'; reviewRow.error = ''; }
+      const pendingRows = teamBlocks.value.filter(item => item.status !== 'done');
+      if (!pendingRows.length) { showToast('所有团队区块都已完成，无需重试','info'); return false; }
+      const requiredKeys = [...new Set(pendingRows.map(item => getTeamBlockRequestKey(item.id)))];
+      const missing = requiredKeys.filter(key => !getModuleRequestConfig(key).ok);
+      if (missing.length) { showToast('团队开书 API 未就绪：' + missing.map(key => TEAM_BOOK_ROUTE_CONFIG.find(item => item.key === key)?.name || key).join('、') + '。可先调整“全局设置 → 上下文 → 团队开书”配置','error'); return false; }
       if (!(await confirmStorageHeadroom('一段话开书'))) return false;
-      const runId = ++_teamRunId; _teamAbort = new AbortController(); const controller = _teamAbort; teamPhase.value = 'generating'; oneKeyPhase.value = 'generating'; teamDraft.value = null; teamReview.value = null; teamRawView.value = '';
-      const volumes = plan.volumes || teamPlanFallback(teamBrief.value).volumes; teamBlocks.value = [{id:'settings',label:'设定员',status:'pending'},{id:'characters',label:'角色员',status:'pending'},{id:'outline',label:'大纲卷纲员',status:'pending'}];
-      await Promise.all(['settings','characters','outline'].map(id => runTeamBlock(id,{controller}).catch(() => null))); if (controller.signal.aborted || runId !== _teamRunId) return false;
+      const runId = ++_teamRunId; _teamAbort = new AbortController(); const controller = _teamAbort;
+      teamPhase.value = 'generating'; oneKeyPhase.value = 'generating'; teamReview.value = null;
+      pendingRows.forEach(row => { row.status = 'pending'; row.error = ''; });
+      const specialistRows = pendingRows.filter(row => ['settings','characters','outline'].includes(row.id));
+      await Promise.all(specialistRows.map(row => runTeamBlock(row.id,{controller}).catch(() => null)));
+      if (controller.signal.aborted || runId !== _teamRunId) return false;
+      const volumes = plan.volumes?.length ? plan.volumes : teamPlanFallback(teamBrief.value).volumes;
       const batchSize = Math.min(10, Math.max(1, Number(settings.value.detailedOutlineBatchSize) || 5));
       const volumeBatches = volumes.map(volume => ({volume,batches:buildTeamChapterBatches(volume,batchSize)}));
-      volumeBatches.forEach(({volume,batches}) => batches.forEach(batch => teamBlocks.value.push({id:'details-' + volume.number + '-' + batch.startChapter,label:'细纲员 · 第' + volume.number + '卷 · ' + batch.startChapter + '-' + batch.endChapter + '章',status:'pending',volume:Object.assign({},volume,batch)})));
       const settingResult = teamBlocks.value.find(item => item.id === 'settings')?.result || {};
       const outlineResult = teamBlocks.value.find(item => item.id === 'outline')?.result || {};
-      await Promise.all(volumeBatches.map(async ({batches}) => {
+      await Promise.all(volumeBatches.map(async ({volume,batches}) => {
         let previousBatch = '';
         for (const batch of batches) {
           if (controller.signal.aborted || runId !== _teamRunId) return;
-          const row = teamBlocks.value.find(item => item.id === 'details-' + (volumes.find(volume => batch.startChapter >= volume.startChapter && batch.startChapter <= volume.endChapter)?.number) + '-' + batch.startChapter);
+          const row = teamBlocks.value.find(item => item.id === 'details-' + volume.number + '-' + batch.startChapter);
           if (!row) continue;
+          if (row.status === 'done') { previousBatch = (row.result?.outlines || []).slice(-1).map(item => '第' + item.chapterNo + '章 ' + item.title + '：' + String(item.content || '').slice(-200)).join(''); continue; }
           try {
             const result = await runTeamDetailBlock(row.id,Object.assign({},row.volume,{previousBatch}),settingResult,outlineResult,{controller});
             previousBatch = (result.outlines || []).slice(-1).map(item => '第' + item.chapterNo + '章 ' + item.title + '：' + String(item.content || '').slice(-200)).join('');
@@ -7187,15 +7367,16 @@ function copyLastChapterContextText() {
         }
       }));
       if (controller.signal.aborted || runId !== _teamRunId) return false;
-      const specialistResults = Object.fromEntries(teamBlocks.value.filter(item => ['settings','characters','outline'].includes(item.id) && item.result).map(item => [item.id,item.result]));
-      teamDraft.value = buildTeamDraft(specialistResults,collectTeamDetailResults());
-      teamReview.value = teamDraft.value.outline ? await reviewTeamDraft(teamDraft.value,controller) : {status:'incomplete',message:'大纲员未完成，审查无法运行'};
+      syncTeamDraftFromBlocks();
+      if (teamBlocks.value.find(item => item.id === 'review')?.status !== 'done') await runTeamReview(controller);
       if (controller.signal.aborted || runId !== _teamRunId) return false;
-      teamDraft.value.needsFill = teamBlocks.value.filter(item => item.status === 'error').map(item => item.label);
+      syncTeamDraftFromBlocks();
       teamPhase.value = 'done'; oneKeyPhase.value = 'done';
-      if (teamDraft.value.needsFill.length) showToast('部分团队任务失败，可单独重试；当前书尚未写入','warning');
+      const incomplete = teamBlocks.value.some(item => item.status !== 'done');
+      if (incomplete) showToast('部分团队任务未完成，已保留现有内容；可重试未完成区块或调整模型','warning');
       return true;
     }
+    function retryIncompleteTeamBlocks() { return startTeamGeneration({resume:true}); }
     function collectTeamDetailResults() {
       return Object.fromEntries(teamBlocks.value.filter(item => item.id.indexOf('details-') === 0 && item.result).map(item => [item.id.slice(8),item.result]));
     }
@@ -7229,10 +7410,13 @@ function copyLastChapterContextText() {
     async function commitPartialTeamDraft() { return commitTeamDraft({partial:true}); }
     async function retryTeamBlock(id) {
       const controller = (_teamAbort && !_teamAbort.signal.aborted) ? _teamAbort : new AbortController(); _teamAbort = controller;
+      const row = teamBlocks.value.find(item => item.id === id); if (!row || row.status === 'running') return null;
+      teamPhase.value = 'generating'; oneKeyPhase.value = 'generating';
+      if (row.id !== 'review') { const reviewRow=teamBlocks.value.find(item=>item.id==='review'); if(reviewRow){reviewRow.status='pending';reviewRow.error='';} teamReview.value=null; }
       try {
-        const row = teamBlocks.value.find(item => item.id === id); if (!row) return null;
         let result;
-        if (row.id.indexOf('details-') === 0) {
+        if (row.id === 'review') result = await runTeamReview(controller);
+        else if (row.id.indexOf('details-') === 0) {
           const setting = teamBlocks.value.find(item => item.id === 'settings')?.result || {};
           const outline = teamBlocks.value.find(item => item.id === 'outline')?.result || {};
           const volumeNo = Number(row.volume?.number) || 0, start = Number(row.volume?.startChapter) || 0;
@@ -7240,19 +7424,29 @@ function copyLastChapterContextText() {
           const previousBatch = previous ? previous.result.outlines.slice(-1).map(item => '第' + item.chapterNo + '章 ' + item.title + '：' + String(item.content || '').slice(-200)).join('') : '';
           result = await runTeamDetailBlock(id,{...(row.volume || {}),previousBatch},setting,outline,{controller});
         } else result = await runTeamBlock(id,{controller});
-        row.result = result;
-        const specialists = Object.fromEntries(teamBlocks.value.filter(item => ['settings','characters','outline'].includes(item.id) && item.result).map(item => [item.id,item.result]));
-        teamDraft.value = buildTeamDraft(specialists,collectTeamDetailResults());
-        teamDraft.value.needsFill = teamBlocks.value.filter(item => item.status === 'error').map(item => item.label);
-        teamReview.value = teamDraft.value.outline
-          ? await reviewTeamDraft(teamDraft.value,controller)
-          : {status:'incomplete',message:'大纲员未完成，审查无法运行'};
-        if (!teamBlocks.value.some(item => item.status === 'error' || item.status === 'running' || item.status === 'pending')) { teamPhase.value = 'done'; oneKeyPhase.value = 'done'; }
+        if (controller.signal.aborted) return null;
+        if (row.id === 'review') {
+          if (result.status === 'incomplete') showToast(result.message || '审查未完成，可调整模型后重试','warning');
+        } else {
+          row.result = result; syncTeamDraftFromBlocks();
+          await runTeamReview(controller);
+          syncTeamDraftFromBlocks();
+        }
+        teamPhase.value = 'done'; oneKeyPhase.value = 'done';
         return result;
-      } catch (error) { showToast('重试失败：' + (error?.message || '请检查模型配置'),'error'); return null; }
+      } catch (error) {
+        if (!controller.signal.aborted) { syncTeamDraftFromBlocks(); teamPhase.value = 'done'; oneKeyPhase.value = 'done'; showToast('重试失败：' + (error?.message || '请检查模型配置') + '；已完成内容仍保留','error'); }
+        return null;
+      }
     }
     function viewTeamRaw(id) { const row = teamBlocks.value.find(item => item.id === id); teamRawView.value = row?.raw || '该块没有可查看的原文'; }
-    function stopTeamBook() { if (_teamAbort) _teamAbort.abort(); _teamRunId++; teamPhase.value = 'done'; oneKeyPhase.value = 'done'; teamDraft.value = null; teamBlocks.value.forEach(row => { if (row.status === 'running' || row.status === 'pending') row.status = 'stopped'; }); showToast('已停止团队开书，书库没有写入半成品','info'); }
+    function stopTeamBook() {
+      if (_teamAbort) _teamAbort.abort(); _teamAbort = null; _teamRunId++;
+      teamBlocks.value.forEach(row => { if (row.status === 'running' || row.status === 'pending') { row.status = 'stopped'; row.error = '已停止，可重试该区块'; } });
+      syncTeamDraftFromBlocks(); teamReview.value = {status:'incomplete',message:'团队任务已停止。已完成内容和已返回的细纲部分均已保留；可重试未完成区块，也可调整 API 后再重试。'};
+      teamPhase.value = 'done'; oneKeyPhase.value = 'done';
+      showToast('已停止团队开书，已完成内容已保留；可重试未完成区块或调整 API 后再试','info');
+    }
 
     function getOneKeyDetailedChapterCount() {
       return Math.max(1, Math.min(50, Number(okCfg.detailedChapters) || 1));
@@ -9423,6 +9617,8 @@ function copyLastChapterContextText() {
       // v0.0.13 req2：新增 supplement（续写补写）模块，用于二轮补写选择专用模型。
       { key:'writing', name:'正文生成', desc:'负责正文续写、重写/润色、章节标题修改和正文任务中的摘要生成；从书架的写作区发起。' },
       { key:'supplement', name:'续写补写', desc:'首轮正文未达到目标字数时的追加请求，也可用于补齐缺失摘要。默认跟随“正文生成”配置以复用缓存；单独分配后会改用此处选择的模型。' },
+      { key:'immersive-expand', name:'沉浸模式 AI 扩写', desc:'只负责沉浸模式里的 AI 扩写与改写；「手写当前章」不会调用 AI。未单独分配时跟随默认配置。' },
+      { key:'immersive-continue', name:'沉浸模式 AI 续写', desc:'只负责沉浸模式工具栏里的 AI 续写；普通正文生成继续使用“正文生成”配置。未单独分配时跟随默认配置。' },
       { key:'settings', name:'设定模块', desc:'生成或补全作品简介、世界观、题材和一键开书中的设定内容；从本书“设定”页面或新建书籍流程发起。' },
       { key:'character', name:'角色模块', desc:'创建角色卡、补全人物资料、生成角色标签/台词/关系等文本；从“角色”页面发起。' },
       { key:'imagetext', name:'封面/立绘', desc:'为封面或角色立绘整理、提取和翻译文本关键词；这是文字模型路由，不负责生成图片本身。' },
@@ -9435,9 +9631,11 @@ function copyLastChapterContextText() {
     ];
 
 
-    function getModelForModule(moduleKey) {
+    function getModelForModule(moduleKey, skipTeamRoutes = false) {
       const key = String(moduleKey || '').trim();
-      const explicitRouteId = connectionCenter.value?.moduleRoutes?.[key]?.profileId || '';
+      const selection = getModuleRouteSelection(key,skipTeamRoutes);
+      if (selection.fallbackKey) return getModelForModule(selection.fallbackKey,true);
+      const explicitRouteId = selection.profileId || '';
       if (explicitRouteId) {
         const profile = connectionCenter.value.profiles?.find(item => item.id === explicitRouteId);
         return profile?.defaultModel || '';
@@ -9448,15 +9646,19 @@ function copyLastChapterContextText() {
     }
 
     // 统一解析模块所使用的 API 配置；网页版运行时只认连接中心。
-    function resolveModuleConnection(moduleKey) {
+    function resolveModuleConnection(moduleKey, options = {}) {
       const key = String(moduleKey || '').trim();
       if (!CONNECTION_MODULE_KEYS.includes(key)) {
         return { ok:false, reason:'未知或未登记的模块 key：' + (key || '空'), source:'connection-center', profile:null };
       }
       const center = normalizeConnectionCenter(connectionCenter.value);
-      const route = center.moduleRoutes[key] || { profileId:'' };
-      let hasExplicitRoute = !!String(route.profileId || '').trim();
-      const routeId = hasExplicitRoute ? String(route.profileId).trim() : '';
+      const selection = resolveTeamBookRouteSelection(key,center.moduleRoutes,{
+        applyToExisting:!options.skipTeamRoutes && settings.value.teamBookApplyRoutesToExisting !== false,
+        useDefault:settings.value.teamBookUseDefaultProfile === true
+      });
+      if (selection.fallbackKey) return resolveModuleConnection(selection.fallbackKey,{skipTeamRoutes:true});
+      const hasExplicitRoute = !!String(selection.profileId || '').trim();
+      const routeId = hasExplicitRoute ? String(selection.profileId).trim() : '';
       // v0.0.13 req2：supplement（续写补写）模块未分配时自动跟随 writing（正文）模块的配置，
       // 与首轮请求保持同源，厂商侧前缀缓存才能命中；显式分配后才使用自己的配置。
       if (!hasExplicitRoute && key === 'supplement') {
@@ -31394,6 +31596,8 @@ function getModHubPermissionLabels(mod) {
       syncChapterTitleReferences(ch, idx, ch.title);
       ch.wordCount = getCleanWordCount(ch.content); ch.isEditing = false;
       notifyModMemoryChapterChanged(ch, 'source-changed-by-edit');
+      // 正文手改后卷交接也需重新核对，避免下一卷继续读取过期内容。
+      markBodyContinuityStale(ch, idx + 1);
       saveData(); showToast('已保存', 'success');
       runModEventHandlers('chapterSaved', { source: 'saveChapterEdit', chapterIndex: idx, chapterId: ch.id, chapterTitle: ch.title || '' });
     }
@@ -32549,7 +32753,7 @@ function getModHubPermissionLabels(mod) {
     function buildBranchRouteMap(rows = [], chapters = []) {
       const list=(Array.isArray(rows)?rows:[]).filter(row=>row?.id),source=Array.isArray(chapters)?chapters:[],main=source.filter(ch=>!ch?.branchId||ch.branchId==='main');
       const nodes=list.map((row,index)=>{
-        const id=String(row.id),fork=Number(row.forkIndex),forkChapter=id==='main'?0:(Number.isInteger(fork)?Math.max(0,fork+1):0);
+        const id=String(row.id),found=main.findIndex(ch=>ch?.id===row.forkFromChapterId),fork=Number(row.forkIndex),forkChapter=id==='main'?0:found>=0?found+1:(Number.isInteger(fork)?Math.max(0,fork+1):0);
         const parent=String(source.find(ch=>ch?.id===row.forkFromChapterId)?.branchId||row.parentId||'main');
         return {id,name:String(row.name||(id==='main'?'主线':'分支 '+index)),parentId:parent===id?'main':parent,forkChapter,chapterCount:id==='main'?main.length:Math.min(forkChapter,main.length)+source.filter(ch=>ch?.branchId===id).length};
       });
@@ -32561,14 +32765,15 @@ function getModHubPermissionLabels(mod) {
         positions[id]={x:placed.length?(placed[0].x+placed[placed.length-1].x)/2:leaf++,y:depth};visiting.delete(id);visited.add(id);
       };
       if(ids.has('main'))place('main',0);nodes.forEach(n=>place(n.id,0));
-      return {nodes,positions,edges:nodes.filter(n=>n.id!=='main'&&ids.has(n.parentId)).map(n=>({from:n.parentId,to:n.id})),width:Math.max(320,leaf*170),height:Math.max(150,(Math.max(0,...Object.values(positions).map(p=>p.y))+1)*80)};
+      return {nodes,positions,edges:nodes.filter(n=>n.id!=='main'&&ids.has(n.parentId)&&positions[n.parentId].y<positions[n.id].y).map(n=>({from:n.parentId,to:n.id})),width:Math.max(320,leaf*220),height:Math.max(150,(Math.max(0,...Object.values(positions).map(p=>p.y))+1)*112)};
     }
     const branchRouteMap = computed(() => {
       if(!showBranchPanel.value)return {nodes:[],positions:{},edges:[],width:320,height:160};
       const route=buildBranchRouteMap(branchList.value,chapters.value);
       route.nodes.forEach(node=>{
         const stats=getBranchPanelStats(node.id), context=branchPanelContext.value;
-        node.statLabel=context==='大纲'?'本分支走向：'+(stats.note?'已填':'未填'):context==='细纲'?'细纲 '+stats.outlineCount+' 章（已写 '+node.chapterCount+'）':context==='暗线'?'布置 '+stats.planted+' · 推进 '+stats.progressed+' · 回收 '+stats.resolved+' · 差异 '+stats.different:'正文 '+node.chapterCount+' 章 · '+(node.id==='main'?'主线':'从第'+node.forkChapter+'章分出');
+        node.statLines=context==='大纲'?['本分支走向：'+(stats.note?'已填':'未填')]:context==='细纲'?['细纲 '+stats.outlineCount+' 章（已写 '+node.chapterCount+'）']:context==='暗线'?['布置 '+stats.planted+' · 推进 '+stats.progressed,'回收 '+stats.resolved+' · 差异 '+stats.different]:['正文 '+node.chapterCount+' 章',node.id==='main'?'主线起点':node.forkChapter?'从第'+node.forkChapter+'章分出':'从开篇分出'];
+        node.statLabel=node.statLines.join(' · ');node.kb=stats.kb;
       });return route;
     });
     const currentBranchName=computed(()=>branchList.value.find(row=>row.id===activeBranchId.value)?.name||'主线');
@@ -32577,31 +32782,38 @@ function getModHubPermissionLabels(mod) {
     function getBranchPanelStats(id){
       const saved=branchData.value[id]||branchData.value.main||{};
       const planning=id===activeBranchId.value?{chapterOutlines:chapterOutlines.value,foreshadowMatrix:foreshadowMatrix.value}:{...saved,chapterOutlines:readBranchPlanningRows(saved,id,'chapterOutlines')};
-      const branch=branchList.value.find(row=>row.id===id)||{},dark=planning.foreshadowMatrix||[],main=branchData.value.main?.foreshadowMatrix||[];
-      return {name:branch.name||'主线',outlineCount:(planning.chapterOutlines||[]).filter(row=>String(row?.content||'').trim()).length,darklineCount:dark.length,planted:dark.filter(row=>parseChapterRefs(row.setupChapter).length).length,progressed:dark.filter(row=>parseChapterRefs(row.upgradeChapter).length).length,resolved:dark.filter(row=>parseChapterRefs(row.resolvedChapter).length).length,different:dark.filter(row=>JSON.stringify(row)!==JSON.stringify(main.find(x=>x.id===row.id))).length,kb:(new TextEncoder().encode(JSON.stringify({planning,chapters:chapters.value.filter(ch=>id==='main'?(!ch.branchId||ch.branchId==='main'):ch.branchId===id)})).length/1024).toFixed(1),note:String(branch.note||'')};
+      const branch=branchList.value.find(row=>row.id===id)||{},dark=(planning.foreshadowMatrix||[]).filter(Boolean),main=id==='main'?dark:(activeBranchId.value==='main'?foreshadowMatrix.value:branchData.value.main?.foreshadowMatrix)||[];
+      return {name:branch.name||'主线',outlineCount:(planning.chapterOutlines||[]).filter(Boolean).length,darklineCount:dark.length,planted:dark.filter(row=>parseChapterRefs(row.setupChapter).length).length,progressed:dark.filter(row=>parseChapterRefs(row.upgradeChapter).length).length,resolved:dark.filter(row=>parseChapterRefs(row.resolvedChapter).length).length,different:dark.filter(row=>JSON.stringify(row)!==JSON.stringify(main.find(x=>x?.id===row.id))).length,kb:(new TextEncoder().encode(JSON.stringify({planning,chapters:chapters.value.filter(ch=>id==='main'?(!ch.branchId||ch.branchId==='main'):ch.branchId===id)})).length/1024).toFixed(1),note:String(branch.note||'')};
     }
     const branchPanelStats=computed(()=>showBranchPanel.value?getBranchPanelStats(selectedBranchPanelId.value||activeBranchId.value):{});
     function toggleBranchPanel(event,context='正文') {
-      branchPanelContext.value=context;selectedBranchPanelId.value=String(activeBranchId.value||'main');branchPanelView.value='list';
+      branchPanelContext.value=context;selectedBranchPanelId.value=String(activeBranchId.value||'main');branchPanelView.value=window.innerWidth<768?'list':'map';
       const rect=event?.currentTarget?.getBoundingClientRect?.();
-      branchPanelStyle.value=rect?{left:Math.max(12,Math.min(window.innerWidth-532,rect.left))+'px',top:Math.min(rect.bottom+8,window.innerHeight*.35)+'px'}:{};
+      branchPanelStyle.value={left:Math.max(12,Math.min(window.innerWidth-532,rect?rect.left:(window.innerWidth-520)/2))+'px',top:(rect?Math.min(rect.bottom+8,window.innerHeight*.35):Math.max(12,window.innerHeight*.15))+'px'};
       showBranchPanel.value=!showBranchPanel.value;
     }
-    function enterSelectedBranch(){showBranchPanel.value=false;switchBranch(selectedBranchPanelId.value||'main');}
+    function enterSelectedBranch(id){switchBranch(typeof id==='string'?id:selectedBranchPanelId.value||'main');}
     function setBranchNote(value){const branch=branchList.value.find(row=>row.id===selectedBranchPanelId.value);if(branch){branch.note=String(value||'').slice(0,200);saveData();}}
 
-    function switchBranch(bid) {
-      if (bid === activeBranchId.value) return;
-      if (isGeneratingDO.value || outlineAiEditingIdx.value >= 0) {
-        showToast('请先停止当前细纲 AI 任务，再切换分支', 'info');
-        return;
+    function canChangeBranch() {
+      if (isGenerating.value || _isPreparingGenerationRecall || _activeGenerationRun || isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value >= 0 || isGeneratingCharacterDraft.value || isReviewing.value || _bookScopedAiRuns.size) {
+        showToast('请先停止当前 AI 任务，再切换、创建或删除分支', 'info');return false;
       }
+      return true;
+    }
+    function switchBranch(bid) {
+      if (!branchList.value.some(row=>row.id===bid)) return;
+      if (bid === activeBranchId.value) {showBranchPanel.value=false;return;}
+      if (!canChangeBranch()) return;
+      const bookId=currentBookId.value;
       const doSwitch = () => {
+        if (bookId!==currentBookId.value || !canChangeBranch() || !branchList.value.some(row=>row.id===bid)) return;
         persistCurrentBranchData();
         closeContinuityCheck();
         cancelMemoryWork();
         cancelSuggestionRun('branchSwitch', { resetView:true });
         activeBranchId.value = bid;
+        showBranchPanel.value=false;
         loadBranchScopedData(bid);
         currentChapterIndex.value = -1;
         chapters.value.forEach(c => c.isExpanded = false);
@@ -32650,16 +32862,26 @@ function getModHubPermissionLabels(mod) {
       }, () => { searchHistory.value = []; });
     }
 
-    async function forkBranch(chapterIdx, prompt) {
+    let branchForkPending = false;
+    async function forkBranch(chapterIdx, prompt, editConfirmed=false) {
       if (activeBranchId.value !== 'main') { showToast('支线里不能再创建分支，请先切回主线', 'warning'); return; }
-      if (!(await confirmStorageHeadroom('新建分支'))) return;
+      if (branchForkPending || !canChangeBranch()) return;
+      const bookId=currentBookId.value,sourceId=visibleChapters.value[chapterIdx]?.id,context=showDetailedOutlineInMain.value?'细纲':'正文';
+      if (!editConfirmed && visibleChapters.value.some(ch=>ch.isEditing)) {
+        openConfirm({title:'创建分支',message:'当前有章节正在编辑，创建分支会离开该编辑视图。未保存的草稿会保留；建议先保存再创建。',confirmText:'仍然创建'},()=>{if(bookId===currentBookId.value)forkBranch(chapterIdx,prompt,true);});return;
+      }
+      branchForkPending=true;
+      try {
+      if (!(await confirmStorageHeadroom('新建分支')) || bookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
       const vc = visibleChapters.value;
+      chapterIdx=sourceId?vc.findIndex(ch=>ch.id===sourceId):-1;
       const src = vc[chapterIdx]; if (!src) return;
       persistCurrentBranchData();
       const sourceBranchId = activeBranchId.value;
       const inheritedChapterIds = vc.slice(0, Math.max(0, chapterIdx) + 1).map(chapter => String(chapter?.id || '')).filter(Boolean);
       const newId = uid();
-      const nm = '分支 ' + branchList.value.length;
+      let branchNo=1;while(branchList.value.some(row=>row.name==='分支 '+branchNo))branchNo++;
+      const nm = '分支 ' + branchNo;
       branchList.value.push({id:newId,name:nm,forkFromChapterId:src.id,forkIndex:chapterIdx});
       branchData.value[newId] = createBranchPlanningData(chapterIdx, sourceBranchId);
       const copiedSummaryEntries = cloneModMemorySummaryScopesForBranch(sourceBranchId, newId, inheritedChapterIds);
@@ -32668,11 +32890,16 @@ function getModHubPermissionLabels(mod) {
       currentChapterIndex.value = -1;
       if (prompt) nextChapterPrompt.value = prompt;
       saveData(); showToast('已创建「'+nm+'」' + (copiedSummaryEntries ? '，已复制 ' + copiedSummaryEntries + ' 条已完成总结记忆' : ''), 'success');
+      showBranchPanel.value=false;toggleBranchPanel(null,context);
+      } finally {branchForkPending=false;}
     }
 
     function deleteBranch(bid) {
       if (bid === 'main') { showToast('不能删除主线', 'error'); return; }
+      if (!canChangeBranch()) return;
       const branch = branchList.value.find(b => b && b.id === bid);
+      if (!branch) return;
+      const bookId=currentBookId.value;
       const branchChapterCount = chapters.value.filter(ch => ch && ch.branchId === bid).length;
       openConfirm({
         title: '删除分支',
@@ -32680,6 +32907,7 @@ function getModHubPermissionLabels(mod) {
         confirmText: '删除分支',
         impactLines: ['将删除该分支正文：' + branchChapterCount + ' 章', '将删除该分支细纲：' + readBranchPlanningRows(branchData.value[bid],bid,'chapterOutlines').length + ' 章', '约占用 ' + (new TextEncoder().encode(JSON.stringify({planning:branchData.value[bid],chapters:chapters.value.filter(ch=>ch.branchId===bid)})).length/1024).toFixed(1) + ' KB', '主线与其他分支不受影响']
       }, () => {
+        if (bookId!==currentBookId.value || !canChangeBranch() || !branchList.value.some(row=>row.id===bid)) return;
         delete branchData.value[bid];
         summaries.value=summaries.value.filter(sum=>String(sum.branchId||'main')!==bid);
         showBranchPanel.value=false;
@@ -32708,13 +32936,14 @@ function getModHubPermissionLabels(mod) {
     }
 
     function regenerateChapter(idx) {
-      if (isGenerating.value || _isPreparingGenerationRecall || _activeGenerationRun) {
-        showToast('请先停止当前生成任务', 'error');
+      if (!canChangeBranch()) return;
+      if (activeBranchId.value !== 'main') { showToast('支线里不能再创建分支，请先切回主线', 'warning'); return; }
+      const prerequisites = getWritingGenerationPrerequisites(false);
+      if (!prerequisites) {
+        openConfirm({title:'分支重写需要正文模型',message:'分支重写会调用 AI 生成替代章节。请先在连接中心配置并分配正文模型；如果只想创建分支后自己写，请点“从这章分支”。',confirmText:'打开连接中心'},()=>openSettingsTab('api'));
         return;
       }
-      if (activeBranchId.value !== 'main') { showToast('支线里不能再创建分支，请先切回主线', 'warning'); return; }
-      const prerequisites = getWritingGenerationPrerequisites(true);
-      if (!prerequisites) return;
+      const sourceBookId=currentBookId.value;
       const vc = visibleChapters.value.slice();
       const target = vc[idx];
       if (!target) { showToast('未找到要重写的章节', 'error'); return; }
@@ -32727,7 +32956,9 @@ function getModHubPermissionLabels(mod) {
         multiline: true,
         confirmText: '开始重写'
       }, async promptText => {
+        if (sourceBookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
         if (!(await confirmStorageHeadroom('新建分支'))) return;
+        if (sourceBookId!==currentBookId.value || activeBranchId.value!=='main' || !canChangeBranch()) return;
         const prompt = String(promptText || '');
         let branchNo = 1;
         while (branchList.value.some(item => item.name === '分支 ' + branchNo)) branchNo++;
@@ -32815,6 +33046,7 @@ function getModHubPermissionLabels(mod) {
     function isSummaryInCurrentBranch(summary, chapterIndex = -1) {
       const owner = String(summary?.branchId || 'main');
       if (owner === String(activeBranchId.value || 'main')) return true;
+      if (summary?.kind === 'volume-handoff') return false;
       if (owner !== 'main' || activeBranchId.value === 'main') return false;
       const branch = branchList.value.find(item => String(item?.id || '') === String(activeBranchId.value));
       const forkEnd = getBranchForkEnd(activeBranchId.value);
@@ -32822,6 +33054,26 @@ function getModHubPermissionLabels(mod) {
       return summaryEnd <= forkEnd;
     }
     const visibleSummaries = computed(() => summaries.value.filter(summary => isSummaryInCurrentBranch(summary)));
+    // 目录只计算一次卷范围，章号始终使用当前分支的可见顺序。
+    const tocVolumeGroups = computed(() => {
+      const volumes = normalizeNovelVolumes(novel.value.volumes);
+      const rows = visibleChapters.value.map((chapter, index) => ({ chapter, index }));
+      if (!volumes.length) return [{ id:'ungrouped', volume:null, title:'', chapters:rows }];
+      const groups = volumes.map((volume, index) => ({ id:volume.id, volume, title:'第' + (index + 1) + '卷 · ' + volume.title, chapters:[] }));
+      const byId = new Map(groups.map(group => [group.id, group]));
+      const unassigned = { id:'unassigned', volume:null, title:'未分卷章节', chapters:[] };
+      rows.forEach(row => (byId.get(getVolumeForChapter(row.index + 1, volumes)?.id) || unassigned).chapters.push(row));
+      if (unassigned.chapters.length) groups.push(unassigned);
+      groups.forEach(group => { group.handoff = getVolumeHandoff(group.volume, activeBranchId.value); group.stale = group.volume && getStaleMark('卷末交接', group.volume.id); });
+      return groups;
+    });
+    const tocHandoffEditor = ref(null);
+    watch([currentBookId, activeBranchId], () => { tocHandoffEditor.value = null; }, { flush:'sync' });
+    function toggleTocVolumeHandoff(volume) {
+      if (tocHandoffEditor.value?.volumeId === volume.id) { tocHandoffEditor.value = null; return; }
+      const row = getVolumeHandoff(volume, activeBranchId.value);
+      tocHandoffEditor.value = { volumeId:volume.id, content:String(row?.content || ''), actualOutline:String(row?.actualOutline || '') };
+    }
     function findCurrentBranchSummary(start, end) {
       return summaries.value.findIndex(sum => Number(sum.startChapter) === Number(start) && Number(sum.endChapter) === Number(end)
         && String(sum.branchId || 'main') === String(activeBranchId.value || 'main'));
@@ -32897,38 +33149,68 @@ function getModHubPermissionLabels(mod) {
         return '第' + no + '章 ' + String(ch.title || '') + '\n剧情时间：' + (getSnowwingChapterStoryTime(ch) || '未知') + '\n章节摘要：' + (cleanNarrativeChapterSummary(ch) || '无') + '\n正文：' + cleanNarrativeChapterContent(ch);
       }).join('\n\n');
     }
+    // 目录、总结页及 AI 生成共用写入点，按 id 写回原卷，不能只修改规范化副本。
+    function saveVolumeHandoffEdit(volume, branchId, { content, actualOutline }, options = {}) {
+      const target = novel.value.volumes?.find(row => row.id === volume?.id);
+      if (!target) return false;
+      const id = String(branchId || activeBranchId.value || 'main');
+      const sourceHash = options.sourceHash || getVolumeHandoffSourceHash(target, visibleChapters.value.map((ch, index) => Object.assign({}, ch, { chapterNo:index + 1 })));
+      const at = Date.now(), edited = options.edited !== false;
+      const row = { content:String(content || '').trim(), actualOutline:String(actualOutline || '').trim(), plan:String(target.summary || ''), sourceHash, branchId:id, at, edited };
+      if (!target.handoffSummaries || typeof target.handoffSummaries !== 'object') target.handoffSummaries = {};
+      target.handoffSummaries[id] = row;
+      if (id === 'main') { target.actualSummary = row.content; target.actualOutline = row.actualOutline; target.handoffSourceHash = sourceHash; }
+      const index = summaries.value.findIndex(item => item.kind === 'volume-handoff' && item.volumeId === target.id && String(item.branchId || 'main') === id);
+      const previous = summaries.value[index];
+      const combined = parseVolumeHandoffText('【上一卷正文总结】\n' + row.content + (row.actualOutline ? '\n【实际卷纲修正】\n' + row.actualOutline : '')).combined;
+      const summaryRow = Object.assign({}, previous, { id:previous?.id || uid(), kind:'volume-handoff', volumeId:target.id, volumeTitle:target.title + ' · 卷末交接', branchId:id, startChapter:Number(target.startChapter), endChapter:Number(target.endChapter), content:combined, plan:row.plan, actualOutline:row.actualOutline, sourceHash, useForContext:previous?.useForContext !== false, isExpanded:previous?.isExpanded === true, at, edited });
+      if (index >= 0) summaries.value.splice(index, 1, summaryRow); else summaries.value.push(summaryRow);
+      clearStaleMarksForTarget('卷末交接', target.id, id);
+      if (id === String(activeBranchId.value || 'main') && tocHandoffEditor.value?.volumeId === target.id) Object.assign(tocHandoffEditor.value, { content:row.content, actualOutline:row.actualOutline });
+      saveData();
+      return true;
+    }
+    function saveSummaryEdit(summary) {
+      if (summary.kind !== 'volume-handoff') { saveData(); return; }
+      const volume = novel.value.volumes?.find(row => row.id === summary.volumeId);
+      const parsed = parseVolumeHandoffText(summary.content);
+      saveVolumeHandoffEdit(volume, summary.branchId || 'main', parsed);
+    }
     async function generateVolumeHandoff(chapterNo, options = {}) {
       const volume = getVolumeForChapter(chapterNo);
       if (!volume || Number(chapterNo) !== Number(volume.endChapter)) return false;
       const branchId = String(options.branchId || activeBranchId.value || 'main');
-      const chapterList = visibleChapters.value.map((ch, i) => Object.assign({}, ch, { chapterNo:i + 1 })).filter(ch => String(ch.branchId || 'main') === branchId);
+      const bookId = currentBookId.value;
+      if (branchId !== String(activeBranchId.value || 'main')) return false;
+      const chapterList = visibleChapters.value.map((ch, i) => Object.assign({}, ch, { chapterNo:i + 1 }));
       const source = buildVolumeHandoffSource(volume, chapterList);
       if (!source.trim()) return false;
       const sourceHash = getVolumeHandoffSourceHash(volume, chapterList);
       const existing = getVolumeHandoff(volume, branchId);
       if (existing && existing.sourceHash === sourceHash && !options.force) return false;
+      if (existing?.edited && !options.overwriteEdited) { regenerateVolumeHandoff(volume); return false; }
       const request = getModuleRequestConfig('summary');
-      if (!request.ok) return false;
+      if (!request.ok) throw Error(request.reason || '请先配置总结 API');
       const plan = String(volume.summary || '').trim() || '（未填写原计划卷纲）';
       const prompt = VOLUME_HANDOFF_PROMPT + '\n\n【原计划卷纲】\n' + plan + '\n\n【本卷正文与章节摘要】\n' + source;
       const result = await fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'summary' }), { stream:false, omitTemperature:true, maxTokens:3200, signal:options.signal });
       const parsed = parseVolumeHandoffText(result?.text || '');
       if (!parsed.content) throw Error('卷末交接总结为空');
-      const row = { content:parsed.content, actualOutline:parsed.actualOutline, plan:String(volume.summary || ''), sourceHash, branchId, at:Date.now() };
-      if (!volume.handoffSummaries || typeof volume.handoffSummaries !== 'object') volume.handoffSummaries = {};
-      volume.handoffSummaries[branchId] = row;
-      clearStaleMarksForTarget('卷末交接',volume.id,branchId);
-      if (branchId === 'main') { volume.actualSummary = parsed.content; volume.actualOutline = parsed.actualOutline; volume.handoffSourceHash = sourceHash; }
-      const rangeExisting = summaries.value.findIndex(item => item.kind === 'volume-handoff' && item.volumeId === volume.id && item.branchId === branchId);
-      const summaryRow = { id:rangeExisting >= 0 ? summaries.value[rangeExisting].id : uid(), kind:'volume-handoff', volumeId:volume.id, volumeTitle:volume.title + ' · 卷末交接', branchId, startChapter:Number(volume.startChapter), endChapter:Number(volume.endChapter), content:parsed.combined, plan:String(volume.summary || ''), actualOutline:parsed.actualOutline, sourceHash, useForContext:true, isExpanded:false, at:Date.now() };
-      if (rangeExisting >= 0) summaries.value.splice(rangeExisting, 1, summaryRow); else summaries.value.push(summaryRow);
-      saveData();
-      return true;
+      const current = novel.value.volumes?.find(row => row.id === volume.id);
+      if (bookId !== currentBookId.value || branchId !== String(activeBranchId.value || 'main') || !current || JSON.stringify(getVolumeHandoff(current, branchId)) !== JSON.stringify(existing)
+        || sourceHash !== getVolumeHandoffSourceHash(current, visibleChapters.value.map((ch, i) => Object.assign({}, ch, { chapterNo:i + 1 })))) throw Error('正文、交接或当前书籍已变化，请重新生成');
+      return saveVolumeHandoffEdit(current, branchId, parsed, { edited:false, sourceHash });
     }
     function regenerateVolumeHandoff(volume) {
       const no = Number(volume?.endChapter || 0);
       if (!no) return;
-      generateVolumeHandoff(no, { branchId:activeBranchId.value, force:true }).then(ok => showToast(ok ? '卷末交接已更新' : '当前卷尚无可用正文，暂不能生成交接', ok ? 'success' : 'info')).catch(error => showToast('卷末交接生成失败：' + sanitizeApiErrorDetail(error.message || error), 'error'));
+      const bookId = currentBookId.value, branchId = String(activeBranchId.value || 'main');
+      const run = () => {
+        if (bookId !== currentBookId.value || branchId !== String(activeBranchId.value || 'main')) return;
+        return generateVolumeHandoff(no, { branchId, force:true, overwriteEdited:true }).then(ok => showToast(ok ? '卷末交接已更新' : '当前卷尚无可用正文，暂不能生成交接', ok ? 'success' : 'info')).catch(error => showToast('卷末交接生成失败：' + sanitizeApiErrorDetail(error.message || error), 'error'));
+      };
+      if (getVolumeHandoff(volume, branchId)?.edited) { openConfirm({ title:'重新生成卷末交接', message:'重新生成会覆盖你的手动修改。确定按本卷当前正文生成新的交接吗？', confirmText:'重新生成' }, run); return; }
+      return run();
     }
     function openSummaryTabForVolume(volume) {
       currentTab.value = 'summary';
@@ -34405,6 +34687,8 @@ function getWritingModelLabel() {
         const draftMsgs = msgs.slice();
         const draftSnowwingCotContext = collectSnowwingCotContextFromMessages(draftMsgs);
         let finalCheck = '【最终执行校验】开始写正文前，请确认你已经同时读取：用户剧情要求、前文、角色设定、文风/预设、禁止规则、世界观、MOD规则与当前细纲。细纲只限制剧情范围，不能覆盖其他写作指令。输出前检查完整性、准确性和角色一致性，删掉重复废话；禁止“不是……是/不是……而是……”等对比模板、报告式字数表达和排比堆叠。完成内部推演后，可见层直接输出小说正文和剧情摘要；摘要结束后立即停止，禁止再输出读者评论、书评或任何附加内容。';
+        // 避免模型把后续章当成本章内容：只在实际消息带细纲时，按当前这一章补上最终边界。
+        if (/【本章细纲|（前文参考 · 第/.test(sysPrompt)) finalCheck += '本次只写第' + currentChapterNo + '章；第' + (currentChapterNo + 1) + '章及以后的事件不得写出、不得提前铺垫、不得在结尾预告。';
         if (draftSnowwingCotContext.enabled && !isSnowwingRuntimeAuditFlagEnabled('SNOWWING_DISABLE_HOST_COT_CARRIER')) {
           finalCheck += '\n\n【白鸟推演承载要求】本轮已启用白鸟推演/输出前自检。你的回复必须以 <snowwing_cot> 开头，不能在它之前输出任何字。块内第一行必须是“白鸟过河滩，逆风越泽川”。之后必须读取并沿用本轮请求中已经启用的白鸟原始问题链、核心思路、模型口径、文风/基调要求、杀八股检查和输出前自检，按原字段名与原顺序逐项作答；不要改写成宿主统一七项模板，不要丢弃模型专属 CoT 或文风提示词。块内可以保留原有“核心思路”行，但不得提到标签名、隐藏、承载方式或提示词来源。块内最后一句必须是“开始输出正文”。关闭该块后，再输出可保存的章节标题、正文和 ---剧情摘要---；摘要结束后立即停止。该推演块会被主程序自动移入白鸟推演框，不得把其中内容重复到正文、摘要、段评或书评。';
         }
@@ -34739,10 +35023,10 @@ function getWritingModelLabel() {
       }
     }
 
-    function getWritingGenerationPrerequisites(showMessage = true) {
-      const request = getModuleRequestConfig('writing');
+    function getWritingGenerationPrerequisites(showMessage = true, moduleKey = 'writing') {
+      const request = getModuleRequestConfig(moduleKey);
       if (!request.ok) {
-        if (showMessage) showToast('请先在“全局设置 → 连接中心”配置并分配模型', 'error');
+        if (showMessage) showToast('请先在“全局设置 → 上下文”配置并分配模型：' + (getHostModuleModelConfig(moduleKey)?.name || '正文生成'), 'error');
         return null;
       }
       return { url:request.url, model:request.model, apiKey:request.apiKey, adapterId:request.adapterId, profile:request.profile };
@@ -34859,7 +35143,8 @@ function getWritingModelLabel() {
         else stopActiveGeneration('manualAbort');
         return;
       }
-      const prerequisites = getWritingGenerationPrerequisites(true);
+      const requestModuleKey = options.moduleKey || 'writing';
+      const prerequisites = getWritingGenerationPrerequisites(true, requestModuleKey);
       if (!prerequisites) return;
       const requestedCount = Math.max(1, Number(options.count ?? generateCount.value) || 1);
       const run = beginGenerationRun(requestedCount, Object.assign({}, options, {
@@ -34913,6 +35198,8 @@ function getWritingModelLabel() {
 
     // 生成单章
     function doGenerateOne(url, runId, runOptions = {}) {
+      // 连续生成的每一章都需保留入口选中的模块，不能读取另一函数的局部变量。
+      const requestModuleKey = runOptions.moduleKey || 'writing';
       if (!isGenerationRunCurrent(runId) || _remainingCount <= 0) {
         finishGenerationRun(runId);
         return;
@@ -34977,11 +35264,11 @@ function getWritingModelLabel() {
         : collectSnowwingCotContextFromMessages(msgs);
       lastGenerationCotContext.value = snowwingCotContext;
       let snowwingPreflightCot = '';
-      const generationRequest = Object.assign({}, getModuleRequestConfig('writing'), {
+      const generationRequest = Object.assign({}, getModuleRequestConfig(requestModuleKey), {
         url: (rerollSnapshot && rerollSnapshot.request && rerollSnapshot.request.url) || runOptions.writingUrl || url,
-        apiKey: runOptions.writingApiKey || getModuleRequestConfig('writing').apiKey,
-        model: (rerollSnapshot && rerollSnapshot.request && rerollSnapshot.request.model) || runOptions.writingModel || getModuleRequestConfig('writing').model,
-        adapterId: (rerollSnapshot && rerollSnapshot.request && rerollSnapshot.request.adapterId) || runOptions.writingAdapterId || getModuleRequestConfig('writing').adapterId
+        apiKey: runOptions.writingApiKey || getModuleRequestConfig(requestModuleKey).apiKey,
+        model: (rerollSnapshot && rerollSnapshot.request && rerollSnapshot.request.model) || runOptions.writingModel || getModuleRequestConfig(requestModuleKey).model,
+        adapterId: (rerollSnapshot && rerollSnapshot.request && rerollSnapshot.request.adapterId) || runOptions.writingAdapterId || getModuleRequestConfig(requestModuleKey).adapterId
       });
       const sendChapterRequest = (requestMessages) => {
         assertGenerationRunCurrent(runId);
@@ -35662,6 +35949,7 @@ function getWritingModelLabel() {
           }, 1500);
         } else {
           finishGenerationRun(runId);
+          if (pendingBranch) {showBranchPanel.value=false;toggleBranchPanel(null,'正文');}
         }
       }
 
@@ -35740,12 +36028,13 @@ function getWritingModelLabel() {
       nextTick(() => scrollToChapter(visibleChapters.value.length - 1));
     }
 
-    async function continueGeneration() {
+    async function continueGeneration(options = {}) {
       if (isGenerating.value || _isPreparingGenerationRecall || _activeGenerationRun) {
         showToast('请先停止当前生成任务', 'error');
         return;
       }
-      const prerequisites = getWritingGenerationPrerequisites(true);
+      const requestModuleKey = options.moduleKey || 'writing';
+      const prerequisites = getWritingGenerationPrerequisites(true, requestModuleKey);
       if (!prerequisites) return;
       if (!interruptedCanContinue.value) {
         showToast((interruptedIssue.value?.message || '该草稿未通过输出合同') + '；不能直接续写扩大该问题正文', 'error');
@@ -35810,7 +36099,7 @@ function getWritingModelLabel() {
 
       let continueMessages = buildContinueChapterMessages(prev, generationContext);
       const snowwingCotContext = collectSnowwingCotContextFromMessages(continueMessages);
-      const continueRequest = Object.assign({}, getModuleRequestConfig('writing'), { url:prerequisites.url, apiKey:prerequisites.apiKey, model: prerequisites.model, adapterId:prerequisites.adapterId || prerequisites.profile?.adapterId || '' });
+      const continueRequest = Object.assign({}, getModuleRequestConfig(requestModuleKey), { url:prerequisites.url, apiKey:prerequisites.apiKey, model: prerequisites.model, adapterId:prerequisites.adapterId || prerequisites.profile?.adapterId || '' });
       lastGenerationCotContext.value = snowwingCotContext;
       appendEnhancedMemoryRecall(continueMessages, generationContext.contextChapters, generationContext.promptOverride, requestController.signal).then(recalled => {
         continueMessages = recalled;
@@ -37052,14 +37341,29 @@ function getWritingModelLabel() {
       return JSON.stringify({ form:newBookForm.value, config:{ ...okCfg }, mode:newBookMode.value, teamBrief:teamBrief.value, teamPlanOptions:{ ...teamPlanOptions } });
     }
 
+    function keepTeamDraftBeforeExit() {
+      const draft = teamDraft.value;
+      if (newBookMode.value !== 'team' || !draft || draft.committing) return false;
+      const partial = !!draft.needsFill?.length || teamBlocks.value.some(row => row.id !== 'review' && row.status !== 'done') || teamReview.value?.status === 'incomplete';
+      openConfirm({
+        title:'团队开书结果还未保存',
+        message: partial ? '已完成内容还在当前草稿中。离开会丢失这些结果；可以先写入已完成部分，或留在这里重试、调整 API。' : '生成结果还在当前草稿中。离开会丢失这些结果；可以先接受并写入书库，或留在这里继续检查。',
+        choices:[{ id:'stay', label:'留在这里' },{ id:'save', label:partial ? '先写入已完成部分' : '接受并写入' }]
+      }, action => {
+        if (action === 'save') { if (partial) commitPartialTeamDraft(); else commitTeamDraft(); }
+      });
+      return true;
+    }
+
     function requestCloseNewBookModal() {
       if (oneKeyPhase.value === 'generating') {
         if (newBookMode.value !== 'team') return false;
-        openConfirm({ title:'团队开书正在进行', message:'关闭会停止所有团队请求，尚未写入书库的草稿会被清空。', choices:[{ id:'continue', label:'继续生成' },{ id:'stop-close', label:'停止并关闭', tone:'danger' }] }, action => {
-          if (action === 'stop-close') { stopTeamBook(); showNewBook.value = false; }
+        openConfirm({ title:'团队开书正在进行', message:'停止会中止未完成请求，并在当前页面保留已完成内容供你重试或调整 API；不会自动写入书库。', choices:[{ id:'continue', label:'继续生成' },{ id:'stop', label:'停止并查看已完成内容', tone:'danger' }] }, action => {
+          if (action === 'stop') stopTeamBook();
         });
         return false;
       }
+      if (keepTeamDraftBeforeExit()) return false;
       if (oneKeyPhase.value === 'config' && newBookCloseBaseline && getNewBookCloseSnapshot() !== newBookCloseBaseline) {
         confirmDiscardDraft('放弃新书配置', '当前新书配置尚未创建，关闭后会丢失本次填写和勾选。', () => {
           if (newBookMode.value === 'team') cancelTeamPlanner();
@@ -37323,6 +37627,8 @@ function getWritingModelLabel() {
     const settingsModuleLocations = {
       writing:[{label:'正文续写',tab:'bookshelf'}],
       supplement:[{label:'正文补写',tab:'bookshelf'}],
+      'immersive-expand':[{label:'沉浸模式 AI 扩写',tab:'bookshelf'}],
+      'immersive-continue':[{label:'沉浸模式 AI 续写',tab:'bookshelf'}],
       settings:[{label:'设定补全',tab:'settings'}],
       character:[{label:'角色卡',tab:'characters'}],
       imagetext:[{label:'封面与立绘',tab:'characters'}],
@@ -37346,6 +37652,13 @@ function getWritingModelLabel() {
       {tab:'api',target:'settings-search-global-controls',title:'全局温度与思考强度',keywords:'采样 温度创造性 随机性 推理等级 思考预算 reasoning effort temperature wendu sikao qiangdu quanju'},
       {tab:'api',target:'settings-search-anti-truncation',title:'Gemini 抗截断',keywords:'output reply 完整回复 工具续写 保留正文 kangjieduan jiemi gemini'},
       {tab:'context',target:'settings-search-context-intro',title:'上下文设置说明',keywords:'提示 配置说明 模型模块 正文资料 章节历史上下文 shangxiawen'},
+      {tab:'context',target:'settings-search-team-book',title:'团队开书｜统一 API 配置',keywords:'团队开书 一句话开书 开书团队 策划员 设定员 角色员 大纲员 细纲员 审查员 API 模型 同一API 默认配置'},
+      {tab:'context',target:'settings-search-team-planner',teamBookRoutes:true,title:'团队开书｜策划员 API',keywords:'一句话开书 拆分方案 策划员 API 模型 单独调用 team planner'},
+      {tab:'context',target:'settings-search-team-settings',teamBookRoutes:true,title:'团队开书｜设定员 API',keywords:'团队开书 设定生成 设定员 API 模型 worldview'},
+      {tab:'context',target:'settings-search-team-character',teamBookRoutes:true,title:'团队开书｜角色员 API',keywords:'团队开书 角色生成 人物角色 角色员 API 模型'},
+      {tab:'context',target:'settings-search-team-outline',teamBookRoutes:true,title:'团队开书｜大纲与细纲员 API',keywords:'团队开书 大纲生成 卷纲 细纲章节 大纲员 细纲员 API 模型'},
+      {tab:'context',target:'settings-search-team-review',teamBookRoutes:true,title:'团队开书｜审查员 API',keywords:'团队开书 开书验收审查 审查员 API 模型'},
+      {tab:'context',target:'settings-search-team-book-existing-routes',teamBookRoutes:true,title:'团队开书｜已有书籍模型联动',keywords:'已有书籍 角色生成 大纲细纲 设定补充 微调模型 联动开关 是否启用'},
       {tab:'context',target:'settings-search-context-workbench',title:'创作设定工作台与记忆库入口',keywords:'记忆库 逐章总结 项目总览 世界观 时间线 资料条目 上下文包 story bible memory jiyiku'},
       {tab:'context',target:'settings-search-context-sources',title:'正文参考资料开关',keywords:'最近正文 完整正文 章节摘要 长期总结 细纲 最终校验 正文上下文 zhengwen zhaiyao'},
       {tab:'context',target:'settings-search-context-full-text',title:'发送最近正文',keywords:'完整正文 最近章节全文 正文上下文 body full text zhengwen quanwen'},
@@ -37470,15 +37783,16 @@ function getWritingModelLabel() {
     function navigateToSettingsSearchResult(item) {
       if (!item || !settingsTabs.some(tab => tab.id === item.tab && tab.id !== 'changelog')) return;
       activeSettingsTab.value = item.tab;
+      teamBookRoutesOpen.value = item.teamBookRoutes === true;
       settingsSearchQuery.value = '';
       closeSettingsSearch();
       nextTick(() => requestAnimationFrame(() => {
         const target = document.getElementById(item.target);
-        const panel = document.querySelector('[data-moyun-modal="settings"] [data-moyun-modal-panel]');
-        if (!target || !panel) return;
-        const panelRect = panel.getBoundingClientRect(), targetRect = target.getBoundingClientRect();
-        const nextTop = panel.scrollTop + targetRect.top - panelRect.top - 78;
-        panel.scrollTo({top:Math.max(0,nextTop),behavior:moyunScrollBehavior()});
+        const scrollArea = document.querySelector('[data-moyun-modal="settings"] .settings-search-shell');
+        if (!target || !scrollArea) return;
+        const areaRect = scrollArea.getBoundingClientRect(), targetRect = target.getBoundingClientRect();
+        const nextTop = scrollArea.scrollTop + targetRect.top - areaRect.top - 78;
+        scrollArea.scrollTo({top:Math.max(0,nextTop),behavior:moyunScrollBehavior()});
         target.classList.add('settings-search-target-flash');
         setTimeout(() => target.classList.remove('settings-search-target-flash'), 1100);
       }));
@@ -40215,7 +40529,7 @@ function getWritingModelLabel() {
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showBookEditor, showSnapshots, showSettings_modal,
       newBookForm, bookEditorDraft, bookEditorError, isOneKeyCreating, oneKeyPhase, newBookMode, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
-      teamPhase, teamBrief, teamReplanInput, teamPlan, teamPlanRaw, teamPlanNeedsManual, teamSkipPlanConfirm, teamPlanOptions, teamPlanRequestEstimate, teamBlocks, teamDraft, teamReview, teamRawView, openTeamBookMode, backToManualBook, splitTeamPlan, setTeamPlanConfirmPreference, acceptTeamPlan, retryTeamPlanner, startTeamGeneration, retryTeamBlock, viewTeamRaw, stopTeamBook, commitTeamDraft, commitPartialTeamDraft, buildTeamSettingTable,
+      teamPhase, teamBrief, teamReplanInput, teamPlan, teamPlanRaw, teamPlanNeedsManual, teamSkipPlanConfirm, teamPlanOptions, teamPlanRequestEstimate, teamBlocks, teamDraft, teamReview, teamRawView, openTeamBookMode, backToManualBook, splitTeamPlan, setTeamPlanConfirmPreference, acceptTeamPlan, retryTeamPlanner, startTeamGeneration, retryIncompleteTeamBlocks, retryTeamBlock, viewTeamRaw, stopTeamBook, commitTeamDraft, commitPartialTeamDraft, buildTeamSettingTable,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
       readLegacyLibraryV5, adoptLegacyLibrary,
@@ -40223,7 +40537,7 @@ function getWritingModelLabel() {
       storyBibleExcludedEntryStats, resolveContextPackageCharacterText, buildFallbackCharacterPromptText,
       buildStoryBibleWritingContextPackage, buildStoryBibleContextPreview,
       applyImportedInterruptedDraft, buildCurrentInterruptedDraftRecord,
-      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
+      connectionCenter, connectionCredentials, PROVIDER_TEMPLATES, createConnectionProfile, duplicateConnectionProfile, deriveConnectionProfile, getConnectionCredential, setConnectionCredential, migrateConnectionCenterFromLegacy, resolveTeamBookRouteSelection, getModuleRouteSelection, resolveModuleConnection, getModuleRequestConfig, buildAdapterRequest, extractAdapterText, parseAdapterStreamEvent, readAdapterResponse, fetchAdapterCompletion,
       visibleChapters, totalWordCount,
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getNsfwOnlyBuiltinPromptCards, getNonNsfwBuiltinPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
@@ -40256,7 +40570,7 @@ function getWritingModelLabel() {
       filteredDetailedOutlinePinCandidates, getDetailedOutlineLabel, getDetailedOutlinePinnedItems, getDetailedOutlinePinStats, isDetailedOutlinePinned,
       openDetailedOutlinePinPicker, closeDetailedOutlinePinPicker, toggleDetailedOutlinePin, openDetailedOutlinePinnedItem,
       getStoryBibleEntryLinkedOutlines, getSelectedCharacterLinkedOutlines, requestOpenDetailedOutline, returnToDetailedOutlineFromWorkbench,
-      novelVolumes, addNovelVolume, removeNovelVolume, getVolumeForChapter, getVolumeHandoff, buildVolumeConstraintPrompt, generateVolumeHandoff, regenerateVolumeHandoff, openSummaryTabForVolume, buildNaiImageRequestUrl, keepComposerFocus, activeVolumeEditorId, activeVolumeEditor, openVolumeEditor, closeVolumeEditor, updateVolumeField, novelVolumesCollapsed, novelVolumesBoardMinimized, isNovelVolumeCollapsed, toggleNovelVolumeCollapsed, toggleAllNovelVolumes, toggleNovelVolumesBoardMinimized, ensureDefaultNovelVolume, outlineStreamPreview,
+      novelVolumes, addNovelVolume, removeNovelVolume, getVolumeForChapter, getVolumeHandoff, buildVolumeConstraintPrompt, generateVolumeHandoff, regenerateVolumeHandoff, saveVolumeHandoffEdit, saveSummaryEdit, tocVolumeGroups, tocHandoffEditor, toggleTocVolumeHandoff, openSummaryTabForVolume, buildNaiImageRequestUrl, keepComposerFocus, activeVolumeEditorId, activeVolumeEditor, openVolumeEditor, closeVolumeEditor, updateVolumeField, novelVolumesCollapsed, novelVolumesBoardMinimized, isNovelVolumeCollapsed, toggleNovelVolumeCollapsed, toggleAllNovelVolumes, toggleNovelVolumesBoardMinimized, ensureDefaultNovelVolume, outlineStreamPreview,
 
       // ── Part 2: 角色系统 ──
       personalityTagPresets, dialogueTypes, getDialogueTypePrompt, getDialogueTypeObj, countCharactersUsingDialogueType, confirmRemoveCharacterAvatar,
@@ -40392,10 +40706,10 @@ function getWritingModelLabel() {
       reviews, reviewStatus, reviewPersonas, startBookReview,
 
       // ── Part 6: 设置面板 ──
-      activeSettingsTab, settingsTabs, settingsSearchQuery, settingsSearchFocused, settingsSearchActiveIndex, settingsSearchResults, settingsModuleLocations, settingsContextWorkbenchLocations,
+      activeSettingsTab, settingsTabs, settingsSearchQuery, settingsSearchFocused, settingsSearchActiveIndex, settingsSearchResults, settingsModuleLocations, settingsContextWorkbenchLocations, teamBookRoutesOpen, teamBookRouteConfig:TEAM_BOOK_ROUTE_CONFIG, getTeamBookUnifiedRouteMode, setTeamBookUnifiedRoute, getTeamBookRouteSummary, setTeamBookApplyRoutesToExisting, openTeamBookRouteSettings,
       resetSettingsSearchResults, closeSettingsSearch, handleSettingsSearchKeydown, navigateToSettingsSearchResult, navigateToSettingsModuleLocation,
       connectionCenterTab, connectionProfileEditorOpen, connectionProfileEditorMode, connectionProfileDraft, connectionProfileDraftError, connectionProfileTesting, connectionProfileTestResult, connectionProfileModelTestResult, connectionProfileModelDiscovery, expandedConnectionProfileId, expandedModuleRouteKey,
-      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, getSupplementFollowProfile, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
+      getProviderTemplate, getConnectionProfile, getConnectionProfileStatus, getConnectionProfileDisplay, getEffectiveDefaultConnectionProfile, getEffectiveDefaultConnectionProfileId, getAssignableConnectionProfiles, getConnectionProfileBrowserCompatibilityIssue, getModuleRouteProfileId, getModuleRouteSelection, getTeamBookUnifiedRouteMode, setTeamBookUnifiedRoute, getTeamBookRouteSummary, setTeamBookApplyRoutesToExisting, openTeamBookRouteSettings, getSupplementFollowProfile, setModuleRouteProfile, resetModuleRoutes, openConnectionProfileEditor, closeConnectionProfileEditor, requestCloseConnectionProfileEditor, updateConnectionProfileDraftTemplate, invalidateConnectionProfileDraftTest, invalidateConnectionProfileModelTest, updateConnectionProfileDraftManualModel, fetchConnectionProfileModels, isConnectionProfileDiscoveredModelSelected, selectConnectionProfileDiscoveredModel, testConnectionProfileDraft, testConnectionProfileModelDraft, saveConnectionProfileDraft, setDefaultConnectionProfile, toggleConnectionProfile, deleteConnectionProfile, buildConnectionScheme, exportConnectionScheme, importConnectionSchemeText, importConnectionSchemeFile, sanitizeApiErrorDetail,
       imageKeyInfo, modelConnectionStatus, testApiConnection, fetchModels, filteredModels, selectMainModel, applyManualMainModel, handleSettingsTabKeydown, handleModelListKeydown, toggleStream,
       checkImageKey, addImageProfile, deleteImageProfile,
 	  

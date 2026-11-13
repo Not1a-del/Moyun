@@ -2,7 +2,7 @@
 // Self-contained functions for evaluation inside the existing managed test tab.
 async function runTeamBehaviorBrowserChecks() {
   const s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState;
-  const originalFetch=window.fetch,originalCenter=JSON.parse(JSON.stringify(s.connectionCenter)),originalMods=s.modPacks,originalBatch=s.settings.detailedOutlineBatchSize,originalSkip=s.teamSkipPlanConfirm;
+  const originalFetch=window.fetch,originalCenter=JSON.parse(JSON.stringify(s.connectionCenter)),originalMods=s.modPacks,originalBatch=s.settings.detailedOutlineBatchSize,originalSkip=s.teamSkipPlanConfirm,originalTeamLink=s.settings.teamBookApplyRoutesToExisting;
   const results=[],requests=[],held=[],clone=value=>JSON.parse(JSON.stringify(value));
   const assert=(ok,message)=>{if(!ok)throw Error(message);};
   const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
@@ -22,7 +22,7 @@ async function runTeamBehaviorBrowserChecks() {
     if(url.hostname!=='mock-v19-team.invalid')return originalFetch.call(window,input,init);
     const body=JSON.parse(init.body),prompt=body.messages.map(row=>typeof row.content==='string'?row.content:JSON.stringify(row.content)).join('\n');
     const row={mode,path:url.pathname,body:clone(body),response:''};requests.push(row);
-    if(mode==='late-planner'||mode==='late-generation')await new Promise(resolve=>held.push(resolve));
+    if(mode==='late-planner'||(mode==='partial-stop'&&body.model!=='team-character'))await new Promise(resolve=>held.push(resolve));
     let value;
     if(prompt.includes('你是策划员'))value=plan;
     else if(prompt.includes('你是审查员'))value=review;
@@ -58,10 +58,10 @@ async function runTeamBehaviorBrowserChecks() {
     assert(detailRequests.length===2&&JSON.stringify(detailRequests[1].body).includes('缺少第2、3章'),'Second detail request must ask only for missing chapters');
     await until(()=>document.querySelector('[data-team-book-failed-blocks]'),'failed block controls');
     click('原文');await tick();assert(s.teamRawView.includes('characters'),'Failed block raw response is unavailable');
-    const preserved=clone(s.teamBlocks.filter(row=>row.id!=='characters').map(row=>({id:row.id,result:row.result}))),retryStart=requests.length;mode='retry';
+    const preserved=clone(s.teamBlocks.filter(row=>row.id!=='characters'&&row.id!=='review').map(row=>({id:row.id,result:row.result}))),retryStart=requests.length;mode='retry';
     button(document.querySelector('[data-team-book-failed-blocks]'),'重试').click();
     await until(()=>s.teamBlocks.every(row=>row.status==='done')&&s.teamDraft.characters.length===2&&requests.length>=retryStart+2,'single block retry and review');await tick();
-    assert(JSON.stringify(preserved)===JSON.stringify(s.teamBlocks.filter(row=>row.id!=='characters').map(row=>({id:row.id,result:row.result}))),'Single block retry modified good blocks');
+    assert(JSON.stringify(preserved)===JSON.stringify(s.teamBlocks.filter(row=>row.id!=='characters'&&row.id!=='review').map(row=>({id:row.id,result:row.result}))),'Single block retry modified completed content blocks');
     assert(requests.slice(retryStart).map(row=>row.body.model).join(',')==='team-character,team-settings','Retry must request only character plus reviewer');
     assert(s.teamDraft.characters.find(row=>row.name==='周宁').desc==='周宁独有的守港人经历'&&s.teamDraft.characters.find(row=>row.name==='林远').desc==='林远独有的寻灯人经历','Character order confused biographies');
     assert(s.teamReview.status==='ok'&&s.teamReview.facts[0].fulfilled===true,'Reviewer did not report user fact');
@@ -79,14 +79,45 @@ async function runTeamBehaviorBrowserChecks() {
     mode='late-planner';s.openTeamBookMode();s.teamSkipPlanConfirm=false;s.teamBrief=fact;
     const planning=s.splitTeamPlan(fact);await until(()=>held.length===1,'held planner');s.backToManualBook();held.splice(0).forEach(resolve=>resolve());await planning;
     assert(s.teamPlan===null&&s.newBookMode==='manual'&&s.books.length===beforeCount+1,'Late cancelled planner wrote a plan or book');
-    mode='late-generation';s.openTeamBookMode();s.teamPlan=clone(plan);s.teamBrief=fact;s.teamPlanOptions.unfinishedMode=true;s.teamPlanOptions.chapterCount=3;
-    const generating=s.startTeamGeneration();await until(()=>held.length===3,'held specialists');s.stopTeamBook();held.splice(0).forEach(resolve=>resolve());await generating;
-    assert(s.teamDraft===null&&s.teamBlocks.every(row=>row.status==='stopped')&&s.books.length===beforeCount+1,'Late cancelled specialists wrote a draft or book');
-    results.push({name:'late planner and specialist responses cannot repopulate cancelled work',ok:true});
+    mode='partial-stop';s.openTeamBookMode();s.teamPlan=clone(plan);s.teamBrief=fact;s.teamPlanOptions.unfinishedMode=true;s.teamPlanOptions.chapterCount=3;
+    const generating=s.startTeamGeneration();await until(()=>held.length===2&&s.teamBlocks.find(row=>row.id==='characters')?.status==='done','partial specialist completion');
+    const newBookDialog=document.querySelector('[data-moyun-modal="new-book"]');assert(newBookDialog,'New-book dialog is missing');newBookDialog.querySelector('[aria-label="关闭新建书籍"]').click();await until(()=>document.querySelector('[data-moyun-modal="confirm"]'),'stop confirmation');
+    const stopConfirm=document.querySelector('[data-moyun-modal="confirm"]');assert(button(stopConfirm,'停止并查看已完成内容'),'Running close must offer stop and review, not stop and close');button(stopConfirm,'停止并查看已完成内容').click();
+    held.splice(0).forEach(resolve=>resolve());await generating;
+    assert(s.teamDraft&&s.teamDraft.characters.length===2&&s.teamBlocks.find(row=>row.id==='characters').status==='done','Stopping discarded successful specialist output');
+    assert(s.teamBlocks.some(row=>row.status==='stopped')&&s.books.length===beforeCount+1&&s.showNewBook,'Stopping wrote a half-finished book, closed the recovery page, or failed to mark unfinished blocks');
+    await until(()=>document.querySelector('[data-team-book-incomplete-actions]'),'stop recovery actions');
+    button(document.querySelector('[data-moyun-modal="new-book"]'),'关闭').click();await until(()=>document.querySelector('[data-moyun-modal="confirm"]'),'draft retention confirmation');
+    const draftConfirm=document.querySelector('[data-moyun-modal="confirm"]');assert(draftConfirm.textContent.includes('离开会丢失')&&button(draftConfirm,'先写入已完成部分'),'Closing a partial draft must explain its consequence and save option');button(draftConfirm,'留在这里').click();await tick();
+    assert(s.showNewBook&&s.teamDraft.characters.length===2,'Keeping the partial draft closed the recovery page or discarded completed content');
+    const resumeStart=requests.length;mode='resume';button(document.querySelector('[data-team-book-incomplete-actions]'),'重试未完成区块').click();
+    await until(()=>s.teamPhase==='done'&&s.teamBlocks.every(row=>row.status==='done'),'resume incomplete blocks');await tick();
+    const resumed=requests.slice(resumeStart).map(row=>row.body.model);
+    assert(!resumed.includes('team-character')&&resumed.includes('team-settings')&&resumed.includes('team-outline'),'Resume must not repeat the successful character block');
+    assert(s.teamDraft.chapterOutlines.length===3&&s.books.length===beforeCount+1,'Resume lost partial outlines or created a book before acceptance');
+    results.push({name:'stop retains completed output, resume calls only incomplete blocks, no half book is written',ok:true,retainedCharacterCalls:requests.filter(row=>row.body.model==='team-character').length,resumed});
+    const shared=s.createConnectionProfile({name:'团队统一 API',templateId:'openai-compatible',baseUrl:'https://mock-v19-team.invalid/v1',defaultModel:'team-shared',apiKey:'test-only',lastTest:{status:'ok'}});
+    assert(shared.ok,'Shared mock profile creation failed');
+    const specialist=s.createConnectionProfile({name:'角色专用 API',templateId:'openai-compatible',baseUrl:'https://mock-v19-team.invalid/v1',defaultModel:'team-character-special',apiKey:'test-only',lastTest:{status:'ok'}});
+    assert(specialist.ok,'Specialist mock profile creation failed');
+    s.showSettings_modal=true;s.activeSettingsTab='context';s.teamBookRoutesOpen=false;s.settingsSearchQuery='团队开书';s.settingsSearchFocused=true;await tick();
+    const teamSearch=s.settingsSearchResults.find(item=>item.target==='settings-search-team-book');assert(teamSearch,'Team Book search did not find the context section');s.navigateToSettingsSearchResult(teamSearch);await tick();
+    const unifiedRadio=Array.from(document.querySelectorAll('input[name="team-book-unified-route"]')).find(input=>input.value===shared.profile.id);assert(unifiedRadio,'Unified API choice is missing from the settings page');unifiedRadio.click();await tick();assert(s.getModuleRequestConfig('team-planner').model==='team-shared','Unified route UI selection did not reach planner');
+    button(document,'逐项调整团队开书 API →').click();await tick();
+    const characterRadio=Array.from(document.querySelectorAll('input[name="team-route-team-character"]')).find(input=>input.value===specialist.profile.id);assert(characterRadio,'Per-role API choice is missing from the detailed settings page');characterRadio.click();await tick();assert(s.getModuleRequestConfig('team-character').model==='team-character-special','Per-role API UI selection did not reach the character specialist');
+    const existingLink=document.querySelector('[aria-label="团队开书模型用于已有书籍同类生成"]');assert(existingLink,'Existing-book model-link switch is missing');existingLink.click();await tick();assert(s.getModuleRequestConfig('character').model==='team-character','Disabled link changed the existing character module');existingLink.click();await tick();assert(s.getModuleRequestConfig('character').model==='team-character-special','Enabled link did not reuse the tuned character API');
+    results.push({name:'settings UI selects a unified API, a per-role API, and toggles existing-book model linking',ok:true});
+    for(const [query,target] of [['策划员 API','settings-search-team-planner'],['设定员 API','settings-search-team-settings'],['角色员 API','settings-search-team-character'],['细纲员 API','settings-search-team-outline'],['审查员 API','settings-search-team-review'],['已有书籍模型联动','settings-search-team-book-existing-routes']]){s.settingsSearchQuery=query;s.settingsSearchFocused=true;await tick();const hit=s.settingsSearchResults.find(item=>item.target===target);assert(hit,'Team Book API route was not found: '+query);s.navigateToSettingsSearchResult(hit);await tick();assert(s.teamBookRoutesOpen&&document.getElementById(target),'Team Book API search result did not open its section: '+target);}
+    results.push({name:'settings search opens Team Book page and all specialist/API-link sections',ok:true});
+    for(const [query,target] of [['沉浸模式 AI扩写','settings-search-route-immersive-expand'],['沉浸模式 AI续写','settings-search-route-immersive-continue']]){s.settingsSearchQuery=query;s.settingsSearchFocused=true;await tick();const hit=s.settingsSearchResults.find(item=>item.target===target);assert(hit,'Immersive API route was not found: '+query);s.navigateToSettingsSearchResult(hit);await tick();assert(document.getElementById(target),'Immersive API search result did not open its module section: '+target);}
+    results.push({name:'settings search opens the independent immersive AI expansion and continuation routes',ok:true});
+    s.showSettings_modal=false;
     s.showNewBook=false;s.openDetailedOutlineWorkbench();
-    return {passed:true,results,bookId:createdId,originId:origin,libraryBefore:beforeCount,libraryAfter:s.books.length,viewport:{width:innerWidth,height:innerHeight},requests};
+    const viewport={width:innerWidth,height:innerHeight,documentWidth:document.documentElement.scrollWidth};
+    assert(viewport.documentWidth<=viewport.width+1,'Page overflowed the viewport: '+JSON.stringify(viewport));
+    return {passed:true,results,bookId:createdId,originId:origin,libraryBefore:beforeCount,libraryAfter:s.books.length,viewport,requests};
   } finally {
-    held.splice(0).forEach(resolve=>resolve());window.fetch=originalFetch;s.connectionCenter=originalCenter;s.modPacks=originalMods;s.settings.detailedOutlineBatchSize=originalBatch;s.teamSkipPlanConfirm=originalSkip;
+    held.splice(0).forEach(resolve=>resolve());window.fetch=originalFetch;s.connectionCenter=originalCenter;s.modPacks=originalMods;s.settings.detailedOutlineBatchSize=originalBatch;s.teamSkipPlanConfirm=originalSkip;s.settings.teamBookApplyRoutesToExisting=originalTeamLink;
   }
 }
 module.exports={runTeamBehaviorBrowserChecks};

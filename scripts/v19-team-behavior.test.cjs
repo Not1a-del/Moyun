@@ -65,7 +65,7 @@ test('missing chapter retries retain good chapters, request only missing ones an
   assert.ok(result.outlines[0].content.includes('第一章不可覆盖哨兵'));assert.ok(!result.outlines[0].content.includes('错误覆盖'));
   assert.ok(result.outlines[2].content.includes('第三章补齐'));assert.equal(h.calls.length,3);
   assert.ok(h.calls[1].prompt.includes('缺少第2、3章'));assert.ok(h.calls[2].prompt.includes('缺少第2章'));
-  assert.ok(h.calls.every(call=>call.modelKey==='outline'&&call.options.retries===0&&!call.aborted));
+  assert.ok(h.calls.every(call=>call.modelKey==='team-outline'&&call.options.retries===0&&!call.aborted));
   assert.ok(h.toasts.some(toast=>toast.message.includes('9')),'Ignored out-of-range reply should be explained');
 });
 test('failed chapter block retains partial work; a later retry fills gaps without redoing good chapters',async()=>{
@@ -106,7 +106,7 @@ test('specialists use the correct model module and expose exact fake request inp
   const h=harness();
   const replies={settings:{title:'雾港回声',worldView:'力量来自潮汐',synopsis:'雾港寻灯'},characters:{characters:[{name:'林远',desc:'寻灯人'},{name:'周宁',desc:'守港人'}]},outline:{outline:'追查旧灯，大门后的线索尚未揭开。',volumes:h.plan.volumes,chapterIndexDrafts:[]}};
   for(const id of ['settings','characters','outline']){h.add(id);h.queue([JSON.stringify(replies[id])]);const result=await h.ctx.runTeamBlock(id);assert.ok(result);}
-  assert.deepEqual(h.calls.map(call=>({model:call.modelKey,task:call.options.taskType,retries:call.options.retries})),[{model:'settings',task:'team-settings',retries:1},{model:'character',task:'team-characters',retries:1},{model:'outline',task:'team-outline',retries:1}]);
+  assert.deepEqual(h.calls.map(call=>({model:call.modelKey,task:call.options.taskType,retries:call.options.retries})),[{model:'team-settings',task:'team-settings',retries:1},{model:'team-character',task:'team-characters',retries:1},{model:'team-outline',task:'team-outline',retries:1}]);
   assert.ok(h.calls.every(call=>call.prompt.includes('雾港回声')&&call.prompt.includes('主角在雾港寻找旧灯')));
   assert.equal(h.repairs.length,0,'Valid structured responses must not spend a repair request');
 });

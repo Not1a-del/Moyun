@@ -61,7 +61,7 @@ test('细纲批次按卷切分，卷边界不会跨批次', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(ctx.buildTeamChapterBatches({ startChapter:9, endChapter:12 }, 5))), [{ startChapter:9, endChapter:12 }]);
 });
 
-test('角色员走 character 模型路由，失败块保留错误状态供单独重试', async () => {
+test('角色员走 team-character 模型路由，失败块保留错误状态供单独重试', async () => {
   const calls = [];
   const ctx = vm.createContext({
     teamPlan:{ value:{ characters:[] } }, _teamAbort:null,
@@ -75,7 +75,7 @@ test('角色员走 character 模型路由，失败块保留错误状态供单独
   vm.runInContext(extract('    function parseAiJsonSyntax(', '    function parseCharacterAiJsonEnvelope('),ctx);
   vm.runInContext(extract('    async function runTeamBlock(', '    async function runTeamDetailBlock(') + '; globalThis.runTeamBlock = runTeamBlock;', ctx);
   await ctx.runTeamBlock('characters');
-  assert.equal(calls[0].modelKey, 'character');
+  assert.equal(calls[0].modelKey, 'team-character');
   assert.equal(ctx.teamBlocks.value[0].status, 'done');
   assert.equal(ctx.teamBlocks.value[0].result.characters[0].name,'林远');
   ctx.okStreamFetch=async()=>{throw Error('模拟角色员网络失败');};
@@ -93,11 +93,75 @@ test('团队开始阶段不创建书或写库，只有提交阶段调用一次�
   assert.equal((commit.match(/saveDataNow\(/g) || []).length, 2);
 });
 
-test('停止团队开书会中止请求并清空草稿，不留下可提交半成品', () => {
+test('停止团队开书会会中止请求并保留成功结果，未完成块可以继续补齐', () => {
   const stop = extract('    function stopTeamBook(', '    function getOneKeyDetailedChapterCount(');
-  assert.match(stop, /_teamAbort\) _teamAbort\.abort\(\)/);
-  assert.match(stop, /teamDraft\.value = null/);
-  assert.match(stop, /teamPhase\.value = 'done'/);
+  const ctx = vm.createContext({
+    _teamAbort:{abort(){this.aborted=true;}}, _teamRunId:1,
+    teamPhase:{value:'generating'}, oneKeyPhase:{value:'generating'},
+    teamBlocks:{value:[{id:'settings',label:'设定员',status:'done',result:{worldView:'已完成设定'}},{id:'characters',label:'角色员',status:'running'},{id:'outline',label:'大纲卷纲员',status:'pending'}]},
+    teamDraft:{value:null}, teamReview:{value:null}, teamRawView:{value:'原始回复'},
+    syncTeamDraftFromBlocks:()=>{ctx.teamDraft.value={needsFill:ctx.teamBlocks.value.filter(row=>row.id!=='review'&&row.status!=='done').map(row=>row.label)};},
+    showToast:message=>{ctx.toast=message;}
+  });
+  vm.runInContext(stop + '; globalThis.stopTeamBook = stopTeamBook;',ctx);
+  const abortController=ctx._teamAbort;
+  ctx.stopTeamBook();
+  assert.equal(abortController.aborted,true);
+  assert.equal(ctx.teamPhase.value,'done');
+  assert.equal(ctx.teamBlocks.value[0].result.worldView,'已完成设定');
+  assert.deepEqual(Array.from(ctx.teamBlocks.value.slice(1),row=>row.status),['stopped','stopped']);
+  assert.ok(ctx.teamDraft.value);
+  assert.deepEqual(Array.from(ctx.teamDraft.value.needsFill),['角色员','大纲卷纲员']);
+  assert.match(ctx.teamReview.value.message,/已保留/);
+  assert.match(ctx.toast,/已保留/);
+});
+
+test('团队模型路由支持统一配置、逐角色覆盖和已有书籍联动开关',()=>{
+  const block=extract('    const TEAM_BOOK_ROUTE_CONFIG =', '    const PROVIDER_TEMPLATES =');
+  const ctx=vm.createContext({});
+  vm.runInContext(block+'; globalThis.resolveTeamBookRouteSelection=resolveTeamBookRouteSelection;',ctx);
+  const routes={settings:{profileId:'settings-api'},character:{profileId:'character-api'},outline:{profileId:'outline-api'}};
+  const follows=key=>ctx.resolveTeamBookRouteSelection(key,routes,{});
+  assert.equal(follows('team-planner').fallbackKey,'settings');
+  assert.equal(follows('team-character').fallbackKey,'character');
+  assert.equal(follows('team-outline').fallbackKey,'outline');
+  const shared={...routes,'team-book':{profileId:'shared-api'},'team-character':{profileId:'character-special'}};
+  assert.equal(ctx.resolveTeamBookRouteSelection('team-planner',shared,{}).profileId,'shared-api');
+  assert.equal(ctx.resolveTeamBookRouteSelection('team-character',shared,{}).profileId,'character-special');
+  assert.equal(ctx.resolveTeamBookRouteSelection('character',shared,{applyToExisting:true}).profileId,'character-special');
+  assert.equal(ctx.resolveTeamBookRouteSelection('character',shared,{applyToExisting:false}).profileId,'character-api');
+  assert.equal(ctx.resolveTeamBookRouteSelection('team-character',routes,{useDefault:true}).useDefault,true);
+});
+
+test('设置搜索跳转会滚到团队开书所在的设置内容区',()=>{
+  const fn=extract('    function navigateToSettingsSearchResult(', '    function navigateToSettingsModuleLocation(');
+  const calls=[];
+  const target={getBoundingClientRect:()=>({top:530}),classList:{add(){calls.push('highlight');},remove(){}}};
+  const scrollArea={scrollTop:100,getBoundingClientRect:()=>({top:200}),scrollTo:options=>calls.push(options)};
+  const ctx=vm.createContext({
+    settingsTabs:[{id:'context'}],activeSettingsTab:{value:'connections'},teamBookRoutesOpen:{value:false},
+    settingsSearchQuery:{value:'团队开书'},closeSettingsSearch(){ctx.settingsSearchFocused.value=false;},
+    settingsSearchFocused:{value:true},nextTick:fn=>fn(),requestAnimationFrame:fn=>fn(),setTimeout:()=>{},
+    document:{getElementById:()=>target,querySelector:selector=>selector.includes('.settings-search-shell')?scrollArea:null},
+    moyunScrollBehavior:()=> 'smooth'
+  });
+  vm.runInContext(fn+'; globalThis.navigateToSettingsSearchResult=navigateToSettingsSearchResult;',ctx);
+  ctx.navigateToSettingsSearchResult({tab:'context',target:'settings-search-team-book',teamBookRoutes:true});
+  assert.equal(ctx.teamBookRoutesOpen.value,true);
+  assert.equal(ctx.settingsSearchQuery.value,'');
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])),{top:352,behavior:'smooth'});
+});
+
+test('全部重置模块 API 时也会清除团队开书的全局默认模式',()=>{
+  const fn=extract('    function resetModuleRoutes(', '    // 中文注释：停用插件');
+  const ctx=vm.createContext({
+    CONNECTION_MODULE_KEYS:['team-book'],connectionCenter:{value:{moduleRoutes:{'team-book':{profileId:''}}}},
+    settings:{value:{teamBookUseDefaultProfile:true}},saveDataNow:()=>{},showToast:()=>{},openConfirm:()=>{throw Error('无已分配 API 时不应要求确认');}
+  });
+  vm.runInContext(fn+'; globalThis.resetModuleRoutes=resetModuleRoutes;',ctx);
+  ctx.resetModuleRoutes();
+  assert.equal(ctx.settings.value.teamBookUseDefaultProfile,false);
+  assert.equal(ctx.connectionCenter.value.moduleRoutes['team-book'].profileId,'');
 });
 
 test('单个细纲块失败不会用 break 跳过同卷后续批次', () => {
@@ -132,7 +196,26 @@ test('团队完成页提供失败块的单独重试和原文入口，重试后�
   assert.match(template, /@click="retryTeamBlock\(row.id\)"/);
   assert.match(template, /@click="viewTeamRaw\(row.id\)"/);
   const retry = extract('    async function retryTeamBlock(', '    function viewTeamRaw(');
-  assert.match(retry, /await reviewTeamDraft\(teamDraft\.value,controller\)/);
+  assert.match(retry, /await runTeamReview\(controller\)/);
+  const review = extract('    async function runTeamReview(', '    async function startTeamGeneration(');
+  assert.match(review, /await reviewTeamDraft\(teamDraft\.value,controller\)/);
+});
+
+test('重试区块后即使缺少大纲也会把审查状态更新为未完成', async () => {
+  const review = extract('    async function runTeamReview(', '    async function startTeamGeneration(');
+  const retry = extract('    async function retryTeamBlock(', '    function viewTeamRaw(');
+  const ctx = vm.createContext({
+    _teamAbort:null, teamBlocks:{value:[{id:'characters',status:'error'},{id:'review',status:'pending'}]},
+    teamPhase:{value:'done'}, oneKeyPhase:{value:'done'}, teamDraft:{value:{outline:''}}, teamReview:{value:null},
+    runTeamBlock:async id=>{const row=ctx.teamBlocks.value.find(item=>item.id===id);row.status='done';row.result={characters:[]};return row.result;},
+    syncTeamDraftFromBlocks:()=>{ctx.teamDraft.value={outline:''};}, showToast:()=>{}, DOMException, AbortController
+  });
+  vm.runInContext(review+retry+'; globalThis.retryTeamBlock=retryTeamBlock;',ctx);
+  await ctx.retryTeamBlock('characters');
+  const reviewRow=ctx.teamBlocks.value.find(item=>item.id==='review');
+  assert.equal(reviewRow.status,'error');
+  assert.match(reviewRow.error,/大纲员未完成/);
+  assert.equal(ctx.teamReview.value.status,'incomplete');
 });
 
 test('策划员缺关键字段会进入手动方案，不能被默认值静默掩盖', () => {
@@ -159,6 +242,40 @@ test('策划员取消后即使请求晚返回也不会回写方案', () => {
 test('停止后重试失败块不会复用已中止的请求信号', () => {
   const retry = extract('    async function retryTeamBlock(', '    function viewTeamRaw(');
   assert.match(retry, /_teamAbort && !_teamAbort\.signal\.aborted/);
+});
+
+test('离开团队结果页前必须先留在页面或明确写入草稿', () => {
+  const confirmations = [], writes = [];
+  const ctx = vm.createContext({
+    newBookMode:{ value:'team' }, teamDraft:{ value:{ needsFill:['细纲员'], committing:false } },
+    teamBlocks:{ value:[{ id:'characters', status:'done' },{ id:'outline', status:'stopped' }] },
+    teamReview:{ value:{ status:'incomplete' } },
+    openConfirm:(config, callback)=>confirmations.push({ config, callback }),
+    commitPartialTeamDraft:()=>writes.push('partial'), commitTeamDraft:()=>writes.push('full')
+  });
+  vm.runInContext(extract('    function keepTeamDraftBeforeExit(', '    function requestCloseNewBookModal(') + '; globalThis.keepTeamDraftBeforeExit = keepTeamDraftBeforeExit;', ctx);
+  assert.equal(ctx.keepTeamDraftBeforeExit(), true);
+  assert.match(confirmations[0].config.message, /离开会丢失/);
+  assert.equal(confirmations[0].config.choices[1].label, '先写入已完成部分');
+  confirmations[0].callback('stay');
+  assert.deepEqual(writes, []);
+  confirmations[0].callback('save');
+  assert.deepEqual(writes, ['partial']);
+  assert.match(extract('    function backToManualBook()', '    function teamPlanFallback('), /keepTeamDraftBeforeExit()/);
+});
+
+test('运行中选择停止后仍留在恢复页，不直接关闭并丢掉团队结果', () => {
+  let onConfirm, stopped = 0;
+  const ctx = vm.createContext({
+    oneKeyPhase:{ value:'generating' }, newBookMode:{ value:'team' }, showNewBook:{ value:true },
+    openConfirm:(config, callback)=>{ onConfirm = callback; ctx.confirm = config; }, stopTeamBook:()=>stopped++
+  });
+  vm.runInContext(extract('    function requestCloseNewBookModal(', '    function openNewBookModal(') + '; globalThis.requestCloseNewBookModal = requestCloseNewBookModal;', ctx);
+  assert.equal(ctx.requestCloseNewBookModal(), false);
+  assert.equal(ctx.confirm.choices[1].label, '停止并查看已完成内容');
+  onConfirm('stop');
+  assert.equal(stopped, 1);
+  assert.equal(ctx.showNewBook.value, true);
 });
 
 test('细纲反推已有大纲先审阅再改卷纲，并支持停止', () => {
