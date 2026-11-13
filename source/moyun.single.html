@@ -17046,6 +17046,29 @@ function copyLastChapterContextText() {
 
     let libraryPersistenceRunning=false;
     let libraryPersistenceWaiters=[];
+    let persistenceRequested = false;
+    async function requestPersistentStorage() {
+      if (persistenceRequested) return; persistenceRequested = true;
+      try { if (navigator.storage?.persisted && navigator.storage?.persist && !await navigator.storage.persisted()) await navigator.storage.persist(); } catch {}
+    }
+    function isRetryableLibraryError(error) {
+      if (error?.name === 'QuotaExceededError') return false;
+      return ['AbortError','UnknownError','InvalidStateError','TransactionInactiveError'].includes(error?.name) || /connection is closing|database is closing|close pending|数据库正在关闭/i.test(error?.message || '');
+    }
+    async function saveLibraryWithRetry(...args) {
+      for (let attempt=0;;attempt++) {
+        try { return await DB.saveLibrary(...args); }
+        catch(error) { if (attempt >= 3 || !isRetryableLibraryError(error)) throw error; await new Promise(resolve => setTimeout(resolve,250*(attempt+1))); }
+      }
+    }
+    const libraryFailureNoticeTimes = new Map();
+    function notifyLibrarySaveFailure(error) {
+      const kind = error?.name || 'Error', now = Date.now();
+      if (now - (libraryFailureNoticeTimes.get(kind) || 0) < 5000) return;
+      libraryFailureNoticeTimes.set(kind,now);
+      const suffix = kind === 'QuotaExceededError' ? '：浏览器存储空间不足' : '';
+      showToast('保存失败' + suffix + '，请立即从「导出 JSON → 全量备份」导出备份。旧记录未被覆盖，请不要刷新', 'error', true);
+    }
     function persistLibraryNow(reason='手动保存') {
       return new Promise(resolve=>{
         libraryPersistenceWaiters.push({reason,resolve});
@@ -17075,7 +17098,7 @@ function copyLastChapterContextText() {
         const nextRevision = Math.max(remoteRevision, _lastKnownLibraryRevision) + 1;
         library.revision = nextRevision;
         const backupRef = saveEmergencyBackup(library, reason);
-        const backend = await DB.saveLibrary(library,nextRevision,CONNECTION_CREDENTIALS_DB_KEY,JSON.stringify(connectionCredentials.value));
+        const backend = await saveLibraryWithRetry(library,nextRevision,CONNECTION_CREDENTIALS_DB_KEY,JSON.stringify(connectionCredentials.value));
         if (backend === 'localStorage') showToast('浏览器存储异常，数据暂存在小容量位置，请尽快从「导出 JSON → 全量备份」导出备份', 'warning', true);
         await checkStorageQuota(reason);
         _lastKnownLibraryRevision = nextRevision;
@@ -17086,8 +17109,7 @@ function copyLastChapterContextText() {
         return true;
       } catch (e) {
         console.error('[Save] failed:', reason, e);
-        const suffix = e?.name === 'QuotaExceededError' ? '：浏览器存储空间不足' : '';
-        showToast('保存失败' + suffix + '，请立即从「导出 JSON → 全量备份」导出备份', 'error', true);
+        notifyLibrarySaveFailure(e);
         return false;
       }
     }
@@ -21735,7 +21757,8 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
           if (bookId !== currentBookId.value || branchId !== activeBranchId.value) return;
           let style; try { style = validateDistilledStyle(previous,material); } catch(error) { if(!attempt) continue; throw error; }
           const id = uid(); writingStyles.value.push({...style,id,isBuiltin:false,source:'喜欢提炼'}); currentWritingStyleId.value = id; writableStyleSource().mode = 'library';
-          await saveDataNow('保存提炼文风'); showToast('已提炼并启用文风：' + style.name + (isSnowwingPresetLocked() ? '（白鸟锁定期间不生效）' : ''), 'success'); return;
+          if (!await saveDataNow('保存提炼文风')) { showToast('文风已提炼并保留在本页，但保存失败；请立即导出备份，不要刷新', 'error'); return; }
+          showToast('已提炼并启用文风：' + style.name + (isSnowwingPresetLocked() ? '（白鸟锁定期间不生效）' : ''), 'success'); return;
         }
       } catch(error) { showToast('提炼文风失败：' + error.message + '，未写入文风库', 'error'); }
       finally { isDistillingStyle.value = false; }
@@ -49476,6 +49499,7 @@ function getWritingModelLabel() {
     }
 
     onMounted(() => {
+      requestPersistentStorage();
       initTheme();
       Promise.resolve(loadData()).finally(() => {
         checkStorageQuota('启动');
