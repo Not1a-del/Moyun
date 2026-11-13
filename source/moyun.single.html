@@ -2092,6 +2092,12 @@ img[role="button"]:focus-visible {
 .moyun-branch-panel{position:absolute;width:min(520px,calc(100vw - 24px));max-height:60dvh;display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--bd);border-radius:16px;background:var(--bg-card);color:var(--tx);box-shadow:var(--sh3)}
 .moyun-branch-content{min-height:0;overflow:auto;overflow-x:hidden;flex:1}.moyun-branch-panel button{min-height:44px}.moyun-branch-panel button:disabled{opacity:.4}.moyun-branch-row{display:flex;gap:8px;align-items:center;width:100%;padding:6px;text-align:left;border:1px solid var(--bd);border-radius:8px;background:var(--bg-inset);font-size:12px}.moyun-branch-row[data-selected=true]{border-color:var(--accent);background:var(--accent-soft)}.moyun-branch-select{flex:1;min-width:0;text-align:left;padding:4px;overflow-wrap:anywhere}.moyun-branch-row small{display:block;color:var(--tx3);margin-top:4px}.moyun-branch-map{overflow:auto;max-height:30dvh;cursor:grab;overscroll-behavior:contain}.moyun-branch-map:active{cursor:grabbing}.moyun-branch-map svg{display:block;max-width:none}.moyun-branch-node{cursor:pointer}.moyun-branch-node:focus{outline:none}.moyun-branch-node:focus rect{stroke:var(--accent);stroke-width:3}.moyun-branch-panel header,.moyun-branch-panel footer,.moyun-branch-panel .moyun-wb-mode-tabs{flex-shrink:0}
 @media(max-width:767px){.moyun-branch-panel{left:0!important;top:auto!important;bottom:0;width:100%;height:72dvh;max-height:72dvh;border-radius:16px 16px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom,0px))}}
+/* 长期配置保留原输入，只以 CSS 显示空值、焦点与已填值标签。 */
+.moyun-floating-field{position:relative;display:block;min-width:0;flex:1;margin-top:10px}
+.moyun-floating-field>.input-field{width:100%;min-height:44px;margin-top:0;padding:13px 12px 9px}
+.moyun-floating-field>span{position:absolute;left:10px;top:50%;transform:translateY(-50%);max-width:calc(100% - 20px);padding:0 3px;color:var(--tx3);font-size:12px;pointer-events:none}
+.moyun-floating-field>.input-field:focus+span,.moyun-floating-field>.input-field:not(:placeholder-shown)+span{top:0;font-size:11px;background:var(--bg-inset)}
+.moyun-help-tip{position:fixed;z-index:200;max-width:min(300px,calc(100vw - 16px));padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg-inset);color:var(--tx3);font-size:12px;line-height:1.5;overflow-wrap:anywhere;pointer-events:none}
 </style>
 </head>
 
@@ -3607,7 +3613,7 @@ img[role="button"]:focus-visible {
               <label class="space-y-1"><span class="label">记忆模式</span><select v-model="memoryLibrary.settings.mode" @change="memorySettingsChanged" class="select-field w-full"><option value="classic">基础记忆 · 逐章总结</option><option value="enhanced">增强记忆 · 总结与向量召回</option></select></label>
               <label class="space-y-1"><span class="label">保留最近章节（1–50）</span><input v-model.number="memoryLibrary.settings.summaryKeepChapters" @change="memorySettingsChanged" type="number" min="1" max="50" step="1" class="input-field w-full"><span class="text-xs" style="color:var(--tx3)">最近 {{ memoryLibrary.settings.summaryKeepChapters }} 章保留原文，更早章节使用记忆。逐章总结读取目标章及此前最多 {{ memoryLibrary.settings.summaryKeepChapters }} 章背景。</span></label>
               <label class="space-y-1"><span class="label">总结连接</span><select v-model="memoryLibrary.settings.classicProfileId" @change="memorySettingsChanged" class="select-field w-full"><option value="">跟随总结模块</option><option v-for="profile in connectionCenter.profiles" :key="profile.id" :value="profile.id">{{ profile.name || profile.defaultModel }}</option></select></label>
-              <label class="space-y-1"><span class="label">总结模型（留空使用连接默认模型）</span><input v-model="memoryLibrary.settings.classicModel" @change="memorySettingsChanged" class="input-field w-full" placeholder="模型 ID" autocomplete="off"></label>
+              <label class="moyun-floating-field"><input v-model="memoryLibrary.settings.classicModel" @change="memorySettingsChanged" class="input-field w-full" placeholder=" " aria-label="总结模型（留空使用连接默认模型）" autocomplete="off"><span>总结模型（留空使用连接默认模型）</span></label>
               <label class="space-y-1"><span class="label">补录并发数（1–10）</span><input v-model.number="memoryLibrary.settings.classicConcurrency" @change="memorySettingsChanged" type="number" min="1" max="10" class="input-field w-full"></label>
             </div>
             <div v-if="memoryLibrary.settings.mode==='enhanced'" data-memory-embedding class="space-y-3 min-w-0">
@@ -8178,9 +8184,9 @@ img[role="button"]:focus-visible {
                         :style="naiCallMode==='rphub'?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-inset);color:var(--tx3);border-color:var(--bd)'">增强</button>
               </div>
             </div>
-              <label class="label">生图密钥</label>
+              
               <div class="flex gap-2">
-                <input type="password" v-model="imageGenKey" @change="saveData()" class="input-field text-xs font-mono flex-1" placeholder="STD-xxx">
+                <label class="moyun-floating-field"><input type="password" v-model="imageGenKey" @change="saveData()" class="input-field text-xs font-mono" placeholder=" " aria-label="生图密钥"><span>生图密钥</span></label>
                 <button @click="checkImageKey" class="btn-ghost text-[10px] px-3 py-1">查询余额</button>
               </div>
               <div v-if="imageKeyInfo" class="text-[10px] mt-1" style="color:var(--ok)">{{ imageKeyInfo }}</div>
@@ -8354,15 +8360,15 @@ img[role="button"]:focus-visible {
       <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在验证，请等待完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
         <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
           <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" data-moyun-modal-close class="moyun-icon-button" @click="requestCloseConnectionProfileEditor" :disabled="connectionProfileTesting" aria-label="关闭 API 配置编辑">×</button></div>
-          <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
+          <label class="moyun-floating-field"><input aria-label="配置名称" v-model.trim="connectionProfileDraft.name" class="input-field text-xs " maxlength="40" placeholder=" "><span>配置名称</span></label>
           <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="updateConnectionProfileDraftTemplate" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
-          <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
+          <label class="moyun-floating-field"><input aria-label="API 地址" v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono " placeholder=" "><span>API 地址</span></label>
           <div v-if="getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" role="alert" class="text-[10px] leading-relaxed" style="color:var(--err)">{{ getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl) }}</div>
-          <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel"
+          <label class="moyun-floating-field"><input aria-label="API 密钥" v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono " placeholder=" "><span>API 密钥</span></label>
+          <div class="flex items-end gap-2"><label class="moyun-floating-field"><input aria-label="默认模型" v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono " placeholder=" "><span>默认模型</span></label><button type="button" v-moyun-tip="'用当前协议、地址和密钥验证默认模型是否可用'" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel"
         :title="!connectionProfileDraft.defaultModel ? '先填写左边的「默认模型」，或用下面的「获取模型列表」挑一个' : (connectionProfileTesting ? '正在验证，请稍候' : '用当前协议、地址和密钥验证这个模型是否可用')"
-        class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
+        class="btn-ghost min-h-[44px] px-2.5 text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
@@ -10050,7 +10056,38 @@ const ReviewPanel = {
     </article>
   </section>`
 };
+// 一个浮层服务全部提示入口；触屏点击不拦截按钮本来的动作。
+const MoyunTip = (() => {
+  let tip, owner, timer, oldDescription, serial=0;
+  function hide() {
+    clearTimeout(timer);
+    if(owner) { if(oldDescription===null)owner.removeAttribute('aria-describedby');else owner.setAttribute('aria-describedby',oldDescription); }
+    tip?.remove();tip=null;owner=null;
+    document.removeEventListener('pointerdown',outside,true);
+    window.removeEventListener('resize',hide);window.removeEventListener('scroll',hide,true);
+  }
+  function outside(event){if(owner&&!owner.contains(event.target))hide();}
+  function show(el,text,touch=false) {
+    hide();if(!text)return;owner=el;oldDescription=el.getAttribute('aria-describedby');
+    tip=document.createElement('div');tip.id='moyun-help-'+(++serial);tip.className='moyun-help-tip';tip.role='tooltip';tip.textContent=text;document.body.appendChild(tip);
+    el.setAttribute('aria-describedby',[oldDescription,tip.id].filter(Boolean).join(' '));
+    const r=el.getBoundingClientRect(),t=tip.getBoundingClientRect();
+    tip.style.left=Math.max(8,Math.min(r.left+(r.width-t.width)/2,window.innerWidth-t.width-8))+'px';
+    tip.style.top=(r.top>=t.height+16?r.top-t.height-8:Math.min(window.innerHeight-t.height-8,r.bottom+8))+'px';
+    document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',hide);window.addEventListener('scroll',hide,true);
+    if(touch)timer=setTimeout(hide,3000);
+  }
+  return {mounted(el,binding){
+    const state={value:binding.value,touch:false};
+    state.enter=e=>{if(e.pointerType==='mouse')show(el,state.value);};
+    state.focus=()=>{if(!state.touch)show(el,state.value);};
+    state.down=e=>{state.touch=e.pointerType!=='mouse';if(state.touch)show(el,state.value,true);};
+    state.leave=()=>{if(!state.touch&&owner===el)hide();};
+    el.addEventListener('pointerenter',state.enter);el.addEventListener('focus',state.focus);el.addEventListener('pointerdown',state.down);el.addEventListener('pointerleave',state.leave);el.addEventListener('blur',state.leave);el._moyunTip=state;
+  },updated(el,binding){el._moyunTip.value=binding.value;},unmounted(el){const s=el._moyunTip;if(owner===el)hide();el.removeEventListener('pointerenter',s.enter);el.removeEventListener('focus',s.focus);el.removeEventListener('pointerdown',s.down);el.removeEventListener('pointerleave',s.leave);el.removeEventListener('blur',s.leave);delete el._moyunTip;}};
+})();
 createApp({
+  directives: { 'moyun-tip': MoyunTip },
   components: { ReviewPanel, BranchPanel },
   setup() {
 

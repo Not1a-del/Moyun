@@ -45,4 +45,29 @@ async function runCharacterIsolationBrowserChecks() {
   window.__nineP1={...receipt,calls}; return receipt;
  } finally {window.fetch=originalFetch;}
 }
-if(typeof module!=='undefined')module.exports={runCharacterIsolationBrowserChecks};
+async function runFloatingFieldBrowserChecks(dark=false) {
+ const s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState,wait=ms=>document.hasFocus()?new Promise(r=>setTimeout(r,ms)):Promise.resolve(),assert=(v,m)=>{if(!v)throw Error(m);};
+ // 侧栏后台页的入场动画会停在首帧；几何验收只关闭动画，不改变布局规则。
+ if(!document.querySelector('#nine-no-motion')){const st=document.createElement('style');st.id='nine-no-motion';st.textContent='[data-moyun-modal]{transform:none!important;transition:none!important;opacity:1!important}';document.head.appendChild(st);}
+ if(s.isDark!==dark)s.toggleTheme();s.openSettingsTab('api');s.openConnectionProfileEditor('openai-compatible');await wait(80);
+ const rows=[...document.querySelectorAll('[data-moyun-modal="connection-profile-editor"] .moyun-floating-field')];assert(rows.length===4,'four labels');
+ const positions=[];
+ for(const row of rows){const input=row.querySelector('input'),label=row.querySelector('span'),position=()=>label.getBoundingClientRect().top-row.getBoundingClientRect().top;input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.blur();await wait(160);const empty=position();
+  input.focus();await wait(160);const focused=position();if(document.hasFocus())assert(focused<empty-5,'focus floats '+input.getAttribute('aria-label'));
+  input.value='long-value-for-layout-test';input.dispatchEvent(new Event('input',{bubbles:true}));input.blur();await wait(160);const filled=position();assert(filled<empty-5,'filled floats');assert(input.getBoundingClientRect().height>=44,'44px input');positions.push({label:input.getAttribute('aria-label'),empty,focused,filled,nativeFocusAvailable:document.hasFocus()});
+ }
+ assert(document.querySelector('[data-settings-api-key]').type==='password','secret remains masked');
+ const button=document.querySelector('[data-moyun-modal="connection-profile-editor"] [aria-describedby]')||[...document.querySelectorAll('button')].find(b=>b.textContent==='验证模型');button.disabled=false;
+ button.dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}));assert(document.querySelector('.moyun-help-tip'),'hover tip');button.dispatchEvent(new PointerEvent('pointerleave',{pointerType:'mouse'}));
+ button.dispatchEvent(new FocusEvent('focus'));assert(document.querySelector('.moyun-help-tip'),'keyboard focus handler tip');button.dispatchEvent(new FocusEvent('blur'));
+ button.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',bubbles:true}));let r=document.querySelector('.moyun-help-tip').getBoundingClientRect();assert(r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,'tip fits viewport');const tip=r.toJSON();if(document.hasFocus()){await wait(3150);assert(!document.querySelector('.moyun-help-tip'),'touch expires');}
+ button.dispatchEvent(new PointerEvent('pointerdown',{pointerType:'touch',bubbles:true}));document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));assert(!document.querySelector('.moyun-help-tip'),'outside dismisses');
+ Object.assign(s.connectionProfileDraft,{name:'浮动标签验收',baseUrl:'https://nine-fixes.invalid/v1',defaultModel:'gemini-nine-mock',apiKey:'test-only'});
+ const original=window.fetch;window.fetch=async()=>new Response(JSON.stringify({data:[{id:'gemini-nine-mock'}],choices:[{message:{content:'OK'}}]}),{headers:{'content-type':'application/json'}});
+ try{assert(await s.testConnectionProfileDraft(),'connection validates');assert(await s.testConnectionProfileModelDraft(),'model validates');assert(s.saveConnectionProfileDraft(),'profile saves');}finally{window.fetch=original;}
+ s.openConnectionProfileEditor('openai-compatible',s.connectionCenter.profiles.find(p=>p.name==='浮动标签验收'));await wait(80);
+ assert(s.connectionProfileDraft.defaultModel==='gemini-nine-mock','saved model');
+ const overflow=document.documentElement.scrollWidth>innerWidth;assert(!overflow,'no horizontal scroll');
+ return {passed:true,viewport:[innerWidth,innerHeight],dark,positions,tip,connectionSaved:true};
+}
+if(typeof module!=='undefined')module.exports={runCharacterIsolationBrowserChecks,runFloatingFieldBrowserChecks};

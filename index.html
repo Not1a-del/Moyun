@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=ed0039591197">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=d478ea155cb5">
 </head>
 
 <body class="h-screen flex overflow-hidden">
@@ -1525,7 +1525,7 @@
               <label class="space-y-1"><span class="label">记忆模式</span><select v-model="memoryLibrary.settings.mode" @change="memorySettingsChanged" class="select-field w-full"><option value="classic">基础记忆 · 逐章总结</option><option value="enhanced">增强记忆 · 总结与向量召回</option></select></label>
               <label class="space-y-1"><span class="label">保留最近章节（1–50）</span><input v-model.number="memoryLibrary.settings.summaryKeepChapters" @change="memorySettingsChanged" type="number" min="1" max="50" step="1" class="input-field w-full"><span class="text-xs" style="color:var(--tx3)">最近 {{ memoryLibrary.settings.summaryKeepChapters }} 章保留原文，更早章节使用记忆。逐章总结读取目标章及此前最多 {{ memoryLibrary.settings.summaryKeepChapters }} 章背景。</span></label>
               <label class="space-y-1"><span class="label">总结连接</span><select v-model="memoryLibrary.settings.classicProfileId" @change="memorySettingsChanged" class="select-field w-full"><option value="">跟随总结模块</option><option v-for="profile in connectionCenter.profiles" :key="profile.id" :value="profile.id">{{ profile.name || profile.defaultModel }}</option></select></label>
-              <label class="space-y-1"><span class="label">总结模型（留空使用连接默认模型）</span><input v-model="memoryLibrary.settings.classicModel" @change="memorySettingsChanged" class="input-field w-full" placeholder="模型 ID" autocomplete="off"></label>
+              <label class="moyun-floating-field"><input v-model="memoryLibrary.settings.classicModel" @change="memorySettingsChanged" class="input-field w-full" placeholder=" " aria-label="总结模型（留空使用连接默认模型）" autocomplete="off"><span>总结模型（留空使用连接默认模型）</span></label>
               <label class="space-y-1"><span class="label">补录并发数（1–10）</span><input v-model.number="memoryLibrary.settings.classicConcurrency" @change="memorySettingsChanged" type="number" min="1" max="10" class="input-field w-full"></label>
             </div>
             <div v-if="memoryLibrary.settings.mode==='enhanced'" data-memory-embedding class="space-y-3 min-w-0">
@@ -6096,9 +6096,9 @@
                         :style="naiCallMode==='rphub'?'background:var(--accent);color:var(--accent-fg);border-color:var(--accent)':'background:var(--bg-inset);color:var(--tx3);border-color:var(--bd)'">增强</button>
               </div>
             </div>
-              <label class="label">生图密钥</label>
+              
               <div class="flex gap-2">
-                <input type="password" v-model="imageGenKey" @change="saveData()" class="input-field text-xs font-mono flex-1" placeholder="STD-xxx">
+                <label class="moyun-floating-field"><input type="password" v-model="imageGenKey" @change="saveData()" class="input-field text-xs font-mono" placeholder=" " aria-label="生图密钥"><span>生图密钥</span></label>
                 <button @click="checkImageKey" class="btn-ghost text-[10px] px-3 py-1">查询余额</button>
               </div>
               <div v-if="imageKeyInfo" class="text-[10px] mt-1" style="color:var(--ok)">{{ imageKeyInfo }}</div>
@@ -6272,15 +6272,15 @@
       <div v-if="connectionProfileEditorOpen" data-moyun-modal="connection-profile-editor" :data-moyun-modal-locked="connectionProfileTesting ? 'true' : 'false'" data-moyun-locked-message="正在验证，请等待完成。" role="dialog" aria-modal="true" aria-label="API 配置编辑" class="fixed inset-0 z-[95] flex items-end md:items-center justify-center p-0 md:p-4" style="background:var(--overlay);padding-bottom:env(safe-area-inset-bottom)">
         <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-4 space-y-3" style="background:var(--bg-card);max-height:90dvh;overflow:auto">
           <div class="flex items-center justify-between"><div class="text-sm font-bold" style="color:var(--tx)">{{ connectionProfileEditorMode==='edit' ? '编辑 API 配置' : '新建 API 配置' }}</div><button type="button" data-moyun-modal-close class="moyun-icon-button" @click="requestCloseConnectionProfileEditor" :disabled="connectionProfileTesting" aria-label="关闭 API 配置编辑">×</button></div>
-          <label class="text-[10px]" style="color:var(--tx3)">配置名称<input v-model.trim="connectionProfileDraft.name" class="input-field text-xs mt-1" maxlength="40" placeholder="例如：正文主笔"></label>
+          <label class="moyun-floating-field"><input aria-label="配置名称" v-model.trim="connectionProfileDraft.name" class="input-field text-xs " maxlength="40" placeholder=" "><span>配置名称</span></label>
           <label class="text-[10px]" style="color:var(--tx3)">协议<select v-model="connectionProfileDraft.templateId" @change="updateConnectionProfileDraftTemplate" class="select-field text-xs mt-1"><option v-for="tpl in PROVIDER_TEMPLATES" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option></select></label>
           <label v-if="connectionProfileDraft.templateId==='custom'" class="text-[10px]" style="color:var(--tx3)">请求格式<select v-model="connectionProfileDraft.adapterId" @change="invalidateConnectionProfileDraftTest" class="select-field text-xs mt-1"><option value="openai-compatible">OpenAI 兼容</option><option value="openai-chat">OpenAI Chat Completions</option><option value="anthropic-messages">Anthropic Messages</option><option value="gemini-generate">Google Gemini</option></select></label>
-          <label class="text-[10px]" style="color:var(--tx3)">API 地址<input v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono mt-1" placeholder="https://api.example.com/v1"></label>
+          <label class="moyun-floating-field"><input aria-label="API 地址" v-model.trim="connectionProfileDraft.baseUrl" @input="invalidateConnectionProfileDraftTest" class="input-field text-xs font-mono " placeholder=" "><span>API 地址</span></label>
           <div v-if="getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" role="alert" class="text-[10px] leading-relaxed" style="color:var(--err)">{{ getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl) }}</div>
-          <label class="text-[10px]" style="color:var(--tx3)">API 密钥<input v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono mt-1" placeholder="仅保存在本机"></label>
-          <div class="flex items-end gap-2"><label class="text-[10px] flex-1 min-w-0" style="color:var(--tx3)">默认模型<input v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono mt-1" placeholder="例如：gpt-4.1"></label><button type="button" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel"
+          <label class="moyun-floating-field"><input aria-label="API 密钥" v-model="connectionProfileDraft.apiKey" @input="invalidateConnectionProfileDraftTest" type="password" data-settings-api-key class="input-field text-xs font-mono " placeholder=" "><span>API 密钥</span></label>
+          <div class="flex items-end gap-2"><label class="moyun-floating-field"><input aria-label="默认模型" v-model.trim="connectionProfileDraft.defaultModel" @input="updateConnectionProfileDraftManualModel" data-settings-main-model class="input-field text-xs font-mono " placeholder=" "><span>默认模型</span></label><button type="button" v-moyun-tip="'用当前协议、地址和密钥验证默认模型是否可用'" @click="testConnectionProfileModelDraft" :disabled="connectionProfileTesting || !connectionProfileDraft.defaultModel"
         :title="!connectionProfileDraft.defaultModel ? '先填写左边的「默认模型」，或用下面的「获取模型列表」挑一个' : (connectionProfileTesting ? '正在验证，请稍候' : '用当前协议、地址和密钥验证这个模型是否可用')"
-        class="px-2.5 py-2 rounded-lg text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
+        class="btn-ghost min-h-[44px] px-2.5 text-[10px] shrink-0 disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileTesting ? '验证中…' : '验证模型' }}</button></div>
           <div class="space-y-1">
             <div class="flex items-center justify-between gap-3"><span class="text-[10px]" style="color:var(--tx3)">可用模型（单选）</span><button type="button" @click="fetchConnectionProfileModels" :disabled="connectionProfileModelDiscovery.loading" class="px-2.5 py-1.5 rounded-lg text-[10px] disabled:opacity-50" style="border:1px solid var(--bd);color:var(--tx2);background:var(--bg-inset)">{{ connectionProfileModelDiscovery.loading ? '获取中…' : '获取模型' }}</button></div>
             <div v-if="connectionProfileModelDiscovery.error && !getConnectionProfileBrowserCompatibilityIssue(connectionProfileDraft.baseUrl)" class="text-[10px]" style="color:var(--err)">{{ connectionProfileModelDiscovery.error }}</div>
@@ -6641,7 +6641,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=d4e2c297e84c"></script>
+<script src="./assets/js/moyun.js?v=53e073b95d2f"></script>
 <!-- PART_1_END -->
 </body>
 </html>

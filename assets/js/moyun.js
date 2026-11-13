@@ -1326,7 +1326,38 @@ const ReviewPanel = {
     </article>
   </section>`
 };
+// 一个浮层服务全部提示入口；触屏点击不拦截按钮本来的动作。
+const MoyunTip = (() => {
+  let tip, owner, timer, oldDescription, serial=0;
+  function hide() {
+    clearTimeout(timer);
+    if(owner) { if(oldDescription===null)owner.removeAttribute('aria-describedby');else owner.setAttribute('aria-describedby',oldDescription); }
+    tip?.remove();tip=null;owner=null;
+    document.removeEventListener('pointerdown',outside,true);
+    window.removeEventListener('resize',hide);window.removeEventListener('scroll',hide,true);
+  }
+  function outside(event){if(owner&&!owner.contains(event.target))hide();}
+  function show(el,text,touch=false) {
+    hide();if(!text)return;owner=el;oldDescription=el.getAttribute('aria-describedby');
+    tip=document.createElement('div');tip.id='moyun-help-'+(++serial);tip.className='moyun-help-tip';tip.role='tooltip';tip.textContent=text;document.body.appendChild(tip);
+    el.setAttribute('aria-describedby',[oldDescription,tip.id].filter(Boolean).join(' '));
+    const r=el.getBoundingClientRect(),t=tip.getBoundingClientRect();
+    tip.style.left=Math.max(8,Math.min(r.left+(r.width-t.width)/2,window.innerWidth-t.width-8))+'px';
+    tip.style.top=(r.top>=t.height+16?r.top-t.height-8:Math.min(window.innerHeight-t.height-8,r.bottom+8))+'px';
+    document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',hide);window.addEventListener('scroll',hide,true);
+    if(touch)timer=setTimeout(hide,3000);
+  }
+  return {mounted(el,binding){
+    const state={value:binding.value,touch:false};
+    state.enter=e=>{if(e.pointerType==='mouse')show(el,state.value);};
+    state.focus=()=>{if(!state.touch)show(el,state.value);};
+    state.down=e=>{state.touch=e.pointerType!=='mouse';if(state.touch)show(el,state.value,true);};
+    state.leave=()=>{if(!state.touch&&owner===el)hide();};
+    el.addEventListener('pointerenter',state.enter);el.addEventListener('focus',state.focus);el.addEventListener('pointerdown',state.down);el.addEventListener('pointerleave',state.leave);el.addEventListener('blur',state.leave);el._moyunTip=state;
+  },updated(el,binding){el._moyunTip.value=binding.value;},unmounted(el){const s=el._moyunTip;if(owner===el)hide();el.removeEventListener('pointerenter',s.enter);el.removeEventListener('focus',s.focus);el.removeEventListener('pointerdown',s.down);el.removeEventListener('pointerleave',s.leave);el.removeEventListener('blur',s.leave);delete el._moyunTip;}};
+})();
 createApp({
+  directives: { 'moyun-tip': MoyunTip },
   components: { ReviewPanel, BranchPanel },
   setup() {
 
