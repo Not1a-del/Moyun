@@ -74,7 +74,7 @@ test('角色员走 team-character 模型路由，失败块保留错误状态供�
   });
   vm.runInContext(extract('    function parseAiJsonSyntax(', '    function parseCharacterAiJsonEnvelope('),ctx);
   vm.runInContext(extract('    function sanitizeCharacterGenerationResult(', '    function getOneKeyRequiredModelKeys('),ctx);
-  vm.runInContext(extract('    async function runTeamBlock(', '    async function runTeamDetailBlock(') + '; globalThis.runTeamBlock = runTeamBlock;', ctx);
+  vm.runInContext(extract('    function preserveTeamPartial(', '    async function runTeamDetailBlock(') + '; globalThis.runTeamBlock = runTeamBlock;', ctx);
   await ctx.runTeamBlock('characters');
   assert.equal(calls[0].modelKey, 'team-character');
   assert.equal(ctx.teamBlocks.value[0].status, 'done');
@@ -104,7 +104,7 @@ test('停止团队开书会会中止请求并保留成功结果，未完成块�
     syncTeamDraftFromBlocks:()=>{ctx.teamDraft.value={needsFill:ctx.teamBlocks.value.filter(row=>row.id!=='review'&&row.status!=='done').map(row=>row.label)};},
     showToast:message=>{ctx.toast=message;}
   });
-  vm.runInContext(stop + '; globalThis.stopTeamBook = stopTeamBook;',ctx);
+  vm.runInContext(extract('    function preserveTeamPartial(', '    async function runTeamBlock(') + stop + '; globalThis.stopTeamBook = stopTeamBook;',ctx);
   const abortController=ctx._teamAbort;
   ctx.stopTeamBook();
   assert.equal(abortController.aborted,true);
@@ -195,7 +195,8 @@ test('团队完成页提供失败块的单独重试和原文入口，重试后�
   const template = source.slice(source.indexOf('data-team-book-review'), source.indexOf('<!-- ═══ 原有完成阶段 ═══ -->'));
   assert.match(template, /data-team-book-failed-blocks/);
   assert.match(template, /@click="retryTeamBlock\(row.id\)"/);
-  assert.match(template, /@click="viewTeamRaw\(row.id\)"/);
+  assert.match(template, /<team-block-card[^>]+@retry="retryTeamBlock"[^>]+@raw="viewTeamRaw"/);
+  assert.match(extract('const TeamBlockCard =', 'createApp({'), /\$emit\('raw',row.id\)/);
   const retry = extract('    async function retryTeamBlock(', '    function viewTeamRaw(');
   assert.match(retry, /await runTeamReview\(controller\)/);
   const review = extract('    async function runTeamReview(', '    async function startTeamGeneration(');

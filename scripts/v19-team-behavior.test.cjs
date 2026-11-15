@@ -111,6 +111,37 @@ test('specialists use the correct model module and expose exact fake request inp
   assert.ok(h.calls.every(call=>call.prompt.includes('雾港回声')&&call.prompt.includes('主角在雾港寻找旧灯')));
   assert.equal(h.repairs.length,0,'Valid structured responses must not spend a repair request');
 });
+
+test('live specialist text survives stop and is visible in both raw and draft without a repair request',async()=>{
+  const h=harness(),row=h.add('settings'),controller=new AbortController();
+  h.ctx._teamAbort=controller;h.ctx.oneKeyPhase.value='generating';
+  const raw=JSON.stringify({worldView:'停止前已收到的世界观',synopsis:'保留草稿'});
+  h.queue([({options})=>{options.onTextDelta(raw,raw);assert.equal(row.raw,raw);h.ctx.stopTeamBook();throw Object.assign(new DOMException('已停止','AbortError'),{partialText:raw});}]);
+  await assert.rejects(h.ctx.runTeamBlock('settings',{controller}),{name:'AbortError'});
+  assert.equal(row.raw,raw);assert.equal(row.result.worldView,'停止前已收到的世界观');assert.equal(row.partial,true);
+  assert.equal(h.ctx.teamDraft.value.worldView,'停止前已收到的世界观');assert.equal(h.repairs.length,0);
+});
+
+test('detail stop keeps good chapters, marks only new partial chapters incomplete and retry fills only gaps',async()=>{
+  const h=harness(),row=h.add('details-1-1',{outlines:[{chapterNo:1,content:'第一章完整哨兵'}]}),controller=new AbortController();
+  row.volume=h.plan.volumes[0];
+  const raw=chapter(1,'不可覆盖完整章')+'\n## 第2章 第二章\n第二章半截哨兵';
+  h.queue([({options})=>{options.onTextDelta(raw,raw);controller.abort();throw Object.assign(new DOMException('停止','AbortError'),{partialText:raw});}]);
+  await assert.rejects(h.ctx.runTeamDetailBlock(row.id,row.volume,{}, {},{controller}),{name:'AbortError'});
+  assert.equal(row.result.outlines[0].content,'第一章完整哨兵');assert.equal(row.result.outlines[0].incomplete,undefined);
+  assert.equal(row.result.outlines[1].incomplete,true);assert.match(row.result.outlines[1].content,/半截哨兵/);
+  h.queue([chapter(2,'第二章补齐')+'\n'+chapter(3,'第三章补齐')]);
+  await h.ctx.runTeamDetailBlock(row.id,row.volume,{}, {},{controller:new AbortController()});
+  assert.match(h.calls.at(-1).prompt,/缺少第2、3章/);assert.equal(row.result.outlines[0].content,'第一章完整哨兵');assert.ok(row.previousRaw.includes('半截哨兵'));
+});
+
+test('nested planner shapes, null records and unbounded chapter numbers cannot leave infinite batches',()=>{
+  const h=harness();h.ctx.teamPlanOptions.unfinishedMode=false;
+  const plan=h.ctx.normalizeTeamPlan({characters:[null,{name:'林远',summary:{nested:'资料'}}],volumes:[null,{endChapter:Infinity}],userFacts:[null,{text:'原话'}]},'共30章');
+  assert.equal(plan.chapterCount,30);assert.equal(plan.characters.length,1);
+  for(const value of [Infinity,NaN,-10,1e30,3.5]){const batches=h.ctx.buildTeamChapterBatches({startChapter:value,endChapter:1e30},value);assert.ok(batches.length<=200);assert.ok(batches.every(row=>Number.isFinite(row.startChapter)&&Number.isInteger(row.startChapter)&&row.endChapter<=200));}
+  assert.doesNotThrow(()=>h.ctx.buildTeamDraft({characters:{characters:[null,{name:'林远',relationships:{nested:[]}}]},outline:{volumes:[null,...h.plan.volumes]}},{}));
+});
 function commitHarness(append=false){
   const writes=[],snapshots=[],created=[];
   const original={id:'original',title:'原书',novel:{title:'原书',outline:'原大纲',worldView:'原世界观',volumes:[{id:'old-volume',number:1,title:'原卷',startChapter:1,endChapter:1}]},chapterOutlines:[{id:'old-detail',chapterNo:1,title:'原章',content:'原细纲哨兵'}],chapterIndexDrafts:[],foreshadowMatrix:[],characters:[]};

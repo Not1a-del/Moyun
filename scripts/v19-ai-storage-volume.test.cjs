@@ -76,7 +76,7 @@ function volumeContext(extra = {}) {
   const notices = [], confirmations = [], ref=value=>({value}); let saves=0;
   const ctx=aiContext({ novel:ref({volumes:[],synopsis:'',outline:''}), novelVolumes:ref([]), activeBranchId:ref('main'), chapters:ref([]), outlineInput:ref(''), doEnd:ref(10),
     showToast:(...args)=>notices.push(args), uid:()=>Math.random().toString(36), markVolumePlanStale:()=>{}, saveData:()=>saves++,
-    openConfirm:(config,callback)=>confirmations.push({config,callback}), ...extra });
+    openConfirm:(config,callback)=>confirmations.push({config,callback}), scanAiJsonFragments:raw=>{const start=String(raw).indexOf('{'),end=String(raw).lastIndexOf('}');return {roots:start>=0&&end>start?[String(raw).slice(start,end+1)]:[]};}, ...extra });
   vm.runInContext(extract('    function parseVolumePlan(', '    function applyAiVolumeUpdates('),ctx);
   vm.runInContext(extract('    function buildVolumeConstraintPrompt(', '    const chapters = ref('),ctx);
   return {ctx,notices,confirmations,get saves(){return saves;}};
@@ -87,6 +87,12 @@ test('V-10 parses JSON aliases and marked plans and tolerates invalid containers
   assert.equal(rows.length,1); assert.equal(rows[0].writingRequirement,'寻找线索');
   assert.equal(ctx.parseVolumePlan('{"volumes":{}}').length,0);
   assert.equal(ctx.parseVolumePlan('【卷纲规划】\n第1卷｜卷名：开端｜章节 1-8\n本卷写作内容要求：寻找线索\n衔接点：新的门')[0].endChapter,8);
+});
+test('V-10b accepts fenced/nested JSON and does not infer volume count from prompt examples',()=>{
+  const {ctx}=volumeContext();
+  const rows=ctx.parseVolumePlan('模型说明如下：{"data":{"volumes":[{"卷号":1,"卷名":"雾港","章节范围":"1-4","摘要":"开端"},{"卷号":2,"卷名":"回声","章节范围":"5-8","摘要":"收束"}]}}');
+  assert.equal(rows.length,2); assert.equal(rows[1].startChapter,5);
+  assert.equal(ctx.getVolumePlanCounts('请按现有细纲整理卷纲').count,1);
 });
 test('V-03/V-04 explicit counts win, otherwise approximately ten chapters per volume',()=>{
   const {ctx}=volumeContext();

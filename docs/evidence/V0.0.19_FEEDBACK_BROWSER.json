@@ -1,0 +1,1060 @@
+{
+  "date": "2026-11-14",
+  "root": "F:\\yydcm129\\codex 墨韵接手\\Moyun",
+  "branch": "v0.0.19/L1-foundation",
+  "rollback": "backup/v19-feedback-20261114-5433227",
+  "browser": {
+    "backend": "rsb-webview",
+    "origin": "http://127.0.0.1:4183/",
+    "dataScope": "隔离来源测试书；没有读取或修改用户4176来源书库",
+    "network": "本地 ReadableStream SSE 假响应；没有调用真实模型"
+  },
+  "layout": [
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 133,
+      "composerTop": 667,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 667,
+      "overlap": false,
+      "theme": "light",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 133,
+      "composerTop": 667,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 667,
+      "overlap": false,
+      "theme": "dark",
+      "viewport": [
+        1280,
+        800
+      ]
+    },
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 187,
+      "composerTop": 553,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 553,
+      "overlap": false,
+      "theme": "light",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 187,
+      "composerTop": 553,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 553,
+      "overlap": false,
+      "theme": "dark",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 187,
+      "composerTop": 553,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 553,
+      "overlap": false,
+      "theme": "light",
+      "viewport": [
+        320,
+        740
+      ]
+    },
+    {
+      "checks": [
+        "favorite whole/paragraph/red/reset/centering",
+        "priority expanded",
+        "unfinished cancel/confirm",
+        "outline empty fork and enter",
+        "branch chapter title3"
+      ],
+      "composerHeight": 187,
+      "composerTop": 553,
+      "heartGlyph": [
+        20,
+        20
+      ],
+      "heartTarget": [
+        44,
+        44
+      ],
+      "horizontalOverflow": false,
+      "mainBottom": 553,
+      "overlap": false,
+      "theme": "dark",
+      "viewport": [
+        320,
+        740
+      ]
+    }
+  ],
+  "team": [
+    {
+      "allStream": true,
+      "checks": [
+        "planner raw modal/return",
+        "progress expand/live",
+        "finished nested expand/raw",
+        "stop preserve partial"
+      ],
+      "live": [
+        "planner before complete",
+        "settings before complete"
+      ],
+      "model": "qwen-feedback-stream",
+      "partial": [
+        {
+          "id": "settings",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "characters",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "outline",
+          "length": 24,
+          "status": "stopped"
+        }
+      ],
+      "protocol": "openai-compatible",
+      "requests": [
+        {
+          "id": "planner",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "details",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "review",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        }
+      ],
+      "switches": "off",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "allStream": true,
+      "checks": [
+        "planner raw modal/return",
+        "progress expand/live",
+        "finished nested expand/raw",
+        "stop preserve partial"
+      ],
+      "live": [
+        "planner before complete",
+        "settings before complete"
+      ],
+      "model": "qwen-feedback-stream",
+      "partial": [
+        {
+          "id": "settings",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "characters",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "outline",
+          "length": 24,
+          "status": "stopped"
+        }
+      ],
+      "protocol": "openai-compatible",
+      "requests": [
+        {
+          "id": "planner",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "details",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "review",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "qwen-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        }
+      ],
+      "switches": "on",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "allStream": true,
+      "checks": [
+        "planner raw modal/return",
+        "progress expand/live",
+        "finished nested expand/raw",
+        "stop preserve partial"
+      ],
+      "live": [
+        "planner before complete",
+        "settings before complete"
+      ],
+      "model": "gemini-feedback-stream",
+      "partial": [
+        {
+          "id": "settings",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "characters",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "outline",
+          "length": 24,
+          "status": "stopped"
+        }
+      ],
+      "protocol": "gemini",
+      "requests": [
+        {
+          "id": "planner",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "details",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "review",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": false,
+          "stream": true
+        }
+      ],
+      "switches": "off",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "allStream": true,
+      "checks": [
+        "planner raw modal/return",
+        "progress expand/live",
+        "finished nested expand/raw",
+        "stop preserve partial"
+      ],
+      "live": [
+        "planner before complete",
+        "settings before complete"
+      ],
+      "model": "gemini-feedback-stream",
+      "partial": [
+        {
+          "id": "settings",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "characters",
+          "length": 24,
+          "status": "stopped"
+        },
+        {
+          "id": "outline",
+          "length": 24,
+          "status": "stopped"
+        }
+      ],
+      "protocol": "gemini",
+      "requests": [
+        {
+          "id": "planner",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "details",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "review",
+          "inputRewritten": true,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": true,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": true,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": true,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        }
+      ],
+      "switches": "on",
+      "viewport": [
+        360,
+        740
+      ]
+    },
+    {
+      "allStream": true,
+      "checks": [
+        "planner raw modal/return",
+        "progress expand/live",
+        "finished nested expand/raw",
+        "stop preserve partial"
+      ],
+      "live": [
+        "planner before complete",
+        "settings before complete"
+      ],
+      "model": "gemini-feedback-stream",
+      "partial": [
+        {
+          "id": "settings",
+          "length": 9,
+          "status": "stopped"
+        },
+        {
+          "id": "characters",
+          "length": 9,
+          "status": "stopped"
+        },
+        {
+          "id": "outline",
+          "length": 9,
+          "status": "stopped"
+        }
+      ],
+      "protocol": "openai-compatible",
+      "requests": [
+        {
+          "id": "planner",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "details",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "review",
+          "inputRewritten": false,
+          "mode": "full",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "settings",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "characters",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        },
+        {
+          "id": "outline",
+          "inputRewritten": false,
+          "mode": "stop",
+          "model": "gemini-feedback-stream",
+          "replyTool": true,
+          "stream": true
+        }
+      ],
+      "switches": "on",
+      "viewport": [
+        1280,
+        800
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "case": "blank",
+      "container": 824,
+      "ratio": 0.9514563106796117,
+      "theme": "light",
+      "viewport": [
+        1280,
+        800
+      ],
+      "widths": [
+        784,
+        784,
+        784,
+        784
+      ]
+    },
+    {
+      "case": "long-unbroken",
+      "container": 824,
+      "ratio": 0.9514563106796117,
+      "theme": "light",
+      "viewport": [
+        1280,
+        800
+      ],
+      "widths": [
+        784,
+        784,
+        784,
+        784
+      ]
+    },
+    {
+      "case": "blank",
+      "container": 824,
+      "ratio": 0.9514563106796117,
+      "theme": "dark",
+      "viewport": [
+        1280,
+        800
+      ],
+      "widths": [
+        784,
+        784,
+        784,
+        784
+      ]
+    },
+    {
+      "case": "long-unbroken",
+      "container": 824,
+      "ratio": 0.9514563106796117,
+      "theme": "dark",
+      "viewport": [
+        1280,
+        800
+      ],
+      "widths": [
+        784,
+        784,
+        784,
+        784
+      ]
+    },
+    {
+      "case": "blank",
+      "container": 354,
+      "ratio": 0.943502824858757,
+      "theme": "light",
+      "viewport": [
+        360,
+        740
+      ],
+      "widths": [
+        334,
+        334,
+        334,
+        334
+      ]
+    },
+    {
+      "case": "long-unbroken",
+      "container": 354,
+      "ratio": 0.943502824858757,
+      "theme": "light",
+      "viewport": [
+        360,
+        740
+      ],
+      "widths": [
+        334,
+        334,
+        334,
+        334
+      ]
+    },
+    {
+      "case": "blank",
+      "container": 354,
+      "ratio": 0.943502824858757,
+      "theme": "dark",
+      "viewport": [
+        360,
+        740
+      ],
+      "widths": [
+        334,
+        334,
+        334,
+        334
+      ]
+    },
+    {
+      "case": "long-unbroken",
+      "container": 354,
+      "ratio": 0.943502824858757,
+      "theme": "dark",
+      "viewport": [
+        360,
+        740
+      ],
+      "widths": [
+        334,
+        334,
+        334,
+        334
+      ]
+    },
+    {
+      "case": "blank",
+      "container": 314,
+      "ratio": 0.9363057324840764,
+      "theme": "light",
+      "viewport": [
+        320,
+        740
+      ],
+      "widths": [
+        294,
+        294,
+        294,
+        294
+      ]
+    },
+    {
+      "case": "long-unbroken",
+      "container": 314,
+      "ratio": 0.9363057324840764,
+      "theme": "light",
+      "viewport": [
+        320,
+        740
+      ],
+      "widths": [
+        294,
+        294,
+        294,
+        294
+      ]
+    }
+  ],
+  "longComposer": {
+    "cardClientHeight": 309,
+    "cardScrollHeight": 421,
+    "composerHeight": 320.79168701171875,
+    "composerTop": 419.2083435058594,
+    "controlsRight": 293.3333549499512,
+    "mainBottom": 419.2083435058594,
+    "viewport": [
+      320,
+      740
+    ]
+  },
+  "screenshots": [
+    {
+      "path": ".ui-check/feedback-1280-light.png",
+      "viewport": [
+        1280,
+        800
+      ],
+      "theme": "light",
+      "capture": "visible host viewport; virtual viewport may be cropped",
+      "pixels": [
+        912,
+        1022
+      ]
+    },
+    {
+      "path": ".ui-check/feedback-1280-dark.png",
+      "viewport": [
+        1280,
+        800
+      ],
+      "theme": "dark",
+      "capture": "visible host viewport; virtual viewport may be cropped",
+      "pixels": [
+        912,
+        1022
+      ]
+    },
+    {
+      "path": ".ui-check/feedback-360-light.png",
+      "viewport": [
+        360,
+        740
+      ],
+      "theme": "light",
+      "capture": "visible host viewport; virtual viewport may be cropped",
+      "pixels": [
+        912,
+        1022
+      ]
+    },
+    {
+      "path": ".ui-check/feedback-360-dark.png",
+      "viewport": [
+        360,
+        740
+      ],
+      "theme": "dark",
+      "capture": "visible host viewport; virtual viewport may be cropped",
+      "pixels": [
+        912,
+        1022
+      ]
+    }
+  ],
+  "gate": {
+    "generatedAt": "2026-11-14T09:15:05.585Z",
+    "commit": "5433227",
+    "passed": true,
+    "withBrowser": false,
+    "steps": [
+      {
+        "id": "build",
+        "command": "node scripts/build-static-site.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "syntax",
+        "command": "node --check assets/js/moyun.js",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "audit",
+        "command": "node scripts/structure-audit.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "regression",
+        "command": "node scripts/regression-check.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "ai-protocol",
+        "command": "node scripts/ai-protocol-regression.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "startup",
+        "command": "node --test scripts/startup-regression.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": [
+          "tests 3",
+          "pass 3",
+          "fail 0",
+          "skipped 0"
+        ]
+      },
+      {
+        "id": "v17",
+        "command": "node --test scripts/preset-refactor.test.cjs scripts/v17-context-regression.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": [
+          "tests 26",
+          "pass 26",
+          "fail 0",
+          "skipped 0"
+        ]
+      },
+      {
+        "id": "v18-memory",
+        "command": "node scripts/v18-memory-volume.test.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": []
+      },
+      {
+        "id": "v19",
+        "command": "node --test scripts/v19-ai-storage-volume.test.cjs scripts/v19-announcement.test.cjs scripts/v19-branch-data.test.cjs scripts/v19-branch-interaction.test.cjs scripts/v19-branch-transfer.test.cjs scripts/v19-character-isolation.test.cjs scripts/v19-continuity.test.cjs scripts/v19-favorites.test.cjs scripts/v19-feedback.test.cjs scripts/v19-floating-tip.test.cjs scripts/v19-immersive.test.cjs scripts/v19-initial.test.cjs scripts/v19-nine-review.test.cjs scripts/v19-outline-boundary.test.cjs scripts/v19-priority-input.test.cjs scripts/v19-review.test.cjs scripts/v19-s0-infrastructure.test.cjs scripts/v19-save-retry.test.cjs scripts/v19-style-source.test.cjs scripts/v19-summary-backfill.test.cjs scripts/v19-team-behavior.test.cjs scripts/v19-team-book.test.cjs scripts/v19-toc-handoff.test.cjs scripts/v19-volume-workbench.test.cjs scripts/v19-workbench.test.cjs",
+        "status": "PASS",
+        "exitCode": 0,
+        "counts": [
+          "tests 219",
+          "pass 219",
+          "fail 0",
+          "skipped 0"
+        ]
+      }
+    ],
+    "hashes": {
+      "source/moyun.single.html": "7c33e12823e480f86d23d3b211eef30bc7cd66f0c6b601c67f305d2e668b4b44",
+      "index.html": "85de7a92328dbad4c935e64f04c246ad62e6826088d34bc149366d0213f63e09",
+      "assets/js/moyun.js": "7514129eaabc04317ba19b158cd1871358fc25dfa4a4ac6836d6d46c4fab37c2",
+      "assets/css/moyun.css": "b39ca485cefced9dcdfe3cb9421e4ed7ee9d7fd6f212b35fe46760f535044ce9",
+      "scripts/preset-refactor.golden.json": "81f99e252b96b38177685801a848e6208a3c9c3006b2d581806aa4486e74e9f2"
+    }
+  },
+  "limitations": [
+    "截图受宿主实际视区裁剪，不能作为完整1280×800或360×740画面证据；尺寸结论来自DOM几何断言",
+    "未执行gate:browser；浏览器场景通过Cindy管理的浏览器单列执行",
+    "未调用真实服务商，未覆盖真实模型格式和内容质量、429/401/长时间断网、真机键盘、iOS Safari",
+    "impeccable布局检测退化为正则扫描，[]只代表该扫描未报告项，不能证明完整视觉正确"
+  ]
+}

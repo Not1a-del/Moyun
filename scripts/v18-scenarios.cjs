@@ -30,9 +30,9 @@ module.exports=async function(c,check,shot){
   __s.settings.geminiTestInput=false;__s.settings.streamEnabled=false;__s.settings.showTokenUsage=true;__s.settings.secondRoundSupplementEnabled=false;
  });
  await check('真实请求：旧预设作用模块开启才注入',async()=>{
-  await c.ev(async()=>{const p=__s.presets[0];p.content='V18_LEGACY_SCOPE';p.enabled=true;p.applyTo=['outline'];__s.novel.volumes=[{id:'vol1',title:'一',startChapter:1,endChapter:2,summary:''},{id:'vol2',title:'二',startChapter:3,endChapter:4,summary:''}];__s.novel.outline='';await __s.generateOutline();});
+  await c.ev(async()=>{const p=__s.presets[0];p.content='V18_LEGACY_SCOPE';p.enabled=true;p.applyTo=['outline'];__s.novel.volumes=[{id:'vol1',title:'一',startChapter:1,endChapter:2,summary:''},{id:'vol2',title:'二',startChapter:3,endChapter:4,summary:''}];__s.novel.outline='';await __s.generateOutline();if(!__s.showOutlineRevisionModal)throw Error('大纲生成必须进入审阅弹窗');__s.requestOutlineReviewApply(false);__s.acceptOutlineVolumePlan();});
   const first=await c.ev(()=>__wire.find(r=>JSON.stringify(r.body).includes('V18_LEGACY_SCOPE')));assert.ok(first,'大纲实际请求应携带旧预设');
-  await c.ev(async()=>{__wire=[];__s.presets[0].enabled=false;__s.novel.outline='';await __s.generateOutline();});
+  await c.ev(async()=>{__wire=[];__s.presets[0].enabled=false;__s.novel.outline='';await __s.generateOutline();if(!__s.showOutlineRevisionModal)throw Error('大纲生成必须进入审阅弹窗');__s.requestOutlineReviewApply(false);__s.acceptOutlineVolumePlan();});
   assert.equal(await c.ev(()=>__wire.some(r=>JSON.stringify(r.body).includes('V18_LEGACY_SCOPE'))),false);
   return {enabledInjected:true,disabledExcluded:true};
  });

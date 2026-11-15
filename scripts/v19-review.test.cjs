@@ -14,7 +14,7 @@ function extract(from, to) {
 function reviewContext(extra = {}) {
   let sequence=0;
   const staleMarkCalls=[],staleMarks={value:[]};
-  const ctx = vm.createContext({ uid:()=>`r${++sequence}`, deepClone:clone, chapterOutlines:{value:[]},summaries:{value:[]},staleMarks,staleMarkCalls,markStale:(...args)=>{staleMarkCalls.push(args);staleMarks.value.push(args);}, ...extra });
+  const ctx = vm.createContext({ uid:()=>`r${++sequence}`, deepClone:clone, activeBranchId:{value:'main'}, chapterOutlines:{value:[]},summaries:{value:[]},staleMarks,staleMarkCalls,showOutlineRevisionModal:{value:false},markStale:(...args)=>{staleMarkCalls.push(args);staleMarks.value.push(args);}, ...extra });
   vm.runInContext(extract('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'), ctx);
   vm.runInContext(extract('    function reportOutlineContinuityImpact(', '    async function replanEmptyOutlinesAfterOutlineReview('),ctx);
   return ctx;

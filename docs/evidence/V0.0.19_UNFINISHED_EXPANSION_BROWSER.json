@@ -1,0 +1,1087 @@
+{
+  "date": "2026-11-15",
+  "project": "F:/yydcm129/codex 墨韵接手/Moyun",
+  "branch": "v0.0.19/L1-foundation",
+  "scope": "未完模式入口、已有规划新增剧情及卷纲",
+  "environment": {
+    "backend": "rsb-webview",
+    "url": "http://127.0.0.1:4193/index.html",
+    "mockOnly": true,
+    "fixture": "scripts/v19-unfinished-browser-fixture.cjs"
+  },
+  "checks": {
+    "protocol": [
+      {
+        "test": "protocol-openai-compatible-false",
+        "entry": "outline",
+        "calls": 1,
+        "url": "https://unfinished-fixture.invalid/v1/chat/completions",
+        "body": {
+          "model": "fixture-model",
+          "messages": [
+            {
+              "role": "system",
+              "content": "你是墨韵的追加剧情策划。先完整读取最新大纲、全部细纲、卷纲和交接，再按作者要求新增实际剧情、章节并重新分卷。旧章节不能删除、重排或改写，旧角色和关键事件保留；允许在未写正文的细纲之间插入新章或向后追加。只返回 JSON：{\"outlineAppend\":\"只写新增剧情的大纲，不复述旧大纲\",\"chapterPlan\":[{\"existingChapterNo\":1},{\"title\":\"新增章标题\",\"content\":\"新增章完整细纲，包含目标、事件推进、人物变化和衔接\"},{\"existingChapterNo\":2}],\"volumes\":[{\"number\":1,\"title\":\"卷名\",\"startChapter\":1,\"endChapter\":3,\"summary\":\"包含新剧情的卷纲\",\"writingRequirement\":\"写作要求\",\"bridge\":\"衔接点\"}]}。chapterPlan 是完整的新章序：旧章只用 existingChapterNo 引用原章号，从1到已有最后章各出现一次且顺序不变；不要复制旧细纲。新章只填 title、content，不填 existingChapterNo。数组位置就是最终章号，volumes 必须用最终章号连续覆盖完整章序，从第1章开始，不重叠、不留空卷。只返回完整卷列表，不只返回新增卷。未明确要求时，不更改已发生事实的卷末交接，也不能编造新章的事实交接。新增章应形成真正的新剧情，衔接原有故事，不把已有章原样拆开充数。当前已开启未完模式，只规划当前一段，禁止写结局。"
+            },
+            {
+              "role": "user",
+              "content": "\n【全书最新大纲】\n第1章 开端；第2章 旧转折\n【全部细纲（计划，非已发生事实）】\n第1章 第1章 开端\n旧章一原文\n\n第2章 第2章 转折\n第2章旧转折\n【现有卷纲与分支交接】\n[{\"number\":1,\"id\":\"v1\",\"title\":\"旧卷\",\"startChapter\":1,\"endChapter\":2,\"summary\":\"旧计划\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"handoff\":{\"content\":\"上一段已发生事实\"}}]\n【未完模式已开启】只规划当前一段，禁止写结局；扩展只创造新内容章节，已有细纲保留。\n\n【扩展范围】已有规划共 2 章；已写正文 0 章，这些章号及之前的顺序不可移动。扩展后必须共 3 章。最终共 2 卷。\n先列出保留旧章与插入新章的完整 chapterPlan，按数组位置计算新章号，再生成对应完整卷纲。outlineAppend 中用最终章号标明新增事件的位置。旧细纲原文由宿主保留，不得回传替换。"
+            },
+            {
+              "role": "user",
+              "content": "在第1章后插入1章新的海港调查剧情，保留旧细纲，重新分成两卷\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。",
+              "_moyunUserInput": true
+            }
+          ],
+          "stream": true,
+          "stream_options": {
+            "include_usage": true
+          },
+          "temperature": 1,
+          "max_tokens": 12000
+        },
+        "candidate": true,
+        "newTotal": 3,
+        "unchanged": true,
+        "modal": true,
+        "error": "",
+        "rejectedUnchanged": true
+      },
+      {
+        "test": "protocol-openai-compatible-true",
+        "entry": "detailed-outline",
+        "calls": 1,
+        "url": "https://unfinished-fixture.invalid/v1/chat/completions",
+        "body": {
+          "model": "fixture-model",
+          "messages": [
+            {
+              "role": "system",
+              "content": "你是墨韵的追加剧情策划。先完整读取最新大纲、全部细纲、卷纲和交接，再按作者要求新增实际剧情、章节并重新分卷。旧章节不能删除、重排或改写，旧角色和关键事件保留；允许在未写正文的细纲之间插入新章或向后追加。只返回 JSON：{\"outlineAppend\":\"只写新增剧情的大纲，不复述旧大纲\",\"chapterPlan\":[{\"existingChapterNo\":1},{\"title\":\"新增章标题\",\"content\":\"新增章完整细纲，包含目标、事件推进、人物变化和衔接\"},{\"existingChapterNo\":2}],\"volumes\":[{\"number\":1,\"title\":\"卷名\",\"startChapter\":1,\"endChapter\":3,\"summary\":\"包含新剧情的卷纲\",\"writingRequirement\":\"写作要求\",\"bridge\":\"衔接点\"}]}。chapterPlan 是完整的新章序：旧章只用 existingChapterNo 引用原章号，从1到已有最后章各出现一次且顺序不变；不要复制旧细纲。新章只填 title、content，不填 existingChapterNo。数组位置就是最终章号，volumes 必须用最终章号连续覆盖完整章序，从第1章开始，不重叠、不留空卷。只返回完整卷列表，不只返回新增卷。未明确要求时，不更改已发生事实的卷末交接，也不能编造新章的事实交接。新增章应形成真正的新剧情，衔接原有故事，不把已有章原样拆开充数。当前已开启未完模式，只规划当前一段，禁止写结局。"
+            },
+            {
+              "role": "user",
+              "content": "\n【全书最新大纲】\n第1章 开端；第2章 旧转折\n【全部细纲（计划，非已发生事实）】\n第1章 第1章 开端\n旧章一原文\n\n第2章 第2章 转折\n第2章旧转折\n【现有卷纲与分支交接】\n[{\"number\":1,\"id\":\"v1\",\"title\":\"旧卷\",\"startChapter\":1,\"endChapter\":2,\"summary\":\"旧计划\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"handoff\":{\"content\":\"上一段已发生事实\"}}]\n【未完模式已开启】只规划当前一段，禁止写结局；扩展只创造新内容章节，已有细纲保留。\n\n【扩展范围】已有规划共 2 章；已写正文 0 章，这些章号及之前的顺序不可移动。扩展后必须共 3 章。最终共 2 卷。\n先列出保留旧章与插入新章的完整 chapterPlan，按数组位置计算新章号，再生成对应完整卷纲。outlineAppend 中用最终章号标明新增事件的位置。旧细纲原文由宿主保留，不得回传替换。"
+            },
+            {
+              "role": "user",
+              "content": "在第1章后插入1章新的海港调查剧情，保留旧细纲，重新分成两卷\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。",
+              "_moyunUserInput": true
+            }
+          ],
+          "stream": true,
+          "stream_options": {
+            "include_usage": true
+          },
+          "temperature": 1,
+          "max_tokens": 12000
+        },
+        "candidate": true,
+        "newTotal": 3,
+        "unchanged": true,
+        "modal": true,
+        "error": "",
+        "rejectedUnchanged": true
+      },
+      {
+        "test": "protocol-gemini-generate-false",
+        "entry": "outline",
+        "calls": 1,
+        "url": "https://unfinished-fixture.invalid/v1/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=REDACTED_FIXTURE",
+        "body": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "\n【全书最新大纲】\n第1章 开端；第2章 旧转折\n【全部细纲（计划，非已发生事实）】\n第1章 第1章 开端\n旧章一原文\n\n第2章 第2章 转折\n第2章旧转折\n【现有卷纲与分支交接】\n[{\"number\":1,\"id\":\"v1\",\"title\":\"旧卷\",\"startChapter\":1,\"endChapter\":2,\"summary\":\"旧计划\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"handoff\":{\"content\":\"上一段已发生事实\"}}]\n【未完模式已开启】只规划当前一段，禁止写结局；扩展只创造新内容章节，已有细纲保留。\n\n【扩展范围】已有规划共 2 章；已写正文 0 章，这些章号及之前的顺序不可移动。扩展后必须共 3 章。最终共 2 卷。\n先列出保留旧章与插入新章的完整 chapterPlan，按数组位置计算新章号，再生成对应完整卷纲。outlineAppend 中用最终章号标明新增事件的位置。旧细纲原文由宿主保留，不得回传替换。"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "在第1章后插入1章新的海港调查剧情，保留旧细纲，重新分成两卷\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。"
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "maxOutputTokens": 12000,
+            "temperature": 1
+          },
+          "systemInstruction": {
+            "parts": [
+              {
+                "text": "你是墨韵的追加剧情策划。先完整读取最新大纲、全部细纲、卷纲和交接，再按作者要求新增实际剧情、章节并重新分卷。旧章节不能删除、重排或改写，旧角色和关键事件保留；允许在未写正文的细纲之间插入新章或向后追加。只返回 JSON：{\"outlineAppend\":\"只写新增剧情的大纲，不复述旧大纲\",\"chapterPlan\":[{\"existingChapterNo\":1},{\"title\":\"新增章标题\",\"content\":\"新增章完整细纲，包含目标、事件推进、人物变化和衔接\"},{\"existingChapterNo\":2}],\"volumes\":[{\"number\":1,\"title\":\"卷名\",\"startChapter\":1,\"endChapter\":3,\"summary\":\"包含新剧情的卷纲\",\"writingRequirement\":\"写作要求\",\"bridge\":\"衔接点\"}]}。chapterPlan 是完整的新章序：旧章只用 existingChapterNo 引用原章号，从1到已有最后章各出现一次且顺序不变；不要复制旧细纲。新章只填 title、content，不填 existingChapterNo。数组位置就是最终章号，volumes 必须用最终章号连续覆盖完整章序，从第1章开始，不重叠、不留空卷。只返回完整卷列表，不只返回新增卷。未明确要求时，不更改已发生事实的卷末交接，也不能编造新章的事实交接。新增章应形成真正的新剧情，衔接原有故事，不把已有章原样拆开充数。当前已开启未完模式，只规划当前一段，禁止写结局。"
+              }
+            ]
+          }
+        },
+        "candidate": true,
+        "newTotal": 3,
+        "unchanged": true,
+        "modal": true,
+        "error": "",
+        "rejectedUnchanged": true
+      },
+      {
+        "test": "protocol-gemini-generate-true",
+        "entry": "detailed-outline",
+        "calls": 1,
+        "url": "https://unfinished-fixture.invalid/v1/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=REDACTED_FIXTURE",
+        "body": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "\n【全书最新大纲】\n第1章 开端；第2章 旧转折\n【全部细纲（计划，非已发生事实）】\n第1章 第1章 开端\n旧章一原文\n\n第2章 第2章 转折\n第2章旧转折\n【现有卷纲与分支交接】\n[{\"number\":1,\"id\":\"v1\",\"title\":\"旧卷\",\"startChapter\":1,\"endChapter\":2,\"summary\":\"旧计划\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"handoff\":{\"content\":\"上一段已发生事实\"}}]\n【未完模式已开启】只规划当前一段，禁止写结局；扩展只创造新内容章节，已有细纲保留。\n\n【扩展范围】已有规划共 2 章；已写正文 0 章，这些章号及之前的顺序不可移动。扩展后必须共 3 章。最终共 2 卷。\n先列出保留旧章与插入新章的完整 chapterPlan，按数组位置计算新章号，再生成对应完整卷纲。outlineAppend 中用最终章号标明新增事件的位置。旧细纲原文由宿主保留，不得回传替换。"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "读取 read_user_input 的返回内容，作为本轮用户输入继续回复。（完整回复必须通过 output_reply 工具提交一次）"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "name": "read_user_input",
+                    "args": {}
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "name": "read_user_input",
+                    "response": {
+                      "source": "user_input",
+                      "text": "在第1章后插入1章新的海港调查剧情，保留旧细纲，重新分成两卷\n\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "maxOutputTokens": 12000,
+            "temperature": 1
+          },
+          "systemInstruction": {
+            "parts": [
+              {
+                "text": "你是墨韵的追加剧情策划。先完整读取最新大纲、全部细纲、卷纲和交接，再按作者要求新增实际剧情、章节并重新分卷。旧章节不能删除、重排或改写，旧角色和关键事件保留；允许在未写正文的细纲之间插入新章或向后追加。只返回 JSON：{\"outlineAppend\":\"只写新增剧情的大纲，不复述旧大纲\",\"chapterPlan\":[{\"existingChapterNo\":1},{\"title\":\"新增章标题\",\"content\":\"新增章完整细纲，包含目标、事件推进、人物变化和衔接\"},{\"existingChapterNo\":2}],\"volumes\":[{\"number\":1,\"title\":\"卷名\",\"startChapter\":1,\"endChapter\":3,\"summary\":\"包含新剧情的卷纲\",\"writingRequirement\":\"写作要求\",\"bridge\":\"衔接点\"}]}。chapterPlan 是完整的新章序：旧章只用 existingChapterNo 引用原章号，从1到已有最后章各出现一次且顺序不变；不要复制旧细纲。新章只填 title、content，不填 existingChapterNo。数组位置就是最终章号，volumes 必须用最终章号连续覆盖完整章序，从第1章开始，不重叠、不留空卷。只返回完整卷列表，不只返回新增卷。未明确要求时，不更改已发生事实的卷末交接，也不能编造新章的事实交接。新增章应形成真正的新剧情，衔接原有故事，不把已有章原样拆开充数。当前已开启未完模式，只规划当前一段，禁止写结局。"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "output_reply",
+                  "description": "将本次任务的完整最终回复放在 content 字符串中，保留所有正文、换行、格式及图片标记。仅提交一次，不要在普通消息重复回复。",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "content"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              ]
+            }
+          ],
+          "toolConfig": {
+            "functionCallingConfig": {
+              "mode": "ANY",
+              "allowedFunctionNames": [
+                "output_reply"
+              ]
+            }
+          }
+        },
+        "candidate": true,
+        "newTotal": 3,
+        "unchanged": true,
+        "modal": true,
+        "error": "",
+        "rejectedUnchanged": true
+      }
+    ],
+    "layout": [
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "light",
+        "panel": {
+          "x": 100,
+          "y": 32,
+          "width": 1080,
+          "height": 736,
+          "top": 32,
+          "right": 1180,
+          "bottom": 768,
+          "left": 100
+        },
+        "scroll": {
+          "height": 1220,
+          "client": 596,
+          "width": 1073,
+          "clientWidth": 1073
+        },
+        "panes": [
+          {
+            "x": 118.66667175292969,
+            "y": 261.3333435058594,
+            "width": 512.3333740234375,
+            "height": 284.85418701171875,
+            "top": 261.3333435058594,
+            "right": 631.0000457763672,
+            "bottom": 546.1875305175781,
+            "left": 118.66667175292969
+          },
+          {
+            "x": 643,
+            "y": 261.3333435058594,
+            "width": 512.3333740234375,
+            "height": 284.85418701171875,
+            "top": 261.3333435058594,
+            "right": 1155.3333740234375,
+            "bottom": 546.1875305175781,
+            "left": 643
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "dark",
+        "panel": {
+          "x": 100,
+          "y": 32,
+          "width": 1080,
+          "height": 736,
+          "top": 32,
+          "right": 1180,
+          "bottom": 768,
+          "left": 100
+        },
+        "scroll": {
+          "height": 1220,
+          "client": 596,
+          "width": 1073,
+          "clientWidth": 1073
+        },
+        "panes": [
+          {
+            "x": 118.66667175292969,
+            "y": 261.3333435058594,
+            "width": 512.3333740234375,
+            "height": 284.85418701171875,
+            "top": 261.3333435058594,
+            "right": 631.0000457763672,
+            "bottom": 546.1875305175781,
+            "left": 118.66667175292969
+          },
+          {
+            "x": 643,
+            "y": 261.3333435058594,
+            "width": 512.3333740234375,
+            "height": 284.85418701171875,
+            "top": 261.3333435058594,
+            "right": 1155.3333740234375,
+            "bottom": 546.1875305175781,
+            "left": 643
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      },
+      {
+        "viewport": {
+          "width": 360,
+          "height": 740
+        },
+        "theme": "light",
+        "panel": {
+          "x": 0,
+          "y": 0,
+          "width": 360,
+          "height": 740,
+          "top": 0,
+          "right": 360,
+          "bottom": 740,
+          "left": 0
+        },
+        "scroll": {
+          "height": 1710,
+          "client": 556,
+          "width": 354,
+          "clientWidth": 354
+        },
+        "panes": [
+          {
+            "x": 12,
+            "y": 303.3333435058594,
+            "width": 330,
+            "height": 180,
+            "top": 303.3333435058594,
+            "right": 342,
+            "bottom": 483.3333435058594,
+            "left": 12
+          },
+          {
+            "x": 12,
+            "y": 493.3333435058594,
+            "width": 330,
+            "height": 288.09375,
+            "top": 493.3333435058594,
+            "right": 342,
+            "bottom": 781.4270935058594,
+            "left": 12
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      },
+      {
+        "viewport": {
+          "width": 360,
+          "height": 740
+        },
+        "theme": "dark",
+        "panel": {
+          "x": 0,
+          "y": 0,
+          "width": 360,
+          "height": 740,
+          "top": 0,
+          "right": 360,
+          "bottom": 740,
+          "left": 0
+        },
+        "scroll": {
+          "height": 1710,
+          "client": 556,
+          "width": 354,
+          "clientWidth": 354
+        },
+        "panes": [
+          {
+            "x": 12,
+            "y": 303.3333435058594,
+            "width": 330,
+            "height": 180,
+            "top": 303.3333435058594,
+            "right": 342,
+            "bottom": 483.3333435058594,
+            "left": 12
+          },
+          {
+            "x": 12,
+            "y": 493.3333435058594,
+            "width": 330,
+            "height": 288.09375,
+            "top": 493.3333435058594,
+            "right": 342,
+            "bottom": 781.4270935058594,
+            "left": 12
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      },
+      {
+        "viewport": {
+          "width": 320,
+          "height": 740
+        },
+        "theme": "light",
+        "panel": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 740,
+          "top": 0,
+          "right": 320,
+          "bottom": 740,
+          "left": 0
+        },
+        "scroll": {
+          "height": 1749,
+          "client": 539,
+          "width": 314,
+          "clientWidth": 314
+        },
+        "panes": [
+          {
+            "x": 12,
+            "y": 322.8333435058594,
+            "width": 290,
+            "height": 180,
+            "top": 322.8333435058594,
+            "right": 302,
+            "bottom": 502.8333435058594,
+            "left": 12
+          },
+          {
+            "x": 12,
+            "y": 512.8333740234375,
+            "width": 290,
+            "height": 288.09375,
+            "top": 512.8333740234375,
+            "right": 302,
+            "bottom": 800.9271240234375,
+            "left": 12
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      },
+      {
+        "viewport": {
+          "width": 320,
+          "height": 740
+        },
+        "theme": "dark",
+        "panel": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 740,
+          "top": 0,
+          "right": 320,
+          "bottom": 740,
+          "left": 0
+        },
+        "scroll": {
+          "height": 1749,
+          "client": 539,
+          "width": 314,
+          "clientWidth": 314
+        },
+        "panes": [
+          {
+            "x": 12,
+            "y": 322.8333435058594,
+            "width": 290,
+            "height": 180,
+            "top": 322.8333435058594,
+            "right": 302,
+            "bottom": 502.8333435058594,
+            "left": 12
+          },
+          {
+            "x": 12,
+            "y": 512.8333740234375,
+            "width": 290,
+            "height": 288.09375,
+            "top": 512.8333740234375,
+            "right": 302,
+            "bottom": 800.9271240234375,
+            "left": 12
+          }
+        ],
+        "buttons": [
+          {
+            "text": "接受新增剧情与卷纲",
+            "height": 44
+          },
+          {
+            "text": "拒绝卷纲候选",
+            "height": 44
+          }
+        ],
+        "overflow": false
+      }
+    ],
+    "remaining": [
+      {
+        "test": "preset-existing",
+        "viewport": [
+          1280,
+          800
+        ],
+        "theme": "light",
+        "card": {
+          "x": 16,
+          "y": 123.83333587646484,
+          "width": 351.3333435058594,
+          "height": 174.95834350585938,
+          "top": 123.83333587646484,
+          "right": 367.3333435058594,
+          "bottom": 298.7916793823242,
+          "left": 16
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "preset-existing",
+        "viewport": [
+          1280,
+          800
+        ],
+        "theme": "dark",
+        "card": {
+          "x": 16,
+          "y": 123.83333587646484,
+          "width": 351.3333435058594,
+          "height": 174.95834350585938,
+          "top": 123.83333587646484,
+          "right": 367.3333435058594,
+          "bottom": 298.7916793823242,
+          "left": 16
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "character-blank",
+        "viewport": [
+          1280,
+          800
+        ],
+        "theme": "dark",
+        "mods": 0,
+        "editor": {
+          "x": 250,
+          "y": 81.65625,
+          "width": 790,
+          "height": 554.5833740234375,
+          "top": 81.65625,
+          "right": 1040,
+          "bottom": 636.2396240234375,
+          "left": 250
+        },
+        "cards": [
+          {
+            "width": 790,
+            "ratio": 1
+          }
+        ],
+        "sameParent": true,
+        "adjacent": true,
+        "emptyInside": false,
+        "overflow": false
+      },
+      {
+        "test": "character-long-unbroken",
+        "viewport": [
+          1280,
+          800
+        ],
+        "theme": "dark",
+        "mods": 0,
+        "editor": {
+          "x": 250,
+          "y": 81.65625,
+          "width": 790,
+          "height": 554.5833740234375,
+          "top": 81.65625,
+          "right": 1040,
+          "bottom": 636.2396240234375,
+          "left": 250
+        },
+        "cards": [
+          {
+            "width": 790,
+            "ratio": 1
+          }
+        ],
+        "sameParent": true,
+        "adjacent": true,
+        "emptyInside": false,
+        "overflow": false
+      },
+      {
+        "test": "character-blank",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "dark",
+        "mods": 0,
+        "editor": {
+          "x": 10,
+          "y": 239.6666717529297,
+          "width": 334,
+          "height": 827.7916870117188,
+          "top": 239.6666717529297,
+          "right": 344,
+          "bottom": 1067.4583587646484,
+          "left": 10
+        },
+        "cards": [
+          {
+            "width": 334,
+            "ratio": 1
+          }
+        ],
+        "sameParent": true,
+        "adjacent": true,
+        "emptyInside": false,
+        "overflow": false
+      },
+      {
+        "test": "character-long-unbroken",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "dark",
+        "mods": 0,
+        "editor": {
+          "x": 10,
+          "y": 239.6666717529297,
+          "width": 334,
+          "height": 827.7916870117188,
+          "top": 239.6666717529297,
+          "right": 344,
+          "bottom": 1067.4583587646484,
+          "left": 10
+        },
+        "cards": [
+          {
+            "width": 334,
+            "ratio": 1
+          }
+        ],
+        "sameParent": true,
+        "adjacent": true,
+        "emptyInside": false,
+        "overflow": false
+      },
+      {
+        "test": "preset-existing",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "light",
+        "card": {
+          "x": -106.43019104003906,
+          "y": 129.33334350585938,
+          "width": 266.125,
+          "height": 192.83334350585938,
+          "top": 129.33334350585938,
+          "right": 159.69480895996094,
+          "bottom": 322.16668701171875,
+          "left": -106.43019104003906
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "preset-existing",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "dark",
+        "card": {
+          "x": 15.999990463256836,
+          "y": 129.33334350585938,
+          "width": 266.125,
+          "height": 192.83334350585938,
+          "top": 129.33334350585938,
+          "right": 282.12499046325684,
+          "bottom": 322.16668701171875,
+          "left": 15.999990463256836
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "preset-existing",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "light",
+        "card": {
+          "x": 16,
+          "y": 129.33334350585938,
+          "width": 266.125,
+          "height": 192.83334350585938,
+          "top": 129.33334350585938,
+          "right": 282.125,
+          "bottom": 322.16668701171875,
+          "left": 16
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "preset-existing",
+        "viewport": [
+          360,
+          740
+        ],
+        "theme": "dark",
+        "card": {
+          "x": 16,
+          "y": 129.33334350585938,
+          "width": 266.125,
+          "height": 192.83334350585938,
+          "top": 129.33334350585938,
+          "right": 282.125,
+          "bottom": 322.16668701171875,
+          "left": 16
+        },
+        "buttons": [
+          {
+            "label": "未完模式",
+            "height": 44
+          },
+          {
+            "label": "继续规划下一段",
+            "height": 44
+          },
+          {
+            "label": "标记为已写到结局",
+            "height": 44
+          }
+        ],
+        "overflow": false,
+        "text": "未完模式\n\n当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\n\n继续规划下一段\n标记为已写到结局"
+      },
+      {
+        "test": "mobile-live-and-collapse",
+        "entry": "outline",
+        "theme": "light",
+        "viewport": [
+          360,
+          740
+        ],
+        "generating": true,
+        "textLength": 135,
+        "dock": {
+          "x": 8,
+          "y": 378,
+          "width": 344,
+          "height": 162,
+          "top": 378,
+          "right": 352,
+          "bottom": 540,
+          "left": 8
+        },
+        "operation": {
+          "x": 0,
+          "y": 547.875,
+          "width": 360,
+          "height": 192.125,
+          "top": 547.875,
+          "right": 360,
+          "bottom": 740,
+          "left": 0
+        },
+        "overflow": false,
+        "collapsed": {
+          "height": 62,
+          "body": false,
+          "retained": 180
+        },
+        "modal": true,
+        "candidateChapters": 3,
+        "originalChapters": 2
+      },
+      {
+        "test": "mobile-live-and-collapse",
+        "entry": "detailed-outline",
+        "theme": "dark",
+        "viewport": [
+          360,
+          740
+        ],
+        "generating": true,
+        "textLength": 135,
+        "dock": {
+          "x": 8,
+          "y": 478,
+          "width": 344,
+          "height": 162,
+          "top": 478,
+          "right": 352,
+          "bottom": 640,
+          "left": 8
+        },
+        "operation": {
+          "x": 0,
+          "y": 639.3333740234375,
+          "width": 360,
+          "height": 100.66667175292969,
+          "top": 639.3333740234375,
+          "right": 360,
+          "bottom": 740.0000457763672,
+          "left": 0
+        },
+        "overflow": false,
+        "collapsed": {
+          "height": 62,
+          "body": false,
+          "retained": 135
+        },
+        "modal": true,
+        "candidateChapters": 3,
+        "originalChapters": 2
+      }
+    ]
+  },
+  "flowEvidence": [
+    {
+      "ok": true,
+      "action": "act",
+      "status": 200,
+      "data": {
+        "tabId": "t_mwhg5pia_qn8z4sxw",
+        "kind": "evaluate",
+        "result": "{\"test\":\"pending-before-refresh\",\"details\":[{\"id\":\"o1\",\"chapterNo\":1,\"title\":\"第1章 开端\",\"content\":\"旧章一原文\"},{\"id\":\"o2\",\"chapterNo\":2,\"title\":\"第2章 转折\",\"content\":\"第2章旧转折\"}],\"volumes\":[{\"id\":\"v1\",\"number\":1,\"title\":\"旧卷\",\"startChapter\":1,\"endChapter\":2,\"summary\":\"旧计划\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}}}],\"candidate\":{\"rows\":[{\"id\":\"v1\",\"number\":1,\"title\":\"初探\",\"startChapter\":1,\"endChapter\":1,\"summary\":\"保留开端\",\"writingRequirement\":\"\",\"bridge\":\"\",\"actualSummary\":\"\",\"actualOutline\":\"\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"characterIds\":[],\"entryIds\":[],\"eventIds\":[]},{\"id\":\"id_1794724912101_fwfjkmfy\",\"number\":2,\"title\":\"海港新线\",\"startChapter\":2,\"endChapter\":3,\"summary\":\"先调查新线索，再接续旧转折\",\"writingRequirement\":\"按新章序推进\",\"bridge\":\"留待下一段\",\"actualSummary\":\"\",\"actualOutline\":\"\",\"handoffSummaries\":{},\"characterIds\":[],\"entryIds\":[],\"eventIds\":[]}],\"baseline\":\"[{\\\"id\\\":\\\"v1\\\",\\\"number\\\":1,\\\"title\\\":\\\"旧卷\\\",\\\"startChapter\\\":1,\\\"endChapter\\\":2,\\\"summary\\\":\\\"旧计划\\\",\\\"handoffSummaries\\\":{\\\"main\\\":{\\\"content\\\":\\\"上一段已发生事实\\\"}}}]\",\"chapterOutlinesBaseline\":\"[{\\\"id\\\":\\\"o1\\\",\\\"chapterNo\\\":1,\\\"title\\\":\\\"第1章 开端\\\",\\\"content\\\":\\\"旧章一原文\\\"},{\\\"id\\\":\\\"o2\\\",\\\"chapterNo\\\":2,\\\"title\\\":\\\"第2章 转折\\\",\\\"content\\\":\\\"第2章旧转折\\\"}]\",\"bookId\":\"unfinished-expansion-20261115\",\"branchId\":\"main\",\"expansion\":{\"chapterOutlines\":[{\"id\":\"o1\",\"chapterNo\":1,\"title\":\"第1章 开端\",\"content\":\"旧章一原文\"},{\"id\":\"id_1794724912101_t0q6wz5y\",\"chapterNo\":2,\"title\":\"海港调查\",\"content\":\"新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。\",\"history\":[]},{\"id\":\"o2\",\"chapterNo\":3,\"title\":\"第3章 转折\",\"content\":\"第3章旧转折\"}],\"mapping\":{\"1\":1,\"2\":3},\"total\":3,\"outlineAppend\":\"第2章新增海港调查，第3章接续旧转折；本段不写结局。\",\"baseline\":\"{\\\"outline\\\":\\\"第1章 开端；第2章 旧转折\\\",\\\"chapterCount\\\":2,\\\"unfinishedMode\\\":true,\\\"chapters\\\":[],\\\"index\\\":[{\\\"id\\\":\\\"i2\\\",\\\"chapterNo\\\":2,\\\"title\\\":\\\"第2章\\\",\\\"stage\\\":\\\"高潮/结局\\\",\\\"goal\\\":\\\"旧二\\\",\\\"foreshadowTags\\\":\\\"\\\"}],\\\"darklines\\\":[{\\\"id\\\":\\\"f1\\\",\\\"tag\\\":\\\"\\\",\\\"setupChapter\\\":\\\"1\\\",\\\"upgradeChapter\\\":\\\"\\\",\\\"payoffChapter\\\":\\\"2\\\",\\\"resolvedChapter\\\":\\\"\\\",\\\"status\\\":\\\"\\\",\\\"note\\\":\\\"\\\"}]}\"}},\"request\":[{\"url\":\"https://unfinished-fixture.invalid/v1/chat/completions\",\"model\":\"fixture-model\",\"stream\":true,\"messages\":[{\"role\":\"system\",\"content\":\"你是墨韵的追加剧情策划。先完整读取最新大纲、全部细纲、卷纲和交接，再按作者要求新增实际剧情、章节并重新分卷。旧章节不能删除、重排或改写，旧角色和关键事件保留；允许在未写正文的细纲之间插入新章或向后追加。只返回 JSON：{\\\"outlineAppend\\\":\\\"只写新增剧情的大纲，不复述旧大纲\\\",\\\"chapterPlan\\\":[{\\\"existingChapterNo\\\":1},{\\\"title\\\":\\\"新增章标题\\\",\\\"content\\\":\\\"新增章完整细纲，包含目标、事件推进、人物变化和衔接\\\"},{\\\"existingChapterNo\\\":2}],\\\"volumes\\\":[{\\\"number\\\":1,\\\"title\\\":\\\"卷名\\\",\\\"startChapter\\\":1,\\\"endChapter\\\":3,\\\"summary\\\":\\\"包含新剧情的卷纲\\\",\\\"writingRequirement\\\":\\\"写作要求\\\",\\\"bridge\\\":\\\"衔接点\\\"}]}。chapterPlan 是完整的新章序：旧章只用 existingChapterNo 引用原章号，从1到已有最后章各出现一次且顺序不变；不要复制旧细纲。新章只填 title、content，不填 existingChapterNo。数组位置就是最终章号，volumes 必须用最终章号连续覆盖完整章序，从第1章开始，不重叠、不留空卷。只返回完整卷列表，不只返回新增卷。未明确要求时，不更改已发生事实的卷末交接，也不能编造新章的事实交接。新增章应形成真正的新剧情，衔接原有故事，不把已有章原样拆开充数。当前已开启未完模式，只规划当前一段，禁止写结局。\"},{\"role\":\"user\",\"content\":\"\\n【全书最新大纲】\\n第1章 开端；第2章 旧转折\\n【全部细纲（计划，非已发生事实）】\\n第1章 第1章 开端\\n旧章一原文\\n\\n第2章 第2章 转折\\n第2章旧转折\\n【现有卷纲与分支交接】\\n[{\\\"number\\\":1,\\\"id\\\":\\\"v1\\\",\\\"title\\\":\\\"旧卷\\\",\\\"startChapter\\\":1,\\\"endChapter\\\":2,\\\"summary\\\":\\\"旧计划\\\",\\\"handoffSummaries\\\":{\\\"main\\\":{\\\"content\\\":\\\"上一段已发生事实\\\"}},\\\"handoff\\\":{\\\"content\\\":\\\"上一段已发生事实\\\"}}]\\n【未完模式已开启】只规划当前一段，禁止写结局；扩展只创造新内容章节，已有细纲保留。\\n\\n【扩展范围】已有规划共 2 章；已写正文 0 章，这些章号及之前的顺序不可移动。扩展后必须共 3 章。最终共 2 卷。\\n先列出保留旧章与插入新章的完整 chapterPlan，按数组位置计算新章号，再生成对应完整卷纲。outlineAppend 中用最终章号标明新增事件的位置。旧细纲原文由宿主保留，不得回传替换。\"},{\"role\":\"user\",\"content\":\"在第1章后插入1章新的海港调查剧情，保留旧细纲，重新分成两卷\\n\\n【JSON格式】键和字符串使用双引号；字符串内部的双引号、换行和反斜杠必须转义。不输出尾逗号，不省略闭合符号；只输出当前任务要求的根结构。\",\"_moyunUserInput\":true}]}]}"
+      }
+    },
+    {
+      "ok": true,
+      "action": "act",
+      "status": 200,
+      "data": {
+        "tabId": "t_mwhg5pia_qn8z4sxw",
+        "kind": "evaluate",
+        "result": "{\"test\":\"openai-live\",\"generating\":true,\"text\":\"{\\\"outlineAppend\\\":\\\"第2章新增海港调查，第3章接续旧转折；本段不写结局。\\\",\\\"chapterPlan\\\":[{\\\"existingChapterNo\\\":1},{\\\"tit\",\"bodyText\":\"{\\\"outlineAppend\\\":\\\"第2章新增海港调查，第3章接续旧转折；本段不写结局。\\\",\\\"chapterPlan\\\":[{\\\"existingChapterNo\\\":1},{\\\"tit\",\"dock\":{\"x\":14,\"y\":556,\"width\":1252,\"height\":90,\"top\":556,\"right\":1266,\"bottom\":646,\"left\":14},\"operation\":{\"x\":0,\"y\":646.6666870117188,\"width\":1280,\"height\":153.33334350585938,\"top\":646.6666870117188,\"right\":1280,\"bottom\":800.0000305175781,\"left\":0},\"overflow\":false}"
+      }
+    },
+    {
+      "ok": true,
+      "action": "batch",
+      "completed": 3,
+      "total": 3,
+      "steps": [
+        {
+          "ok": true,
+          "action": "act",
+          "status": 200,
+          "data": {
+            "tabId": "t_mwhg5pia_qn8z4sxw",
+            "kind": "click",
+            "x": 727,
+            "y": 508.84375
+          }
+        },
+        {
+          "ok": true,
+          "action": "act",
+          "status": 200,
+          "data": {
+            "tabId": "t_mwhg5pia_qn8z4sxw",
+            "kind": "evaluate",
+            "result": "{\"test\":\"expansion-applied\",\"chapters\":[{\"id\":\"o1\",\"chapterNo\":1,\"title\":\"第1章 开端\",\"content\":\"旧章一原文\"},{\"id\":\"id_1794725324091_s5kdhvm5\",\"chapterNo\":2,\"title\":\"海港调查\",\"content\":\"新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。\",\"history\":[]},{\"id\":\"o2\",\"chapterNo\":3,\"title\":\"第3章 转折\",\"content\":\"第3章旧转折\"}],\"volumes\":[{\"id\":\"v1\",\"number\":1,\"title\":\"初探\",\"startChapter\":1,\"endChapter\":1,\"summary\":\"保留开端\",\"writingRequirement\":\"\",\"bridge\":\"\",\"actualSummary\":\"\",\"actualOutline\":\"\",\"handoffSummaries\":{\"main\":{\"content\":\"上一段已发生事实\"}},\"characterIds\":[],\"entryIds\":[],\"eventIds\":[]},{\"id\":\"id_1794725324092_bo5fo8br\",\"number\":2,\"title\":\"海港新线\",\"startChapter\":2,\"endChapter\":3,\"summary\":\"先调查新线索，再接续旧转折\",\"writingRequirement\":\"按新章序推进\",\"bridge\":\"留待下一段\",\"actualSummary\":\"\",\"actualOutline\":\"\",\"handoffSummaries\":{},\"characterIds\":[],\"entryIds\":[],\"eventIds\":[]}],\"index\":[{\"id\":\"id_1794725346581_xcogzt14\",\"chapterNo\":1,\"title\":\"第1章 开端\",\"goal\":\"旧章一原文\",\"isExpanded\":true},{\"id\":\"id_1794725346581_mbmg4z5r\",\"chapterNo\":2,\"title\":\"海港调查\",\"goal\":\"新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。新增海港调查事件，承接开端，找到新的航线证据，衔接原有转折。\",\"isExpanded\":true},{\"id\":\"i2\",\"chapterNo\":3,\"title\":\"第3章\",\"goal\":\"旧二\"}],\"darklines\":[{\"id\":\"f1\",\"setupChapter\":\"1\",\"payoffChapter\":\"3\",\"resolvedChapter\":\"\"}],\"undo\":true}"
+          }
+        },
+        {
+          "ok": true,
+          "action": "navigate",
+          "status": 200,
+          "data": {
+            "tabId": "t_mwhg5pia_qn8z4sxw",
+            "url": "http://127.0.0.1:4193/index.html"
+          }
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "action": "act",
+      "status": 200,
+      "data": {
+        "tabId": "t_mwhg5pia_qn8z4sxw",
+        "kind": "evaluate",
+        "result": "{\"test\":\"accepted-refresh-undo-final\",\"before\":{\"details\":3,\"volumes\":2,\"mode\":true},\"after\":{\"details\":2,\"volumes\":1,\"mode\":true,\"pending\":true}}"
+      }
+    },
+    {
+      "ok": true,
+      "action": "act",
+      "status": 200,
+      "data": {
+        "tabId": "t_mwhg5pia_qn8z4sxw",
+        "kind": "evaluate",
+        "result": "{\"test\":\"normal-and-existing-book-toggle\",\"fresh\":{\"mode\":true,\"description\":\"只规划当前一段，禁止写结局。后续可继续追加新剧情、章节和卷纲；设置只对当前书籍生效。\"},\"existing\":{\"mode\":true,\"description\":\"当前已有大纲与细纲，只能创造新内容章节；保留已有原文，可在未写正文的细纲间插入新章或向后追加，并重新划分卷纲。开启后只规划当前一段，禁止写结局。\"},\"pending\":{\"mode\":true,\"confirm\":true,\"cfg\":{\"title\":\"关闭未完模式\",\"message\":\"关闭后不可返回未完模式，请确认已经完成整本书的规划。现有正文和纲要不会删除。\",\"confirmText\":\"确定关闭\",\"cancelText\":\"取消\"}},\"cancelled\":true,\"closed\":{\"mode\":false,\"closed\":true,\"disabled\":true}}"
+      }
+    }
+  ],
+  "discoveredAndFixed": [
+    {
+      "issue": "接受保存刷新后撤销丢失待审候选",
+      "cause": "outlineRevisions兼容setter重建review对象",
+      "fix": "直接恢复outlineReview.revisions，保留workbenchVolumes",
+      "finalCheck": {
+        "ok": true,
+        "action": "act",
+        "status": 200,
+        "data": {
+          "tabId": "t_mwhg5pia_qn8z4sxw",
+          "kind": "evaluate",
+          "result": "{\"test\":\"accepted-refresh-undo-final\",\"before\":{\"details\":3,\"volumes\":2,\"mode\":true},\"after\":{\"details\":2,\"volumes\":1,\"mode\":true,\"pending\":true}}"
+        }
+      }
+    },
+    {
+      "issue": "刷新补齐空卷字段后基线误报冲突",
+      "fix": "通过normalizeNovelVolumes统一比较持久内容",
+      "coveredBy": "拒绝与稍后序列化恢复测试及pending刷新接受浏览器复测"
+    },
+    {
+      "issue": "手机侧栏动画过渡时卡片测量短暂为负坐标",
+      "fix": "只修改测试等待，500ms后重新断言左右边界；未改应用代码"
+    }
+  ],
+  "limitations": [
+    "本地流式假响应，不是服务商质量验收",
+    "当前宿主截图是侧边栏画面，桌面截图被裁切，不能作为完整1280宽画面",
+    "未做iOS/Android真机和软键盘测试",
+    "不在已有正文之前插章；需先创建分支",
+    "本轮未再次走书籍导出导入UI"
+  ],
+  "screenshots": [
+    "V0.0.19_UNFINISHED_360_LIGHT.png",
+    "V0.0.19_UNFINISHED_360_DARK.png",
+    "V0.0.19_UNFINISHED_1280_LIGHT_HOST_CROP.png"
+  ]
+}

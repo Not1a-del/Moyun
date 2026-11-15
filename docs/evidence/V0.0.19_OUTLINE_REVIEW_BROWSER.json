@@ -1,0 +1,243 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "width": 1280,
+      "height": 800,
+      "name": "light",
+      "dark": false,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "modal": {
+        "width": 1280,
+        "height": 800
+      },
+      "panel": {
+        "left": 100,
+        "right": 1180,
+        "top": 32,
+        "bottom": 768,
+        "width": 1080,
+        "height": 736,
+        "maxHeight": "736px",
+        "display": "flex",
+        "transform": "none"
+      },
+      "body": {
+        "scrollHeight": 2000,
+        "clientHeight": 594
+      },
+      "styles": [
+        "http://127.0.0.1:4191/assets/css/moyun.css?v=daef50a2c802",
+        null
+      ],
+      "ruleFound": [
+        ".moyun-outline-review-panel { width: min(1080px, 100%); max-height: min(92dvh, 100dvh - 32px); display: flex; flex-direction: column; min-width: 0px; overflow: hidden; border: 1px solid var(--bd); border-radius: 18px; background: var(--bg-card); box-shadow: var(--sh3); }"
+      ],
+      "overflow": false,
+      "text": true
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "name": "light",
+      "dark": true,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "modal": {
+        "width": 1280,
+        "height": 800
+      },
+      "panel": {
+        "left": 100,
+        "right": 1180,
+        "top": 32,
+        "bottom": 768,
+        "width": 1080,
+        "height": 736,
+        "maxHeight": "736px",
+        "display": "flex",
+        "transform": "none"
+      },
+      "body": {
+        "scrollHeight": 2000,
+        "clientHeight": 594
+      },
+      "styles": [
+        "http://127.0.0.1:4191/assets/css/moyun.css?v=daef50a2c802",
+        null
+      ],
+      "ruleFound": [
+        ".moyun-outline-review-panel { width: min(1080px, 100%); max-height: min(92dvh, 100dvh - 32px); display: flex; flex-direction: column; min-width: 0px; overflow: hidden; border: 1px solid var(--bd); border-radius: 18px; background: var(--bg-card); box-shadow: var(--sh3); }"
+      ],
+      "overflow": false,
+      "text": true
+    },
+    {
+      "width": 360,
+      "height": 740,
+      "name": "mobile",
+      "dark": false,
+      "viewport": {
+        "width": 360,
+        "height": 740
+      },
+      "modal": {
+        "width": 360,
+        "height": 740
+      },
+      "panel": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 740,
+        "width": 360,
+        "height": 740,
+        "maxHeight": "none",
+        "display": "flex",
+        "transform": "none"
+      },
+      "body": {
+        "scrollHeight": 2644,
+        "clientHeight": 555
+      },
+      "styles": [
+        "http://127.0.0.1:4191/assets/css/moyun.css?v=daef50a2c802",
+        null
+      ],
+      "ruleFound": [
+        ".moyun-outline-review-panel { width: min(1080px, 100%); max-height: min(92dvh, 100dvh - 32px); display: flex; flex-direction: column; min-width: 0px; overflow: hidden; border: 1px solid var(--bd); border-radius: 18px; background: var(--bg-card); box-shadow: var(--sh3); }"
+      ],
+      "overflow": false,
+      "text": true
+    },
+    {
+      "width": 360,
+      "height": 740,
+      "name": "mobile",
+      "dark": true,
+      "viewport": {
+        "width": 360,
+        "height": 740
+      },
+      "modal": {
+        "width": 360,
+        "height": 740
+      },
+      "panel": {
+        "left": 0,
+        "right": 360,
+        "top": 0,
+        "bottom": 740,
+        "width": 360,
+        "height": 740,
+        "maxHeight": "none",
+        "display": "flex",
+        "transform": "none"
+      },
+      "body": {
+        "scrollHeight": 2644,
+        "clientHeight": 555
+      },
+      "styles": [
+        "http://127.0.0.1:4191/assets/css/moyun.css?v=daef50a2c802",
+        null
+      ],
+      "ruleFound": [
+        ".moyun-outline-review-panel { width: min(1080px, 100%); max-height: min(92dvh, 100dvh - 32px); display: flex; flex-direction: column; min-width: 0px; overflow: hidden; border: 1px solid var(--bd); border-radius: 18px; background: var(--bg-card); box-shadow: var(--sh3); }"
+      ],
+      "overflow": false,
+      "text": true
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "stream": {
+        "visible": true,
+        "text": "修改后的大纲哨兵：主角在港口找到一封旧信，随后追查信件中的日期与",
+        "top": 555,
+        "bottom": 646,
+        "footerTop": 645,
+        "modal": false,
+        "width": 1280
+      },
+      "review": {
+        "modal": true,
+        "compare": "原内容\n旧大纲哨兵\nAI 修改后\n修改后的大纲哨兵：主角在港口找到一封旧信，随后追查信件中的日期与收件人，逐步发现港口旧案与自己的家族有关。修改后的大纲哨兵：主角在港口找到一封旧信，随后追查信件中的日期与收件人，逐步发现港口旧案与自己的家族有关。修改后的大纲哨兵：主角在港口找到一封旧信，随后追查信件中的日期与收件人，逐"
+      }
+    },
+    {
+      "width": 360,
+      "theme": "light",
+      "stream": {
+        "visible": true,
+        "text": "{\"volumes\":[{\"number\":1,\"title\":",
+        "top": 541,
+        "bottom": 640,
+        "footerTop": 639,
+        "width": 360,
+        "stillOnDetails": true
+      },
+      "plan": [
+        {
+          "number": 1,
+          "title": "港口",
+          "start": 1,
+          "end": 2
+        },
+        {
+          "number": 2,
+          "title": "旧信",
+          "start": 3,
+          "end": 4
+        },
+        {
+          "number": 3,
+          "title": "离岸",
+          "start": 5,
+          "end": 6
+        }
+      ],
+      "reject": {
+        "modal": false,
+        "volume": "旧卷",
+        "details": [
+          "第1章的细纲事实",
+          "第2章的细纲事实",
+          "第3章的细纲事实",
+          "第4章的细纲事实",
+          "第5章的细纲事实",
+          "第6章的细纲事实"
+        ]
+      },
+      "acceptedVolumes": [
+        {
+          "number": 1,
+          "title": "港口",
+          "start": 1,
+          "end": 2
+        },
+        {
+          "number": 2,
+          "title": "旧信",
+          "start": 3,
+          "end": 4
+        },
+        {
+          "number": 3,
+          "title": "离岸",
+          "start": 5,
+          "end": 6
+        }
+      ]
+    }
+  ],
+  "after": {
+    "modal": false,
+    "volume": "旧卷"
+  }
+}
