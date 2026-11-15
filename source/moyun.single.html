@@ -46477,10 +46477,21 @@ function getWritingModelLabel() {
         title:planningText(row, ['title','name','volumeTitle','卷名']) || ('第' + (index + 1) + '卷'),
         startChapter:planningNumber(row, ['startChapter','start','from','起始章'], 0),
         endChapter:planningNumber(row, ['endChapter','end','to','结束章'], 0),
-        summary:planningText(row, ['summary','content','description','摘要','卷纲内容'])
+        summary:planningText(row, ['summary','content','description','摘要','卷纲内容']),
+        writingRequirement:planningText(row, ['writingRequirement','writing','requirement','writingRequirements','写作内容要求','本卷写作内容要求','写作要求']),
+        bridge:planningText(row, ['bridge','handoffPoint','transition','衔接点','卷末衔接点','交接点'])
       });
       let chapterPlan = planningRows(chapterSource).map(normalizeChapter).filter(Boolean);
       let volumes = planningRows(volumeSource).map(normalizeVolume);
+      // 中文注释：文本卷纲也必须进入共用规划入口，避免真实模型未返回 JSON 时把多卷压成一卷。
+      if (!volumes.length && typeof parseVolumePlan === 'function') {
+        try {
+          const parsedTextVolumes = parseVolumePlan(raw);
+          if (parsedTextVolumes.length) {
+            volumes = parsedTextVolumes.map(normalizeVolume);
+          }
+        } catch {}
+      }
       // 中文注释：截断 JSON 仍保留已经闭合的章节/卷对象，避免一次中断丢掉前面已收到的规划。
       if (!parsed && fragments.incomplete && fragments.records.length) {
         const records = fragments.records.map(text => { try { return parseAiStructuredJson(text, 'object'); } catch { return null; } }).filter(Boolean);
@@ -46488,11 +46499,13 @@ function getWritingModelLabel() {
         chapterPlan = records.filter(row => !isVolume(row) && (Object.keys(row).some(key => ['existingchapterno','chapterno','chapter','章节目标','一句话目标','goal','target'].includes(normalizePlanningKey(key))) || (planningText(row,['title','chapterTitle','章节标题']) && planningText(row,['content','detail'])))).map(normalizeChapter).filter(Boolean);
         volumes = records.filter(isVolume).map(normalizeVolume);
       }
-      const outlineAppend = planningText({value:findPlanningField(source, ['outlineAppend','outline','storyOutline','outlineText','大纲','新增大纲'])}, ['value']);
+      let outlineAppend = planningText({value:findPlanningField(source, ['outlineAppend','outline','storyOutline','outlineText','大纲','新增大纲'])}, ['value']);
+      if (!outlineAppend && !parsed && typeof extractPlanningSection === 'function') outlineAppend = extractPlanningSection(raw, '大纲');
       if (!outlineAppend && !chapterPlan.length && !volumes.length) return null;
       const chapterIndexText = chapterPlan.map(row => '第' + row.existingChapterNo + '章｜标题：' + row.title + '｜一句话目标：' + row.content).join('\n');
       const volumeText = volumes.map(row => '第' + row.number + '卷｜' + row.title + '｜章节：' + row.startChapter + '-' + row.endChapter + '｜摘要：' + String(row.summary || '').trim()).join('\n');
-      const outlineText = [outlineAppend && '【新增/完整大纲】\n' + outlineAppend, chapterIndexText && '【章节规划】\n' + chapterIndexText, volumeText && '【卷纲规划】\n' + volumeText].filter(Boolean).join('\n\n');
+      // 中文注释：非 JSON 的规划保留完整返回内容，审阅时可读到章节、写作要求和衔接点，不能只留下摘要行。
+      const outlineText = !parsed ? raw.trim() : [outlineAppend && '【新增/完整大纲】\n' + outlineAppend, chapterIndexText && '【章节规划】\n' + chapterIndexText, volumeText && '【卷纲规划】\n' + volumeText].filter(Boolean).join('\n\n');
       return { parsed, outlineAppend, chapterPlan, volumes, chapterIndexText, outlineText, raw, incomplete:!!fragments?.incomplete };
     }
     // 保留旧函数名给已有入口和外部回归脚本，内部解析已经不依赖具体供应商或字段组合。
@@ -46514,8 +46527,13 @@ function getWritingModelLabel() {
       // 中文注释：先按通用规划语义识别 JSON、围栏和截断对象，避免不同模型的字段命名让大纲被漏掉。
       const planning = normalizeOutlinePlanningPayload(rawText);
       if (planning) {
+        if (key === '大纲' && planning.outlineAppend) return planning.outlineAppend;
         if (key === '大纲' && planning.outlineText) return planning.outlineText;
         if ((key === '章节索引草案' || key === '章节索引') && planning.chapterIndexText) return planning.chapterIndexText;
+        if (key === '卷纲规划' && !planning.parsed && typeof extractPlanningSection === 'function') {
+          const textVolumeSection = extractPlanningSection(rawText, key);
+          if (textVolumeSection) return textVolumeSection;
+        }
         if (key === '卷纲规划' && planning.volumes.length) return JSON.stringify({ volumes:planning.volumes });
       }
       const text = okNormalizeSectionText(rawText);

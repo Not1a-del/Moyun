@@ -16,16 +16,43 @@ function fn(name) {
 }
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function planningHarness() {
-  const context={cleanAIResponse:value=>String(value || ''),showToast(){}};
+  const context={cleanAIResponse:value=>String(value || ''),showToast(){},looksLikeAiRefusal:()=>false};
   vm.createContext(context);
   const constant=source.match(/    const OK_FIELD_KEYS = [^\n]+/)[0];
-  vm.runInContext(constant + ['scanAiJsonFragments','parseAiJsonSyntax','parseAiStructuredJson','normalizePlanningKey','findPlanningField','planningRows','planningNumber','planningText','parsePlanningRoot','normalizeOutlinePlanningPayload','normalizeGeminiOutlinePayload','okNormalizeSectionText','extractPlanningSection','okExtractField'].map(fn).join('\n'),context);
+  vm.runInContext(constant + ['scanAiJsonFragments','parseAiJsonSyntax','parseAiStructuredJson','normalizePlanningKey','findPlanningField','planningRows','planningNumber','planningText','parsePlanningRoot','parseVolumePlan','validateVolumeRanges','getVolumePlanCounts','distributeVolumeRanges','prepareVolumePlan','normalizeOutlinePlanningPayload','normalizeGeminiOutlinePayload','okNormalizeSectionText','extractPlanningSection','okExtractField'].map(fn).join('\n'),context);
   return context;
 }
 
 function readGeminiFixture() {
   return fs.readFileSync(path.join(__dirname, 'fixtures/v0.0.19/gemini-planning-response.txt'), 'utf8');
 }
+function readGlmTextFixture() {
+  return fs.readFileSync(path.join(__dirname, 'fixtures/v0.0.19/glm53-text-planning-response.txt'), 'utf8');
+}
+
+test('文本卷纲回退进入共用规划解析器并保留多卷原文', () => {
+  const raw = readGlmTextFixture();
+  const context = planningHarness();
+  const payload = context.normalizeOutlinePlanningPayload(raw);
+  assert.ok(payload);
+  assert.equal(payload.volumes.length, 4);
+  assert.equal(JSON.stringify(payload.volumes.map(row => [row.number, row.startChapter, row.endChapter])), JSON.stringify([[1, 1, 10], [2, 11, 20], [3, 21, 30], [4, 31, 40]]));
+  assert.match(payload.volumes[0].title, /雾起炉心/);
+  assert.match(payload.volumes[3].title, /苍梧问道/);
+  assert.match(payload.volumes[0].writingRequirement, /前三章/);
+  assert.match(payload.volumes[0].bridge, /顾长庚/);
+  assert.match(payload.outlineText, /第4卷/);
+  assert.match(payload.outlineText, /第40章/);
+});
+
+test('真实文本卷纲进入生成前的范围校验链，不被均分为单卷', async () => {
+  const raw = readGlmTextFixture();
+  const context = planningHarness();
+  const prepared = await context.prepareVolumePlan(raw, { totalChapters:40, userPrompt:'' });
+  assert.equal(prepared.fallback, false);
+  assert.equal(prepared.rows.length, 4);
+  assert.equal(JSON.stringify(prepared.rows.map(row => [row.number, row.startChapter, row.endChapter])), JSON.stringify([[1, 1, 10], [2, 11, 20], [3, 21, 30], [4, 31, 40]]));
+});
 
 test('Gemini 完整规划 JSON 可提取大纲、章节规划和卷纲', () => {
   const raw = readGeminiFixture();
