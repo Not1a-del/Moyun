@@ -1608,6 +1608,12 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
 .moyun-outline-review-body{min-height:0;flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 18px;overscroll-behavior:contain}
 .moyun-outline-review-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto;padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--bd);background:var(--bg-card)}
 .moyun-outline-review-placeholder{min-height:180px;justify-content:center;background:var(--bg-inset);border:1px solid var(--bd)}
+[data-moyun-modal="manual-planning"]{position:fixed;inset:0;z-index:270;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--overlay);box-sizing:border-box}
+.moyun-manual-planning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;min-width:0}
+.moyun-manual-planning-raw{width:100%;height:38vh;min-height:160px;resize:vertical;font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.moyun-manual-planning-form{display:flex;flex-direction:column;gap:10px;min-width:0}
+.moyun-manual-planning-form input,.moyun-manual-planning-form select{width:100%;min-width:0;min-height:44px}
+@media(max-width:767px){[data-moyun-modal="manual-planning"]{align-items:stretch;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}.moyun-manual-planning-grid{grid-template-columns:minmax(0,1fr)}.moyun-manual-planning-raw{height:25vh}.moyun-manual-planning-grid button{min-height:44px}}
 @media(max-width:767px){[data-moyun-modal="outline-revision"]{align-items:stretch;padding:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}.moyun-outline-review-panel{width:100%;height:100%;max-height:none;border-radius:0;border-left:0;border-right:0}.moyun-outline-review-header{padding:14px 14px 12px}.moyun-outline-review-body{padding:12px}.moyun-outline-review-footer{align-items:flex-start;flex-direction:column;padding:10px 12px calc(10px + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom,0px))}.moyun-outline-review-footer button{width:100%}.moyun-outline-stream-dock{left:8px;right:8px;bottom:100px;max-height:42vh;border-radius:12px}.moyun-workbench[data-moyun-workbench="outline"] .moyun-outline-stream-dock{bottom:200px}.moyun-outline-stream-dock-head{padding:7px 9px}.moyun-outline-stream-dock-body{padding:10px;font-size:12px}.moyun-review-compare{grid-template-columns:minmax(0,1fr);gap:10px}.moyun-review-compare-text{max-height:34vh;font-size:12px}}
 [data-moyun-modal] :focus-visible,
 .moyun-icon-button:focus-visible,
@@ -4026,11 +4032,13 @@ img[role="button"]:focus-visible {
             <p class="text-xs leading-relaxed" style="color:var(--tx3)">修订内容已单独放入审阅弹窗，原大纲、卷纲和细纲仍保持不变。请逐项查看后再接受。</p>
             <button type="button" class="btn-primary self-start text-xs px-4 py-2" @click="openOutlineRevisionReview">打开修订审阅</button>
           </div>
+          <button v-if="manualPlanningDraft" type="button" class="btn-ghost text-xs px-3 py-2 mb-3 min-h-[44px]" data-manual-planning-resume @click="openManualPlanningRecovery()">继续手动整理原文</button>
           <details v-if="novel.oneKeyRecovery" class="card p-3 mb-3" data-one-key-recovery>
             <summary class="btn-ghost text-xs cursor-pointer" style="min-height:44px">一键开书未完成原文（仅备查，未自动采用）</summary>
             <details v-for="(record,id) in novel.oneKeyRecovery" :key="id" class="mt-2 text-xs">
               <summary class="btn-ghost cursor-pointer" style="min-height:44px">{{record.label}} · {{record.error}}</summary>
               <pre class="max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{record.raw}}</pre>
+              <button v-if="id==='core'" type="button" class="btn-ghost px-3 py-2 min-h-[44px]" @click="openManualPlanningRecovery(record.raw,{source:'一键开书未完成原文'})">手动选择并填充</button>
               <details v-if="record.previousRaw"><summary class="btn-ghost cursor-pointer" style="min-height:44px">上次保留的原文</summary><pre class="max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{record.previousRaw}}</pre></details>
             </details>
           </details>
@@ -6247,12 +6255,13 @@ img[role="button"]:focus-visible {
       </header>
       <div class="moyun-outline-review-body">
         <section v-if="outlineReview.volumeOutputError" class="space-y-3" data-outline-volume-output-error>
-          <p class="text-sm font-bold" style="color:var(--warn)">{{ outlineReview.volumeOutputMode==='outline' ? '大纲输出未完成；原大纲、卷纲与细纲均未修改。可以查看模型原文后重试。' : '卷纲没有解析成可安全写入的候选；原卷纲与细纲均未修改。可以查看模型原文后重试。' }}</p>
+          <p class="text-sm font-bold" style="color:var(--warn)">{{ outlineReview.manualRecoveryApplied ? '已手动填充过部分内容；原始回复继续保留，可再次整理或重试。' : '输出未能自动整理，未自动改写原内容。你可以重试，也可以手动选择文字并填入对应分区。' }}</p>
           <div class="moyun-review-compare">
             <div class="moyun-review-compare-pane"><div class="moyun-review-compare-title">{{ outlineReview.volumeOutputMode==='outline' ? '原大纲' : '原卷纲' }}</div><pre class="moyun-review-compare-text">{{ outlineReview.volumeOutputBefore }}</pre></div>
             <div class="moyun-review-compare-pane"><div class="moyun-review-compare-title">AI 原始输出</div><pre class="moyun-review-compare-text">{{ outlineReview.volumeOutputRaw }}</pre></div>
           </div>
           <p class="text-xs" style="color:var(--tx3)">{{ outlineReview.volumeOutputError }}</p>
+          <button type="button" data-outline-manual-recovery class="btn-primary min-h-[44px] px-4" @click="openManualPlanningRecovery(outlineReview.volumeOutputRaw,{source:'大纲与卷纲异常输出',target:outlineReview.volumeOutputMode==='volume'?'volume':'outline'})">手动选择并填充（不请求 AI）</button>
           <div class="flex flex-wrap gap-2"><button type="button" data-outline-volume-output-retry class="btn-primary min-h-[44px] px-4" @click="retryOutlineVolumePlanning">{{ outlineReview.volumeOutputMode==='outline' ? '重试大纲生成' : '重试卷纲整理' }}</button><button type="button" data-outline-volume-output-reject class="btn-ghost min-h-[44px] px-4" @click="rejectOutlineVolumePlanningFailure">关闭并保留原内容</button></div>
         </section>
         <review-panel v-else :state="outlineReview" title="待审修订" @apply="requestOutlineReviewApply" @discard="rejectAllRevisions" @undo="undoOutlineRevisionApply" @accept="acceptRev" @reject="rejectRev" @select="selectOutlineReview" @focus="focusOutlineReview" @accept-volume-plan="acceptOutlineVolumePlan" @reject-volume-plan="rejectOutlineVolumePlan"></review-panel>
@@ -6260,6 +6269,63 @@ img[role="button"]:focus-visible {
       <footer class="moyun-outline-review-footer">
         <span class="text-[11px] leading-relaxed" style="color:var(--tx3)">{{ outlineReview.volumeOutputError ? '查看原始输出不代表接受；关闭或重试都不会改动现有卷纲。' : '处理完成后，候选卷纲会实时成为正文、审查和记忆使用的数据源。' }}</span>
         <button type="button" data-moyun-modal-close class="btn-ghost text-xs px-3 py-2" @click="deferOutlineRevisions">稍后审阅</button>
+      </footer>
+    </section>
+  </div>
+</transition>
+
+<!-- 手动整理复用现有弹窗与对比样式；原文和分配草稿随书保存。 -->
+<transition name="pop">
+  <div v-if="showManualPlanningRecovery && manualPlanningDraft" data-moyun-modal="manual-planning" data-moyun-initial-focus="[data-manual-planning-close]" role="dialog" aria-modal="true" aria-labelledby="moyun-manual-planning-title" @click.self="closeManualPlanningRecovery">
+    <section data-moyun-modal-panel tabindex="-1" class="moyun-outline-review-panel">
+      <header class="moyun-outline-review-header">
+        <div class="min-w-0"><h2 id="moyun-manual-planning-title" class="font-black text-base">手动整理 AI 原文</h2><p class="text-xs mt-1" style="color:var(--tx3)">先选文字，再指定分区，查看对比后确认写入；全程不请求 AI。原文与整理草稿会随书保存。</p></div>
+        <button type="button" data-moyun-modal-close data-manual-planning-close class="moyun-icon-button shrink-0" :disabled="manualPlanningBusy" aria-label="保存草稿并返回" @click="closeManualPlanningRecovery">×</button>
+      </header>
+      <div :key="manualPlanningPreview ? 'review' : 'edit'" class="moyun-outline-review-body space-y-3">
+        <p class="text-xs" style="color:var(--tx3)">细纲只写入当前分支「{{currentBranchName}}」；大纲、卷纲和书籍设定为全书共用。手动填充不会把整个失败模块标记为完成。</p>
+        <p v-if="manualPlanningDraft.pendingSave" class="card p-3 text-sm" style="color:var(--warn)">内容已填入页面，但保存尚未成功。请重试保存，不要刷新；不会重复追加。</p>
+        <template v-if="manualPlanningPreview">
+          <article v-for="row in manualPlanningPreview.rows" :key="row.id" class="space-y-2" data-manual-planning-comparison>
+            <h3 class="label">{{row.label}}</h3><div class="moyun-review-compare"><div class="moyun-review-compare-pane"><div class="moyun-review-compare-title">原内容</div><pre class="moyun-review-compare-text">{{row.before || '（空）'}}</pre></div><div class="moyun-review-compare-pane"><div class="moyun-review-compare-title">确认后的内容</div><pre class="moyun-review-compare-text">{{row.after}}</pre></div></div>
+          </article>
+        </template>
+        <template v-else-if="!manualPlanningDraft.pendingSave">
+          <div class="moyun-manual-planning-grid">
+            <div class="min-w-0 space-y-2">
+              <label for="moyun-manual-planning-raw" class="label">保留的原文（只读，可选择文字）</label>
+              <textarea id="moyun-manual-planning-raw" readonly class="textarea-field moyun-manual-planning-raw" :value="manualPlanningDraft.raw" @select="captureManualPlanningSelection" @keyup="captureManualPlanningSelection" @pointerup="captureManualPlanningSelection" data-manual-planning-raw></textarea>
+              <button type="button" class="btn-ghost px-3 py-2 min-h-[44px]" :disabled="!manualPlanningSelection" @click="fillManualPlanningSelection" data-manual-planning-fill>填入选中文字（{{manualPlanningSelection.length}} 字）</button>
+              <p class="text-xs" style="color:var(--tx3)">电脑拖选，手机长按选择；再次填入会追加到待填内容。也可复制后粘贴到右侧／下方输入框。</p>
+            </div>
+            <div class="moyun-manual-planning-form">
+              <label class="label" for="moyun-manual-planning-target">填入分区</label>
+              <select id="moyun-manual-planning-target" v-model="manualPlanningDraft.editor.target" class="select-field" @change="resetManualPlanningTarget" data-manual-planning-target><option v-for="target in manualPlanningTargets" :key="target.value" :value="target.value">{{target.label}}</option></select>
+              <template v-if="manualPlanningDraft.editor.target==='volume'">
+                <label class="label" for="moyun-manual-planning-volume">目标卷</label>
+                <select id="moyun-manual-planning-volume" v-model="manualPlanningDraft.editor.targetId" class="select-field" @change="selectManualPlanningVolume"><option value="">新建卷纲</option><option v-for="volume in novelVolumes" :key="volume.id" :value="volume.id">第{{volume.number}}卷 · {{volume.title}}</option></select>
+                <label class="label" for="moyun-manual-planning-title-input">卷名</label><input id="moyun-manual-planning-title-input" v-model="manualPlanningDraft.editor.title" class="input-field" @input="saveData">
+                <div class="grid grid-cols-2 gap-2"><label class="label">起始章<input v-model.number="manualPlanningDraft.editor.startChapter" type="number" min="1" step="1" class="input-field" @input="saveData" data-manual-planning-start></label><label class="label">结束章<input v-model.number="manualPlanningDraft.editor.endChapter" type="number" min="1" step="1" class="input-field" @input="saveData" data-manual-planning-end></label></div>
+                <p class="text-xs" style="color:var(--tx3)">不会自动猜测范围或重新分章。新卷不能与已有卷重叠；需要重划时，把相关旧卷的调整一起加入列表。</p>
+              </template>
+              <template v-if="manualPlanningDraft.editor.target==='chapter'">
+                <label class="label">章号<input v-model.number="manualPlanningDraft.editor.chapterNo" type="number" min="1" step="1" class="input-field" @input="saveData" data-manual-planning-chapter></label>
+                <label class="label">章节标题（留空保留原标题）<input v-model="manualPlanningDraft.editor.title" class="input-field" @input="saveData"></label>
+              </template>
+              <label v-if="manualPlanningDraft.editor.target!=='title'" class="label">写入方式<select v-model="manualPlanningDraft.editor.mode" class="select-field" @change="saveData"><option value="append">追加，保留已有内容</option><option value="replace">替换目标分区的内容</option></select></label>
+              <label class="label" for="moyun-manual-planning-content">待填入内容（可以手动修改）</label><textarea id="moyun-manual-planning-content" v-model="manualPlanningDraft.editor.text" class="textarea-field w-full" rows="6" @input="saveData" data-manual-planning-content></textarea>
+              <button type="button" class="btn-primary min-h-[44px] px-3 py-2" :disabled="!manualPlanningDraft.editor.text.trim()" @click="addManualPlanningAssignment" data-manual-planning-add>加入待确认列表</button>
+            </div>
+          </div>
+          <div v-if="manualPlanningDraft.items.length" class="space-y-2"><h3 class="label">待确认 {{manualPlanningDraft.items.length}} 项（尚未写入）</h3><div v-for="item in manualPlanningDraft.items" :key="item.id" class="card p-3 flex flex-wrap items-center gap-2"><span class="text-xs flex-1 min-w-0 break-words">{{manualPlanningAssignmentLabel(item)}} · {{item.mode==='replace'?'替换':'追加'}} · {{item.text.length}} 字</span><button type="button" class="btn-ghost min-h-[44px] px-3" @click="removeManualPlanningAssignment(item.id)">移除</button></div></div>
+          <p v-if="manualPlanningDraft.lastApplied" class="text-xs" style="color:var(--tx3)">上次已手动填入 {{manualPlanningDraft.lastApplied.count}} 项；原文继续保留，可继续整理剩余内容。</p>
+        </template>
+      </div>
+      <footer class="moyun-outline-review-footer">
+        <button type="button" data-moyun-modal-close class="btn-ghost min-h-[44px] px-3 py-2" :disabled="manualPlanningBusy" @click="closeManualPlanningRecovery">保存草稿并返回</button>
+        <button v-if="manualPlanningDraft.pendingSave" type="button" class="btn-primary min-h-[44px] px-4 py-2" :disabled="manualPlanningBusy" @click="saveManualPlanningWrite" data-manual-planning-retry-save>重试保存</button>
+        <template v-else-if="manualPlanningPreview"><button type="button" class="btn-ghost min-h-[44px] px-3 py-2" :disabled="manualPlanningBusy" @click="manualPlanningPreview=null">返回调整</button><button type="button" class="btn-primary min-h-[44px] px-4 py-2" :disabled="manualPlanningBusy" @click="applyManualPlanningAssignments" data-manual-planning-apply>确认写入 {{manualPlanningPreview.rows.length}} 项</button></template>
+        <button v-else type="button" class="btn-primary min-h-[44px] px-4 py-2" :disabled="!manualPlanningDraft.items.length" @click="previewManualPlanningAssignments" data-manual-planning-preview>查看写入对比</button>
       </footer>
     </section>
   </div>
@@ -6981,6 +7047,7 @@ img[role="button"]:focus-visible {
             <details v-if="fail.raw" class="mt-2 text-xs" data-one-key-partial>
               <summary class="btn-ghost cursor-pointer" style="min-height:44px">查看已保留原文（未自动采用）</summary>
               <pre class="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{ fail.raw }}</pre>
+              <button v-if="fail.id==='core'" type="button" class="btn-ghost min-h-[44px] px-3 py-2" data-one-key-manual-recovery @click="openManualPlanningRecovery(fail.raw,{source:'一键开书未完成原文'})">手动选择并填充</button>
             </details>
             <div class="mt-2 flex justify-end">
               <button @click="retryOneKeyModule(fail.id)" class="text-[10px] px-3 py-1.5 rounded-lg font-bold" style="background:var(--warn-soft);color:var(--warn);border:1px solid var(--bd)">仅重开这个模块</button>
@@ -20527,6 +20594,7 @@ function cleanAIResponse(text) {
         if (!isCurrent()) { showToast('书籍或分支已变化，请在原位置重新操作', 'info'); return; }
         if (action === 'retry') { if (options.retry) return options.retry(); showToast('请回到原入口重新生成', 'info'); }
         if (action === 'copy') { try { await navigator.clipboard.writeText(original); showToast('原始回复已复制', 'success'); } catch { showToast('复制失败，可在手动采用中选择并复制原文', 'warning'); } if (isCurrent()) openAiFormatFallback(original, options); }
+        if (action === 'adopt' && options.planning) return openManualPlanningRecovery(original,options.planning);
         if (action === 'adopt') openInputPrompt({title:'手动采用',message:'请先整理原文；确认后只采用编辑框内的内容。',multiline:true,initialValue:original,maxlength:200000,confirmText:'采用内容'}, value => { if (!isCurrent()) return; if (!String(value || '').trim()) { showToast('内容为空，未采用', 'info'); return; } if (options.adopt) return options.adopt(String(value)); showToast('当前入口不支持直接写入，请复制后在原位置填写', 'info'); });
       });
     }
@@ -21286,6 +21354,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if(out.novel){
         if(out.novel.favoriteClips)out.novel.favoriteClips=filterRows(out.novel.favoriteClips);
         if(out.novel.styleSources){out.novel.styleSources=mapScopes(out.novel.styleSources);const own=new Set((out.novel.favoriteClips||[]).map(row=>row.id));for(const state of Object.values(out.novel.styleSources))for(const copy of state.copies||[])if(own.has(copy.id))copy.branchId=mapId(copy.branchId);}
+        if(out.novel.reviewStates?.manualPlanning){out.novel.reviewStates.manualPlanning=mapScopes(out.novel.reviewStates.manualPlanning);for(const [id,draft] of Object.entries(out.novel.reviewStates.manualPlanning))draft.branchId=id;}
         for(const volume of out.novel.volumes||[]) {
           if(volume.handoffSummaries){volume.handoffSummaries=mapScopes(volume.handoffSummaries);for(const [id,row] of Object.entries(volume.handoffSummaries))row.branchId=id;}
           if(root.id!=='main'){const handoff=volume.handoffSummaries?.main;volume.actualSummary=handoff?.content||'';volume.actualOutline=handoff?.actualOutline||'';volume.handoffSourceHash=handoff?.sourceHash||'';}
@@ -37385,6 +37454,137 @@ function getModHubPermissionLabels(mod) {
     const outlineStreamError = ref('');
     const outlineStreamDockCollapsed = ref(false);
     const outlineStreamWorkbench = ref('outline');
+    const manualPlanningTargets = [{value:'outline',label:'故事大纲'},{value:'volume',label:'卷纲'},{value:'chapter',label:'章节细纲'},{value:'title',label:'书名'},{value:'synopsis',label:'作品简介'},{value:'worldView',label:'世界观'},{value:'negativePrompt',label:'负面要求'}];
+    const showManualPlanningRecovery = ref(false), manualPlanningSelection = ref(''), manualPlanningPreview = ref(null), manualPlanningBusy = ref(false);
+    const manualPlanningDraft = computed(() => novel.value.reviewStates?.manualPlanning?.[String(activeBranchId.value || 'main')] || null);
+    let manualPlanningReturnTo = null;
+    watch([currentBookId,activeBranchId], () => { showManualPlanningRecovery.value=false; manualPlanningSelection.value=''; manualPlanningPreview.value=null; manualPlanningReturnTo=null; });
+    function openManualPlanningRecovery(raw, options = {}) {
+      if (manualPlanningBusy.value) return false;
+      const saved=manualPlanningDraft.value, original=raw == null ? String(saved?.raw || '') : String(raw);
+      if (!original.trim()) { showToast('没有保留的原文，请先在原入口生成内容','info'); return false; }
+      const bookId=currentBookId.value, branchId=String(activeBranchId.value || 'main');
+      const open = reuse => {
+        if (bookId!==currentBookId.value || branchId!==String(activeBranchId.value || 'main')) return;
+        const review=novel.value.reviewStates || (novel.value.reviewStates={});
+        const drafts=review.manualPlanning || (review.manualPlanning={});
+        if (!reuse) drafts[branchId]={id:uid(),bookId,branchId,raw:original,source:String(options.source || 'AI 未完成原文'),items:[],editor:{target:options.target || 'outline',targetId:'',chapterNo:Number(options.chapterNo)||1,title:'',startChapter:1,endChapter:1,mode:'append',text:''}};
+        // 导入成新书或提升分支为主线后，整理草稿绑定当前所在书籍与分支。
+        else Object.assign(drafts[branchId],{bookId,branchId});
+        manualPlanningReturnTo={bookId,branchId,outline:showOutlineRevisionModal.value,newBook:showNewBook.value};
+        showOutlineRevisionModal.value=false;showNewBook.value=false;manualPlanningSelection.value='';manualPlanningPreview.value=null;showManualPlanningRecovery.value=true;saveData();
+      };
+      if (saved && saved.raw!==original && (saved.items.length || saved.editor.text || saved.pendingSave)) {
+        openConfirm({title:'已有手动整理草稿',message:'可以继续原草稿，或改用这次的原文。改用新原文会放弃尚未写入的分配，已经写入的内容不变。',choices:[{id:'resume',label:'继续原草稿'},{id:'new',label:'改用本次原文'}]},action=>{if(saved.pendingSave && action==='new'){showToast('请先完成上次写入的保存，再整理新原文','warning');return;}open(action==='resume');});return false;
+      }
+      open(!!saved && saved.raw===original);return true;
+    }
+    function closeManualPlanningRecovery() {
+      if (manualPlanningBusy.value) return;
+      saveData();showManualPlanningRecovery.value=false;manualPlanningSelection.value='';manualPlanningPreview.value=null;
+      const back=manualPlanningReturnTo;manualPlanningReturnTo=null;
+      if (back?.bookId===currentBookId.value && back.branchId===String(activeBranchId.value || 'main')) { showOutlineRevisionModal.value=!!back.outline;showNewBook.value=!!back.newBook; }
+    }
+    function captureManualPlanningSelection(event) {
+      const el=event?.target;if(!el || !Number.isInteger(el.selectionStart))return;
+      manualPlanningSelection.value=String(el.value || '').slice(el.selectionStart,el.selectionEnd);
+    }
+    function fillManualPlanningSelection() {
+      if(!manualPlanningDraft.value || !manualPlanningSelection.value)return;
+      const editor=manualPlanningDraft.value.editor;editor.text=[editor.text,manualPlanningSelection.value].filter(Boolean).join('\n\n');saveData();
+    }
+    function resetManualPlanningTarget() {
+      const editor=manualPlanningDraft.value?.editor;if(!editor)return;
+      Object.assign(editor,{targetId:'',title:'',startChapter:1,endChapter:1,mode:'append'});manualPlanningPreview.value=null;saveData();
+    }
+    function selectManualPlanningVolume() {
+      const editor=manualPlanningDraft.value?.editor;if(!editor)return;
+      const volume=novelVolumes.value.find(row=>row.id===editor.targetId);
+      Object.assign(editor,volume?{title:volume.title,startChapter:volume.startChapter,endChapter:volume.endChapter}:{title:'',startChapter:1,endChapter:1});saveData();
+    }
+    function manualPlanningAssignmentLabel(item) {
+      const label=manualPlanningTargets.find(row=>row.value===item.target)?.label || '未知分区';
+      return label+(item.target==='chapter'?' · 第'+item.chapterNo+'章':item.target==='volume'?' · '+(item.title||'未命名卷')+'（第'+item.startChapter+'–'+item.endChapter+'章）':'');
+    }
+    function addManualPlanningAssignment() {
+      const draft=manualPlanningDraft.value;if(!draft || draft.pendingSave || manualPlanningBusy.value)return false;
+      const item={...deepClone(draft.editor),id:uid(),text:String(draft.editor.text || '').trim()};
+      const integer=n=>Number.isInteger(Number(n)) && Number(n)>0;
+      if(!manualPlanningTargets.some(row=>row.value===item.target) || !item.text){showToast('请选择分区并填入内容','warning');return false;}
+      if(item.target==='chapter' && !integer(item.chapterNo)){showToast('章号必须是正整数','warning');return false;}
+      if(item.target==='volume' && (!item.title.trim() || !integer(item.startChapter) || !integer(item.endChapter) || Number(item.endChapter)<Number(item.startChapter))){showToast('请填写卷名及有效的起止章号','warning');return false;}
+      const key=row=>row.target+':'+(row.target==='chapter'?Number(row.chapterNo):row.target==='volume'?(row.targetId || row.id):'');
+      if(draft.items.some(row=>key(row)===key(item))){showToast('该目标已在待确认列表，请先移除旧分配再调整','warning');return false;}
+      item.mode=item.target==='title'?'replace':item.mode==='replace'?'replace':'append';draft.items.push(item);draft.editor.text='';manualPlanningPreview.value=null;saveData();return true;
+    }
+    function removeManualPlanningAssignment(id) {
+      const draft=manualPlanningDraft.value;if(!draft || draft.pendingSave || manualPlanningBusy.value)return;
+      draft.items=draft.items.filter(row=>row.id!==id);manualPlanningPreview.value=null;saveData();
+    }
+    function getManualPlanningBaseline() {
+      return JSON.stringify({fields:manualPlanningTargets.filter(row=>!['volume','chapter'].includes(row.value)).map(row=>String(novel.value[row.value] || '')),volumes:getWorkbenchVolumesKey(novel.value.volumes),details:getWorkbenchDetailsKey(chapterOutlines.value)});
+    }
+    function buildManualPlanningCandidate(draft) {
+      if(!draft || draft.bookId!==currentBookId.value || draft.branchId!==String(activeBranchId.value || 'main'))throw new Error('书籍或分支已变化，请回到原位置整理');
+      const fields={},volumes=deepClone(novel.value.volumes || []),details=deepClone(chapterOutlines.value),rows=[],changedVolumes=[],changedChapters=[];
+      const combine=(before,item)=>item.mode==='append' && before ? before+'\n\n'+item.text : item.text;
+      const volumeText=row=>row?'卷名：'+row.title+'\n范围：第'+row.startChapter+'–'+row.endChapter+'章\n'+String(row.summary || ''):'';
+      const chapterText=row=>row?'标题：'+String(row.title || '')+'\n'+String(row.content || ''):'';
+      for(const item of draft.items){
+        if(!manualPlanningTargets.some(row=>row.value===item.target) || !String(item.text || '').trim())throw new Error('待确认列表有无效分区或空内容，请移除后重填');
+        let before='',after='';
+        if(item.target==='volume'){
+          const index=volumes.findIndex(row=>row.id===item.targetId),old=index>=0?volumes[index]:null;
+          if(item.targetId && !old)throw new Error('目标卷已被删除，请重新选择');
+          const start=Number(item.startChapter),end=Number(item.endChapter);
+          if(!String(item.title || '').trim() || !Number.isInteger(start) || start<1 || !Number.isInteger(end) || end<start)throw new Error('卷名或起止章号无效');
+          const value={...(old || {id:item.id}),title:item.title.trim(),startChapter:start,endChapter:end,summary:combine(String(old?.summary || ''),item)};
+          before=volumeText(old);after=volumeText(value);if(before===after)continue;if(index>=0)volumes[index]=value;else volumes.push(value);changedVolumes.push(value.id);
+        }else if(item.target==='chapter'){
+          const no=Number(item.chapterNo),index=details.findIndex((row,i)=>(Number(row.chapterNo)||i+1)===no),old=index>=0?details[index]:null;
+          if(!Number.isInteger(no) || no<1)throw new Error('章号必须是正整数');
+          const next=Math.max(0,...details.map((row,i)=>Number(row.chapterNo)||i+1))+1;
+          if(!old && no!==next)throw new Error('新增细纲请按章序补入，下一章为第'+next+'章；不会自动补写前面的章节');
+          const value={...(old || {id:item.id,history:[]}),chapterNo:no,title:String(item.title || old?.title || ('第'+no+'章')),content:combine(String(old?.content || ''),item),isExpanded:true};
+          before=chapterText(old);after=chapterText(value);if(before===after)continue;
+          if(old)archiveChapterOutline(value,old.content,old.title,'手动整理 AI 原文');
+          if(index>=0)details[index]=value;else details.push(value);changedChapters.push(no);
+        }else{before=String(novel.value[item.target] || '');after=combine(before,item);fields[item.target]=after;}
+        if(before!==after)rows.push({id:item.id,label:manualPlanningAssignmentLabel(item),before,after});
+      }
+      if(changedVolumes.length){volumes.sort((a,b)=>Number(a.startChapter)-Number(b.startChapter));volumes.forEach((row,i)=>{if(i && Number(row.startChapter)<=Number(volumes[i-1].endChapter))throw new Error('卷范围重叠，请调整相关卷的范围后再确认');row.number=i+1;});}
+      if(!rows.length)throw new Error('没有需要写入的内容');
+      return {bookId:currentBookId.value,branchId:String(activeBranchId.value || 'main'),draftId:draft.id,baseline:getManualPlanningBaseline(),rows,fields,volumes,details,changedVolumes,changedChapters};
+    }
+    function previewManualPlanningAssignments() {
+      if(manualPlanningDraft.value?.editor.text.trim()){showToast('还有待填入内容未加入列表，请先加入或清空，再查看对比','warning');return false;}
+      try{manualPlanningPreview.value=buildManualPlanningCandidate(manualPlanningDraft.value);return true;}catch(error){showToast(error.message,'warning');return false;}
+    }
+    function manualPlanningHasActiveGeneration() {
+      return isGenerating.value || isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value>=0 || oneKeyPhase.value==='generating';
+    }
+    async function applyManualPlanningAssignments() {
+      const plan=manualPlanningPreview.value,draft=manualPlanningDraft.value;
+      if(!plan || !draft || manualPlanningBusy.value || draft.pendingSave)return false;
+      if(manualPlanningHasActiveGeneration()){showToast('请等待当前生成完成或先停止，再确认手动填充','warning');return false;}
+      // 手动选择也不能覆盖审阅期间发生的改动，确认前再次核对书籍、分支及目标内容。
+      if(plan.bookId!==currentBookId.value || plan.branchId!==String(activeBranchId.value || 'main') || plan.draftId!==draft.id || plan.baseline!==getManualPlanningBaseline()){manualPlanningPreview.value=null;showToast('原内容已变化，请重新查看写入对比；本次没有覆盖','warning');return false;}
+      Object.assign(novel.value,plan.fields);
+      if(plan.changedVolumes.length){novel.value.volumes=plan.volumes;plan.changedVolumes.forEach(id=>markVolumePlanStale(plan.volumes.find(row=>row.id===id),'手动整理卷纲，请核对细纲与交接'));}
+      if(plan.changedChapters.length){chapterOutlines.value=plan.details;markOutlineNeighborsStale(plan.changedChapters,'手动整理细纲，请核对相邻章节');persistCurrentBranchData();}
+      if(outlineReview.value.volumeOutputError){outlineReview.value.manualRecoveryApplied=true;novel.value.reviewStates.outline=deepClone(outlineReview.value);}
+      draft.lastApplied={at:Date.now(),count:plan.rows.length};draft.items=[];draft.editor.text='';draft.pendingSave=true;manualPlanningPreview.value=null;
+      return saveManualPlanningWrite();
+    }
+    async function saveManualPlanningWrite() {
+      const draft=manualPlanningDraft.value;if(!draft || !draft.pendingSave || manualPlanningBusy.value)return false;
+      const bookId=currentBookId.value,branchId=String(activeBranchId.value || 'main');manualPlanningBusy.value=true;draft.pendingSave=false;
+      let saved=false;
+      try{saved=await saveDataNow('保存手动整理的 AI 原文');}catch{}finally{manualPlanningBusy.value=false;}
+      if(!saved){draft.pendingSave=true;showToast('手动填充尚未保存成功，请重试保存，不要刷新','error');return false;}
+      if(bookId===currentBookId.value && branchId===String(activeBranchId.value || 'main')){showToast('已手动填入 '+draft.lastApplied.count+' 项，原文继续保留','success');closeManualPlanningRecovery();}
+      return true;
+    }
     function toggleOutlineStreamDock() { outlineStreamDockCollapsed.value = !outlineStreamDockCollapsed.value; }
     function dismissOutlineStreamOutput() { if (isGeneratingOutline.value || isGeneratingDO.value) return; outlineStreamPreview.value = ''; outlineStreamError.value = ''; }
     function showOutlineVolumePlanningFailure(input, before, error, raw, mode = 'volume') {
@@ -40379,7 +40579,7 @@ function getModHubPermissionLabels(mod) {
           showToast(String(currentBookId.value || '') === sourceBookId ? '已停止本章细纲生成' : '已取消原书本章细纲生成', 'info');
         } else {
           showToast('失败: ' + e.message, 'error');
-          if (failedRaw !== null && !looksLikeAiRefusal(failedRaw)) openAiFormatFallback(failedRaw,{title:'本章细纲格式异常',message:e.message + '。原细纲保持不变。',isCurrent:()=>String(currentBookId.value||'')===sourceBookId&&activeBranchId.value===sourceBranchId&&chapterOutlines.value.some(row=>row.id===outlineId&&String(row.content||'')===oldContent),retry:()=>aiRewriteChapterOutline(chapterOutlines.value.findIndex(row=>row.id===outlineId),mode),adopt:value=>{const target=chapterOutlines.value.find(row=>row.id===outlineId);if(!target)return;archiveChapterOutline(target,oldContent,oldTitle,'手动采用');target.content=value;target.isExpanded=true;markOutlineNeighborsStale([ci+1],'手动采用细纲，请核对相邻章节');saveData();showToast('已采用手动整理的细纲','success');}});
+          if (failedRaw !== null && !looksLikeAiRefusal(failedRaw)) openAiFormatFallback(failedRaw,{title:'本章细纲格式异常',message:e.message + '。原细纲保持不变。',planning:{source:'本章细纲异常输出',target:'chapter',chapterNo:ci+1},isCurrent:()=>String(currentBookId.value||'')===sourceBookId&&activeBranchId.value===sourceBranchId&&chapterOutlines.value.some(row=>row.id===outlineId&&String(row.content||'')===oldContent),retry:()=>aiRewriteChapterOutline(chapterOutlines.value.findIndex(row=>row.id===outlineId),mode)});
         }
       } finally {
         if (activeSingleDetailedOutlineRunId === runId) {
@@ -42617,6 +42817,7 @@ function getModHubPermissionLabels(mod) {
         branchList.value.forEach(row=>{if(row.parentId===bid)row.parentId=parentId;});
         novel.value.favoriteClips=currentFavoriteClips().filter(row=>row.branchId!==bid);
         if(novel.value.styleSources)delete novel.value.styleSources[bid];
+        if(novel.value.reviewStates?.manualPlanning)delete novel.value.reviewStates.manualPlanning[bid];
         novelVolumes.value.forEach(volume=>{if(volume.handoffSummaries)delete volume.handoffSummaries[bid];});
         memoryLibrary.value.memories=memoryLibrary.value.memories.filter(row=>row.branchId!==bid);
         memoryLibrary.value.groups=memoryLibrary.value.groups.filter(row=>!row.sourceMemories.some(item=>removedIds.has(item.chapterId)));
@@ -50420,6 +50621,7 @@ function getWritingModelLabel() {
       openDetailedOutlinePinPicker, closeDetailedOutlinePinPicker, toggleDetailedOutlinePin, openDetailedOutlinePinnedItem,
       getStoryBibleEntryLinkedOutlines, getSelectedCharacterLinkedOutlines, requestOpenDetailedOutline, returnToDetailedOutlineFromWorkbench,
       novelVolumes, addNovelVolume, removeNovelVolume, getVolumeForChapter, getVolumeHandoff, buildVolumeConstraintPrompt, generateVolumeHandoff, regenerateVolumeHandoff, saveVolumeHandoffEdit, saveSummaryEdit, tocVolumeGroups, tocHandoffEditor, toggleTocVolumeHandoff, openSummaryTabForVolume, buildNaiImageRequestUrl, keepComposerFocus, activeVolumeEditorId, activeVolumeEditor, openVolumeEditor, closeVolumeEditor, updateVolumeField, novelVolumesCollapsed, novelVolumesBoardMinimized, isNovelVolumeCollapsed, toggleNovelVolumeCollapsed, toggleAllNovelVolumes, toggleNovelVolumesBoardMinimized, ensureDefaultNovelVolume, outlineStreamPreview, outlineStreamError, toggleOutlineStreamDock, dismissOutlineStreamOutput, retryOutlineVolumePlanning, rejectOutlineVolumePlanningFailure,
+      manualPlanningTargets,manualPlanningDraft,showManualPlanningRecovery,manualPlanningSelection,manualPlanningPreview,manualPlanningBusy,openManualPlanningRecovery,closeManualPlanningRecovery,captureManualPlanningSelection,fillManualPlanningSelection,resetManualPlanningTarget,selectManualPlanningVolume,manualPlanningAssignmentLabel,addManualPlanningAssignment,removeManualPlanningAssignment,previewManualPlanningAssignments,applyManualPlanningAssignments,saveManualPlanningWrite,
 
       // ── Part 2: 角色系统 ──
       personalityTagPresets, dialogueTypes, getDialogueTypePrompt, getDialogueTypeObj, countCharactersUsingDialogueType, confirmRemoveCharacterAvatar,

@@ -11640,6 +11640,7 @@ function cleanAIResponse(text) {
         if (!isCurrent()) { showToast('书籍或分支已变化，请在原位置重新操作', 'info'); return; }
         if (action === 'retry') { if (options.retry) return options.retry(); showToast('请回到原入口重新生成', 'info'); }
         if (action === 'copy') { try { await navigator.clipboard.writeText(original); showToast('原始回复已复制', 'success'); } catch { showToast('复制失败，可在手动采用中选择并复制原文', 'warning'); } if (isCurrent()) openAiFormatFallback(original, options); }
+        if (action === 'adopt' && options.planning) return openManualPlanningRecovery(original,options.planning);
         if (action === 'adopt') openInputPrompt({title:'手动采用',message:'请先整理原文；确认后只采用编辑框内的内容。',multiline:true,initialValue:original,maxlength:200000,confirmText:'采用内容'}, value => { if (!isCurrent()) return; if (!String(value || '').trim()) { showToast('内容为空，未采用', 'info'); return; } if (options.adopt) return options.adopt(String(value)); showToast('当前入口不支持直接写入，请复制后在原位置填写', 'info'); });
       });
     }
@@ -12399,6 +12400,7 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if(out.novel){
         if(out.novel.favoriteClips)out.novel.favoriteClips=filterRows(out.novel.favoriteClips);
         if(out.novel.styleSources){out.novel.styleSources=mapScopes(out.novel.styleSources);const own=new Set((out.novel.favoriteClips||[]).map(row=>row.id));for(const state of Object.values(out.novel.styleSources))for(const copy of state.copies||[])if(own.has(copy.id))copy.branchId=mapId(copy.branchId);}
+        if(out.novel.reviewStates?.manualPlanning){out.novel.reviewStates.manualPlanning=mapScopes(out.novel.reviewStates.manualPlanning);for(const [id,draft] of Object.entries(out.novel.reviewStates.manualPlanning))draft.branchId=id;}
         for(const volume of out.novel.volumes||[]) {
           if(volume.handoffSummaries){volume.handoffSummaries=mapScopes(volume.handoffSummaries);for(const [id,row] of Object.entries(volume.handoffSummaries))row.branchId=id;}
           if(root.id!=='main'){const handoff=volume.handoffSummaries?.main;volume.actualSummary=handoff?.content||'';volume.actualOutline=handoff?.actualOutline||'';volume.handoffSourceHash=handoff?.sourceHash||'';}
@@ -28498,6 +28500,137 @@ function getModHubPermissionLabels(mod) {
     const outlineStreamError = ref('');
     const outlineStreamDockCollapsed = ref(false);
     const outlineStreamWorkbench = ref('outline');
+    const manualPlanningTargets = [{value:'outline',label:'故事大纲'},{value:'volume',label:'卷纲'},{value:'chapter',label:'章节细纲'},{value:'title',label:'书名'},{value:'synopsis',label:'作品简介'},{value:'worldView',label:'世界观'},{value:'negativePrompt',label:'负面要求'}];
+    const showManualPlanningRecovery = ref(false), manualPlanningSelection = ref(''), manualPlanningPreview = ref(null), manualPlanningBusy = ref(false);
+    const manualPlanningDraft = computed(() => novel.value.reviewStates?.manualPlanning?.[String(activeBranchId.value || 'main')] || null);
+    let manualPlanningReturnTo = null;
+    watch([currentBookId,activeBranchId], () => { showManualPlanningRecovery.value=false; manualPlanningSelection.value=''; manualPlanningPreview.value=null; manualPlanningReturnTo=null; });
+    function openManualPlanningRecovery(raw, options = {}) {
+      if (manualPlanningBusy.value) return false;
+      const saved=manualPlanningDraft.value, original=raw == null ? String(saved?.raw || '') : String(raw);
+      if (!original.trim()) { showToast('没有保留的原文，请先在原入口生成内容','info'); return false; }
+      const bookId=currentBookId.value, branchId=String(activeBranchId.value || 'main');
+      const open = reuse => {
+        if (bookId!==currentBookId.value || branchId!==String(activeBranchId.value || 'main')) return;
+        const review=novel.value.reviewStates || (novel.value.reviewStates={});
+        const drafts=review.manualPlanning || (review.manualPlanning={});
+        if (!reuse) drafts[branchId]={id:uid(),bookId,branchId,raw:original,source:String(options.source || 'AI 未完成原文'),items:[],editor:{target:options.target || 'outline',targetId:'',chapterNo:Number(options.chapterNo)||1,title:'',startChapter:1,endChapter:1,mode:'append',text:''}};
+        // 导入成新书或提升分支为主线后，整理草稿绑定当前所在书籍与分支。
+        else Object.assign(drafts[branchId],{bookId,branchId});
+        manualPlanningReturnTo={bookId,branchId,outline:showOutlineRevisionModal.value,newBook:showNewBook.value};
+        showOutlineRevisionModal.value=false;showNewBook.value=false;manualPlanningSelection.value='';manualPlanningPreview.value=null;showManualPlanningRecovery.value=true;saveData();
+      };
+      if (saved && saved.raw!==original && (saved.items.length || saved.editor.text || saved.pendingSave)) {
+        openConfirm({title:'已有手动整理草稿',message:'可以继续原草稿，或改用这次的原文。改用新原文会放弃尚未写入的分配，已经写入的内容不变。',choices:[{id:'resume',label:'继续原草稿'},{id:'new',label:'改用本次原文'}]},action=>{if(saved.pendingSave && action==='new'){showToast('请先完成上次写入的保存，再整理新原文','warning');return;}open(action==='resume');});return false;
+      }
+      open(!!saved && saved.raw===original);return true;
+    }
+    function closeManualPlanningRecovery() {
+      if (manualPlanningBusy.value) return;
+      saveData();showManualPlanningRecovery.value=false;manualPlanningSelection.value='';manualPlanningPreview.value=null;
+      const back=manualPlanningReturnTo;manualPlanningReturnTo=null;
+      if (back?.bookId===currentBookId.value && back.branchId===String(activeBranchId.value || 'main')) { showOutlineRevisionModal.value=!!back.outline;showNewBook.value=!!back.newBook; }
+    }
+    function captureManualPlanningSelection(event) {
+      const el=event?.target;if(!el || !Number.isInteger(el.selectionStart))return;
+      manualPlanningSelection.value=String(el.value || '').slice(el.selectionStart,el.selectionEnd);
+    }
+    function fillManualPlanningSelection() {
+      if(!manualPlanningDraft.value || !manualPlanningSelection.value)return;
+      const editor=manualPlanningDraft.value.editor;editor.text=[editor.text,manualPlanningSelection.value].filter(Boolean).join('\n\n');saveData();
+    }
+    function resetManualPlanningTarget() {
+      const editor=manualPlanningDraft.value?.editor;if(!editor)return;
+      Object.assign(editor,{targetId:'',title:'',startChapter:1,endChapter:1,mode:'append'});manualPlanningPreview.value=null;saveData();
+    }
+    function selectManualPlanningVolume() {
+      const editor=manualPlanningDraft.value?.editor;if(!editor)return;
+      const volume=novelVolumes.value.find(row=>row.id===editor.targetId);
+      Object.assign(editor,volume?{title:volume.title,startChapter:volume.startChapter,endChapter:volume.endChapter}:{title:'',startChapter:1,endChapter:1});saveData();
+    }
+    function manualPlanningAssignmentLabel(item) {
+      const label=manualPlanningTargets.find(row=>row.value===item.target)?.label || '未知分区';
+      return label+(item.target==='chapter'?' · 第'+item.chapterNo+'章':item.target==='volume'?' · '+(item.title||'未命名卷')+'（第'+item.startChapter+'–'+item.endChapter+'章）':'');
+    }
+    function addManualPlanningAssignment() {
+      const draft=manualPlanningDraft.value;if(!draft || draft.pendingSave || manualPlanningBusy.value)return false;
+      const item={...deepClone(draft.editor),id:uid(),text:String(draft.editor.text || '').trim()};
+      const integer=n=>Number.isInteger(Number(n)) && Number(n)>0;
+      if(!manualPlanningTargets.some(row=>row.value===item.target) || !item.text){showToast('请选择分区并填入内容','warning');return false;}
+      if(item.target==='chapter' && !integer(item.chapterNo)){showToast('章号必须是正整数','warning');return false;}
+      if(item.target==='volume' && (!item.title.trim() || !integer(item.startChapter) || !integer(item.endChapter) || Number(item.endChapter)<Number(item.startChapter))){showToast('请填写卷名及有效的起止章号','warning');return false;}
+      const key=row=>row.target+':'+(row.target==='chapter'?Number(row.chapterNo):row.target==='volume'?(row.targetId || row.id):'');
+      if(draft.items.some(row=>key(row)===key(item))){showToast('该目标已在待确认列表，请先移除旧分配再调整','warning');return false;}
+      item.mode=item.target==='title'?'replace':item.mode==='replace'?'replace':'append';draft.items.push(item);draft.editor.text='';manualPlanningPreview.value=null;saveData();return true;
+    }
+    function removeManualPlanningAssignment(id) {
+      const draft=manualPlanningDraft.value;if(!draft || draft.pendingSave || manualPlanningBusy.value)return;
+      draft.items=draft.items.filter(row=>row.id!==id);manualPlanningPreview.value=null;saveData();
+    }
+    function getManualPlanningBaseline() {
+      return JSON.stringify({fields:manualPlanningTargets.filter(row=>!['volume','chapter'].includes(row.value)).map(row=>String(novel.value[row.value] || '')),volumes:getWorkbenchVolumesKey(novel.value.volumes),details:getWorkbenchDetailsKey(chapterOutlines.value)});
+    }
+    function buildManualPlanningCandidate(draft) {
+      if(!draft || draft.bookId!==currentBookId.value || draft.branchId!==String(activeBranchId.value || 'main'))throw new Error('书籍或分支已变化，请回到原位置整理');
+      const fields={},volumes=deepClone(novel.value.volumes || []),details=deepClone(chapterOutlines.value),rows=[],changedVolumes=[],changedChapters=[];
+      const combine=(before,item)=>item.mode==='append' && before ? before+'\n\n'+item.text : item.text;
+      const volumeText=row=>row?'卷名：'+row.title+'\n范围：第'+row.startChapter+'–'+row.endChapter+'章\n'+String(row.summary || ''):'';
+      const chapterText=row=>row?'标题：'+String(row.title || '')+'\n'+String(row.content || ''):'';
+      for(const item of draft.items){
+        if(!manualPlanningTargets.some(row=>row.value===item.target) || !String(item.text || '').trim())throw new Error('待确认列表有无效分区或空内容，请移除后重填');
+        let before='',after='';
+        if(item.target==='volume'){
+          const index=volumes.findIndex(row=>row.id===item.targetId),old=index>=0?volumes[index]:null;
+          if(item.targetId && !old)throw new Error('目标卷已被删除，请重新选择');
+          const start=Number(item.startChapter),end=Number(item.endChapter);
+          if(!String(item.title || '').trim() || !Number.isInteger(start) || start<1 || !Number.isInteger(end) || end<start)throw new Error('卷名或起止章号无效');
+          const value={...(old || {id:item.id}),title:item.title.trim(),startChapter:start,endChapter:end,summary:combine(String(old?.summary || ''),item)};
+          before=volumeText(old);after=volumeText(value);if(before===after)continue;if(index>=0)volumes[index]=value;else volumes.push(value);changedVolumes.push(value.id);
+        }else if(item.target==='chapter'){
+          const no=Number(item.chapterNo),index=details.findIndex((row,i)=>(Number(row.chapterNo)||i+1)===no),old=index>=0?details[index]:null;
+          if(!Number.isInteger(no) || no<1)throw new Error('章号必须是正整数');
+          const next=Math.max(0,...details.map((row,i)=>Number(row.chapterNo)||i+1))+1;
+          if(!old && no!==next)throw new Error('新增细纲请按章序补入，下一章为第'+next+'章；不会自动补写前面的章节');
+          const value={...(old || {id:item.id,history:[]}),chapterNo:no,title:String(item.title || old?.title || ('第'+no+'章')),content:combine(String(old?.content || ''),item),isExpanded:true};
+          before=chapterText(old);after=chapterText(value);if(before===after)continue;
+          if(old)archiveChapterOutline(value,old.content,old.title,'手动整理 AI 原文');
+          if(index>=0)details[index]=value;else details.push(value);changedChapters.push(no);
+        }else{before=String(novel.value[item.target] || '');after=combine(before,item);fields[item.target]=after;}
+        if(before!==after)rows.push({id:item.id,label:manualPlanningAssignmentLabel(item),before,after});
+      }
+      if(changedVolumes.length){volumes.sort((a,b)=>Number(a.startChapter)-Number(b.startChapter));volumes.forEach((row,i)=>{if(i && Number(row.startChapter)<=Number(volumes[i-1].endChapter))throw new Error('卷范围重叠，请调整相关卷的范围后再确认');row.number=i+1;});}
+      if(!rows.length)throw new Error('没有需要写入的内容');
+      return {bookId:currentBookId.value,branchId:String(activeBranchId.value || 'main'),draftId:draft.id,baseline:getManualPlanningBaseline(),rows,fields,volumes,details,changedVolumes,changedChapters};
+    }
+    function previewManualPlanningAssignments() {
+      if(manualPlanningDraft.value?.editor.text.trim()){showToast('还有待填入内容未加入列表，请先加入或清空，再查看对比','warning');return false;}
+      try{manualPlanningPreview.value=buildManualPlanningCandidate(manualPlanningDraft.value);return true;}catch(error){showToast(error.message,'warning');return false;}
+    }
+    function manualPlanningHasActiveGeneration() {
+      return isGenerating.value || isGeneratingOutline.value || isGeneratingDO.value || outlineAiEditingIdx.value>=0 || oneKeyPhase.value==='generating';
+    }
+    async function applyManualPlanningAssignments() {
+      const plan=manualPlanningPreview.value,draft=manualPlanningDraft.value;
+      if(!plan || !draft || manualPlanningBusy.value || draft.pendingSave)return false;
+      if(manualPlanningHasActiveGeneration()){showToast('请等待当前生成完成或先停止，再确认手动填充','warning');return false;}
+      // 手动选择也不能覆盖审阅期间发生的改动，确认前再次核对书籍、分支及目标内容。
+      if(plan.bookId!==currentBookId.value || plan.branchId!==String(activeBranchId.value || 'main') || plan.draftId!==draft.id || plan.baseline!==getManualPlanningBaseline()){manualPlanningPreview.value=null;showToast('原内容已变化，请重新查看写入对比；本次没有覆盖','warning');return false;}
+      Object.assign(novel.value,plan.fields);
+      if(plan.changedVolumes.length){novel.value.volumes=plan.volumes;plan.changedVolumes.forEach(id=>markVolumePlanStale(plan.volumes.find(row=>row.id===id),'手动整理卷纲，请核对细纲与交接'));}
+      if(plan.changedChapters.length){chapterOutlines.value=plan.details;markOutlineNeighborsStale(plan.changedChapters,'手动整理细纲，请核对相邻章节');persistCurrentBranchData();}
+      if(outlineReview.value.volumeOutputError){outlineReview.value.manualRecoveryApplied=true;novel.value.reviewStates.outline=deepClone(outlineReview.value);}
+      draft.lastApplied={at:Date.now(),count:plan.rows.length};draft.items=[];draft.editor.text='';draft.pendingSave=true;manualPlanningPreview.value=null;
+      return saveManualPlanningWrite();
+    }
+    async function saveManualPlanningWrite() {
+      const draft=manualPlanningDraft.value;if(!draft || !draft.pendingSave || manualPlanningBusy.value)return false;
+      const bookId=currentBookId.value,branchId=String(activeBranchId.value || 'main');manualPlanningBusy.value=true;draft.pendingSave=false;
+      let saved=false;
+      try{saved=await saveDataNow('保存手动整理的 AI 原文');}catch{}finally{manualPlanningBusy.value=false;}
+      if(!saved){draft.pendingSave=true;showToast('手动填充尚未保存成功，请重试保存，不要刷新','error');return false;}
+      if(bookId===currentBookId.value && branchId===String(activeBranchId.value || 'main')){showToast('已手动填入 '+draft.lastApplied.count+' 项，原文继续保留','success');closeManualPlanningRecovery();}
+      return true;
+    }
     function toggleOutlineStreamDock() { outlineStreamDockCollapsed.value = !outlineStreamDockCollapsed.value; }
     function dismissOutlineStreamOutput() { if (isGeneratingOutline.value || isGeneratingDO.value) return; outlineStreamPreview.value = ''; outlineStreamError.value = ''; }
     function showOutlineVolumePlanningFailure(input, before, error, raw, mode = 'volume') {
@@ -31492,7 +31625,7 @@ function getModHubPermissionLabels(mod) {
           showToast(String(currentBookId.value || '') === sourceBookId ? '已停止本章细纲生成' : '已取消原书本章细纲生成', 'info');
         } else {
           showToast('失败: ' + e.message, 'error');
-          if (failedRaw !== null && !looksLikeAiRefusal(failedRaw)) openAiFormatFallback(failedRaw,{title:'本章细纲格式异常',message:e.message + '。原细纲保持不变。',isCurrent:()=>String(currentBookId.value||'')===sourceBookId&&activeBranchId.value===sourceBranchId&&chapterOutlines.value.some(row=>row.id===outlineId&&String(row.content||'')===oldContent),retry:()=>aiRewriteChapterOutline(chapterOutlines.value.findIndex(row=>row.id===outlineId),mode),adopt:value=>{const target=chapterOutlines.value.find(row=>row.id===outlineId);if(!target)return;archiveChapterOutline(target,oldContent,oldTitle,'手动采用');target.content=value;target.isExpanded=true;markOutlineNeighborsStale([ci+1],'手动采用细纲，请核对相邻章节');saveData();showToast('已采用手动整理的细纲','success');}});
+          if (failedRaw !== null && !looksLikeAiRefusal(failedRaw)) openAiFormatFallback(failedRaw,{title:'本章细纲格式异常',message:e.message + '。原细纲保持不变。',planning:{source:'本章细纲异常输出',target:'chapter',chapterNo:ci+1},isCurrent:()=>String(currentBookId.value||'')===sourceBookId&&activeBranchId.value===sourceBranchId&&chapterOutlines.value.some(row=>row.id===outlineId&&String(row.content||'')===oldContent),retry:()=>aiRewriteChapterOutline(chapterOutlines.value.findIndex(row=>row.id===outlineId),mode)});
         }
       } finally {
         if (activeSingleDetailedOutlineRunId === runId) {
@@ -33730,6 +33863,7 @@ function getModHubPermissionLabels(mod) {
         branchList.value.forEach(row=>{if(row.parentId===bid)row.parentId=parentId;});
         novel.value.favoriteClips=currentFavoriteClips().filter(row=>row.branchId!==bid);
         if(novel.value.styleSources)delete novel.value.styleSources[bid];
+        if(novel.value.reviewStates?.manualPlanning)delete novel.value.reviewStates.manualPlanning[bid];
         novelVolumes.value.forEach(volume=>{if(volume.handoffSummaries)delete volume.handoffSummaries[bid];});
         memoryLibrary.value.memories=memoryLibrary.value.memories.filter(row=>row.branchId!==bid);
         memoryLibrary.value.groups=memoryLibrary.value.groups.filter(row=>!row.sourceMemories.some(item=>removedIds.has(item.chapterId)));
@@ -41533,6 +41667,7 @@ function getWritingModelLabel() {
       openDetailedOutlinePinPicker, closeDetailedOutlinePinPicker, toggleDetailedOutlinePin, openDetailedOutlinePinnedItem,
       getStoryBibleEntryLinkedOutlines, getSelectedCharacterLinkedOutlines, requestOpenDetailedOutline, returnToDetailedOutlineFromWorkbench,
       novelVolumes, addNovelVolume, removeNovelVolume, getVolumeForChapter, getVolumeHandoff, buildVolumeConstraintPrompt, generateVolumeHandoff, regenerateVolumeHandoff, saveVolumeHandoffEdit, saveSummaryEdit, tocVolumeGroups, tocHandoffEditor, toggleTocVolumeHandoff, openSummaryTabForVolume, buildNaiImageRequestUrl, keepComposerFocus, activeVolumeEditorId, activeVolumeEditor, openVolumeEditor, closeVolumeEditor, updateVolumeField, novelVolumesCollapsed, novelVolumesBoardMinimized, isNovelVolumeCollapsed, toggleNovelVolumeCollapsed, toggleAllNovelVolumes, toggleNovelVolumesBoardMinimized, ensureDefaultNovelVolume, outlineStreamPreview, outlineStreamError, toggleOutlineStreamDock, dismissOutlineStreamOutput, retryOutlineVolumePlanning, rejectOutlineVolumePlanningFailure,
+      manualPlanningTargets,manualPlanningDraft,showManualPlanningRecovery,manualPlanningSelection,manualPlanningPreview,manualPlanningBusy,openManualPlanningRecovery,closeManualPlanningRecovery,captureManualPlanningSelection,fillManualPlanningSelection,resetManualPlanningTarget,selectManualPlanningVolume,manualPlanningAssignmentLabel,addManualPlanningAssignment,removeManualPlanningAssignment,previewManualPlanningAssignments,applyManualPlanningAssignments,saveManualPlanningWrite,
 
       // ── Part 2: 角色系统 ──
       personalityTagPresets, dialogueTypes, getDialogueTypePrompt, getDialogueTypeObj, countCharactersUsingDialogueType, confirmRemoveCharacterAvatar,

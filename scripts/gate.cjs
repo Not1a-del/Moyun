@@ -32,7 +32,8 @@ const steps = [
 const browserSteps = [
   { id: 'v18-browser', title: '浏览器回归（桌面与手机尺寸）', args: ['scripts/v18-browser.cjs'], browser: true },
   { id: 'v18-browser-legacy', title: '浏览器回归（--legacy 对照）', args: ['scripts/v18-browser.cjs', '--legacy'], browser: true },
-  { id: 'v19-planning-recovery', title: '通用规划解析与中断恢复（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--planning-recovery'], browser: true }
+  { id: 'v19-planning-recovery', title: '通用规划解析与中断恢复（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--planning-recovery'], browser: true },
+  { id: 'v19-manual-planning', title: '手动选择原文与分区填充（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--manual-planning'], browser: true }
 ];
 
 const tail = (text, n) => String(text || '').split(/\r?\n/).slice(-n).join('\n');
