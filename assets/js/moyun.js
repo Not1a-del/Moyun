@@ -11517,8 +11517,8 @@ function cleanAIResponse(text) {
       }
       const data = value('root'); ws(); if (i !== source.length) fail(); return { data, edits };
     }
-    function scanAiJsonFragments(text) {
-      const raw = String(text || ''), stack = [], roots = [], records = [];
+    function scanAiJsonFragments(text, options = {}) {
+      const raw = String(text || ''), stack = [], roots = [], records = [], objectStarts = [];
       let quote = '', escaped = false, rootStart = -1, itemStart = -1;
       for (let i = 0; i < raw.length; i++) {
         const char = raw[i];
@@ -11526,13 +11526,17 @@ function cleanAIResponse(text) {
         if (stack.length && ['"', "'", '“'].includes(char)) { quote = char === '“' ? '”' : char; continue; }
         if (char === '[' || char === '{') {
           if (!stack.length) rootStart = i;
+          if (char === '{') objectStarts.push(i);
           if (char === '{' && (stack.length === 0 || (stack.length === 1 && stack[0] === '['))) itemStart = i;
           stack.push(char);
         } else if (char === ']' || char === '}') {
           const expected = char === ']' ? '[' : '{';
           if (stack[stack.length - 1] !== expected) continue;
           stack.pop();
-          if (char === '}' && itemStart >= 0 && (stack.length === 0 || (stack.length === 1 && stack[0] === '['))) { records.push(raw.slice(itemStart, i + 1)); itemStart = -1; }
+          const objectStart = char === '}' ? objectStarts.pop() : -1;
+          // 嵌套规划在断流时仍可取出已闭合条目；其他调用保持原来的根数组规则。
+          if (char === '}' && options.nestedRecords) records.push(raw.slice(objectStart, i + 1));
+          if (char === '}' && itemStart >= 0 && (stack.length === 0 || (stack.length === 1 && stack[0] === '['))) { if (!options.nestedRecords) records.push(raw.slice(itemStart, i + 1)); itemStart = -1; }
           if (!stack.length && rootStart >= 0) { roots.push(raw.slice(rootStart, i + 1)); rootStart = -1; }
         }
       }
@@ -30958,8 +30962,10 @@ function getModHubPermissionLabels(mod) {
         });
         assertOutlineRunActive('outline', runId, controller, sourceBookId);
         const raw = result.text;
-        const planning = normalizeGeminiOutlinePayload(raw);
-        // 中文注释：Gemini 的完整规划 JSON 先转换成可读大纲，再进入左右审阅；卷纲仍从原结构化数据读取。
+        if (result.partial) throw Object.assign(new Error('回复中断，已有文字保留为未完成候选'),{partialText:raw});
+        const planning = normalizeOutlinePlanningPayload(raw);
+        if (planning?.incomplete) throw Object.assign(new Error('规划回复不完整，已保留原文，请检查或重试'), {partialText:raw});
+        // 结构化规划先转换成可读大纲再审阅，不依赖服务商名称；卷纲仍从结构化数据读取。
         const outlineCandidate = planning?.outlineText || raw;
         const volumeSource = planning?.volumes?.length ? JSON.stringify({ volumes:planning.volumes }) : raw;
         const preparedVolumes=await prepareVolumePlan(volumeSource,{request,signal:controller.signal,isCurrent:()=>{assertOutlineRunActive('outline',runId,controller,sourceBookId);return true;},totalChapters:Number(novel.value.chapterCount)||undefined,prompt,userPrompt:outlineInput.value});
@@ -30976,7 +30982,16 @@ function getModHubPermissionLabels(mod) {
         // v0.0.11 修复4：发送后保留输入内容，用户可核对上一条要求、手动删除或再次发送。
         // 原来成功后直接 outlineInput.value=''，用户无法确认上一次输入了什么。
       } catch (e) {
-        if (isOutlineAbortError(e, controller.signal)) showToast(String(currentBookId.value || '') === sourceBookId ? '已停止大纲生成' : '已取消原书大纲生成', 'info');
+        if (isOutlineAbortError(e, controller.signal)) {
+          // 主动停止同样保留当前书已收到的文字，不能在 finally 清空半截回复。
+          const raw=String(e?.partialText || outlineStreamPreview.value || '');
+          if (raw && String(currentBookId.value || '') === sourceBookId) {
+            outlineStreamError.value='已停止，已有文字保留为未完成候选';
+            outlineStreamPreview.value=raw;
+            showOutlineVolumePlanningFailure(outlineInput.value,originalOutline || '（此前没有大纲）',e,raw,'outline');
+          }
+          showToast(String(currentBookId.value || '') === sourceBookId ? '已停止大纲生成，已有文字已保留' : '已取消原书大纲生成', 'info');
+        }
         else {
           outlineStreamError.value = String(e?.message || '生成失败');
           outlineStreamPreview.value = cleanAIResponse(String(e?.partialText || outlineStreamPreview.value || ''));
@@ -37265,7 +37280,9 @@ function getWritingModelLabel() {
           const result=await fetchAdapterCompletion(request,messages,{stream:true,temperature:attempt?0.7:0.85,signal,onTextDelta:(delta,full)=>{
             partial=String(full || '');okStream.value=partial;options.onTextDelta?.(delta,partial);
           }});
-          const text=getAdapterCompletionText(result);
+          const text=getAdapterCompletionText(result);partial=text || partial;
+          // 非流式也可能被服务商截断；已有文字只做恢复记录，不能当作完整结果采用。
+          if (result.truncated || result.partial) throw Object.assign(new Error('AI 回复中断，已保留收到的文字，请检查或重试'),{partialText:partial});
           if (!text || text.length<10) throw markRetryableAiError('AI返回为空或过短','empty-response');
           if (/无法满足|不能生成|无法生成|I\s*can('|’)t|I\s*cannot/i.test(text)) throw markRetryableAiError('AI疑似拒绝生成','refusal');
           okStream.value=text;options.onTextDelta?.('',text);return text;
@@ -37280,7 +37297,7 @@ function getWritingModelLabel() {
       throw lastError || new Error('AI请求失败');
     }
 
-    const OK_FIELD_KEYS = '书名|作品简介|世界观|负面提示词|大纲|章节索引草案|章节索引|细纲|封面关键词';
+    const OK_FIELD_KEYS = '书名|作品简介|世界观|负面提示词|故事大纲|总纲|大纲|章节索引草案|章节索引|章节规划|细纲|卷纲规划|卷纲|封面关键词';
 
     // 下面所有提取策略都假定「标题独占一行」。模型（或流式增量丢块）经常把标题和正文挤在一行，
     // 例如 `### 书名 折寿家书` 或 `###书名折寿家书###作品简介…`，此时策略 1 的 [^\n]*\n 会吃掉真正的
@@ -37290,6 +37307,7 @@ function getWritingModelLabel() {
       out = out.replace(new RegExp('([^\\n#])(#{1,6}\\s*(?:' + OK_FIELD_KEYS + '))', 'g'), '$1\n$2');
       out = out.replace(new RegExp('^(#{1,6}\\s*(?:' + OK_FIELD_KEYS + '))[ \\t]*[：:]?[ \\t]*(\\S[^\\n]*)$', 'gm'), (all, head, rest) => {
         const value = rest.trim();
+        if (OK_FIELD_KEYS.split('|').includes(head.replace(/^#+\s*/, '') + value)) return all;
         // 「### 大纲（约2000字）」这类只是标题上的字数说明，不是字段内容，保持原样
         if (/^[（(\[【]/.test(value) || /^约?\d+\s*[-~]?\s*\d*\s*字/.test(value)) return all;
         return head + '\n' + value;
@@ -37297,36 +37315,124 @@ function getWritingModelLabel() {
       return out;
     }
 
-    function normalizeGeminiOutlinePayload(rawText) {
-      const raw = String(rawText || '').trim();
-      if (!raw || typeof parseAiStructuredJson !== 'function') return null;
-      let parsed;
-      try { parsed = parseAiStructuredJson(raw, 'object'); } catch { return null; }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-      const chapterPlan = Array.isArray(parsed.chapterPlan) ? parsed.chapterPlan.filter(row => row && typeof row === 'object' && !Array.isArray(row)) : [];
-      const volumes = Array.isArray(parsed.volumes) ? parsed.volumes : [];
-      const outlineAppend = String(parsed.outlineAppend || '').trim();
+    function normalizePlanningKey(value) {
+      return String(value || '').toLowerCase().replace(/[\s_\-]/g, '');
+    }
+    function findPlanningField(value, aliases, seen = new Set()) {
+      if (!value || typeof value !== 'object' || seen.has(value)) return undefined;
+      seen.add(value);
+      const wanted = new Set((aliases || []).map(normalizePlanningKey));
+      for (const [key, child] of Object.entries(value)) {
+        if (wanted.has(normalizePlanningKey(key))) return child;
+      }
+      for (const child of Object.values(value)) {
+        if (Array.isArray(child)) continue;
+        const found = findPlanningField(child, aliases, seen);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    }
+    function planningRows(value) {
+      if (Array.isArray(value)) return value.filter(row => row && typeof row === 'object' && !Array.isArray(row));
+      if (value && typeof value === 'object') return Object.keys(value).some(key=>['title','name','chapterno','startchapter'].includes(normalizePlanningKey(key))) ? [value] : Object.values(value).filter(row => row && typeof row === 'object' && !Array.isArray(row));
+      return [];
+    }
+    function planningNumber(row, aliases, fallback) {
+      for (const alias of aliases) {
+        const number = Number(row?.[alias]);
+        // 无效的零、负数和小数也保留给范围校验，不能擅自改成有效章号。
+        if (row?.[alias] != null && String(row[alias]).trim() && Number.isFinite(number)) return number;
+      }
+      const text = Object.entries(row || {}).find(([key, value]) => aliases.some(alias => normalizePlanningKey(key) === normalizePlanningKey(alias)) && value != null)?.[1];
+      const match = String(text || '').match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : fallback;
+    }
+    function planningText(row, aliases) {
+      for (const alias of aliases) {
+        const exact = row?.[alias];
+        if (['string','number'].includes(typeof exact) && String(exact).trim()) return String(exact).trim();
+      }
+      const wanted = new Set(aliases.map(normalizePlanningKey));
+      const entry = Object.entries(row || {}).find(([key, value]) => wanted.has(normalizePlanningKey(key)) && ['string','number'].includes(typeof value) && String(value).trim());
+      return entry ? String(entry[1]).trim() : '';
+    }
+    function parsePlanningRoot(raw) {
+      const fragments = scanAiJsonFragments(raw, {nestedRecords:true});
+      const candidates = fragments.roots.length ? fragments.roots : [raw];
+      const matches = [];
+      for (const candidate of candidates) {
+        try {
+          const parsed = parseAiStructuredJson(candidate, 'object');
+          const signal = findPlanningField(parsed, ['outlineAppend','outline','storyOutline','outlineText','大纲','新增大纲','chapterPlan','chapterPlans','chapters','chapterIndex','chapterIndexDrafts','章节规划','章节索引草案','细纲','volumes','volumePlan','volumePlans','volumeOutline','卷纲','卷纲规划']);
+          if (signal !== undefined) matches.push(parsed);
+        } catch {}
+      }
+      // 多份完整规划无法判断哪份是最终稿，保留原文让用户检查，不猜测覆盖。
+      if (matches.length > 1) throw new Error('AI 返回了多份规划，无法确定最终版本，请查看原文后重试');
+      return { parsed:matches[0] || null, fragments };
+    }
+    function normalizeOutlinePlanningPayload(rawText) {
+      const raw = String(rawText || '');
+      if (!raw.trim() || typeof parseAiStructuredJson !== 'function') return null;
+      const { parsed, fragments } = parsePlanningRoot(raw);
+      const source = parsed || {};
+      const chapterSource = findPlanningField(source, ['chapterPlan','chapterPlans','chapters','chapterIndex','chapterIndexDrafts','章节规划','章节索引草案','细纲']);
+      const volumeSource = findPlanningField(source, ['volumes','volumePlan','volumePlans','volumeOutline','卷纲','卷纲规划']);
+      const normalizeChapter = (row, index) => {
+        const no = planningNumber(row, ['existingChapterNo','chapterNo','chapter','number','no','index'], index + 1);
+        const title = planningText(row, ['title','chapterTitle','name','章节标题']);
+        const content = planningText(row, ['content','summary','goal','target','description','detail','一句话目标','章节目标']);
+        return title || content ? Object.assign({}, row, { existingChapterNo:no, title:title || ('第' + no + '章'), content }) : null;
+      };
+      const normalizeVolume = (row, index) => Object.assign({}, row, {
+        number:planningNumber(row, ['number','volumeNo','volumeNumber','no','卷号'], index + 1),
+        title:planningText(row, ['title','name','volumeTitle','卷名']) || ('第' + (index + 1) + '卷'),
+        startChapter:planningNumber(row, ['startChapter','start','from','起始章'], 0),
+        endChapter:planningNumber(row, ['endChapter','end','to','结束章'], 0),
+        summary:planningText(row, ['summary','content','description','摘要','卷纲内容'])
+      });
+      let chapterPlan = planningRows(chapterSource).map(normalizeChapter).filter(Boolean);
+      let volumes = planningRows(volumeSource).map(normalizeVolume);
+      // 中文注释：截断 JSON 仍保留已经闭合的章节/卷对象，避免一次中断丢掉前面已收到的规划。
+      if (!parsed && fragments.incomplete && fragments.records.length) {
+        const records = fragments.records.map(text => { try { return parseAiStructuredJson(text, 'object'); } catch { return null; } }).filter(Boolean);
+        const isVolume = row => Object.keys(row).some(key => ['startchapter','endchapter','起始章','结束章'].includes(normalizePlanningKey(key)));
+        chapterPlan = records.filter(row => !isVolume(row) && (Object.keys(row).some(key => ['existingchapterno','chapterno','chapter','章节目标','一句话目标','goal','target'].includes(normalizePlanningKey(key))) || (planningText(row,['title','chapterTitle','章节标题']) && planningText(row,['content','detail'])))).map(normalizeChapter).filter(Boolean);
+        volumes = records.filter(isVolume).map(normalizeVolume);
+      }
+      const outlineAppend = planningText({value:findPlanningField(source, ['outlineAppend','outline','storyOutline','outlineText','大纲','新增大纲'])}, ['value']);
       if (!outlineAppend && !chapterPlan.length && !volumes.length) return null;
-      const chapterIndexText = chapterPlan.map((row, index) => {
-        const no = Number(row.existingChapterNo) || index + 1;
-        const title = String(row.title || ('第' + no + '章')).trim();
-        const content = String(row.content || '').trim();
-        return '第' + no + '章｜标题：' + title + '｜一句话目标：' + content;
-      }).join('\n');
-      const outlineText = [outlineAppend && '【新增/完整大纲】\n' + outlineAppend, chapterIndexText && '【章节规划】\n' + chapterIndexText].filter(Boolean).join('\n\n');
-      return { parsed, outlineAppend, chapterPlan, volumes, chapterIndexText, outlineText };
+      const chapterIndexText = chapterPlan.map(row => '第' + row.existingChapterNo + '章｜标题：' + row.title + '｜一句话目标：' + row.content).join('\n');
+      const volumeText = volumes.map(row => '第' + row.number + '卷｜' + row.title + '｜章节：' + row.startChapter + '-' + row.endChapter + '｜摘要：' + String(row.summary || '').trim()).join('\n');
+      const outlineText = [outlineAppend && '【新增/完整大纲】\n' + outlineAppend, chapterIndexText && '【章节规划】\n' + chapterIndexText, volumeText && '【卷纲规划】\n' + volumeText].filter(Boolean).join('\n\n');
+      return { parsed, outlineAppend, chapterPlan, volumes, chapterIndexText, outlineText, raw, incomplete:!!fragments?.incomplete };
+    }
+    // 保留旧函数名给已有入口和外部回归脚本，内部解析已经不依赖具体供应商或字段组合。
+    function normalizeGeminiOutlinePayload(rawText) { return normalizeOutlinePlanningPayload(rawText); }
+
+    function extractPlanningSection(rawText, key) {
+      const aliases = {大纲:['大纲','故事大纲','总纲'],章节索引草案:['章节索引草案','章节索引','章节规划','细纲'],卷纲规划:['卷纲规划','卷纲']};
+      const canonical = Object.keys(aliases).find(name => aliases[name].includes(key)) || key;
+      const names = [...new Set(OK_FIELD_KEYS.split('|').concat(...Object.values(aliases)))].sort((a,b)=>b.length-a.length).join('|');
+      // 只把独立标题当边界，避免正文里的“大纲”等词切断内容；兼容 Markdown、中文括号和冒号。
+      const pattern = new RegExp('^[ \\t]*(?:(?:#{1,6}|\\*{1,2}|【|\\[)[ \\t]*|(?:[一二三四五六七八九十\\d]+[、.．][ \\t]*))?(' + names + ')[ \\t]*(?:[】\\]]|\\*{1,2})?[ \\t]*(?:[（(][^\\n）)]*[）)][ \\t]*)?(?:[：:][ \\t]*|(?=\\n|$))', 'gm');
+      const text = String(rawText || '').replace(/\r\n?/g, '\n'), heads = [...text.matchAll(pattern)];
+      const at = heads.findIndex(match => (aliases[canonical] || [canonical]).includes(match[1]));
+      return at < 0 ? '' : text.slice(heads[at].index + heads[at][0].length, heads[at+1]?.index ?? text.length).trim();
     }
 
     function okExtractField(rawText, key) {
       if (!rawText || !key) return '';
-      // 中文注释：兼容 Gemini 返回的 outlineAppend/chapterPlan/volumes JSON，避免合法结构化结果被标题提取器漏掉。
-      const planning = normalizeGeminiOutlinePayload(rawText);
+      // 中文注释：先按通用规划语义识别 JSON、围栏和截断对象，避免不同模型的字段命名让大纲被漏掉。
+      const planning = normalizeOutlinePlanningPayload(rawText);
       if (planning) {
         if (key === '大纲' && planning.outlineText) return planning.outlineText;
         if ((key === '章节索引草案' || key === '章节索引') && planning.chapterIndexText) return planning.chapterIndexText;
         if (key === '卷纲规划' && planning.volumes.length) return JSON.stringify({ volumes:planning.volumes });
       }
       const text = okNormalizeSectionText(rawText);
+      const section = extractPlanningSection(text, key);
+      if (section) return section;
       const allKeys = OK_FIELD_KEYS;
 
       // 策略1：### 标题
@@ -37514,6 +37620,7 @@ function getWritingModelLabel() {
           step.startTime = Date.now();
           step.error = '';
           okStream.value = '';
+          const resultBeforeStep={...R};
 
           try {
           if (step.id === 'core') {
@@ -37555,6 +37662,8 @@ function getWritingModelLabel() {
 
             const coreTaskType = (c.genDetailed || c.genOutline) ? 'outline' : '';
             const text = await okStreamFetch(prompt, 'settings', signal, { taskType: coreTaskType,authorInput:newBookForm.value.theme });
+            const planning = normalizeOutlinePlanningPayload(text);
+            if (planning?.incomplete) throw Object.assign(new Error('规划回复不完整，已保留原文，未当作完成结果采用'),{partialText:text});
             console.log('[一键开书-core] 输出长度:', text.length, '| 前300字:', text.substring(0, 300));
 
             if (c.genTitle) {
@@ -37568,7 +37677,6 @@ function getWritingModelLabel() {
             }
             if (c.genNegative) R.negative = okExtractField(text, '负面提示词');
             if (c.genOutline || c.genDetailed) {
-              const planning = normalizeGeminiOutlinePayload(text);
               R.outline = okExtractField(text, '大纲') || planning?.outlineText || '';
               const volumeRaw = planning?.volumes?.length ? JSON.stringify({ volumes:planning.volumes }) : (okExtractField(text, '卷纲规划') || text);
               const planningTotal = planning?.chapterPlan?.length && !c.genDetailed ? planning.chapterPlan.length : 0;
@@ -37838,9 +37946,12 @@ function getWritingModelLabel() {
             }
           }
           } catch (stepErr) {
+            // 大纲/卷纲属于同一候选；任何一步失败时恢复模块结果，避免末尾把失败候选写入正式内容。
+            if (step.id==='core') Object.assign(R,resultBeforeStep);
             step.status = 'error';
             step.error = stepErr?.message || '该模块生成失败';
             step.elapsed = ((Date.now() - step.startTime) / 1000).toFixed(1) + 's';
+            preserveOneKeyFailure(step,stepErr);
             // 中文注释：一键开书改为“单模块容错”，某一步失败时只记录失败并继续后续步骤，最后统一汇总给用户。
             console.warn('[一键开书] 模块失败:', step.id, stepErr);
             continue;
@@ -37912,7 +38023,7 @@ function getWritingModelLabel() {
           okLastSummary.value = '一键开书过程中断：' + e.message;
           showToast('出错: ' + e.message, 'error');
         }
-        okFailedSteps.value = okSteps.value.filter(step => step.status === 'error').map(step => ({ id: step.id, label: step.label, error: step.error || '该模块未成功生成' }));
+        okFailedSteps.value = getOneKeyFailedSteps();
       }
 
       // ── 应用结果（已在新书上下文中，直接写入） ──
@@ -37980,7 +38091,13 @@ function getWritingModelLabel() {
       saveData();
 
       // 中文注释：根据失败模块决定最终提示文案，避免部分失败时还误报“创建完成”。
-      okFailedSteps.value = okSteps.value.filter(step => step.status === 'error').map(step => ({ id: step.id, label: step.label, error: step.error || '该模块未成功生成' }));
+      if (signal.aborted) steps.filter(step=>step.status==='pending').forEach(step=>{step.status='error';step.error='已停止，本模块尚未开始';});
+      okFailedSteps.value = getOneKeyFailedSteps();
+      if (novel.value.oneKeyRecovery) {
+        steps.filter(step=>step.status==='done').forEach(step=>delete novel.value.oneKeyRecovery[step.id]);
+        if (!Object.keys(novel.value.oneKeyRecovery).length) delete novel.value.oneKeyRecovery;
+        saveData();
+      }
       if (okFailedSteps.value.length > 0) {
         okLastSummary.value = '以下模块生成失败：' + okFailedSteps.value.map(s => s.label).join('、') + '。可以点击下方按钮，仅重开失败模块。';
       } else if (!okLastSummary.value) {
@@ -37989,6 +38106,20 @@ function getWritingModelLabel() {
       }
       oneKeyPhase.value = 'done';
       showToast(okFailedSteps.value.length ? '存在失败模块，请查看详情' : '🎉 书籍创建完成！', okFailedSteps.value.length ? 'error' : 'success');
+    }
+
+    function preserveOneKeyFailure(step, error) {
+      const raw=String(error?.partialText || okStream.value || '');
+      if (!raw || oneKeyFailureSnapshot?.bookId !== currentBookId.value) return;
+      const recovery=novel.value.oneKeyRecovery || (novel.value.oneKeyRecovery={});
+      const previous=recovery[step.id];
+      // 失败原文只进书籍的恢复记录，不写入正式大纲；重开失败也不丢上次的文字。
+      step.raw=raw;
+      recovery[step.id]={raw,previousRaw:previous?.raw !== raw ? previous?.raw || previous?.previousRaw || '' : previous?.previousRaw || '',label:step.label,error:step.error,at:Date.now()};
+      saveData();
+    }
+    function getOneKeyFailedSteps() {
+      return okSteps.value.filter(step=>step.status==='error').map(step=>({id:step.id,label:step.label,error:step.error || '该模块未成功生成',raw:step.raw || novel.value.oneKeyRecovery?.[step.id]?.raw || ''}));
     }
 
     function configureOneKeyRetryModules(stepIds) {
@@ -41422,7 +41553,7 @@ function getWritingModelLabel() {
       showCharacterDraftReview, isGeneratingCharacterDraft, characterDraftReview, characterDraftCounts,
       requestCloseCharacterDraftReview, stopCharacterDraftGeneration, setCharacterDraftItemDecision, setCharacterDraftTargetDecision,
       getCharacterDraftKindLabel, getCharacterDraftKindStyle, getCharacterDraftRelationOptions, refreshCharacterDraftRelationItem, applyCharacterAiDraft,
-      getCompletionsUrl, okStreamFetch, normalizeGeminiOutlinePayload, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, buildAiResponseGate, assertAiResponseGate,
+      getCompletionsUrl, okStreamFetch, normalizeOutlinePlanningPayload, normalizeGeminiOutlinePayload, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, normalizePromptPipeline, buildFullSystemPrompt: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt, renderChapterImageEditor, switchInlineImageVersion,

@@ -19,6 +19,7 @@ module.exports=async function(c,check,shot){
    const no=Number((text.match(/唯一总结目标｜第 (\d+) 章/) || [])[1]);
    if(no)output='记忆'+no+'：林舟在旧仓库将铜钥匙交给阿雪，约定次日到东门，守门人尚不知情。';
    else if(text.includes('长期记忆压缩器'))output='合并记忆：林舟将铜钥匙交给阿雪，双方约定次日东门见面，守门人仍不知情；需继续核对钥匙归属与承诺。';
+   else if(text.includes('你是小说卷末交接整理器'))output='【上一卷正文总结】\nV18_HANDOFF_FACT：铜钥匙在阿雪手中，双方约定次日东门见面，守门人仍不知情。\n【实际卷纲修正】\n已核对钥匙归属，约定尚待落实。';
    else if(text.includes('你是专业网文策划。'))output='【卷纲更新】\n第1卷｜卷名：归来｜章节 1-2｜框架摘要：归还铜钥匙\n承接上一卷：'+('开局条件已经核对。'.repeat(100))+'\n本卷推进与收束：'+('阿雪接收钥匙，东门之约尚待履行。'.repeat(100))+'\n下一卷起笔核对：次日东门相见，守门人仍不知情。\n第1章：归还钥匙\n第2章：约定见面\n第2卷｜卷名：赴约｜章节 3-4｜框架摘要：承接东门之约\n承接上一卷：铜钥匙在阿雪手中，双方约定次日东门见面。\n本卷推进与收束：核对约定执行与人物状态。\n下一卷起笔核对：只交接已发生事实。\n第3章：东门会面\n第4章：核对承诺\n## 核心卖点\n铜钥匙与秘密知情边界。';
    else if(text.includes('剧情摘要'))output='东门赴约\n'+('阿雪握住铜钥匙，在东门等候林舟。她确认约定的时辰，听见远处脚步声，抬头看向来路。'.repeat(12))+'\n---剧情摘要---\n阿雪携带林舟交给她的铜钥匙，按约定到东门等候。她核对时辰并留意来路，听到脚步声后抬头观察。钥匙仍归阿雪保管，双方的约定仍待落实，守门人并不知道这件事。';
    if(body.contents)return new Response(JSON.stringify({candidates:[{content:{parts:[{text:output}]},finishReason:'STOP'}],usageMetadata:{promptTokenCount:120,candidatesTokenCount:80,cachedContentTokenCount:40}}));
@@ -91,15 +92,17 @@ module.exports=async function(c,check,shot){
  });
  await check('记忆：正文重写立即失效、停用回退原文、支线隔离',async()=>{
   const d=await c.ev(()=>{
-   __s.chapters[0].content='V18_REWRITTEN_FACT：铜钥匙已归还林舟';
+   __s.chapters.find(m=>m.id==='memory-1').content='V18_REWRITTEN_FACT：铜钥匙已归还林舟';
    const stale=__s.getValidMemoryRows().some(m=>m.chapterId==='memory-1'),groups=__s.validMemoryGroups(__s.getValidMemoryRows()).length;
    const m=__s.memoryLibrary.memories.find(m=>m.chapterId==='memory-2');m.enabled=false;
-   const history=__s.buildMemoryHistory(__s.visibleChapters);
+   // 当前版本默认按前文预算只带近章；本场景专门验证重写后的旧章正文，因此显式扩大测试预算。
+   __s.settings.contextUseFullText=true;__s.memoryLibrary.settings.summaryKeepChapters=31;__s.settings.contextHistoryCharLimit=100000;__s.settings.contextUseRangeSummaries=false;
+   const history=__s.buildMemoryHistory(__s.chapters.filter(ch=>String(ch.branchId||'main')==='main'));
    __s.branchList=[{id:'main',name:'主线'},{id:'side',name:'支线',forkFromChapterId:'memory-3'}];
    __s.chapters.push({id:'side-1',branchId:'side',content:'支线独有事实',title:'分岔'});__s.activeBranchId='side';
    const ids=__s.getValidMemoryRows().map(m=>m.chapterId);__s.memoryLibrary.settings.enabled=false;
    return{stale,groups,history:history.text,ids};
-  });assert.equal(d.stale,false);assert.equal(d.groups,0);assert.ok(d.history.includes('V18_REWRITTEN_FACT'));assert.ok(d.history.includes('第2日'));assert.deepEqual(d.ids,['memory-2','memory-3']);return {staleExcluded:true,disabledUsesOriginal:true,branchIds:d.ids};
+  });assert.equal(d.stale,false);assert.equal(d.groups,0);assert.ok(d.history.includes('V18_REWRITTEN_FACT'));assert.ok(d.history.includes('第2日'));assert.deepEqual(d.ids,[]);return {staleExcluded:true,disabledUsesOriginal:true,branchIds:d.ids};
  });
  await check('记忆：切书取消在途请求，书籍/Token/模型互不覆盖',async()=>{
   const d=await c.ev(async()=>{

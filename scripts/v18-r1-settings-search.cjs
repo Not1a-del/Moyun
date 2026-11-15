@@ -17,7 +17,13 @@ module.exports=async function(c,check,shot){
  try{
   await c.send('Emulation.setDeviceMetricsOverride',{width:1366,height:900,deviceScaleFactor:1,mobile:false});
   await openSettings('api');
-  await check('搜索目录锚点：所有静态目标存在且排除关于',async()=>{const targets=[...catalogSource.matchAll(/target:'([^']+)'/g)].map(match=>match[1]).filter(target=>target!=='settings-search-route-');const missing=targets.filter(target=>!source.includes('id="'+target+'"'));assert.deepEqual(missing,[]);assert.equal(catalogSource.includes("tab:'changelog'"),false);assert.match(source,/:id="'settings-search-route-'\+mod\.key"/);return{staticTargets:targets.length,dynamicRoutePrefix:true,includesAbout:false};});
+  await check('搜索目录锚点：静态与团队动态目标都存在且排除关于',async()=>{
+   const targets=[...catalogSource.matchAll(/target:'([^']+)'/g)].map(match=>match[1]).filter(target=>target!=='settings-search-route-');
+   const dynamic=await c.ev(async()=>{__s.activeSettingsTab='context';__s.teamBookRoutesOpen=true;await Vue.nextTick();return __s.teamBookRouteConfig.map(route=>({id:'settings-search-'+route.key,exists:!!document.getElementById('settings-search-'+route.key)}));});
+   assert.ok(dynamic.every(row=>row.exists),JSON.stringify(dynamic));
+   const missing=targets.filter(target=>!source.includes('id="'+target+'"')&&!dynamic.some(row=>row.id===target));assert.deepEqual(missing,[]);
+   await c.ev(()=>{__s.teamBookRoutesOpen=false;});assert.equal(catalogSource.includes("tab:'changelog'"),false);assert.match(source,/:id="'settings-search-route-'\+mod\.key"/);return{targets:targets.length,dynamic,includesAbout:false};
+  });
   await check('设置搜索：中文单字、错序词、拼音与相邻换位容错',async()=>{
    const one=await search('温');assert.ok(one.titles.includes('全局温度与思考强度'),JSON.stringify(one));
    const reordered=await search('章摘');assert.ok(reordered.titles.some(title=>title==='发送章节摘要'||title==='模块模型分配｜AI总结'),JSON.stringify(reordered));
@@ -46,7 +52,7 @@ module.exports=async function(c,check,shot){
    const expectedLinkColor=await c.ev(()=>{const probe=document.createElement('span');probe.style.color='var(--warn)';document.body.appendChild(probe);const color=getComputedStyle(probe).color;probe.remove();return color;});
    const modules=await c.ev(()=>__s.moduleModelConfig.map(mod=>({key:mod.key,name:mod.name,desc:mod.desc,locations:__s.settingsModuleLocations[mod.key]||[],route:!!document.getElementById('settings-search-route-'+mod.key)})));
    const sidebarTabIds=await c.ev(()=>__s.sidebarTabs.map(tab=>tab.id));
-   const descriptionTerms={writing:'正文续写',supplement:'追加请求',settings:'作品简介',character:'角色卡',imagetext:'关键词',outline:'全书大纲',suggestion:'AI 建议',review:'点评',summary:'章节摘要',comments:'读者评论',translate:'翻译'};
+   const descriptionTerms={writing:'正文续写',supplement:'追加请求','immersive-expand':'AI 扩写','immersive-continue':'AI 续写',settings:'作品简介',character:'角色卡',imagetext:'关键词',outline:'全书大纲',suggestion:'AI 建议',review:'点评',summary:'章节摘要',comments:'读者评论',translate:'翻译'};
    assert.ok(modules.every(mod=>mod.route&&mod.desc.length>=30&&/[；。]/.test(mod.desc)&&mod.desc.includes(descriptionTerms[mod.key])),JSON.stringify(modules));
    assert.ok(modules.every(mod=>mod.key==='translate'?mod.locations.length===0:mod.locations.length>0),JSON.stringify(modules));
    assert.ok(modules.every(mod=>mod.locations.every(location=>location.workbenchSection||sidebarTabIds.includes(location.tab))),JSON.stringify(modules));

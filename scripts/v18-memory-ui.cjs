@@ -6,7 +6,7 @@ module.exports=async function(c,check){
   __s.cancelMemoryWork();__s.syncBookData();
   window.__memoryUi={book:__s.currentBookId,model:__s.settings.memoryEmbeddingModel,fetch};
   __s.books.push({id:'v18-memory-ui',title:'记忆按钮隔离书',novel:{title:'记忆按钮隔离书'},chapters:[],characters:[]});__s.loadBook('v18-memory-ui');
-  __s.chapters=[1,2].map(no=>({id:'ui-chapter-'+no,branchId:'main',title:'按钮测试'+no,content:'UI_CHAPTER_'+no+'：铜钥匙在阿雪手中。',summary:'不能拿短摘要代替正文'}));
+  __s.chapters=[1,2].map(no=>({id:'ui-chapter-'+no,branchId:'main',title:'按钮测试'+no,content:'UI_CHAPTER_'+no+'：铜钥匙在阿雪手中。',summary:'UI_SUMMARY_'+no+'：铜钥匙由阿雪保管。'}));
   __s.memoryLibrary=__s.normalizeMemoryLibrary({settings:{enabled:false,mode:'enhanced',summaryKeepChapters:1}});
   __s.openStoryBibleWorkbench('memory');
  });await delay(450);
@@ -44,7 +44,10 @@ module.exports=async function(c,check){
     [...article().querySelectorAll('button')].find(b=>b.textContent.trim()==='重新记录').click();
     for(let i=0;i<100&&__s.memoryProgress.busy;i++)await new Promise(r=>setTimeout(r,20));await Vue.nextTick();
     return{edited,cleared,disabled,enabled,recorded:article().querySelector('textarea').value,error:__s.memoryProgress.error};
-   });assert.ok(d.edited.includes('UI_EDITED_MEMORY'));assert.equal(d.cleared,true);assert.ok(d.disabled.includes('UI_CHAPTER_1')&&!d.disabled.includes('UI_EDITED_MEMORY'));assert.ok(d.enabled.includes('UI_EDITED_MEMORY'));assert.ok(d.recorded.startsWith('记忆1：'));assert.equal(d.error,'');return d;
+   });assert.ok(d.edited.includes('UI_EDITED_MEMORY'));assert.equal(d.cleared,true);
+   // 当前规则用摘要补足旧章；停用记忆后仍须保留事实，不能把停用项带回请求。
+   assert.ok(d.disabled.includes('UI_SUMMARY_1')&&!d.disabled.includes('UI_EDITED_MEMORY'),JSON.stringify(d));
+   assert.ok(d.disabled.includes('UI_CHAPTER_2'));assert.ok(d.enabled.includes('UI_EDITED_MEMORY'));assert.ok(d.recorded.startsWith('记忆1：'));assert.equal(d.error,'');return d;
   });
   await check('记忆停止按钮：取消在途补录，晚到响应不写入',async()=>{
    const d=await c.ev(async()=>{

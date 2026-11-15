@@ -59,10 +59,10 @@ module.exports=async function(c,check){
   });assert.ok(d.results.every(r=>r.value===d.prior && r.editing));assert.equal(d.fixed,1500);return d;
  });
  await check('后卷真实写作：携带上一卷交接和本卷边界，自动记忆与自定义字数进入请求',async()=>{
-  await c.ev(()=>{__s.cancelMemoryWork();__s.activeBranchId='main';__s.chapters=__s.chapters.slice(0,2);__s.settings.geminiTestInput=true;__s.wordCountTarget=300.5;__s.nextChapterPrompt='V18_VOLUME_NEXT：按约定到东门，核对钥匙归属。';__s.startGeneration();});
+  await c.ev(async()=>{__s.cancelMemoryWork();__s.activeBranchId='main';__s.chapters=__s.chapters.slice(0,2);await __s.generateVolumeHandoff(2,{force:true,overwriteEdited:true});__s.settings.geminiTestInput=true;__s.wordCountTarget=300.5;__s.nextChapterPrompt='V18_VOLUME_NEXT：按约定到东门，核对钥匙归属。';__s.startGeneration();});
   for(let i=0;i<150;i++){if(!await c.ev(()=>__s.isGenerating))break;await delay(80);}await delay(800);
   const d=await c.ev(()=>({count:__s.chapters.length,rows:__s.getValidMemoryRows().length,handoffRows:__s.summaries.filter(item=>item.kind==='volume-handoff').length,wire:__wire.filter(r=>!r.url.includes('embeddings') && JSON.stringify(r.body).includes('V18_VOLUME_NEXT') && !JSON.stringify(r.body).includes('逐章记忆整理器')).at(-1),usage:__s.lastWritingUsage}));
-  assert.equal(d.count,3);assert.ok(d.handoffRows>=1);const text=JSON.stringify(d.wire.body);assert.ok(text.includes('上一卷计划'));assert.ok(text.includes('下一卷起笔核对'));assert.ok(text.includes('铜钥匙在阿雪手中'));assert.ok(text.includes('enhanced_memory_recall'));assert.ok(text.includes('300.5字'));assert.ok(d.rows>=3);return{count:d.count,recorded:d.rows,handoffRows:d.handoffRows,usage:d.usage};
+  assert.equal(d.count,3);assert.ok(d.handoffRows>=1);const text=JSON.stringify(d.wire.body);assert.ok(text.includes('上一卷交接'));assert.ok(text.includes('下一卷起笔核对'));assert.ok(text.includes('V18_HANDOFF_FACT'));assert.ok(text.includes('实际卷纲修正'));assert.ok(text.includes('铜钥匙在阿雪手中'));assert.ok(text.includes('enhanced_memory_recall'));assert.ok(text.includes('300.5字'));assert.ok(d.rows>=3);return{count:d.count,recorded:d.rows,handoffRows:d.handoffRows,usage:d.usage};
  });
  await check('中断续写：旧稿保留，增强记忆与原输入接入，保存后自动记录',async()=>{
   await c.ev(()=>{__s.cancelMemoryWork();__s.settings.geminiTestInput=false;__s.nextChapterPrompt='V18_CONTINUE：阿雪仍持钥匙，等待林舟。';__s.interruptedContent='阿雪握紧铜钥匙，停在东门的树下。她听见脚步声，抬头等待林舟。';__s.isInterrupted=true;__s.interruptedIssue=null;__s.interruptedCanContinue=true;__s.continueGeneration();});

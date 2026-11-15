@@ -1905,6 +1905,14 @@
             <p class="text-xs leading-relaxed" style="color:var(--tx3)">修订内容已单独放入审阅弹窗，原大纲、卷纲和细纲仍保持不变。请逐项查看后再接受。</p>
             <button type="button" class="btn-primary self-start text-xs px-4 py-2" @click="openOutlineRevisionReview">打开修订审阅</button>
           </div>
+          <details v-if="novel.oneKeyRecovery" class="card p-3 mb-3" data-one-key-recovery>
+            <summary class="btn-ghost text-xs cursor-pointer" style="min-height:44px">一键开书未完成原文（仅备查，未自动采用）</summary>
+            <details v-for="(record,id) in novel.oneKeyRecovery" :key="id" class="mt-2 text-xs">
+              <summary class="btn-ghost cursor-pointer" style="min-height:44px">{{record.label}} · {{record.error}}</summary>
+              <pre class="max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{record.raw}}</pre>
+              <details v-if="record.previousRaw"><summary class="btn-ghost cursor-pointer" style="min-height:44px">上次保留的原文</summary><pre class="max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{record.previousRaw}}</pre></details>
+            </details>
+          </details>
           <div v-if="!outlineRevisions.length && !activeVolumeEditor && novelVolumesBoardMinimized" class="moyun-volume-board moyun-volume-board-minimized mb-2 p-2 rounded-xl flex items-center gap-2" style="background:var(--bg-inset);border:1px solid var(--bd)" data-moyun-volume-board-minimized>
             <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="btn-ghost text-[10px] px-2 py-1 shrink-0" :aria-expanded="String(!novelVolumesBoardMinimized)" aria-label="展开卷纲板">展开卷纲</button>
             <button type="button" @click="toggleNovelVolumesBoardMinimized()" class="flex-1 min-w-0 text-left" :title="'共 ' + novelVolumes.length + ' 卷；点击展开卷纲板'">
@@ -4849,19 +4857,20 @@
           <div v-for="fail in okFailedSteps" :key="fail.id" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold" style="color:var(--err)">失败模块：{{ fail.label }}</div>
             <div class="text-[10px] mt-1" style="color:var(--tx3)">{{ fail.error }}</div>
+            <details v-if="fail.raw" class="mt-2 text-xs" data-one-key-partial>
+              <summary class="btn-ghost cursor-pointer" style="min-height:44px">查看已保留原文（未自动采用）</summary>
+              <pre class="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap break-words" style="overflow-wrap:anywhere;font-family:inherit">{{ fail.raw }}</pre>
+            </details>
             <div class="mt-2 flex justify-end">
               <button @click="retryOneKeyModule(fail.id)" class="text-[10px] px-3 py-1.5 rounded-lg font-bold" style="background:var(--warn-soft);color:var(--warn);border:1px solid var(--bd)">仅重开这个模块</button>
             </div>
           </div>
-          <div class="mt-3 flex flex-wrap gap-2 justify-start" data-one-key-failed-actions>
-            <button type="button" class="btn-primary text-xs px-3 py-2" @click="retryAllOneKeyModules">全部重开</button>
-            <span class="text-[10px] self-center" style="color:var(--tx3)">只重新请求失败的模块，已写入内容会保留。</span>
-          </div>
+          <p class="mt-3 text-[10px]" style="color:var(--tx3)">只重新请求失败的模块，已写入内容会保留。</p>
         </div>
       </div>
 
       <!-- 底部按钮 -->
-      <div class="px-5 py-4 flex justify-end gap-3 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
+      <div class="px-5 py-4 flex flex-wrap justify-end gap-3 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-card);padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + var(--moyun-mobile-browser-bottom, 0px))">
         <template v-if="oneKeyPhase==='config' && newBookMode==='team'">
           <button type="button" class="btn-ghost text-sm px-4 py-2" @click="backToManualBook">返回手填</button>
           <template v-if="teamPhase==='input'"><button type="button" class="btn-primary text-sm px-5 py-2" :disabled="!teamBrief.trim()" @click="splitTeamPlan()">发送</button></template>
@@ -4878,8 +4887,11 @@
           <button @click="interruptOneKey" class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--warn);color:white">⏸ 中断（保留已生成内容）</button>
         </template>
         <template v-else>
-          <button v-if="okFailedSteps.length" @click="returnToOneKeyConfig" class="btn-ghost text-sm px-4 py-2">返回配置</button>
-          <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-primary text-sm px-6 py-2">关闭</button>
+          <div v-if="okFailedSteps.length" class="flex flex-wrap gap-2" data-one-key-failed-actions>
+            <button type="button" class="btn-primary text-sm px-3 py-2 min-h-[44px]" @click="retryAllOneKeyModules">全部重开</button>
+            <button type="button" @click="returnToOneKeyConfig" class="btn-ghost text-sm px-3 py-2 min-h-[44px]">返回配置</button>
+          </div>
+          <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-primary text-sm px-4 py-2 min-h-[44px]">关闭</button>
         </template>
       </div>
 
@@ -6753,7 +6765,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=b6e7cbed4d85"></script>
+<script src="./assets/js/moyun.js?v=0ca4c16cb1de"></script>
 <!-- PART_1_END -->
 </body>
 </html>

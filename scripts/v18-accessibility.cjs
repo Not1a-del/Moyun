@@ -66,8 +66,9 @@ module.exports=async function(c,check,shot){
   });
   for(const [width,height] of [[1366,900],[390,844],[320,568],[667,375]]){
    await c.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<768});
-   for(const [flag,id,max] of [['showReviewModal','book-review',900],['showTreeView','story-tree',600]]){
-    await c.ev(flag=>{__s.mobileSidebarOpen=false;__s[flag]=true;},flag);await delay(300);
+   // 故事树已由分支面板替代，仍在当前真实组件上检查可读宽度和滚动。
+   for(const [flag,id,max] of [['showReviewModal','book-review',900],['showBranchPanel','branch-panel',width<768?width:520]]){
+    await c.ev(flag=>{__s.mobileSidebarOpen=false;if(flag==='showBranchPanel'){__s.showBranchPanel=false;__s.toggleBranchPanel();}else __s[flag]=true;},flag);await delay(300);
     await check('max-width误报实际弹窗尺寸 '+id+' '+width,async()=>{
      const d=await c.ev(id=>{const panel=document.querySelector('[data-moyun-modal="'+id+'"] [data-moyun-modal-panel]'),r=panel.getBoundingClientRect();return{width:r.width,left:r.left,right:r.right,viewport:innerWidth,scrollWidth:panel.scrollWidth,clientWidth:panel.clientWidth,overflow:document.documentElement.scrollWidth>innerWidth+1};},id);
      assert.ok(d.width<=Math.min(width,max)+1&&d.width>=Math.min(width,max)-35);assert.ok(d.left>=0&&d.right<=width+1);assert.ok(d.scrollWidth<=d.clientWidth+1);assert.equal(d.overflow,false);return d;
@@ -77,6 +78,6 @@ module.exports=async function(c,check,shot){
   }
  }finally{
   await c.send('Emulation.setEmulatedMedia',{features:[]});
-  await c.ev(original=>{__s.showRelGraph=false;__s.showReviewModal=false;__s.showTreeView=false;__s.structuredCharacters=original.characters;__s.novel.title=original.title;__s.coverImage=original.cover;document.querySelector('[data-moyun-modal="image-preview"]')?.remove();},original);
+  await c.ev(original=>{__s.showRelGraph=false;__s.showReviewModal=false;__s.showBranchPanel=false;__s.structuredCharacters=original.characters;__s.novel.title=original.title;__s.coverImage=original.cover;document.querySelector('[data-moyun-modal="image-preview"]')?.remove();},original);
  }
 };
