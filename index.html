@@ -4853,6 +4853,10 @@
               <button @click="retryOneKeyModule(fail.id)" class="text-[10px] px-3 py-1.5 rounded-lg font-bold" style="background:var(--warn-soft);color:var(--warn);border:1px solid var(--bd)">仅重开这个模块</button>
             </div>
           </div>
+          <div class="mt-3 flex flex-wrap gap-2 justify-start" data-one-key-failed-actions>
+            <button type="button" class="btn-primary text-xs px-3 py-2" @click="retryAllOneKeyModules">全部重开</button>
+            <span class="text-[10px] self-center" style="color:var(--tx3)">只重新请求失败的模块，已写入内容会保留。</span>
+          </div>
         </div>
       </div>
 
@@ -4874,7 +4878,7 @@
           <button @click="interruptOneKey" class="text-sm px-5 py-2 rounded-xl font-bold" style="background:var(--warn);color:white">⏸ 中断（保留已生成内容）</button>
         </template>
         <template v-else>
-          <button v-if="okFailedSteps.length" @click="openNewBookModal" class="btn-ghost text-sm px-4 py-2">返回配置</button>
+          <button v-if="okFailedSteps.length" @click="returnToOneKeyConfig" class="btn-ghost text-sm px-4 py-2">返回配置</button>
           <button type="button" data-moyun-modal-close @click="requestCloseNewBookModal" class="btn-primary text-sm px-6 py-2">关闭</button>
         </template>
       </div>
@@ -6749,7 +6753,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=b34b438a70e5"></script>
+<script src="./assets/js/moyun.js?v=b6e7cbed4d85"></script>
 <!-- PART_1_END -->
 </body>
 </html>

@@ -66,6 +66,8 @@ async function main(){
     });
     await c.delay(250);
     await c.ev(()=>{document.querySelector('[data-outline-volume-accept]')?.click();return true;});
+    await c.delay(120);
+    await c.ev(()=>{const modal=document.querySelector('[data-moyun-modal=confirm]');if(modal)[...modal.querySelectorAll('button')].find(button=>button.textContent.includes('确认并应用'))?.click();return true;});
     await c.delay(450);
     const workbenchAccepted=await c.ev(()=>({modal:!!document.querySelector('[data-moyun-modal=outline-revision]'),title:__s.novel.volumes[0]?.title}));
     if(workbenchAccepted.modal||workbenchAccepted.title!=='工作台接受后的卷')throw Error('工作台卷纲接受事件未写入：'+JSON.stringify(workbenchAccepted));
@@ -123,6 +125,9 @@ async function main(){
     const created=await c.ev(()=>({modal:!!document.querySelector('[data-moyun-modal="outline-revision"]'),rows:__s.outlineReview.workbenchVolumes?.rows?.map(row=>row.title)}));
     if(!created.modal||created.rows?.length!==3)throw Error('重新生成卷纲候选失败：'+JSON.stringify(created));
     await c.ev(()=>{document.querySelector('[data-outline-volume-accept]')?.click();return true;});await c.delay(450);
+    await c.delay(120);
+    await c.ev(()=>{const modal=document.querySelector('[data-moyun-modal=confirm]');if(modal)[...modal.querySelectorAll('button')].find(button=>button.textContent.includes('确认并应用'))?.click();return true;});
+    await c.delay(450);
     const createdVolumes=await c.ev(()=>({modal:!!document.querySelector('[data-moyun-modal="outline-revision"]'),volumes:__s.novel.volumes.map(row=>({number:row.number,title:row.title,start:row.startChapter,end:row.endChapter})),details:__s.chapterOutlines.map(row=>row.content)}));
     if(createdVolumes.modal||createdVolumes.volumes.length!==3||createdVolumes.volumes.some((row,index)=>row.number!==index+1)||JSON.stringify(createdVolumes.details)!==JSON.stringify(detailFlow.originalDetails))throw Error('接受候选后没有创建三卷，或细纲被误改：'+JSON.stringify(createdVolumes));
     results.push({width:1280,theme:'light',stream:live,review:{modal:normalFlow.modal,compare:normalFlow.compare.slice(0,160)}});

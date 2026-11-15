@@ -30958,11 +30958,15 @@ function getModHubPermissionLabels(mod) {
         });
         assertOutlineRunActive('outline', runId, controller, sourceBookId);
         const raw = result.text;
-        const preparedVolumes=await prepareVolumePlan(raw,{request,signal:controller.signal,isCurrent:()=>{assertOutlineRunActive('outline',runId,controller,sourceBookId);return true;},totalChapters:Number(novel.value.chapterCount)||undefined,prompt,userPrompt:outlineInput.value});
+        const planning = normalizeGeminiOutlinePayload(raw);
+        // 中文注释：Gemini 的完整规划 JSON 先转换成可读大纲，再进入左右审阅；卷纲仍从原结构化数据读取。
+        const outlineCandidate = planning?.outlineText || raw;
+        const volumeSource = planning?.volumes?.length ? JSON.stringify({ volumes:planning.volumes }) : raw;
+        const preparedVolumes=await prepareVolumePlan(volumeSource,{request,signal:controller.signal,isCurrent:()=>{assertOutlineRunActive('outline',runId,controller,sourceBookId);return true;},totalChapters:Number(novel.value.chapterCount)||undefined,prompt,userPrompt:outlineInput.value});
         assertOutlineRunActive('outline',runId,controller,sourceBookId);
         // 中文注释：新书首次生成也必须先进入左右审阅，避免 AI 输出直接覆盖并让卷纲候选失去确认入口。
         const beforeOutline = String(novel.value.outline || '');
-        outlineReview.value = createReviewState('outline', beforeOutline, raw, { source:'故事大纲' });
+        outlineReview.value = createReviewState('outline', beforeOutline, outlineCandidate, { source:'故事大纲', rawOutput:raw, structuredPlanning:!!planning });
         outlineReview.value.volumePlan = { rows:deepClone(preparedVolumes.rows), total:preparedVolumes.total };
         outlineReview.value.volumeBaseline = deepClone(novel.value.volumes || []);
         outlineReview.value.volumeChapterOutlinesBaseline = JSON.stringify(chapterOutlines.value || []);
@@ -37293,8 +37297,35 @@ function getWritingModelLabel() {
       return out;
     }
 
+    function normalizeGeminiOutlinePayload(rawText) {
+      const raw = String(rawText || '').trim();
+      if (!raw || typeof parseAiStructuredJson !== 'function') return null;
+      let parsed;
+      try { parsed = parseAiStructuredJson(raw, 'object'); } catch { return null; }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+      const chapterPlan = Array.isArray(parsed.chapterPlan) ? parsed.chapterPlan.filter(row => row && typeof row === 'object' && !Array.isArray(row)) : [];
+      const volumes = Array.isArray(parsed.volumes) ? parsed.volumes : [];
+      const outlineAppend = String(parsed.outlineAppend || '').trim();
+      if (!outlineAppend && !chapterPlan.length && !volumes.length) return null;
+      const chapterIndexText = chapterPlan.map((row, index) => {
+        const no = Number(row.existingChapterNo) || index + 1;
+        const title = String(row.title || ('第' + no + '章')).trim();
+        const content = String(row.content || '').trim();
+        return '第' + no + '章｜标题：' + title + '｜一句话目标：' + content;
+      }).join('\n');
+      const outlineText = [outlineAppend && '【新增/完整大纲】\n' + outlineAppend, chapterIndexText && '【章节规划】\n' + chapterIndexText].filter(Boolean).join('\n\n');
+      return { parsed, outlineAppend, chapterPlan, volumes, chapterIndexText, outlineText };
+    }
+
     function okExtractField(rawText, key) {
       if (!rawText || !key) return '';
+      // 中文注释：兼容 Gemini 返回的 outlineAppend/chapterPlan/volumes JSON，避免合法结构化结果被标题提取器漏掉。
+      const planning = normalizeGeminiOutlinePayload(rawText);
+      if (planning) {
+        if (key === '大纲' && planning.outlineText) return planning.outlineText;
+        if ((key === '章节索引草案' || key === '章节索引') && planning.chapterIndexText) return planning.chapterIndexText;
+        if (key === '卷纲规划' && planning.volumes.length) return JSON.stringify({ volumes:planning.volumes });
+      }
       const text = okNormalizeSectionText(rawText);
       const allKeys = OK_FIELD_KEYS;
 
@@ -37408,6 +37439,8 @@ function getWritingModelLabel() {
     }
     let oneKeyRetryTarget = '';
     let oneKeyLastConfig = null;
+    // 中文注释：失败页返回配置或全部重开时恢复这份内存快照，避免 openNewBookModal 重置作者已填内容。
+    let oneKeyFailureSnapshot = null;
     function getOneKeyRequiredModelKeys(c = okCfg) {
       const keys = [];
       const needsCore = c.genTitle || c.genSynopsis || c.genWorldView || c.genNegative || c.genOutline || c.genDetailed || c.genCover;
@@ -37444,6 +37477,12 @@ function getWritingModelLabel() {
       const nid = retrying ? currentBookId.value : createNewBook(newBookForm.value.title || '生成中...', newBookForm.value.theme, newBookForm.value.worldView);
       oneKeyRetryTarget = '';
       if (!retrying) { oneKeyLastConfig = deepClone(c); loadBook(nid); }
+      // 中文注释：记录创建前的表单和本次配置，失败后可回到同一新书继续重开，不丢作者输入。
+      if (!retrying || !oneKeyFailureSnapshot) {
+        oneKeyFailureSnapshot = { bookId:nid, form:deepClone(newBookForm.value), config:deepClone(oneKeyLastConfig || c), mode:newBookMode.value };
+      } else {
+        oneKeyFailureSnapshot.bookId = nid;
+      }
       // ═══ 关键：临时启用NSFW，确保wrapPromptWithNSFW生效 ═══
       novel.value.isAdultMode = !!c.adultMode;
       novel.value.theme = newBookForm.value.theme;
@@ -37529,8 +37568,11 @@ function getWritingModelLabel() {
             }
             if (c.genNegative) R.negative = okExtractField(text, '负面提示词');
             if (c.genOutline || c.genDetailed) {
-              R.outline = okExtractField(text, '大纲');
-              const volumePlan = await prepareVolumePlan(okExtractField(text, '卷纲规划') || text, { request:getModuleRequestConfig('settings'), signal, isCurrent:()=>currentBookId.value === nid, totalChapters:c.genDetailed ? Number(c.detailedChapters) : 0, prompt:newBookForm.value.theme });
+              const planning = normalizeGeminiOutlinePayload(text);
+              R.outline = okExtractField(text, '大纲') || planning?.outlineText || '';
+              const volumeRaw = planning?.volumes?.length ? JSON.stringify({ volumes:planning.volumes }) : (okExtractField(text, '卷纲规划') || text);
+              const planningTotal = planning?.chapterPlan?.length && !c.genDetailed ? planning.chapterPlan.length : 0;
+              const volumePlan = await prepareVolumePlan(volumeRaw, { request:getModuleRequestConfig('settings'), signal, isCurrent:()=>currentBookId.value === nid, totalChapters:c.genDetailed ? Number(c.detailedChapters) : planningTotal, prompt:newBookForm.value.theme });
               R.volumes = volumePlan.rows; R.volumeTotal = volumePlan.total;
               if (signal.aborted || currentBookId.value !== nid) throw new DOMException('开书已停止', 'AbortError');
               console.log('[一键开书-core] 大纲长度:', (R.outline||'').length);
@@ -37943,20 +37985,28 @@ function getWritingModelLabel() {
         okLastSummary.value = '以下模块生成失败：' + okFailedSteps.value.map(s => s.label).join('、') + '。可以点击下方按钮，仅重开失败模块。';
       } else if (!okLastSummary.value) {
         okLastSummary.value = '所有勾选模块均已生成成功。';
+        oneKeyFailureSnapshot = null;
       }
       oneKeyPhase.value = 'done';
       showToast(okFailedSteps.value.length ? '存在失败模块，请查看详情' : '🎉 书籍创建完成！', okFailedSteps.value.length ? 'error' : 'success');
     }
 
-    function retryOneKeyModule(stepId) {
+    function configureOneKeyRetryModules(stepIds) {
+      const ids = new Set(Array.isArray(stepIds) ? stepIds : [stepIds]);
       oneKeyRetryTarget = currentBookId.value;
-      // 中文注释：失败后不强制用户重新勾选全部配置，只把一键开书配置切到失败模块，方便单独重开。
-      const current = {
-        theme: novel.value.theme || newBookForm.value.theme || '',
-        title: novel.value.title || newBookForm.value.title || '',
-        worldView: novel.value.worldView || newBookForm.value.worldView || ''
-      };
-      newBookForm.value = { ...newBookForm.value, ...current };
+      // 中文注释：失败后只打开失败模块，成功模块不再重复请求，也不覆盖已经写入的内容。
+      const snapshot = oneKeyFailureSnapshot;
+      if (snapshot?.bookId === currentBookId.value) {
+        newBookForm.value = deepClone(snapshot.form || newBookForm.value);
+      } else {
+        const current = {
+          theme: novel.value.theme || newBookForm.value.theme || '',
+          title: novel.value.title || newBookForm.value.title || '',
+          worldView: novel.value.worldView || newBookForm.value.worldView || ''
+        };
+        newBookForm.value = { ...newBookForm.value, ...current };
+      }
+      const original = snapshot?.config || oneKeyLastConfig || {};
       okCfg.genTitle = false;
       okCfg.genSynopsis = false;
       okCfg.genWorldView = false;
@@ -37970,32 +38020,70 @@ function getWritingModelLabel() {
       okCfg.genCover = false;
       okCfg.genCharAvatar = false;
       okCfg.charCount = 0;
-      if (stepId === 'core') {
-        okCfg.genTitle = true;
-        okCfg.genSynopsis = true;
-        okCfg.genWorldView = true;
-        okCfg.genNegative = true;
-        okCfg.genOutline = true;
-        okCfg.genDetailed = chapterOutlines.value.length > 0;
-      } else if (stepId === 'chars') {
-        okCfg.charCount = Math.max(oneKeyLastConfig?.charCount || 1, structuredCharacters.value.length || 1);
-      } else if (stepId === 'presets') {
-        okCfg.genPipeline = !!oneKeyLastConfig?.genPipeline;
-        okCfg.genStyles = !!oneKeyLastConfig?.genStyles;
-        okCfg.genPresets = !!oneKeyLastConfig?.genPresets;
-      } else if (stepId === 'cover') {
-        okCfg.genCover = true;
-      } else if (stepId === 'avatars') {
-        okCfg.genCharAvatar = true;
-        okCfg.charCount = Math.max(structuredCharacters.value.length || 1, okCfg.charCount || 1);
+      if (ids.has('core')) {
+        okCfg.genTitle = !!original.genTitle;
+        okCfg.genSynopsis = !!original.genSynopsis;
+        okCfg.genWorldView = !!original.genWorldView;
+        okCfg.genNegative = !!original.genNegative;
+        okCfg.genOutline = !!original.genOutline;
+        okCfg.genDetailed = !!original.genDetailed;
       }
+      if (ids.has('chars')) {
+        okCfg.charCount = Math.max(Number(original.charCount) || 1, structuredCharacters.value.length || 1);
+        okCfg.genCharTags = original.genCharTags !== false;
+        okCfg.genCharStyle = original.genCharStyle !== false;
+        okCfg.genCharDialogues = original.genCharDialogues !== false;
+        okCfg.genCharRel = original.genCharRel !== false;
+        okCfg.genCharPrompt = original.genCharPrompt !== false;
+      }
+      if (ids.has('presets')) {
+        okCfg.genPipeline = !!original.genPipeline;
+        okCfg.genStyles = !!original.genStyles;
+        okCfg.genPresets = !!original.genPresets;
+        okCfg.styleCount = Number(original.styleCount) || okCfg.styleCount;
+        okCfg.presetCount = Number(original.presetCount) || okCfg.presetCount;
+        okCfg.styleHint = original.styleHint || '';
+        okCfg.presetHint = original.presetHint || '';
+      }
+      if (ids.has('cover')) okCfg.genCover = true;
+      if (ids.has('avatars')) {
+        okCfg.genCharAvatar = true;
+        okCfg.charCount = Math.max(structuredCharacters.value.length || 1, Number(original.charCount) || 1);
+      }
+      okCfg.unfinishedMode = snapshot?.config ? !!snapshot.config.unfinishedMode : !!novel.value.unfinishedMode;
       newBookAdvancedOpen.value = true;
-      okSec.settings = stepId === 'core' || stepId === 'cover';
-      okSec.chars = stepId === 'chars' || stepId === 'avatars';
-      okSec.outline = stepId === 'core';
-      okSec.presets = stepId === 'presets';
+      okSec.settings = ids.has('core') || ids.has('cover');
+      okSec.chars = ids.has('chars') || ids.has('avatars');
+      okSec.outline = ids.has('core');
+      okSec.presets = ids.has('presets');
       oneKeyPhase.value = 'config';
+    }
+
+    function retryOneKeyModule(stepId) {
+      configureOneKeyRetryModules([stepId]);
       showToast('已切换为失败模块重开模式：' + stepId, 'info');
+    }
+
+    function returnToOneKeyConfig() {
+      // 中文注释：返回配置只恢复界面状态，不调用会清空表单的 openNewBookModal。
+      if (oneKeyFailureSnapshot?.bookId === currentBookId.value) {
+        newBookForm.value = deepClone(oneKeyFailureSnapshot.form || newBookForm.value);
+        if (oneKeyFailureSnapshot.config) Object.assign(okCfg, deepClone(oneKeyFailureSnapshot.config));
+        newBookMode.value = oneKeyFailureSnapshot.mode || 'manual';
+        oneKeyRetryTarget = currentBookId.value;
+      }
+      oneKeyPhase.value = 'config';
+      newBookAdvancedOpen.value = true;
+      newBookCloseBaseline = getNewBookCloseSnapshot();
+      showToast('已恢复上次配置和已写入内容', 'info');
+    }
+
+    async function retryAllOneKeyModules() {
+      const failed = okFailedSteps.value.map(step => step.id).filter(Boolean);
+      if (!failed.length) return;
+      configureOneKeyRetryModules(failed);
+      showToast('正在全部重开失败模块，已完成内容会保留', 'info');
+      await startOneKeyGeneration();
     }
 
 
@@ -38048,6 +38136,8 @@ function getWritingModelLabel() {
 
     function openNewBookModal() {
       newBookMode.value = 'manual';
+      oneKeyFailureSnapshot = null;
+      oneKeyRetryTarget = '';
       newBookForm.value = { theme: '', title: '', worldView: '', charCount: 3, strictTheme: false };
       okCfg.strictTheme = false;
       okCfg.unfinishedMode = false;
@@ -41269,7 +41359,7 @@ function getWritingModelLabel() {
       isFirstRunGuide, canViewEarlierAnnouncement, canViewNewerAnnouncement, viewEarlierAnnouncement, viewNewerAnnouncement, startWebAnnouncementSwipe, finishWebAnnouncementSwipe,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,
       showImportExport, showNewBook, showBookEditor, showSnapshots, showSettings_modal,
-      newBookForm, bookEditorDraft, bookEditorError, isOneKeyCreating, oneKeyPhase, newBookMode, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule,
+      newBookForm, bookEditorDraft, bookEditorError, isOneKeyCreating, oneKeyPhase, newBookMode, newBookAdvancedOpen, oneKeyAutoRetry, toggleOneKeyAutoRetry, okSec, okCfg, okSteps, okStream, okEstimate, okFailedSteps, okLastSummary, startOneKeyGeneration, interruptOneKey, retryOneKeyModule, retryAllOneKeyModules, returnToOneKeyConfig,
       teamPhase, teamBrief, teamReplanInput, teamPlan, teamPlanRaw, teamPlanNeedsManual, teamSkipPlanConfirm, teamPlanOptions, teamPlanRequestEstimate, teamBlocks, teamDraft, teamReview, teamRawView, teamRawSource, teamRawText, openTeamBookMode, backToManualBook, splitTeamPlan, setTeamPlanConfirmPreference, acceptTeamPlan, retryTeamPlanner, startTeamGeneration, retryIncompleteTeamBlocks, retryTeamBlock, viewTeamRaw, stopTeamBook, commitTeamDraft, commitPartialTeamDraft, buildTeamSettingTable,
       availableModels, modelSearch, manualMainModel, isLoadingModels, moduleModelConfig, getModelForModule,
       currentApiKey, isModuleRequestReady, writingGenerationReady, oneKeyGenerationReady, activeBranchId, branchList,
@@ -41332,7 +41422,7 @@ function getWritingModelLabel() {
       showCharacterDraftReview, isGeneratingCharacterDraft, characterDraftReview, characterDraftCounts,
       requestCloseCharacterDraftReview, stopCharacterDraftGeneration, setCharacterDraftItemDecision, setCharacterDraftTargetDecision,
       getCharacterDraftKindLabel, getCharacterDraftKindStyle, getCharacterDraftRelationOptions, refreshCharacterDraftRelationItem, applyCharacterAiDraft,
-      getCompletionsUrl, okStreamFetch, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, buildAiResponseGate, assertAiResponseGate,
+      getCompletionsUrl, okStreamFetch, normalizeGeminiOutlinePayload, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, normalizePromptPipeline, buildFullSystemPrompt: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt, renderChapterImageEditor, switchInlineImageVersion,
