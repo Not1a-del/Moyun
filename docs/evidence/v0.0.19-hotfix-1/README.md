@@ -14,7 +14,10 @@
 | tablet-light-browser-bars.png | 1024×1366 触屏平板模拟工具栏，双栏和底部操作保留 |
 | tablet-dark-keyboard.png | 1024×768 平板模拟键盘与顶部偏移 |
 | desktop-light-settings.png | 1280×800 电脑设置布局 |
-| manifest.json | 上述机器结果／截图的字节数与 SHA-256，README 不计入 |
+| public-release-results.json / formal-release-results.json | 使用修正刷新等待后的脚本，两站各 18/18 线上结果；包括全部 8 个启动文件原始字节 SHA-256、四组尺寸主题与真实入口点击 |
+| formal-first-attempt.json / formal-transition-attempt.json | 正式站前两次未通过的脚本结果，分别为刷新旧状态、动画中按钮尺寸；不计入通过 |
+| release-receipt.json | 运行候选、账号、两站 Pages 部署与线上结果摘要 |
+| manifest.json | 上述机器结果／截图的字节数与 SHA-256，README 不计入；文本按 Git 原始 LF 字节核对，Windows 检出后需先归一化换行 |
 
 主要命令：`npm.cmd run gate:browser`。其中手机入口 `node scripts/v19-outline-review-browser.cjs --mobile-layout`，平板再加 `--tablet-layout`，两项均已纳入门禁。补充检查使用本机 `.ui-check/mobile-hotfix/extra/run.cjs`，其输入与步骤记录在[完整修复报告](../../V0.0.19_MOBILE_HOTFIX_REPORT.md)；该临时补充脚本不作为发布门禁依赖。
 

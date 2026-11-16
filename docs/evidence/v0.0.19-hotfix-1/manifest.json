@@ -13,6 +13,21 @@
       "sha256": "971664343a9bb37755a3a87d5b3c58238d1f4f88adb616fe5da2bff0aa59230f"
     },
     {
+      "file": "formal-first-attempt.json",
+      "bytes": 3643,
+      "sha256": "db3ac5ebc4ca99d60b9f63c4b840613644c7cca2a40eda5b5c8641797233cfcc"
+    },
+    {
+      "file": "formal-release-results.json",
+      "bytes": 5901,
+      "sha256": "31fda49101c233e270fd1192c83f10b9078eef55d91e7ff77affe33429e7d7ae"
+    },
+    {
+      "file": "formal-transition-attempt.json",
+      "bytes": 3659,
+      "sha256": "d977831a282b6095b3cdc09eb31c7ebe76c50d85d8e94b3a7b7a3ea13e4be540"
+    },
+    {
       "file": "gate-results.json",
       "bytes": 7256,
       "sha256": "27f4f668c793d9aeb58a013a46bcc71648c924a82ad576b7644cd8ae21edaaf9"
@@ -36,6 +51,16 @@
       "file": "mobile-results.json",
       "bytes": 257746,
       "sha256": "60ecc18441eaf68ff9a99ecd244931f539fcd85748f1b24175604911eadeef2b"
+    },
+    {
+      "file": "public-release-results.json",
+      "bytes": 5901,
+      "sha256": "05791a63b9792d887805cc6757286a7ee86173ddd626ff33040bc261c295f6ff"
+    },
+    {
+      "file": "release-receipt.json",
+      "bytes": 648,
+      "sha256": "cbb91e43a824ef6ebc26d48e057c92456befb58241af28761f622fc6d5be6990"
     },
     {
       "file": "tablet-dark-keyboard.png",

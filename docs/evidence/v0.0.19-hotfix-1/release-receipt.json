@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-11-16T14:35:20.108Z",
+  "runtimeCandidate": "ccdc2e1d1fc04e256901567103d393f3fd82e753",
+  "actor": "yydcm-129",
+  "public": {
+    "url": "https://yydcm-129.github.io/Moyun/",
+    "repo": "yydcm-129/Moyun",
+    "branch": "main",
+    "pagesSource": "main:/",
+    "run": 43885286398,
+    "runNumber": 16,
+    "status": "success",
+    "checks": 18
+  },
+  "formal": {
+    "url": "https://not1a-del.github.io/Moyun/",
+    "repo": "Not1a-del/Moyun",
+    "branch": "main",
+    "pagesSource": "main:/",
+    "run": 43885754396,
+    "runNumber": 82,
+    "status": "success",
+    "checks": 18
+  },
+  "runtimeUnchangedInReceipt": true
+}
