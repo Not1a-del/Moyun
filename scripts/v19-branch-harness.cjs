@@ -19,7 +19,7 @@ function branchHarness(){
  c.novelVolumes=computed(()=>c.novel.value.volumes);
  vm.createContext(c);
  vm.runInContext(section('    const visibleChapters = computed(', '    const chapterWordCountCache')+';globalThis.visibleChapters=visibleChapters;',c);
- vm.runInContext(fn('normalizeChapterOutline')+'\n'+section('    function getBranchForkEnd(', '    function markStale(')+'\n'+fn('canChangeBranch')+'\n'+section('    let branchForkPending =', '    function renameBranch(')+'\n'+fn('switchBranch'),c);
+ vm.runInContext(fn('normalizeNovelVolumes')+'\n'+fn('normalizeChapterOutline')+'\n'+section('    function getBranchForkEnd(', '    function markStale(')+'\n'+fn('canChangeBranch')+'\n'+section('    let branchForkPending =', '    function renameBranch(')+'\n'+fn('switchBranch'),c);
  c.chapters.value=Array.from({length:6},(_,i)=>({id:'c'+(i+1),branchId:'main',title:'标题'+(i+1),content:'正文'+(i+1),summary:'摘要'+(i+1),versions:[{content:'旧稿'+(i+1)}],summaryCandidate:{content:'候选'+(i+1),incomplete:true}}));
  const main={chapterOutlines:Array.from({length:8},(_,i)=>({id:'o'+(i+1),chapterNo:i+1,title:'细纲'+(i+1),content:'主线细纲'+(i+1),history:[{content:'旧细纲',at:1}]})),chapterIndexDrafts:Array.from({length:8},(_,i)=>({chapterNo:i+1,title:'索引'+(i+1)})),foreshadowMatrix:[{id:'dark',setupChapter:'2',upgradeChapter:'3',resolvedChapter:'6',status:'回收',note:'原计划'}],staleMarks:[]};
  c.branchData.value=c.normalizeBranchData({},main);c.loadBranchScopedData('main');
@@ -31,6 +31,7 @@ function branchHarness(){
  c.novel.value.volumes=[{id:'v1',startChapter:1,endChapter:3,handoffSummaries:{main:{content:'前三章交接',actualOutline:'实际卷纲',branchId:'main'}}},{id:'v2',startChapter:4,endChapter:6,handoffSummaries:{main:{content:'后半卷交接',branchId:'main'}}}];
  c.modPrivateData.value.main=c.chapters.value.map(ch=>({chapterId:ch.id,branchId:'main',text:'MOD记忆'+ch.id}));
  images.set('img_v17_book:c1:插图:0',{versions:[{src:'原图'}],current:0});images.set('img_c2_1',{src:'旧格式原图'});
+ c.novel.value.volumes=c.normalizeNovelVolumes(c.novel.value.volumes);
  return {c,toasts,saves,images,clone,fn,source};
 }
 module.exports={branchHarness,source,section,fn,clone};

@@ -34,7 +34,8 @@ const browserSteps = [
   { id: 'v18-browser-legacy', title: '浏览器回归（--legacy 对照）', args: ['scripts/v18-browser.cjs', '--legacy'], browser: true },
   { id: 'v19-planning-recovery', title: '通用规划解析与中断恢复（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--planning-recovery'], browser: true },
   { id: 'v19-manual-planning', title: '手动选择原文与分区填充（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--manual-planning'], browser: true },
-  { id: 'v19-volume-classification', title: '真实文本分卷、接受和刷新（浏览器本地重放）', args: ['scripts/v19-outline-review-browser.cjs', '--volume-classification'], browser: true }
+  { id: 'v19-volume-classification', title: '真实文本分卷、接受和刷新（浏览器本地重放）', args: ['scripts/v19-outline-review-browser.cjs', '--volume-classification'], browser: true },
+  { id: 'v19-branch-context', title: '三层分支实际请求隔离与1116公告（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--branch-context'], browser: true }
 ];
 
 const tail = (text, n) => String(text || '').split(/\r?\n/).slice(-n).join('\n');

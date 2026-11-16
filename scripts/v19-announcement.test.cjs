@@ -21,8 +21,12 @@ function app(seen = {}, width = 360, singleNotice = false) {
   return {state,records};
 }
 
-test('historical notices match their exact original objects', () => {
-  assert.equal(list.length, history.length);
+test('1116 notice leads the list and historical notices retain their exact original objects', () => {
+  assert.equal(list.length, history.length + 1);
+  assert.equal(list[0].id, 'web-2026-11-16-1116-update');
+  assert.equal(list[0].title, '1116更新');
+  assert.equal(list[0].publishedAt, '2026-11-16');
+  assert.doesNotMatch(JSON.stringify(list[0]), /v0\.0\.19/);
   assert.equal(new Set(list.map(item=>item.id)).size, list.length);
   history.forEach((commit,index) => {
     const original = execFileSync('git', ['-C',root,'show',commit+':source/moyun.single.html'], {encoding:'utf8',maxBuffer:12*1024*1024});
@@ -30,7 +34,7 @@ test('historical notices match their exact original objects', () => {
     const end = original.indexOf(String.fromCharCode(10) + '});', start) + 4;
     assert.ok(start >= 0 && end > start, commit);
     const expected = new Function(original.slice(start,end) + ';return WEB_UPDATE_ANNOUNCEMENT;')();
-    assert.deepEqual(list[index], expected, commit);
+    assert.deepEqual(list[index + 1], expected, commit);
   });
 });
 

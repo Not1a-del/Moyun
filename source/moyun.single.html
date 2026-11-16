@@ -9020,6 +9020,28 @@ const MOYUN_FIRST_RUN_GUIDE = Object.freeze({
 
 /* 网页更新公告：历史原文按发布日期从新到旧保留，新手说明不参与翻阅。 */
 const WEB_UPDATE_ANNOUNCEMENTS = Object.freeze([
+  Object.freeze({
+    id: 'web-2026-11-16-1116-update',
+    badge: '网页更新',
+    title: '1116更新',
+    publishedAt: '2026-11-16',
+    message: '1116 更新：完善分支隔离、模型返回解析和手动整理，并补齐团队开书、卷纲交接与写作上下文保护。点「我知道了」后，这条不会再弹。',
+    sections: Object.freeze([
+      Object.freeze({ key:'group-1116', kind:'group', title:'1116 变更', body:'' }),
+      Object.freeze({ key:'branch-context-isolation', tone:'new', title:'分支上下文独立', body:'正文、总纲、卷纲、细纲、摘要、记忆、喜欢范文和卷末交接都按当前分支读取。支线可以继续分支，分支之间互不覆盖；切换分支后，下一次 AI 请求只带当前分支的内容。' }),
+      Object.freeze({ key:'planning-fallback', tone:'new', title:'模型返回的分层兜底', body:'卷纲规划优先识别 JSON，再识别卷标题、章节范围和字段；格式仍无法确认时保留完整原文，进入手动选择。即使自动识别成功，也可以改用手动分配，避免错误结果覆盖已有大纲和细纲。' }),
+      Object.freeze({ key:'team-book-and-writing', tone:'new', title:'团队开书与写作输入', body:'团队开书支持逐块生成、流式查看、停止后保留已完成内容和失败块重试。正文增加本轮优先要求，先判断是否冲突，再决定是否创建分支；已有大纲、细纲和卷纲会在审阅后再写入。' }),
+      Object.freeze({ key:'volume-toc-handoff', tone:'new', title:'分卷目录与卷末交接', body:'目录按卷分组，卷末交接可以展开、修改和重新生成，目录、总结页与正文读取保持同步。后续细纲只发送标题，并再次强调本章停笔边界，减少提前写后续剧情。' }),
+      Object.freeze({ key:'favorites-and-style-source', tone:'new', title:'喜欢范文与文风来源', body:'章节支持整篇喜欢和段落喜欢，喜欢内容可集中查看，也可以作为文风来源或提炼成新的文风。素材随书保存，跨书副本与分支数据不会依赖原书临时读取。' }),
+      Object.freeze({ key:'planning-review-expansion', tone:'new', title:'大纲与细纲工作台', body:'AI 修改先在底部流式展示，完成后通过对比弹窗审阅。可根据细纲创建更多卷纲，在未写正文的位置增加新剧情章节，保留已有内容；也支持细纲反推大纲和按书启用未完模式。' }),
+      Object.freeze({ key:'context-api-config', tone:'new', title:'上下文和模型分区', body:'沉浸写作与团队开书可分别选用模型，团队内部模块也可单独调整，并可选择是否复用到已有书籍。设置说明支持搜索；API 配置输入框使用浮动标签，长内容也能分清每一项。' }),
+      Object.freeze({ key:'summary-storage-protection', tone:'new', title:'补摘要与保存保护', body:'目录底部可勾选章节补摘要，确认费用后才请求；停止后保留已完成摘要和未完成候选。前文字数上限可调整，较早内容由摘要和记忆补充；保存会排队并对偶发错误重试，失败时提示保留页面和备份。' }),
+      Object.freeze({ key:'planning-recovery-fixes', tone:'fix', title:'解析失败与中断保护', body:'修复真实模型返回文本无法分卷、坏 JSON 阻挡文本兜底、失败后猜测均分和原文丢失的问题。一次格式修复仍失败时不改旧数据，并提供手动整理入口。' }),
+      Object.freeze({ key:'group-howto-1116', kind:'group', title:'怎么用', body:'' }),
+      Object.freeze({ key:'howto-1116', title:'先核对再继续写', body:'切换到目标分支后再生成正文，AI 会读取当前分支的大纲、细纲、卷纲、摘要和记忆。看到模型原文无法自动分类时，打开“手动整理原文”，选择文字并指定目标分区；自动结果也可以从审阅底部改为手动选择。' })
+    ]),
+    acknowledge: '我知道了'
+  }),
   // 来源：114c9be
   Object.freeze({
     id: 'web-2026-10-24-1024-update',
@@ -17330,10 +17352,14 @@ function copyLastChapterContextText() {
           if (backupBook.chapterOutlines) chapterOutlines.value = deepClone(backupBook.chapterOutlines);
           if (backupBook.chapterIndexDrafts) chapterIndexDrafts.value = normalizeChapterIndexDrafts(backupBook.chapterIndexDrafts);
           if (backupBook.foreshadowMatrix) foreshadowMatrix.value = normalizeForeshadowMatrix(backupBook.foreshadowMatrix);
+          const restoredPlanning = readBranchNovelPlanning(novel.value);
           branchData.value = normalizeBranchData(branchData.value);
+          // 备份中的 novel 属于当时所在分支，恢复支线备份时不能把它写到主线。
+          if (restoreBranchId !== 'main') Object.assign(novel.value, readBranchNovelPlanning(branchData.value.main));
           branchData.value.main = { chapterOutlines:deepClone(chapterOutlines.value), chapterIndexDrafts:normalizeChapterIndexDrafts(chapterIndexDrafts.value), foreshadowMatrix:normalizeForeshadowMatrix(foreshadowMatrix.value), staleMarks:branchData.value.main?.staleMarks || [], updatedAt:Date.now() };
           persistCurrentBranchData();
           if (restoreBranchId !== 'main' && branchList.value.some(item => String(item?.id || '') === restoreBranchId)) {
+            Object.assign(branchData.value[restoreBranchId], restoredPlanning);
             activeBranchId.value = restoreBranchId;
             loadBranchScopedData(restoreBranchId);
           }
@@ -17780,7 +17806,7 @@ function copyLastChapterContextText() {
           if (data.branchList) branchList.value = data.branchList;
           if (data.activeBranchId) activeBranchId.value = data.activeBranchId;
           if (!branchList.value.some(item => String(item?.id || '') === String(activeBranchId.value || 'main'))) activeBranchId.value = 'main';
-           branchData.value = normalizeBranchData(data.branchData, { chapterOutlines:data.chapterOutlines, chapterIndexDrafts:data.chapterIndexDrafts, foreshadowMatrix:data.foreshadowMatrix });
+           branchData.value = normalizeBranchData(data.branchData, { ...data.novel, chapterOutlines:data.chapterOutlines, chapterIndexDrafts:data.chapterIndexDrafts, foreshadowMatrix:data.foreshadowMatrix });
            loadBranchScopedData(activeBranchId.value);
            staleMarks.value = normalizeStaleMarks(data.staleMarks || branchData.value[activeBranchId.value]?.staleMarks);
 
@@ -18247,7 +18273,7 @@ function copyLastChapterContextText() {
       else branchList.value = [{id:'main',name:'主线',forkFromChapterId:null,forkIndex:0}];
       activeBranchId.value = book.activeBranchId || 'main';
       if (!branchList.value.some(item => String(item?.id || '') === String(activeBranchId.value || 'main'))) activeBranchId.value = 'main';
-      branchData.value = normalizeBranchData(book.branchData, { chapterOutlines:book.chapterOutlines, chapterIndexDrafts:book.chapterIndexDrafts, foreshadowMatrix:book.foreshadowMatrix });
+      branchData.value = normalizeBranchData(book.branchData, { ...book.novel, chapterOutlines:book.chapterOutlines, chapterIndexDrafts:book.chapterIndexDrafts, foreshadowMatrix:book.foreshadowMatrix });
       loadBranchScopedData(activeBranchId.value);
       staleMarks.value = normalizeStaleMarks(branchData.value[activeBranchId.value]?.staleMarks || book.staleMarks);
       // 主 API 模型保持全局设置，不从书籍 localSettings 恢复，避免切换书籍时跳回旧模型。
@@ -18267,7 +18293,7 @@ function copyLastChapterContextText() {
       for(const [key,holder] of Object.entries({nsfwSystemPrompt,nsfwInjectionPrompt,discussionPrompt,oneKeySystemPrompt}))holder.value=typeof book[key]==='string'?book[key]:_defaultWriterPromptTexts[key];
       showPromptPreview.value=false;lastSentPrompt.value=null;
       // 大纲修订是"这本书的待审阅 diff"，过去切书不换：在新书里点「接受」会把上一本书的大纲正文写进当前书。
-      restoreReviewStates(book);
+      restoreReviewStates({novel:novel.value});
       // 叠加文风存的是 writingStyles 里的 id，而文风库本身是按书的：不跟着换会静默失效或错配到同名默认文风。
       const bookStyleIds = new Set((writingStyles.value || []).map(style => style && style.id).filter(Boolean));
       activeStyleIds.value = (Array.isArray(book.activeStyleIds) ? book.activeStyleIds : []).filter(id => bookStyleIds.has(id));
@@ -21360,15 +21386,27 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if(out.chapters)out.chapters=filterRows(out.chapters);
       if(out.summaries)out.summaries=filterRows(out.summaries);
       const mapScopes=object=>Object.fromEntries(Object.entries(object||{}).filter(([id])=>selected.has(id)).map(([id,value])=>[mapId(id),value]));
-      if(out.branchData){out.branchData=mapScopes(out.branchData);for(const item of Object.values(out.branchData))for(const mark of item.staleMarks||[])mark.branchId=mapId(mark.branchId);const main=out.branchData.main||{};for(const key of ['chapterOutlines','chapterIndexDrafts','foreshadowMatrix','staleMarks'])out[key]=deepClone(main[key]||[]);}
+      if(out.branchData){
+        out.branchData=mapScopes(out.branchData);
+        for(const item of Object.values(out.branchData)){
+          Object.assign(item,readBranchNovelPlanning(item,out.novel||{}));
+          for(const mark of item.staleMarks||[])mark.branchId=mapId(mark.branchId);
+        }
+        const main=out.branchData.main||{};
+        for(const key of ['chapterOutlines','chapterIndexDrafts','foreshadowMatrix','staleMarks'])out[key]=deepClone(main[key]||[]);
+      }
       if(out.novel){
         if(out.novel.favoriteClips)out.novel.favoriteClips=filterRows(out.novel.favoriteClips);
         if(out.novel.styleSources){out.novel.styleSources=mapScopes(out.novel.styleSources);const own=new Set((out.novel.favoriteClips||[]).map(row=>row.id));for(const state of Object.values(out.novel.styleSources))for(const copy of state.copies||[])if(own.has(copy.id))copy.branchId=mapId(copy.branchId);}
-        if(out.novel.reviewStates?.manualPlanning){out.novel.reviewStates.manualPlanning=mapScopes(out.novel.reviewStates.manualPlanning);for(const [id,draft] of Object.entries(out.novel.reviewStates.manualPlanning))draft.branchId=id;}
-        for(const volume of out.novel.volumes||[]) {
-          if(volume.handoffSummaries){volume.handoffSummaries=mapScopes(volume.handoffSummaries);for(const [id,row] of Object.entries(volume.handoffSummaries))row.branchId=id;}
-          if(root.id!=='main'){const handoff=volume.handoffSummaries?.main;volume.actualSummary=handoff?.content||'';volume.actualOutline=handoff?.actualOutline||'';volume.handoffSourceHash=handoff?.sourceHash||'';}
+        // 单独导出支线后，规划、交接和手动整理草稿都跟随新主线，不能回读原主线。
+        for(const planning of [out.novel,...Object.values(out.branchData||{})]) {
+          if(planning.reviewStates?.manualPlanning){planning.reviewStates.manualPlanning=mapScopes(planning.reviewStates.manualPlanning);for(const [id,draft] of Object.entries(planning.reviewStates.manualPlanning))draft.branchId=id;}
+          for(const volume of planning.volumes||[]) {
+            if(volume.handoffSummaries){volume.handoffSummaries=mapScopes(volume.handoffSummaries);for(const [id,row] of Object.entries(volume.handoffSummaries))row.branchId=id;}
+            if(root.id!=='main'){const handoff=volume.handoffSummaries?.main;volume.actualSummary=handoff?.content||'';volume.actualOutline=handoff?.actualOutline||'';volume.handoffSourceHash=handoff?.sourceHash||'';}
+          }
         }
+        if(out.branchData?.main)Object.assign(out.novel,readBranchNovelPlanning(out.branchData.main));
       }
       const chapterIds=new Set((out.chapters||[]).map(ch=>ch.id));
       if(out.memoryLibrary){out.memoryLibrary.memories=filterRows(out.memoryLibrary.memories);out.memoryLibrary.groups=(out.memoryLibrary.groups||[]).filter(row=>row.sourceMemories?.every(item=>chapterIds.has(item.chapterId)));}
@@ -37452,7 +37490,8 @@ function getModHubPermissionLabels(mod) {
       }
 
       const hookFilter = presetLocked ? (mod => isSnowwingImportMod(mod)) : null;
-      return applyModTextHooks('buildFullSystemPrompt', parts.join('\n\n'), { novel: novel.value, chapters: options.contextChapters || chapters.value }, hookFilter);
+      // MOD 的写作上下文也只传当前分支，不能把其他线的正文交给扩展读取。
+      return applyModTextHooks('buildFullSystemPrompt', parts.join('\n\n'), { novel: novel.value, chapters: options.contextChapters || visibleChapters.value }, hookFilter);
     }
 
     // 占位变量（Part 3 中定义）
@@ -42781,7 +42820,8 @@ function getModHubPermissionLabels(mod) {
           state.copies = state.copies.filter(row => row.bookId !== bookId || favoriteMap.has(row.id)).map(row => row.bookId === bookId ? {...row,id:favoriteMap.get(row.id),key:bookId+':'+favoriteMap.get(row.id),chapterId:idMap.get(row.chapterId),branchId:id} : row);
           if(!state.copies.length)state.mode='library'; novel.value.styleSources[id]=state;
         }
-        novelVolumes.value.forEach(volume => { if(Number(volume.endChapter) <= source.length) {const handoff=getVolumeHandoff(volume,parentId);if(handoff) {volume.handoffSummaries ||= {};volume.handoffSummaries[id]={...deepClone(handoff),branchId:id};}} });
+        // 交接副本只加入新分支卷纲，不能改动上级分支的规划容器。
+        branchData.value[id].volumes.forEach(volume => { if(Number(volume.endChapter) <= source.length) {const handoff=getVolumeHandoff(volume,parentId);if(handoff) {volume.handoffSummaries ||= {};volume.handoffSummaries[id]={...deepClone(handoff),branchId:id};}} });
         cloneModMemorySummaryScopesForBranch(parentId,id,source.map(ch=>ch.id),idMap);
         activeBranchId.value=id;loadBranchScopedData(id);currentChapterIndex.value=-1;
         if(!await saveDataNow('保存完整分支副本'))throw new Error('分支副本保存失败');
@@ -43257,11 +43297,22 @@ function getWritingModelLabel() {
         return row;
       });
     }
+    function readBranchNovelPlanning(item = {}, fallback = {}) {
+      const defaults = {outline:'',volumes:[],reviewStates:{},chapterCount:0,unfinishedMode:false,unfinishedModeClosed:false,planReminded:[],outlineImpact:null}, result = {};
+      for (const [key,value] of Object.entries(defaults)) result[key] = deepClone(item[key] ?? fallback[key] ?? value);
+      result.outline = String(result.outline || '');
+      result.volumes = normalizeNovelVolumes(result.volumes);
+      return result;
+    }
     function normalizeBranchData(raw, legacy = {}) {
       const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}, result = {};
       branchList.value.forEach(branch => {
         const item = source[branch.id] || (branch.id === 'main' ? legacy : {});
-        result[branch.id] = {chapterOutlines:(item.chapterOutlines || []).map(normalizeChapterOutline),chapterIndexDrafts:normalizeChapterIndexDrafts(item.chapterIndexDrafts || []),foreshadowMatrix:normalizeForeshadowMatrix(item.foreshadowMatrix || []),staleMarks:normalizeStaleMarks(item.staleMarks || []),updatedAt:Number(item.updatedAt) || Date.now()};
+        const planning = readBranchNovelPlanning(item,legacy);
+        // 旧书只有一份待审记录时只归当时所在分支，不能复制到别的线供误接受。
+        if (!source[branch.id]?.reviewStates && branch.id !== String(activeBranchId.value || 'main')) planning.reviewStates = {};
+        // 中文注释：大纲和卷纲必须随分支保存，避免切换后正文读取到另一条线的规划。
+        result[branch.id] = {...planning,chapterOutlines:(item.chapterOutlines || []).map(normalizeChapterOutline),chapterIndexDrafts:normalizeChapterIndexDrafts(item.chapterIndexDrafts || []),foreshadowMatrix:normalizeForeshadowMatrix(item.foreshadowMatrix || []),staleMarks:normalizeStaleMarks(item.staleMarks || []),updatedAt:Number(item.updatedAt) || Date.now()};
       });
       trimBranchStaleMarks(result); return result;
     }
@@ -43273,7 +43324,8 @@ function getWritingModelLabel() {
     }
     function createBranchPlanningData(forkIndex, parentId = activeBranchId.value) {
       const end = Math.max(0, Number(forkIndex) + 1), parent = branchData.value[parentId] || {};
-      return {chapterOutlines:deepClone((parent.chapterOutlines || []).filter((row,index) => Number(row.chapterNo || index+1) <= end)),chapterIndexDrafts:deepClone((parent.chapterIndexDrafts || []).filter(row => Number(row.chapterNo) <= end)),foreshadowMatrix:branchDarklinesAtFork(parent.foreshadowMatrix,end),staleMarks:[],updatedAt:Date.now()};
+      // 待审和撤销记录属于原分支，不能带到新分支后覆盖新线的数据。
+      return {...readBranchNovelPlanning(parent,novel.value),reviewStates:{},chapterOutlines:deepClone((parent.chapterOutlines || []).filter((row,index) => Number(row.chapterNo || index+1) <= end)),chapterIndexDrafts:deepClone((parent.chapterIndexDrafts || []).filter(row => Number(row.chapterNo) <= end)),foreshadowMatrix:branchDarklinesAtFork(parent.foreshadowMatrix,end),staleMarks:[],updatedAt:Date.now()};
     }
 
 
@@ -43282,7 +43334,8 @@ function getWritingModelLabel() {
       const id = String(activeBranchId.value || 'main');
       const planning = id === 'main' ? { chapterOutlines:deepClone(chapterOutlines.value), chapterIndexDrafts:normalizeChapterIndexDrafts(chapterIndexDrafts.value) }
         : { ...writeBranchPlanningRows(chapterOutlines.value,id,'chapterOutlines'), ...writeBranchPlanningRows(chapterIndexDrafts.value,id,'chapterIndexDrafts') };
-      return branchData.value[id] = { ...planning, foreshadowMatrix:normalizeForeshadowMatrix(deepClone(foreshadowMatrix.value)), staleMarks:normalizeStaleMarks(staleMarks.value), updatedAt:Date.now() };
+      // 中文注释：正文生成读取的总纲、卷纲和待审状态也必须写入当前分支，不能留在共享 novel 顶层。
+      return branchData.value[id] = { ...planning, ...readBranchNovelPlanning(novel.value), foreshadowMatrix:normalizeForeshadowMatrix(deepClone(foreshadowMatrix.value)), staleMarks:normalizeStaleMarks(staleMarks.value), updatedAt:Date.now() };
     }
     function loadBranchScopedData(branchId = activeBranchId.value) {
       const item = branchData.value[String(branchId || 'main')] || {};
@@ -43290,6 +43343,9 @@ function getWritingModelLabel() {
       chapterIndexDrafts.value = readBranchPlanningRows(item,branchId,'chapterIndexDrafts');
       foreshadowMatrix.value = normalizeForeshadowMatrix(deepClone(item.foreshadowMatrix || []));
       staleMarks.value = normalizeStaleMarks(item.staleMarks || []);
+      // 中文注释：切换分支后立即替换规划上下文，保证下一次正文请求不会串到上一条线。
+      Object.assign(novel.value, readBranchNovelPlanning(item));
+      if (typeof restoreReviewStates === 'function') restoreReviewStates({novel:novel.value});
     }
 
     function markStale(kind, targetId, reason, srcId = '', branchId = activeBranchId.value) {
@@ -47569,7 +47625,7 @@ function getWritingModelLabel() {
             if (data.characters) structuredCharacters.value = data.characters;
             if (data.branchList) branchList.value = data.branchList;
             if (data.activeBranchId) activeBranchId.value = data.activeBranchId;
-            branchData.value = normalizeBranchData(data.branchData, { chapterOutlines:data.chapterOutlines, chapterIndexDrafts:data.chapterIndexDrafts, foreshadowMatrix:data.foreshadowMatrix });
+            branchData.value = normalizeBranchData(data.branchData, { ...data.novel, chapterOutlines:data.chapterOutlines, chapterIndexDrafts:data.chapterIndexDrafts, foreshadowMatrix:data.foreshadowMatrix });
             loadBranchScopedData(activeBranchId.value);
             staleMarks.value = normalizeStaleMarks(data.staleMarks || branchData.value[activeBranchId.value]?.staleMarks);
             if (data.summaries) summaries.value = data.summaries;
