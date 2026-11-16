@@ -15,7 +15,7 @@
 4. 检查 `git diff --check`、真实暂存区和待提交清单；只暂存本轮明确文件，不使用 `git add .`。
 5. 只有用户明确批准上线后，才上传。先用 `git ls-remote` 核对 `upstream`（Not1a-del/Moyun）与 `origin`（yydcm-129/Moyun）的 `main`，取回远端引用并确认它们都是待发布提交的祖先；普通快进推送 `HEAD:main`，先 `upstream`、再 `origin`，不得 force push。不必切换当前开发分支。
 6. GitHub Pages 会自动重新构建；通常在数分钟内生效。
-7. 硬刷新线上页面，用桌面与约 `390px` 手机视口复验加载、连接中心、正文主操作和本轮变更；若包含公告，再验证首次用户与已读用户状态。当前可用 `node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/`，本机需要代理时追加 `--proxy http://127.0.0.1:7890`。脚本核对线上运行文件与本地 SHA-256、公告及设置入口，证据写入 `.ui-check/release-smoke/`。
+7. 硬刷新线上页面，用桌面与约 `390px` 手机视口复验加载、连接中心、正文主操作和本轮变更；若包含公告，再验证首次用户与已读用户状态。当前可用 `node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/`，本机需要代理时追加 `--proxy http://127.0.0.1:7890`。脚本核对线上运行文件与 Git 发布提交原始字节的 SHA-256、公告及设置入口（Windows 工作目录的 CRLF 会在提交时标准化为 LF，不能直接拿工作目录原始字节代替部署基准），证据写入 `.ui-check/release-smoke/`。
 
 8. 核对两仓远端 SHA 一致并记录 Pages 部署状态、线上资产指纹、测试范围、未覆盖边界及回滚点；同时更新 `UPDATE_LOG.md`、`TEST_REPORT.md` 和 `HANDOFF.md` 文首。旧阶段的“未上传”记录保留为历史，以最新发布回执为准。
 

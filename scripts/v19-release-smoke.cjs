@@ -1,6 +1,6 @@
 'use strict';
 // 复用隔离 Edge runner；只核对部署文件和页面操作，不发送模型请求。
-const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto'),{execFileSync}=require('node:child_process');
 module.exports=async function(c){
  const root=path.resolve(__dirname,'..'),url=await c.ev(()=>location.href),label=new URL(url).hostname==='127.0.0.1'?'local':'live';
  const out=path.join(root,'.ui-check/release-smoke',label);fs.mkdirSync(out,{recursive:true});
@@ -11,12 +11,18 @@ module.exports=async function(c){
  async function search(query){await c.ev(async query=>{const input=document.querySelector('[data-settings-search-area] input');input.focus();input.value=query;input.dispatchEvent(new Event('input',{bubbles:true}));await Vue.nextTick();},query);}
  try{
   await c.send('Emulation.setFocusEmulationEnabled',{enabled:true});await c.send('Page.bringToFront');await c.send('Network.enable');await c.send('Network.setCacheDisabled',{cacheDisabled:true});
-  await check('部署入口和全部启动文件与本地构建逐字节一致',async()=>{
+  await check('部署入口和全部启动文件与对应发布基准逐字节一致',async()=>{
    const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
    const files=['index.html',...[...html.matchAll(/<(?:script|link) [^>]*?(?:src|href)="([^"]+)"/g)].map(x=>x[1])];
    assert.ok(files.length>=6,'没有收集到全部启动资源');
    const rows=await c.ev(async files=>{const rows=[];for(const file of files){const response=await fetch(new URL(file,location.href),{cache:'reload'}),bytes=await response.arrayBuffer();rows.push({file,status:response.status,bytes:bytes.byteLength,sha256:[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('')});}return rows;},files);
-   for(const row of rows){assert.equal(row.status,200,row.file);const expected=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,row.file.split('?')[0]))).digest('hex');assert.equal(row.sha256,expected,row.file+' 不是当前构建');}return rows;
+   for(const row of rows){
+    assert.equal(row.status,200,row.file);const file=row.file.split('?')[0].replace(/^[.][/]/,''),local=fs.readFileSync(path.join(root,file));
+    // Windows 提交时会标准化换行；线上必须逐字节匹配 Git 中真正发布的文件。
+    const bytes=label==='local'?local:execFileSync('git',['show','HEAD:'+file],{cwd:root,maxBuffer:8*1024*1024});
+    if(label==='live')assert.equal(local.toString().replaceAll(String.fromCharCode(13),''),bytes.toString().replaceAll(String.fromCharCode(13),''),file+' 存在尚未提交的内容变化');
+    assert.equal(row.sha256,crypto.createHash('sha256').update(bytes).digest('hex'),row.file+' 不是当前发布基准');
+   }return{baseline:label==='local'?'工作目录原始字节':'Git HEAD 发布原始字节',files:rows};
   });
   await check('页面品牌图标实际解码成功',async()=>{const images=await c.ev(()=>[...document.querySelectorAll('img[src*="favicon"]')].map(node=>({src:node.getAttribute('src'),loaded:node.complete&&node.naturalWidth>0})));assert.ok(images.length);assert.ok(images.every(node=>node.loaded));return images;});
   for(const width of [1280,390])for(const dark of [false,true]){
