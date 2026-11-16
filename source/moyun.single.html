@@ -3307,7 +3307,7 @@ img[role="button"]:focus-visible {
       </div>
 
       <div class="divider"></div>
-      <div id="settings-search-favorites" data-settings-section="favorites">
+      <div data-settings-section="favorites">
         <label class="label">喜欢查看</label>
         <div class="flex flex-wrap gap-2 mb-2"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
         <material-list :rows="favoriteMaterialRows" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
@@ -7905,6 +7905,11 @@ img[role="button"]:focus-visible {
               <div @click="atmosphereEnabled=!atmosphereEnabled;saveData()" class="toggle-track w-9 h-5" :class="atmosphereEnabled?'toggle-on':'toggle-off'" style="width:36px;height:20px"><div class="toggle-thumb"></div></div>
             </div>
             <textarea v-model="atmospherePrompt" @change="saveData()" rows="4" class="textarea-field text-xs" placeholder="氛围增强提示词"></textarea>
+          </div>
+          <div id="settings-search-favorites" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <h3 class="text-xs font-bold mb-2">喜欢查看</h3>
+            <p class="text-xs mb-2" style="color:var(--tx3)">在预设页集中查看整篇和段落喜欢、管理范文快照，也可切换查看全部书籍。</p>
+            <button type="button" class="btn-ghost text-xs" style="min-height:44px" @click="navigateToSettingsModuleLocation({tab:'presets',section:'favorites'})">打开喜欢查看</button>
           </div>
 
           <div id="settings-search-editable-characters" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
@@ -47724,59 +47729,75 @@ function getWritingModelLabel() {
       {label:'上下文包',workbenchSection:'context'},
       {label:'记忆库',workbenchSection:'memory'}
     ];
+    // 按功能收录常用叫法；模块关键词集中在此，避免只搜得到正式名称。
+    const settingsModuleSearchKeywords = {
+      writing:'正文模型 续写模型 写作模型 提笔续写 重写模型 润色模型 章节标题模型 提炼文风模型 文风蒸馏 zhengwen xuxie',
+      supplement:'补写模型 二轮补写模型 三轮补写模型 补齐字数 补足字数 buxie',
+      'immersive-expand':'沉浸扩写模型 沉浸改写模型 选中扩写 选文改写 扩写接口',
+      'immersive-continue':'沉浸续写模型 沉浸写作模型 沉浸接口',
+      settings:'设定模型 世界观模型 简介模型 题材模型 设定补全模型',
+      character:'角色模型 人物模型 人设模型 角色补全模型 角色卡生成模型 批量角色 角色工作台',
+      imagetext:'封面提示词模型 立绘提示词模型 图片标签模型 生图关键词模型 翻译图片标签',
+      outline:'大纲模型 细纲模型 卷纲模型 分卷模型 纲要整理模型 规划模型 dagang xigang',
+      suggestion:'建议模型 预设模型 文风模型 批量文风模型 AI建议 灵感模型',
+      review:'书评模型 作品点评模型 章节点评模型 书评团模型',
+      summary:'摘要模型 补摘要模型 总结模型 记忆模型 卷末交接模型 长期总结模型',
+      comments:'评论模型 读者模型 段评模型 读者评论模型',
+      translate:'翻译模型 翻译接口 译文模型 预留翻译'
+    };
     const settingsSearchCatalog = [
-      {tab:'api',target:'settings-search-api-profiles',title:'连接中心｜API 配置',keywords:'连接 模型 服务商 API 地址 密钥 key 协议 openai gemini claude anthropic lianjie peizhi moxing fuwushang'},
-      {tab:'api',target:'settings-search-global-controls',title:'全局温度与思考强度',keywords:'采样 温度创造性 随机性 推理等级 思考预算 reasoning effort temperature wendu sikao qiangdu quanju'},
-      {tab:'api',target:'settings-search-anti-truncation',title:'Gemini 抗截断',keywords:'output reply 完整回复 工具续写 保留正文 kangjieduan jiemi gemini'},
-      {tab:'context',target:'settings-search-context-intro',title:'上下文设置说明',keywords:'提示 配置说明 模型模块 正文资料 章节历史上下文 shangxiawen'},
-      {tab:'context',target:'settings-search-team-book',title:'团队开书｜统一 API 配置',keywords:'团队开书 一句话开书 开书团队 策划员 设定员 角色员 大纲员 细纲员 审查员 API 模型 同一API 默认配置'},
-      {tab:'context',target:'settings-search-team-planner',teamBookRoutes:true,title:'团队开书｜策划员 API',keywords:'一句话开书 拆分方案 策划员 API 模型 单独调用 team planner'},
-      {tab:'context',target:'settings-search-team-settings',teamBookRoutes:true,title:'团队开书｜设定员 API',keywords:'团队开书 设定生成 设定员 API 模型 worldview'},
-      {tab:'context',target:'settings-search-team-character',teamBookRoutes:true,title:'团队开书｜角色员 API',keywords:'团队开书 角色生成 人物角色 角色员 API 模型'},
-      {tab:'context',target:'settings-search-team-outline',teamBookRoutes:true,title:'团队开书｜大纲与细纲员 API',keywords:'团队开书 大纲生成 卷纲 细纲章节 大纲员 细纲员 API 模型'},
-      {tab:'context',target:'settings-search-team-review',teamBookRoutes:true,title:'团队开书｜审查员 API',keywords:'团队开书 开书验收审查 审查员 API 模型'},
-      {tab:'context',target:'settings-search-team-book-existing-routes',teamBookRoutes:true,title:'团队开书｜已有书籍模型联动',keywords:'已有书籍 角色生成 大纲细纲 设定补充 微调模型 联动开关 是否启用'},
-      {tab:'context',target:'settings-search-context-workbench',title:'创作设定工作台与记忆库入口',keywords:'记忆库 逐章总结 项目总览 世界观 时间线 资料条目 上下文包 story bible memory jiyiku'},
-      {tab:'context',target:'settings-search-context-sources',title:'正文参考资料开关',keywords:'最近正文 完整正文 章节摘要 长期总结 细纲 最终校验 正文上下文 zhengwen zhaiyao'},
-      {tab:'context',target:'settings-search-context-full-text',title:'发送最近正文',keywords:'完整正文 最近章节全文 正文上下文 body full text zhengwen quanwen'},
-      {tab:'context',target:'settings-search-context-chapter-summary',title:'发送章节摘要',keywords:'章节摘要 最近章节总结 单章总结 chapter summary zhangjie zhaiyao'},
-      {tab:'context',target:'settings-search-context-range-summary',title:'发送长期总结',keywords:'范围总结 早期章节摘要 长期上下文 range summary changqi zongjie'},
-      {tab:'context',target:'settings-search-context-outline',title:'发送细纲',keywords:'当前章节安排 章节大纲 注入剧情计划 outline detailed outline dagang xigang'},
-      {tab:'context',target:'settings-search-context-final-check',title:'最终校验上下文',keywords:'最终检查 校验角色和剧情设定 final check zhongjian jiaoyan'},
-      {tab:'context',target:'settings-search-auto-timeline',title:'事件时间线自动补录',keywords:'章节 事件 自动提取 时间线 shijian zhuanxie'},
-      {tab:'context',target:'settings-search-compact-mode',title:'省 Token 模式',keywords:'上下文小窗口 限制章节 字数 token compact sheng token'},
-      {tab:'context',target:'settings-search-second-round',title:'二轮补写',keywords:'字数不足 追加续写 再生成 摘要缺少 erlun buxie'},
-      {tab:'context',target:'settings-search-third-round',title:'三轮摘要补写',keywords:'二轮后补摘要 额外模型请求 sanlun zhaiyao'},
-      {tab:'context',target:'settings-search-gemini-input',title:'Gemini 测试输入',keywords:'混淆输入 实验功能 gemini ceshi shuru'},
-      {tab:'context',target:'settings-search-full-chapters',title:'最近正文的章节数',keywords:'发送最近N章 几章全文 全文章数 chapters zhangjie quanwen'},
-      {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 summary zhangshu'},
-      {tab:'context',target:'settings-search-context-limits',title:'上下文截断上限',keywords:'单章正文上限 摘要上限 世界观 角色信息 大纲细纲 字符数 token 截断 xianzhi'},
-      {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 scroll dingwei'},
-      {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 review tuan pinglun'},
-      {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 inline comment suizhengwen'},
-      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 comment count pinglun shuliang'},
-      {tab:'context',target:'settings-search-stream',title:'流式输出',keywords:'关闭流式 非流式 请求方式 stream streaming shuchu'},
-      {tab:'context',target:'settings-search-timeout',title:'首字超时',keywords:'等待 首次输出 无响应 超时秒数 timeout first token shouzi chaoshi'},
-      {tab:'context',target:'settings-search-thinking',title:'显示思维链',keywords:'推理过程 思考过程 deepseek thinking sikao'},
-      {tab:'context',target:'settings-search-token-usage',title:'显示 Token 用量',keywords:'输入 输出 缓存命中 用量 usage shujuliang'},
-      {tab:'context',target:'settings-search-word-count',title:'AI 生成文本的字数参考',keywords:'大纲细纲建议角色目标长度 不影响正文长度 word count zishu'},
-      {tab:'context',target:'settings-search-outline-word-count',title:'大纲字数参考',keywords:'全书大纲生成长度 dagang zishu'},
-      {tab:'context',target:'settings-search-detailed-outline-word-count',title:'细纲字数参考',keywords:'所有章节细纲总长度 按批次平摊 xigang zishu'},
-      {tab:'context',target:'settings-search-suggestion-word-count',title:'建议字数参考',keywords:'AI建议方向长度 suggestion jianyi zishu'},
-      {tab:'context',target:'settings-search-character-word-count',title:'角色资料字数参考',keywords:'人物角色设定长度 character renwu zishu'},
-      {tab:'context',target:'settings-search-history-limit',title:'前文字数上限',keywords:'截断 省费用 旧章节 摘要 记忆 前文预算 补摘要'},
-      {tab:'context',target:'settings-search-outline-range',title:'细纲注入范围',keywords:'前文章数 后文章数 当前章节附近 细纲范围 zhigang注入'},
-      ...moduleModelConfig.map(mod=>({tab:'context',target:'settings-search-route-'+mod.key,title:'模块模型分配｜'+mod.name,keywords:mod.name+' '+mod.desc+' API 模型 路由 分配 连接 luyou fenpei '+(mod.key==='writing'?'zhengwen续写':mod.key==='supplement'?'二轮补写':mod.key==='character'?'角色人物':mod.key==='outline'?'大纲细纲':mod.key==='summary'?'章节总结':mod.key==='imagetext'?'封面立绘':mod.key==='suggestion'?'预设建议':mod.key==='review'?'书评':mod.key==='comments'?'读者评论':'')})),
-      {tab:'editable',target:'settings-search-editable-preview',title:'发送预览',keywords:'查看实际请求内容 prompt system user assistant 编辑来源 自定义楼层 tijian tishi'},
-      {tab:'editable',target:'settings-search-book-edit',title:'书籍设定与世界观',keywords:'书名 简介 负面词 题材 novel 世界观 synopsis shushe'},
-      {tab:'editable',target:'settings-search-suggestion-persona',title:'AI 建议人设',keywords:'建议提示词 生成方向 自定义身份 suggestion persona jianyi renwu'},
-      {tab:'editable',target:'settings-search-editable-prompts',title:'提示词流水线',keywords:'系统提示词 内置提示词 文风 风格 调整 核心规则 system prompt'},
-      {tab:'editable',target:'settings-search-atmosphere',title:'环境氛围增强',keywords:'氛围环境描写加强 atmosphere prompt huanjing fenwei'},
-      {tab:'editable',target:'settings-search-favorites',title:'喜欢查看',keywords:'喜欢 范文 段落 整篇 快照 全部书籍 收藏'},
-      {tab:'editable',target:'settings-search-editable-characters',title:'角色可编辑信息',keywords:'角色卡 人物描述 说话风格 台词 关系 角色专属提示词 avatar renwu'},
-      {tab:'editable',target:'settings-search-review-personas',title:'书评人设',keywords:'点评人格 书评团 persona review prompt pinglun renge'},
-      {tab:'mods',target:'settings-search-plugin-manager',title:'插件与 MOD 管理',keywords:'安装 导入 JSON 权限 事件总线 资产包 宿主弹窗 AI工具 工作流 主题 UI 开发者预览 mod plugin'},
-      {tab:'image',target:'settings-search-image',title:'生图设置',keywords:'图片 插图 NAI 服务商 模型 API 图片生成 生图密钥 比例 数量缓存 shengtu image'},
+      {tab:'api',target:'settings-search-api-profiles',title:'连接中心｜API 配置',keywords:'连接 模型 服务商 API 地址 密钥 密匙 key 协议 接口地址 接口网址 API密钥 默认模型 更换服务商 连接测试 验证连接 获取模型 模型列表 中转站 代理地址 baseurl endpoint openai gemini claude anthropic deepseek lianjie peizhi moxing fuwushang'},
+      {tab:'api',target:'settings-search-global-controls',title:'全局温度与思考强度',keywords:'采样 温度创造性 随机性 推理等级 思考预算 创意 发散 稳定性 思考深度 推理强度 思考档位 随机程度 reasoning effort temperature wendu sikao qiangdu quanju'},
+      {tab:'api',target:'settings-search-anti-truncation',title:'Gemini 抗截断',keywords:'output reply 完整回复 工具续写 保留正文 回复不完整 输出不完整 被截断 断流 截断保护 防截断 回复中断 接着输出 工具回复 function call kangjieduan jiemi gemini'},
+      {tab:'context',target:'settings-search-context-intro',title:'上下文设置说明',keywords:'提示 配置说明 模型模块 正文资料 章节历史上下文 上下文是什么 发送什么 AI参考内容 模块说明 shangxiawen'},
+      {tab:'context',target:'settings-search-team-book',title:'团队开书｜统一 API 配置',keywords:'团队开书 一句话开书 一段话开书 一键开书 自动开书 开书团队 策划员 设定员 角色员 大纲员 细纲员 审查员 API 模型 同一API 默认配置 开书模型 统一模型 开书接口'},
+      {tab:'context',target:'settings-search-team-planner',teamBookRoutes:true,title:'团队开书｜策划员 API',keywords:'一句话开书 一段话开书 拆分方案 策划员 开书策划 灵感拆解 策划模型 策划接口 API 模型 单独调用 team planner'},
+      {tab:'context',target:'settings-search-team-settings',teamBookRoutes:true,title:'团队开书｜设定员 API',keywords:'团队开书 设定生成 设定员 世界观生成 设定员模型 设定员接口 开书设定 API 模型 worldview'},
+      {tab:'context',target:'settings-search-team-character',teamBookRoutes:true,title:'团队开书｜角色员 API',keywords:'团队开书 角色生成 人物角色 角色员 开书角色 角色员模型 角色员接口 人物团队 API 模型'},
+      {tab:'context',target:'settings-search-team-outline',teamBookRoutes:true,title:'团队开书｜大纲与细纲员 API',keywords:'团队开书 大纲生成 卷纲 细纲章节 大纲员 细纲员 开书卷纲 纲要员模型 细纲员模型 规划员 API 模型'},
+      {tab:'context',target:'settings-search-team-review',teamBookRoutes:true,title:'团队开书｜审查员 API',keywords:'团队开书 开书验收审查 审查员 冲突判断 关键事件 审核模型 审查模型 审查员模型 优先要求 最高优先要求 审查费用 API 模型'},
+      {tab:'context',target:'settings-search-team-book-existing-routes',teamBookRoutes:true,title:'团队开书｜已有书籍模型联动',keywords:'已有书籍 角色生成 大纲细纲 设定补充 微调模型 联动开关 是否启用 老书模型 旧书联动 微调开关 团队配置复用 补充设定模型'},
+      {tab:'context',target:'settings-search-context-workbench',title:'创作设定工作台与记忆库入口',keywords:'记忆库 逐章总结 项目总览 世界观 时间线 资料条目 上下文包 吃书 忘剧情 忘记设定 人物记忆 历史记忆 记忆检索 向量 向量模型 向量接口 嵌入模型 embedding story bible memory jiyiku'},
+      {tab:'context',target:'settings-search-context-sources',title:'正文参考资料开关',keywords:'最近正文 完整正文 章节摘要 长期总结 细纲 最终校验 正文上下文 参考开关 参考资料 发送资料 携带内容 AI读什么 zhengwen zhaiyao'},
+      {tab:'context',target:'settings-search-context-full-text',title:'发送最近正文',keywords:'完整正文 最近章节全文 正文上下文 发送前文 参考原文 携带正文 历史正文 body full text zhengwen quanwen'},
+      {tab:'context',target:'settings-search-context-chapter-summary',title:'发送章节摘要',keywords:'章节摘要 最近章节总结 单章总结 携带摘要 参考摘要 发送总结 前情提要 chapter summary zhangjie zhaiyao'},
+      {tab:'context',target:'settings-search-context-range-summary',title:'发送长期总结',keywords:'范围总结 早期章节摘要 长期上下文 历史总结 长篇总结 旧剧情回顾 长期记忆 range summary changqi zongjie'},
+      {tab:'context',target:'settings-search-context-outline',title:'发送细纲',keywords:'当前章节安排 章节大纲 注入剧情计划 参考细纲 携带细纲 按纲写作 剧情范围 outline detailed outline dagang xigang'},
+      {tab:'context',target:'settings-search-context-final-check',title:'最终校验上下文',keywords:'最终检查 校验角色和剧情设定 设定核对 剧情检查 人物一致性 防跑偏 final check zhongjian jiaoyan'},
+      {tab:'context',target:'settings-search-auto-timeline',title:'事件时间线自动补录',keywords:'章节 事件 自动提取 时间线 事件记录 自动记事 剧情年表 时间顺序 shijian zhuanxie'},
+      {tab:'context',target:'settings-search-compact-mode',title:'省 Token 模式',keywords:'上下文小窗口 限制章节 字数 token 省钱 省费用 节约费用 精简上下文 减少输入 小窗口 compact sheng token'},
+      {tab:'context',target:'settings-search-second-round',title:'二轮补写',keywords:'字数不足 追加续写 再生成 摘要缺少 补写 字数不够 没写够 补足字数 自动补写 第二轮 二次生成 续写后自动补写 补摘要 补全摘要 补写费用 erlun buxie'},
+      {tab:'context',target:'settings-search-third-round',title:'三轮摘要补写',keywords:'二轮后补摘要 额外模型请求 补写 补摘要 补全摘要 摘要缺失 没有摘要 第三轮 三次生成 摘要补录 补写费用 sanlun zhaiyao'},
+      {tab:'context',target:'settings-search-gemini-input',title:'Gemini 测试输入',keywords:'混淆输入 输入改写 Gemini输入改写 用户输入改写 输入混淆 实验功能 gemini ceshi shuru'},
+      {tab:'context',target:'settings-search-full-chapters',title:'最近正文的章节数',keywords:'发送最近N章 几章全文 全文章数 前文章数 参考几章 正文章数 携带几章 最近几章 chapters zhangjie quanwen'},
+      {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 摘要几章 参考多少章 总结章数 前情章数 summary zhangshu'},
+      {tab:'context',target:'settings-search-context-limits',title:'上下文截断上限',keywords:'单章正文上限 摘要上限 世界观 角色信息 大纲细纲 字符数 token 截断 单章字数限制 摘要字数限制 世界观长度 角色长度 设定字数 发送长度 xianzhi'},
+      {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 跳到最新章节 跳转正文 生成时跳转 滚动位置 scroll dingwei'},
+      {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 开启书评 关闭书评 自动书评 作品评价 读者反馈 review tuan pinglun'},
+      {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 同时评论 合并书评 随文点评 一次请求 inline comment suizhengwen'},
+      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 评论几条 读者人数 评论条数 点评数量 comment count pinglun shuliang'},
+      {tab:'context',target:'settings-search-stream',title:'流式输出',keywords:'关闭流式 非流式 请求方式 边写边显示 逐字显示 实时输出 一次性返回 流式开关 stream streaming shuchu'},
+      {tab:'context',target:'settings-search-timeout',title:'首字超时',keywords:'等待 首次输出 无响应 超时秒数 时间 等待时间 首字等待 超时时间 不出字 没反应 卡住 一直转圈 响应时间 秒数 timeout first token shouzi chaoshi'},
+      {tab:'context',target:'settings-search-thinking',title:'显示思维链',keywords:'推理过程 思考过程 思维过程 思考显示 隐藏思考 推理可见 reasoning cot deepseek thinking sikao'},
+      {tab:'context',target:'settings-search-token-usage',title:'显示 Token 用量',keywords:'输入 输出 缓存命中 用量 消耗 花费 费用统计 输入输出 缓存用量 令牌 token统计 usage shujuliang'},
+      {tab:'context',target:'settings-search-word-count',title:'AI 生成文本的字数参考',keywords:'大纲细纲建议角色目标长度 不影响正文长度 字数控制 生成长度 目标字数 输出字数 word count zishu'},
+      {tab:'context',target:'settings-search-outline-word-count',title:'大纲字数参考',keywords:'全书大纲生成长度 大纲长度 总纲字数 大纲目标字数 dagang zishu'},
+      {tab:'context',target:'settings-search-detailed-outline-word-count',title:'细纲字数参考',keywords:'所有章节细纲总长度 按批次平摊 细纲长度 章纲字数 细纲目标字数 xigang zishu'},
+      {tab:'context',target:'settings-search-suggestion-word-count',title:'建议字数参考',keywords:'AI建议方向长度 建议长度 灵感长度 建议目标字数 suggestion jianyi zishu'},
+      {tab:'context',target:'settings-search-character-word-count',title:'角色资料字数参考',keywords:'人物角色设定长度 人设长度 角色字数 人物资料长度 character renwu zishu'},
+      {tab:'context',target:'settings-search-history-limit',title:'前文字数上限',keywords:'截断 省费用 旧章节 摘要 记忆 前文预算 补摘要 前文长度 前文限制 历史字数 吃书 少带前文 省钱 上下文预算'},
+      {tab:'context',target:'settings-search-outline-range',title:'细纲注入范围',keywords:'前文章数 后文章数 当前章节附近 细纲范围 前后细纲 后续章节 后续预告 提前写 抢跑 剧透 参考细纲范围 zhigang注入'},
+      ...moduleModelConfig.map(mod=>({tab:'context',target:'settings-search-route-'+mod.key,title:'模块模型分配｜'+mod.name,keywords:mod.name+' '+mod.desc+' API 模型 路由 分配 连接 luyou fenpei '+(settingsModuleSearchKeywords[mod.key]||'')})),
+      {tab:'editable',target:'settings-search-editable-preview',title:'发送预览',keywords:'查看实际请求内容 真实上下文 实际上下文 请求体 发给模型 发给AI 提示词预览 最近请求 最近发送 编辑来源 自定义楼层 prompt system user assistant tijian tishi'},
+      {tab:'editable',target:'settings-search-book-edit',title:'书籍设定与世界观',keywords:'书名 简介 负面词 题材 修改书名 作品介绍 背景设定 禁止内容 负面提示词 novel 世界观 synopsis shushe'},
+      {tab:'editable',target:'settings-search-suggestion-persona',title:'AI 建议人设',keywords:'建议提示词 生成方向 自定义身份 建议助手 建议身份 灵感助手 建议人设 suggestion persona jianyi renwu'},
+      {tab:'editable',target:'settings-search-editable-prompts',title:'提示词流水线',keywords:'系统提示词 内置提示词 文风 风格 调整 核心规则 流水线编辑 提示词顺序 系统规则 提示词分层 system prompt'},
+      {tab:'editable',target:'settings-search-atmosphere',title:'环境氛围增强',keywords:'氛围环境描写加强 五感 视觉 嗅觉 触觉 气氛 场景描写 环境描写 atmosphere prompt huanjing fenwei'},
+      {tab:'editable',target:'settings-search-favorites',title:'喜欢查看',keywords:'喜欢 范文 段落 整篇 快照 全部书籍 收藏 爱心 点赞 喜欢列表 收藏夹 满意片段 原文快照'},
+      {tab:'editable',target:'settings-search-editable-characters',title:'角色可编辑信息',keywords:'角色卡 人物描述 说话风格 台词 关系 角色专属提示词 人设 口癖 人物性格 人物关系 角色设定 修改角色 avatar renwu'},
+      {tab:'editable',target:'settings-search-review-personas',title:'书评人设',keywords:'点评人格 书评团 读者人设 评论员 书评口吻 点评风格 书评提示词 persona review prompt pinglun renge'},
+      {tab:'mods',target:'settings-search-plugin-manager',title:'插件与 MOD 管理',keywords:'安装 导入 JSON 权限 事件总线 资产包 宿主弹窗 AI工具 工作流 主题 UI 开发者预览 插件安装 插件导入 插件权限 插件启用 插件关闭 扩展功能 mod plugin'},
+      {tab:'image',target:'settings-search-image',title:'生图设置',keywords:'图片 插图 NAI 服务商 模型 API 图片生成 生图密钥 比例 数量缓存 画图 生图接口 图片接口 画师预设 生图余额 图片缓存 插图数量 横图 竖图 方图 canary novelai shengtu image'},
     ];
     function normalizeSettingsSearchText(value) {
       return String(value == null ? '' : value).normalize('NFKC').toLocaleLowerCase().replace(/[\u200b-\u200f\ufeff]/g,'').replace(/[^\u3400-\u9fff\u{20000}-\u{2fa1f}a-z0-9]/gu,'');
@@ -47888,6 +47909,11 @@ function getWritingModelLabel() {
       if (showStoryBibleWorkbench.value) closeStoryBibleWorkbench();
       if (showCharacterWorkbench.value) closeCharacterWorkbench();
       selectSidebarTab(location.tab);
+      // 搜索结果先落到设置内的可见入口，再定位侧栏原有分区，避免跳到隐藏锚点。
+      if (location.section) {
+        mobileSidebarOpen.value = true;
+        nextTick(() => document.querySelector('[data-settings-section="' + location.section + '"]')?.scrollIntoView({block:'start',inline:'nearest',behavior:moyunScrollBehavior()}));
+      }
     }
 
     const imageKeyInfo = ref('');

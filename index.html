@@ -1180,7 +1180,7 @@
       </div>
 
       <div class="divider"></div>
-      <div id="settings-search-favorites" data-settings-section="favorites">
+      <div data-settings-section="favorites">
         <label class="label">喜欢查看</label>
         <div class="flex flex-wrap gap-2 mb-2"><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='current'">当前书籍</button><button type="button" class="btn-ghost" style="min-height:44px" @click="favoriteScope='all'">全部书籍</button></div>
         <material-list :rows="favoriteMaterialRows" @jump="jumpToFavorite" @remove="removeFavorite" @update="updateFavorite"></material-list>
@@ -5779,6 +5779,11 @@
             </div>
             <textarea v-model="atmospherePrompt" @change="saveData()" rows="4" class="textarea-field text-xs" placeholder="氛围增强提示词"></textarea>
           </div>
+          <div id="settings-search-favorites" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
+            <h3 class="text-xs font-bold mb-2">喜欢查看</h3>
+            <p class="text-xs mb-2" style="color:var(--tx3)">在预设页集中查看整篇和段落喜欢、管理范文快照，也可切换查看全部书籍。</p>
+            <button type="button" class="btn-ghost text-xs" style="min-height:44px" @click="navigateToSettingsModuleLocation({tab:'presets',section:'favorites'})">打开喜欢查看</button>
+          </div>
 
           <div id="settings-search-editable-characters" class="p-3 rounded-xl" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <div class="text-xs font-bold mb-2" style="color:var(--tx)">角色可编辑信息</div>
@@ -6828,7 +6833,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=7358e059999f"></script>
+<script src="./assets/js/moyun.js?v=d798cd5caa3d"></script>
 <!-- PART_1_END -->
 </body>
 </html>

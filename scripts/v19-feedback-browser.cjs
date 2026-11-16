@@ -88,3 +88,5 @@ async function runFeedbackCharacterGeometryChecks(dark=false) {
  }
  s.showCharacterWorkbench=false;return results;
 }
+
+if (typeof module !== 'undefined') module.exports = { runFeedbackCharacterGeometryChecks };
