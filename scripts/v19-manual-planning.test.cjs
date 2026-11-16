@@ -21,6 +21,14 @@ test('分配追加/替换/新卷/细纲先审阅后写入，已有卷交接和�
  assert.equal(h.api.previewManualPlanningAssignments(),true);assert.equal(h.api.preview.rows.length,3);assert.equal(h.c.novel.value.outline,'旧大纲');assert.equal(h.c.novel.value.volumes.length,1);assert.equal(h.c.chapterOutlines.value[0].content,'旧细纲');assert.equal(await h.api.applyManualPlanningAssignments(),true);
  assert.equal(h.c.novel.value.outline,'旧大纲'+NL+NL+'新大纲');assert.equal(h.c.novel.value.volumes[1].summary,'新卷纲');assert.equal(h.c.novel.value.volumes[0].handoffSummaries.main.content,'交接哨兵');assert.equal(h.c.chapterOutlines.value[0].content,'新细纲');assert.equal(h.c.chapterOutlines.value[0].history[0].content,'旧细纲');assert.equal(h.api.draft.items.length,0);assert.equal(h.api.draft.lastApplied.count,3);
 });
+test('自动识别成功仍保留原始回复，手动采用后不再保留会覆盖手选内容的自动候选',async()=>{
+ const c=vm.createContext({uid:()=> 'review',createDiffRevisions:()=>[]});vm.runInContext(fn('createReviewState'),c);
+ const raw='【卷纲更新】\n第一卷：模型原始回复';const review=c.createReviewState('outline','旧大纲','识别后的内容',{rawOutput:raw});
+ assert.equal(review.rawOutput,raw);
+ const h=harness();h.c.outlineReview.value={...h.clone(review),volumePlan:{rows:[{title:'自动候选'}]},workbenchVolumes:{rows:[]},revisions:[{type:1,status:'pending',text:'不再采用'}]};
+ h.api.openManualPlanningRecovery(raw);add(h,{target:'outline',text:'作者手动选择',mode:'replace'});h.api.previewManualPlanningAssignments();await h.api.applyManualPlanningAssignments();
+ assert.equal(h.c.novel.value.outline,'作者手动选择');assert.equal(h.c.outlineReview.value.volumePlan,undefined);assert.equal(h.c.outlineReview.value.workbenchVolumes,undefined);assert.equal(h.c.outlineReview.value.revisions.length,0);assert.equal(h.c.outlineReview.value.manualRecoveryApplied,true);assert.equal(h.c.outlineReview.value.volumeOutputRaw,raw);
+});
 test('无效章号、空内容、重复目标被拦；跳号不会自动补写空章',()=>{
  const h=harness();Object.assign(h.api.draft.editor,{target:'chapter',chapterNo:0,text:'内容'});assert.equal(h.api.addManualPlanningAssignment(),false);Object.assign(h.api.draft.editor,{target:'outline',text:' '});assert.equal(h.api.addManualPlanningAssignment(),false);
  add(h,{target:'outline',text:'新大纲'});h.api.draft.editor.text='重复';assert.equal(h.api.addManualPlanningAssignment(),false);h.api.draft.editor.text='';h.api.removeManualPlanningAssignment(h.api.draft.items[0].id);add(h,{target:'chapter',chapterNo:3,text:'不能猜测补写第二章'});assert.equal(h.api.previewManualPlanningAssignments(),false);assert.match(h.toasts.at(-1)[0],/下一章为第2章/);assert.equal(h.c.chapterOutlines.value.length,1);

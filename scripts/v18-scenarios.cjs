@@ -38,9 +38,12 @@ module.exports=async function(c,check,shot){
   return {enabledInjected:true,disabledExcluded:true};
  });
  await check('卷纲：三段衔接完整保存，超过2000字不截断',async()=>{
-  const d=await c.ev(()=>({volumes:__s.novel.volumes.map(v=>({title:v.title,summary:v.summary}))}));
-  assert.ok(d.volumes[0].summary.length>2000);for(const name of ['承接上一卷','本卷推进与收束','下一卷起笔核对'])assert.ok(d.volumes[0].summary.includes(name));
-  return {length:d.volumes[0].summary.length,second:d.volumes[1].summary.includes('铜钥匙在阿雪手中')};
+  const d=await c.ev(()=>({volumes:__s.novel.volumes.map(v=>({title:v.title,summary:v.summary,bridge:v.bridge}))}));
+  // 衔接说明按现行字段保存；分别核对全文，不能靠混入摘要的长度判断未截断。
+  assert.ok(d.volumes[0].bridge.length>2000);for(const name of ['承接上一卷','本卷推进与收束','下一卷起笔核对'])assert.ok(d.volumes[0].bridge.includes(name));
+  assert.equal(d.volumes[0].bridge.split('开局条件已经核对。').length-1,100);assert.equal(d.volumes[0].bridge.split('阿雪接收钥匙，东门之约尚待履行。').length-1,100);
+  assert.match(d.volumes[0].summary,/第1章：归还钥匙\n第2章：约定见面/);assert.match(d.volumes[1].bridge,/铜钥匙在阿雪手中/);
+  return {length:d.volumes[0].bridge.length,chapterLinesInSummary:true,second:d.volumes[1].bridge.includes('铜钥匙在阿雪手中')};
  });
  await check('Gemini测试输入仅作用于Gemini模型与原生协议，并只搬移本轮作者要求',async()=>{
   const d=await c.ev(async()=>{

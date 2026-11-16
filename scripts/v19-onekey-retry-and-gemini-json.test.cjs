@@ -29,6 +29,9 @@ function readGeminiFixture() {
 function readGlmTextFixture() {
   return fs.readFileSync(path.join(__dirname, 'fixtures/v0.0.19/glm53-text-planning-response.txt'), 'utf8');
 }
+function readDeepseekTextFixture() {
+  return fs.readFileSync(path.join(__dirname, 'fixtures/v0.0.19/deepseekv41-text-planning-response.txt'), 'utf8');
+}
 
 test('文本卷纲回退进入共用规划解析器并保留多卷原文', () => {
   const raw = readGlmTextFixture();
@@ -52,6 +55,42 @@ test('真实文本卷纲进入生成前的范围校验链，不被均分为单�
   assert.equal(prepared.fallback, false);
   assert.equal(prepared.rows.length, 4);
   assert.equal(JSON.stringify(prepared.rows.map(row => [row.number, row.startChapter, row.endChapter])), JSON.stringify([[1, 1, 10], [2, 11, 20], [3, 21, 30], [4, 31, 40]]));
+});
+
+test('DeepSeek 的卷纲更新文本识别全部三卷，不退回默认单卷', async () => {
+  const raw = readDeepseekTextFixture();
+  const context = planningHarness();
+  const payload = context.normalizeOutlinePlanningPayload(raw);
+  assert.ok(payload);
+  assert.equal(payload.volumes.length, 3);
+  assert.equal(JSON.stringify(payload.volumes.map(row => [row.number, row.startChapter, row.endChapter])), JSON.stringify([[1, 1, 10], [2, 11, 20], [3, 21, 30]]));
+  assert.match(payload.volumes[0].title, /烬灯引/);
+  assert.match(payload.volumes[2].title, /初灯语/);
+  const prepared = await context.prepareVolumePlan(raw, { totalChapters:30, userPrompt:'' });
+  assert.equal(prepared.fallback, false);
+  assert.equal(prepared.rows.length, 3);
+  const staleDefault = await context.prepareVolumePlan(raw, { fallbackTotal:10, userPrompt:'保留第1章，继续整理卷纲' });
+  assert.equal(staleDefault.total, 30, '旧默认章数和单章引用不能缩小模型明确给出的完整范围');
+  assert.equal(staleDefault.rows.length, 3);
+  assert.equal(context.getVolumePlanCounts('30章，分成三卷').total,30);
+  assert.equal(context.getVolumePlanCounts('一个8章短篇').total,8);
+  assert.equal(context.getVolumePlanCounts('保留第1章').total,10);
+  const brokenJson=JSON.stringify({volumes:[{number:1,title:'无效示例',startChapter:5,endChapter:2}]});
+  assert.equal(context.normalizeOutlinePlanningPayload(brokenJson+'\n'+raw).volumes.length,3,'JSON 范围无效时仍须用同份原文中的卷标题兜底');
+  const overlapping=JSON.stringify({volumes:[{number:1,startChapter:1,endChapter:20},{number:2,startChapter:10,endChapter:30}]});
+  assert.equal(context.normalizeOutlinePlanningPayload(overlapping+'\n'+raw).volumes.length,3,'JSON 范围重叠时也不能挡住后续文本兜底');
+});
+
+test('关键词兜底兼容分行字段、Markdown卷标题与中文卷号，不把无关JSON当卷纲', () => {
+  const c=planningHarness();
+  const raw='说明：{"items":[{"name":"无关元数据"}]}\n【卷纲更新】\n### 第一卷：来信\n章节范围：第1–2章\n框架摘要：追查旧信\n本卷写作内容要求：保留线索\n承接上一卷：开篇\n下一卷起笔核对：前往港口\n### 第二卷：港口\n章节范围：第3至4章\n框架摘要：找到寄信人\n## 核心卖点\n不属于第二卷的正文'.replaceAll('\\n','\n');
+  const rows=c.parseVolumePlan(raw);
+  assert.equal(rows.length,2);assert.equal(rows[0].title,'来信');assert.equal(rows[1].startChapter,3);assert.equal(rows[1].endChapter,4);
+  assert.equal(rows[0].writingRequirement,'保留线索');assert.match(rows[0].bridge,/前往港口/);assert.doesNotMatch(rows[1].summary,/核心卖点|不属于/);
+  const markdown=c.parseVolumePlan('第一卷：来信\n章节范围：1-2\n## 本卷写作内容要求\n保留旧线索\n## 衔接点\n前往港口\n第二卷：港口\n章节范围：3-4\n## 核心卖点\n不能混进卷纲');
+  assert.equal(markdown.length,2);assert.equal(markdown[0].writingRequirement,'保留旧线索');assert.equal(markdown[0].bridge,'前往港口');assert.doesNotMatch(markdown[1].summary,/核心卖点|不能混/);
+  const afterBridge=c.parseVolumePlan('第一卷：来信\n章节范围：1-2\n承接上一卷：原有交接\n第1章：查信\n第2章：赴约');
+  assert.match(afterBridge[0].summary,/第1章：查信\n第2章：赴约/);assert.equal(afterBridge[0].bridge,'承接上一卷：原有交接');
 });
 
 test('Gemini 完整规划 JSON 可提取大纲、章节规划和卷纲', () => {

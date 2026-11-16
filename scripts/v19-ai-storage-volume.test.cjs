@@ -101,13 +101,11 @@ test('V-03/V-04 explicit counts win, otherwise approximately ten chapters per vo
   assert.equal(ctx.getVolumePlanCounts('一个8章短篇').count,1);
   assert.equal(ctx.getVolumePlanCounts('完整小说共40章，分成四卷',{totalChapters:10,volumeCount:1}).count,1);
 });
-test('V-09 one range repair only; fallback covers every chapter and preserves good volume content',async()=>{
+test('V-09 one format repair only; unresolved ranges preserve original for manual classification instead of inventing volumes',async()=>{
   let requests=0; const {ctx}=volumeContext({ fetchAdapterCompletion:async()=>{requests++;return {text:'still malformed'};}, getAdapterCompletionText:r=>r.text });
   const raw='[{"number":1,"title":"保留卷","startChapter":1,"endChapter":20,"summary":"保留剧情"}]';
-  const result=await ctx.prepareVolumePlan(raw,{prompt:'共8章，分成3卷',request:{model:'mock'}});
-  assert.equal(requests,1);assert.equal(result.fallback,true);assert.equal(result.rows[0].summary,'保留剧情');
-  assert.equal(result.rows.length,3);assert.equal(ctx.validateVolumeRanges(result.rows,8),true);assert.equal(result.rows.at(-1).endChapter,8);
-  assert.equal(result.rows.every(r=>r.endChapter>=r.startChapter),true);
+  await assert.rejects(ctx.prepareVolumePlan(raw,{prompt:'共8章，分成3卷',request:{model:'mock'}}), error=>{assert.equal(error.partialText,raw);assert.match(error.message,/手动/);return true;});
+  assert.equal(requests,1);
   const controller=new AbortController();controller.abort();await assert.rejects(ctx.prepareVolumePlan(raw,{request:{},signal:controller.signal}),{name:'AbortError'});assert.equal(requests,1);
 });
 test('V-02/V-05 valid plan needs no repair and refusal never sends a format repair',async()=>{

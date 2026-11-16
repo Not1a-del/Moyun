@@ -1906,6 +1906,7 @@
             <button type="button" class="btn-primary self-start text-xs px-4 py-2" @click="openOutlineRevisionReview">打开修订审阅</button>
           </div>
           <button v-if="manualPlanningDraft" type="button" class="btn-ghost text-xs px-3 py-2 mb-3 min-h-[44px]" data-manual-planning-resume @click="openManualPlanningRecovery()">继续手动整理原文</button>
+          <button v-if="outlineReview.rawOutput" type="button" class="btn-ghost text-xs px-3 py-2 mb-3 min-h-[44px]" data-planning-raw-manual @click="openManualPlanningRecovery(outlineReview.rawOutput,{source:'最近一次 AI 规划原文'})">从最近生成的原文手动整理</button>
           <details v-if="novel.oneKeyRecovery" class="card p-3 mb-3" data-one-key-recovery>
             <summary class="btn-ghost text-xs cursor-pointer" style="min-height:44px">一键开书未完成原文（仅备查，未自动采用）</summary>
             <details v-for="(record,id) in novel.oneKeyRecovery" :key="id" class="mt-2 text-xs">
@@ -4141,6 +4142,7 @@
       </div>
       <footer class="moyun-outline-review-footer">
         <span class="text-[11px] leading-relaxed" style="color:var(--tx3)">{{ outlineReview.volumeOutputError ? '查看原始输出不代表接受；关闭或重试都不会改动现有卷纲。' : '处理完成后，候选卷纲会实时成为正文、审查和记忆使用的数据源。' }}</span>
+        <button v-if="!outlineReview.volumeOutputError && outlineReview.rawOutput" type="button" data-outline-manual-success class="btn-ghost text-xs px-3 py-2 min-h-[44px]" style="min-height:44px" @click="openManualPlanningRecovery(outlineReview.rawOutput,{source:'AI 规划原文',target:outlineReview.workbenchVolumes?'volume':'outline'})">改为手动选择原文</button>
         <button type="button" data-moyun-modal-close class="btn-ghost text-xs px-3 py-2" @click="deferOutlineRevisions">稍后审阅</button>
       </footer>
     </section>
@@ -6826,7 +6828,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=a6a2346db1ec"></script>
+<script src="./assets/js/moyun.js?v=5b30742a4a6f"></script>
 <!-- PART_1_END -->
 </body>
 </html>

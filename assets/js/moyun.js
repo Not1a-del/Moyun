@@ -1483,25 +1483,27 @@ createApp({
     function ensureDefaultNovelVolume() { if (novelVolumes.value.length) return; const volume = { id:uid(), title:'第1卷', startChapter:1, endChapter:10, summary:'', writingRequirement:'', bridge:'', characterIds:[], entryIds:[], eventIds:[] }; novel.value.volumes = [volume]; saveData(); }
     function parseVolumePlan(text) {
       const raw = String(text || '').trim();
-      const headings = raw.match(/【卷纲(?:规划|更新|整理)?】[\s\S]*?(?=\n#{1,6}\s|$)/g) || [];
-      const candidate = headings.length ? headings[headings.length - 1].replace(/^【卷纲(?:规划|更新|整理)?】/, '').trim() : raw;
+      const headings = [...raw.matchAll(/【卷纲(?:规划|更新|整理)?】/g)];
+      const candidate = headings.length ? raw.slice(headings.at(-1).index + headings.at(-1)[0].length).trim() : raw;
       const read = (row, ...keys) => { for (const key of keys) { const value = row?.[key]; if (value !== undefined && value !== null && String(value).trim() !== '') return value; } return ''; };
-      const numberValue = value => Number(String(value ?? '').match(/\d+/)?.[0] || 0);
+      const numberValue = value => Number(String(value ?? '').match(/-?\d+(?:\.\d+)?/)?.[0] || 0);
       const ordinalValue = value => { const raw=String(value ?? '').trim(); if(/^\d+$/.test(raw))return Number(raw); const digits={零:0,一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10}; if(raw.includes('十')){const parts=raw.split('十');return (parts[0]?digits[parts[0]]||0:1)*10+(parts[1]?digits[parts[1]]||0:0);} return digits[raw]||0; };
-      const normalizeRows = values => (Array.isArray(values) ? values : []).filter(row => row && typeof row === 'object' && !Array.isArray(row)).map((row, index) => {
-        const rangeNumbers = String(read(row,'range','chapterRange','范围','章节范围') || '').match(/\d+/g) || [];
+      const normalizeRows = values => (Array.isArray(values) ? values : []).filter(row => row && typeof row === 'object' && !Array.isArray(row) && read(row,'startChapter','start','fromChapter','起始章','起始章节','开始章','开始章节','起章','endChapter','end','toChapter','结束章','结束章节','终止章','截止章','止章','range','chapterRange','范围','章节范围') !== '').map((row, index) => {
+        const rangeNumbers = String(read(row,'range','chapterRange','范围','章节范围') || '').match(/\d+(?:\.\d+)?/g) || [];
         const handoff = read(row,'handoff','交接','卷末交接');
         return { number:numberValue(read(row,'number','volumeNumber','volumeNo','卷序号','卷号')) || index + 1, title:String(read(row,'title','name','卷名') || ''), startChapter:numberValue(read(row,'startChapter','start','fromChapter','起始章','起始章节','开始章','开始章节','起章')) || numberValue(rangeNumbers[0]), endChapter:numberValue(read(row,'endChapter','end','toChapter','结束章','结束章节','终止章','截止章','止章')) || numberValue(rangeNumbers[1]) || numberValue(rangeNumbers[0]), summary:String(read(row,'summary','planSummary','frameworkSummary','框架摘要','卷纲摘要','摘要','计划摘要') || ''), writingRequirement:String(read(row,'writingRequirement','writing','requirement','writingRequirements','写作内容要求','本卷写作内容要求','写作要求') || ''), bridge:String(read(row,'bridge','handoffPoint','transition','衔接点','卷末衔接点','交接点') || ''), ...(handoff && typeof handoff === 'object' ? { handoff:{content:String(handoff.content ?? handoff.summary ?? handoff['正文总结'] ?? ''),actualOutline:String(handoff.actualOutline ?? handoff.outline ?? handoff['实际卷纲修正'] ?? '')} } : {}) };
       });
       // 中文注释：模型常在 JSON 外包解释、Markdown 围栏或 data/result 中再嵌一层；先扫描所有完整 JSON 片段，避免卷纲候选被整段丢弃。
       const fragments = typeof scanAiJsonFragments === 'function' ? scanAiJsonFragments(raw).roots : [];
+      const validRows = rows => validateVolumeRanges(rows,Math.max(0,...rows.map(row=>Number(row.endChapter)||0)));
+      let jsonRows = [];
       for (const fragment of fragments) {
         try {
           const parsed = JSON.parse(fragment);
           const queue = [parsed], seen = new Set(), keys = ['volumes','卷纲','卷纲列表','分卷','volumePlan','volume_plan','卷纲规划','volumesPlan','items','data','result'];
           while (queue.length) {
             const current = queue.shift();
-            if (Array.isArray(current)) { const rows = normalizeRows(current); if (rows.length) return rows; continue; }
+            if (Array.isArray(current)) { const rows = normalizeRows(current); if (validRows(rows)) return rows; if(rows.length)jsonRows=rows; continue; }
             if (!current || typeof current !== 'object' || seen.has(current)) continue;
             seen.add(current); keys.forEach(key => { if (current[key] !== undefined) queue.push(current[key]); });
           }
@@ -1513,44 +1515,48 @@ createApp({
           const candidateRows = Array.isArray(parsed.value) ? parsed.value : parsed.value?.volumes || parsed.value?.['卷纲'] || parsed.value?.volumePlan || parsed.value?.['卷纲规划'];
           const rows = normalizeRows(candidateRows);
           if (candidateRows?.length !== rows.length || parsed.errors.length) showToast('卷纲有格式异常，已保留可识别的卷，请核对范围', 'warning');
-          return rows;
+          if (validRows(rows)) return rows;
+          if (rows.length) jsonRows=rows;
         } catch { /* 中文注释：JSON 损坏时继续尝试逐行卷纲格式，保留流式结果供审阅而不是直接结束。 */ }
       }
-      const match = candidate.match(/(?:第\s*(?:\d+|[一二两三四五六七八九十]+)\s*卷|卷\s*(?:\d+|[一二两三四五六七八九十]+))/m) ? {1:candidate} : null;
-      if (!match) return [];
+      // JSON 不可用时按独立卷标题和字段识别，不把正文中的“第几卷”引用当作新卷。
       const rows = [];
-      let current = null;
-      const addSummary = value => { if (current && value) current.chapterLines.push(value); };
-      match[1].split(/\r?\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
-        const header = line.match(/^(?:第\s*(\d+|[一二两三四五六七八九十]+)\s*卷|卷\s*(\d+|[一二两三四五六七八九十]+))(?:\s*[：:]\s*(.*)|\s*[｜|]\s*(.*))?$/);
-        if (header) {
-          current = { number:ordinalValue(header[1] || header[2]), title:'', startChapter:0, endChapter:0, summary:'', writingRequirement:'', bridge:'', chapterLines:[] };
-          rows.push(current);
-          (header[3] || header[4] || '').split(/[｜|]/).forEach(part => {
-            const field = part.match(/^\s*(?:卷名|名称)\s*[：:]\s*(.*)$/);
-            const range = part.match(/^\s*(?:章节|范围)\s*[：:]?\s*(\d+)\s*[-—至]\s*(\d+)\s*章?\s*$/);
-            const summary = part.match(/^\s*(?:框架摘要|摘要)\s*[：:]\s*(.*)$/);
-            const requirement = part.match(/^\s*(?:本卷写作内容要求|写作内容要求)\s*[：:]\s*(.*)$/);
-            const bridge = part.match(/^\s*(?:本卷结尾衔接点|衔接点)\s*[：:]\s*(.*)$/);
-            if (field) current.title = field[1].trim();
-            if (range) { current.startChapter = Number(range[1]); current.endChapter = Number(range[2]); }
-            if (summary) current.summary = summary[1].trim();
-            if (requirement) current.writingRequirement = requirement[1].trim();
-            if (bridge) current.bridge = bridge[1].trim();
-          });
-          return;
+      let current = null, field = 'summary';
+      const rangePattern = /^(?:章节(?:范围)?|范围)?\s*[：:]?\s*第?\s*(\d+)\s*章?\s*[-—–~～至到]\s*第?\s*(\d+)\s*章?\s*$/;
+      const fieldPattern = /^(卷名|名称|框架摘要|卷纲摘要|摘要|卷纲|本卷写作内容要求|写作内容要求|写作要求|本卷结尾衔接点|衔接点|承接上一卷|本卷推进与收束|下一卷起笔核对)(?:[：:]\s*(.*)|$)/;
+      const readPart = part => {
+        const value=part.trim(), range=value.match(rangePattern);
+        if(range){current.startChapter=Number(range[1]);current.endChapter=Number(range[2]);return;}
+        // 逐章章纲即使出现在衔接说明之后，也仍属于本卷摘要。
+        if(/^第\s*\d+\s*章\s*[：:｜|]/.test(value)){current.summary=[current.summary,value].filter(Boolean).join('\n');return;}
+        const label=value.match(fieldPattern);
+        if(label){
+          const name=label[1],text=String(label[2] || '').trim();
+          if(/^(卷名|名称)$/.test(name)){current.title=text;return;}
+          field=/要求$/.test(name)?'writingRequirement':/衔接|承接|收束|核对/.test(name)?'bridge':'summary';
+          const content=/^(承接上一卷|本卷推进与收束|下一卷起笔核对)$/.test(name)?name+'：'+text:text;
+          current[field]=[current[field],content].filter(Boolean).join('\n');return;
         }
-        if (!current) return;
-        const requirement = line.match(/^(?:本卷写作内容要求|写作内容要求)[：:]\s*(.*)$/);
-        const bridge = line.match(/^(?:本卷结尾衔接点|衔接点)[：:]\s*(.*)$/);
-        const summary = line.match(/^(?:框架摘要|摘要)[：:]\s*(.*)$/);
-        if (requirement) current.writingRequirement = requirement[1].trim();
-        else if (bridge) current.bridge = bridge[1].trim();
-        else if (summary) current.summary = summary[1].trim();
-        else addSummary(line);
-      });
-      rows.forEach(row => { if (row.chapterLines.length) row.summary = [row.summary, ...row.chapterLines].filter(Boolean).join('\n'); delete row.chapterLines; });
-      return rows.filter(row => row.number > 0).sort((a,b) => a.number - b.number);
+        current[field]=[current[field],value].filter(Boolean).join('\n');
+      };
+      for (const sourceLine of candidate.split(/\r?\n/)) {
+        const line=sourceLine.trim().replace(/^#{1,6}\s+/, '').replace(/\*\*/g,'').replace(/^[-*]\s+/,'');
+        if(!line)continue;
+        const header = line.match(/^(?:第\s*(\d+|[一二两三四五六七八九十]+)\s*卷|卷\s*(\d+|[一二两三四五六七八九十]+))(?=$|[\s：:｜|（(·、])\s*[：:｜|、]?\s*(.*)$/);
+        if (header) {
+          current = { number:ordinalValue(header[1] || header[2]), title:'', startChapter:0, endChapter:0, summary:'', writingRequirement:'', bridge:'' };field='summary';
+          rows.push(current);
+          (header[3] || '').split(/[｜|]/).filter(Boolean).forEach((part,index) => {
+            if(index===0 && !/^(卷名|名称|章节|范围|框架摘要|摘要)[：:\s]/.test(part) && !rangePattern.test(part)){
+              const bracket=part.match(/^(.*?)\s*[（(](.*)[）)]$/);current.title=(bracket?bracket[1]:part).trim();if(bracket)readPart(bracket[2]);
+            }else readPart(part);
+          });
+          continue;
+        }
+        if(current && (/^#{1,6}\s/.test(sourceLine.trim()) || /^【/.test(line)) && !fieldPattern.test(line))break;
+        if(current)readPart(line);
+      }
+      return rows.length ? rows.filter(row => row.number > 0).sort((a,b) => a.number - b.number) : jsonRows;
     }
     function validateVolumeRanges(rows, totalChapters) {
       const sorted = (Array.isArray(rows) ? rows : []).slice().sort((a,b) => Number(a.number) - Number(b.number));
@@ -1562,9 +1568,10 @@ createApp({
       // 中文注释：卷数只从作者实际输入读取，不能从系统提示里的格式示例（第1/2/3卷）误判。
       const text = String(options.userPrompt ?? prompt ?? '');
       const parseCount = value => { const n = Number(value); if (n) return n; const digits = {一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9}; if (value === '十') return 10; if (value?.includes('十')) { const parts = value.split('十'); return (digits[parts[0]] || 1) * 10 + (digits[parts[1]] || 0); } return digits[value] || 0; };
-      const requestedChapters = parseCount(text.match(/(?:共|总共|全书|预计|计划)?\s*([0-9一二三四五六七八九十两]+)\s*章/)?.[1]);
+      // “保留第1章”等单章引用不是总章数，不能让后续校验把三卷缩成一章。
+      const requestedChapters = parseCount(text.match(/(?:^|总共|全书(?:共|预计|计划)?|共|预计|计划|保持|扩展到|扩展为|总章数[：:]?)\s*([0-9一二三四五六七八九十两]+)\s*章/)?.[1] || text.match(/(?<![第0-9一二三四五六七八九十两])([0-9一二三四五六七八九十两]+)\s*章(?:的)?(?:短篇|小说|故事)/)?.[1]);
       const total = Math.max(1, Math.floor(Number(options.totalChapters) || requestedChapters || Number(options.fallbackTotal) || 10));
-      const countMatch = text.match(/(?:分成|分为|划分为|重新划分为|规划为|改为|调整为|设置为|创建|建立|新建|新增|增加|再建|再加)\s*(?:新的?\s*)?([0-9一二三四五六七八九十两]+)\s*(?:个)?卷/) || text.match(/([0-9一二三四五六七八九十两]+)\s*(?:个)?卷/);
+      const countMatch = text.match(/(?:分成|分为|划分为|重新划分为|规划为|改为|调整为|设置为|创建|建立|新建|新增|增加|再建|再加)\s*(?:新的?\s*)?([0-9一二三四五六七八九十两]+)\s*(?:个)?卷/) || text.match(/(?:^|[\s，,。；;])([0-9一二三四五六七八九十两]+)\s*(?:个)?卷/);
       const count = Number(options.volumeCount) || parseCount(countMatch?.[1]);
       const result = { total, count:Math.max(1, Math.min(total, count || Math.ceil(total / 10))) };
       Object.defineProperty(result, 'explicitVolumeCount', { value:!!count, enumerable:false });
@@ -1581,19 +1588,20 @@ createApp({
       if (looksLikeAiRefusal(raw)) throw new Error('模型拒绝了卷纲规划，可改写要求或换模型');
       let rows = parseVolumePlan(raw);
       const inferredTotal = Math.max(0, ...rows.map(row => Number(row.endChapter) || 0));
-      const counts = getVolumePlanCounts(options.userPrompt ?? options.prompt, { ...options, userPrompt:options.userPrompt, totalChapters:Number(options.totalChapters) || 0, fallbackTotal:inferredTotal });
+      const counts = getVolumePlanCounts(options.userPrompt ?? options.prompt, { ...options, userPrompt:options.userPrompt, totalChapters:Number(options.totalChapters) || 0, fallbackTotal:inferredTotal || options.fallbackTotal });
       const valid = value => validateVolumeRanges(value, counts.total) && (!counts.explicitVolumeCount || value.length === counts.count);
       let repaired = false;
       if (!valid(rows) && options.request) {
         abort(); repaired = true;
         try {
           const completion = await fetchAdapterCompletion(options.request, [{role:'system',content:'你只修复卷纲格式、卷数和范围，不改已有剧情与角色事实。只返回 JSON 数组。'}, {role:'user',content:'上次卷纲错误：卷数不符、范围不连续/重叠/超界或格式损坏。请整理为' + counts.count + '卷，共' + counts.total + '章，从1开始连续、不重叠，最后结束于' + counts.total + '。每条字段 number,title,startChapter,endChapter,summary,writingRequirement,bridge。保留能识别的原卷内容，不编造剧情。\n原文：\n' + String(raw)}], {stream:false,temperature:0,maxTokens:6000,signal:options.signal});
-          abort(); const fixed = parseVolumePlan(getAdapterCompletionText(completion)); if (fixed.length) rows = fixed;
+          abort(); const fixed = parseVolumePlan(getAdapterCompletionText(completion)); if (valid(fixed)) rows = fixed;
         } catch (error) { abort(); if (error?.name === 'AbortError') throw error; }
       }
       abort();
       const fallback = !valid(rows);
-      if (fallback) { rows = distributeVolumeRanges(rows, counts.total, counts.count); showToast('卷纲格式或范围仍不完整，已保留可用内容并按总章数均分，请补写空白卷纲', 'warning'); }
+      // 识别与一次格式修复仍失败时交给用户，不能均分出空白卷或把多卷压成一卷。
+      if (fallback) throw Object.assign(new Error('卷纲范围或分类无法可靠识别，请查看原文并手动整理；原卷纲未改变'), {partialText:String(raw), volumeRows:rows});
       return { rows, total:counts.total, repaired, fallback };
     }
     function applyPlannedVolumes(plannedRows, options = {}) {
@@ -28618,7 +28626,15 @@ function getModHubPermissionLabels(mod) {
       Object.assign(novel.value,plan.fields);
       if(plan.changedVolumes.length){novel.value.volumes=plan.volumes;plan.changedVolumes.forEach(id=>markVolumePlanStale(plan.volumes.find(row=>row.id===id),'手动整理卷纲，请核对细纲与交接'));}
       if(plan.changedChapters.length){chapterOutlines.value=plan.details;markOutlineNeighborsStale(plan.changedChapters,'手动整理细纲，请核对相邻章节');persistCurrentBranchData();}
-      if(outlineReview.value.volumeOutputError){outlineReview.value.manualRecoveryApplied=true;novel.value.reviewStates.outline=deepClone(outlineReview.value);}
+      const review=outlineReview.value;
+      if(review.volumeOutputError || review.rawOutput===draft.raw){
+        // 作者确认手选后撤下同份原文的自动候选，避免稍后再接受时覆盖手动分区。
+        if(review.rawOutput===draft.raw){
+          Object.assign(review,{volumeOutputRaw:draft.raw,volumeOutputBefore:review.beforeText || '',volumeOutputMode:review.workbenchVolumes?'volume':'outline',volumeOutputError:'已改为手动整理，原自动候选不再应用。',revisions:[]});
+          delete review.volumePlan;delete review.workbenchVolumes;delete review.undo;
+        }
+        review.manualRecoveryApplied=true;novel.value.reviewStates.outline=deepClone(review);
+      }
       draft.lastApplied={at:Date.now(),count:plan.rows.length};draft.items=[];draft.editor.text='';draft.pendingSave=true;manualPlanningPreview.value=null;
       return saveManualPlanningWrite();
     }
@@ -29005,7 +29021,7 @@ function getModHubPermissionLabels(mod) {
         if(rev.type===0)group++;
         return Object.assign({}, rev, {index,groupId:rev.type===0?'':sessionId+':'+group,selected:rev.type === 0 || (options.selectAll !== false && options.canApply !== false && !options.issue), source:String(options.source || ''), reason:String(options.reason || ''), issue:String(options.issue || ''), canApply:options.canApply !== false && !options.issue});
       });
-      return { id:sessionId, revisions, selectedId:'', undo:null, createdAt:Date.now(), source:String(options.source || ''), beforeText:String(oldText || ''), afterText:String(newText || '') };
+      return { id:sessionId, revisions, selectedId:'', undo:null, createdAt:Date.now(), source:String(options.source || ''), beforeText:String(oldText || ''), afterText:String(newText || ''), ...(options.rawOutput!=null?{rawOutput:String(options.rawOutput)}:{}) };
     }
     function getReviewStats(state) {
       const rows = (state?.revisions || []).filter(rev => rev.type !== 0);
@@ -30744,16 +30760,15 @@ function getModHubPermissionLabels(mod) {
       return [
         // 中文注释：这里的字数只约束大纲文本本身。不写清楚，模型会把它按章平摊后当成正文字数指导写进节奏建议，
         // 那个数字随大纲注入正文后会盖过写作端的目标字数（细纲侧已实测到 400 字压死 2500 字目标）。
-        '请输出完整大纲，并按以下结构组织，不要解释，不要代码块。',
-        '卷纲是必选层级。读取现有卷纲并保留已有卷；用户给定卷数或章数时按要求规划，否则每卷约10章，短篇只建1卷。允许建议新增卷，范围必须连续、不重叠、不超出总章数。未完模式只规划当前一段，不写结局。',
-        // 中文注释：卷纲更新小节是宿主自动回填卷纲的唯一入口。此前只写“如需表达”属于可选项，
-        // 模型经常整段省略导致卷纲永远不动；现在改成必选固定格式，逐卷一行，宿主才能稳定解析。
-        '【卷纲规划】是必选小节：在大纲正文最前面输出该标记，之后逐卷输出卷头、本卷写作内容要求、衔接点和每章一句话章纲。已有卷未改动时保留当前值。三卷示例：第1卷1-10章，第2卷11-20章，第3卷21-30章。卷头格式如下：',
+        '请输出完整大纲，并按以下结构组织，不要解释。优先返回一个 JSON 对象：{"outline":"下列各小节组成的完整大纲正文","volumes":[{"number":1,"title":"卷名","startChapter":1,"endChapter":10,"summary":"本卷框架摘要与全部逐章章纲，一章一行","writingRequirement":"本卷写作要求","bridge":"承接上一卷、本卷推进与收束、下一卷起笔核对"}]}。每卷必须独立一个对象，不能把全部卷合进同一个 summary。卷数、范围以本次实际规划为准，不照抄示例。',
+        '卷纲是必选层级。读取现有卷纲并保留已有剧情；用户给定卷数或章数时按要求规划，否则每卷约10章，短篇只建1卷。允许按作者要求新增、拆分、合并卷；范围必须连续、不重叠、不超出本次总章数，不得因此删改已有细纲。未完模式只规划当前一段，不写结局。',
+        // JSON 不可用时用独立卷标题和字段兜底；两种格式都必须逐卷给出完整范围。
+        '若不能返回合法 JSON，则改用文本：先写独立的【卷纲规划】标记，按卷分段；每卷必须另起一行卷头，再写本卷写作内容要求、衔接点和每章一句话章纲。已有卷未改动时保留当前值。卷头格式如下：',
         '第N卷｜卷名：XXX｜章节 X-Y｜框架摘要：XXX',
         '第M章：本章一句话大纲（不超过40字）',
         // v0.0.10 req5：卷纲必须由单章大纲拼成——只给一行卷头时模型永远只写几句话，
         // 作者拿到的卷纲没有每章推进；现在要求章行覆盖卷内每一章，宿主把整块拼进卷摘要。
-        '每卷按顺序从第1章覆盖到总章数；不得删除已有卷。每卷章行覆盖本卷全部章节，一章一行。框架摘要写本卷主线；卷头后另起两行“本卷写作内容要求：具体事件、人物变化、目标和禁止提前发生的内容”“衔接点：卷末人物状态、未解矛盾、下一卷待接事件”。规划尚未发生的内容明确标为计划，与正文事实分开。',
+        '各卷范围合起来按顺序从第1章连续覆盖到本次总章数，每章只能属于一卷，不得丢掉已有章节剧情。每卷章行覆盖本卷全部章节，一章一行。框架摘要写本卷主线；卷头后另起两行“本卷写作内容要求：具体事件、人物变化、目标和禁止提前发生的内容”“衔接点：卷末人物状态、未解矛盾、下一卷待接事件”。规划尚未发生的内容明确标为计划，与正文事实分开。',
         '“## 阶段大纲”等正文小节的剧情推进必须落在对应卷的章节范围内，不得把后续卷的人物、事件或设定提前写进当前卷。',
         '大纲正文约' + target + '字；每卷另留至少300字衔接说明与完整逐章章纲，不挤占三段衔接内容。这些预算均与正文字数无关。',
         '禁止在大纲任何位置规定正文字数、章节篇幅或段落数（例如"每章X字""字数控制在X字左右"）——正文长度由写作端统一控制，大纲写在这里的字数一律不生效。',
@@ -30976,13 +30991,19 @@ function getModHubPermissionLabels(mod) {
           while (queue.length) { const current = queue.shift(); if (Array.isArray(current)) return current.map(normalizeRow); if (!current || typeof current !== 'object' || seen.has(current)) continue; seen.add(current); keys.forEach(key => { if (current[key] !== undefined) queue.push(current[key]); }); }
           return [];
         };
-        const rawRows = extractRows(parsed);
+        let rawRows = extractRows(parsed);
+        if(!rawRows.length)rawRows=parseVolumePlan(getAdapterCompletionText(result));
         if (!rawRows.length) throw new Error('未返回可用的卷纲');
-        const candidateRows = rawRows.filter(row => row && typeof row === 'object' && !Array.isArray(row));
+        let candidateRows = rawRows.filter(row => row && typeof row === 'object' && !Array.isArray(row));
         if (candidateRows.length !== rawRows.length) throw new Error('卷纲中包含空卷或无效条目');
         const expansion = scope.expand ? prepareWorkbenchExpansion(parsed, scope) : null;
         const total = expansion ? expansion.total : scope.total;
         if (!total) throw new Error('当前没有可归类的章节或细纲');
+        // JSON 范围或卷数无效时仍按同份原文的卷标题兜底，不能让坏 JSON 挡住正确分卷文本。
+        if (!validateVolumeRanges(candidateRows,total) || (scope.volumeCount && candidateRows.length!==scope.volumeCount)) {
+          const fallbackRows=parseVolumePlan(getAdapterCompletionText(result));
+          if (validateVolumeRanges(fallbackRows,total) && (!scope.volumeCount || fallbackRows.length===scope.volumeCount)) candidateRows=fallbackRows;
+        }
         if (!validateVolumeRanges(candidateRows, total)) throw new Error('卷范围必须从第1章开始连续、不重叠且覆盖全部章节');
         if (scope.volumeCount && candidateRows.length!==scope.volumeCount) throw new Error('卷数与作者要求不一致');
         const usedOldVolumeIds = new Set();
@@ -31001,9 +31022,9 @@ function getModHubPermissionLabels(mod) {
           return value;
         });
         const before = JSON.stringify(novel.value.volumes || [], null, 2), after = JSON.stringify(rows, null, 2);
-        if (before === after && !expansion) { showToast('卷纲没有变化', 'info'); return true; }
+        if (before === after && !expansion) { outlineReview.value=createReviewState('outline',before,after,{source:'卷纲整理',rawOutput:getAdapterCompletionText(result)});persistReviewStates();showToast('卷纲没有变化，可从最近原文手动整理', 'info'); return true; }
         // 卷范围必须整组应用，复用红绿审阅，避免半接收造成章节范围重叠。
-        outlineReview.value = { ...createReviewState('outline', before, after, {source:expansion?'追加剧情与重新分卷':'卷纲整理'}), revisions:[{id:uid(),type:-1,text:before,status:'pending',selected:true,groupId:'volume-plan'},{id:uid(),type:1,text:after,status:'pending',selected:true,groupId:'volume-plan'}], workbenchVolumes:{rows,baseline,chapterOutlinesBaseline:detailBaseline,bookId,branchId,...(expansion?{expansion:{...expansion,baseline:expansionBaseline}}:{})} };
+        outlineReview.value = { ...createReviewState('outline', before, after, {source:expansion?'追加剧情与重新分卷':'卷纲整理',rawOutput:getAdapterCompletionText(result)}), revisions:[{id:uid(),type:-1,text:before,status:'pending',selected:true,groupId:'volume-plan'},{id:uid(),type:1,text:after,status:'pending',selected:true,groupId:'volume-plan'}], workbenchVolumes:{rows,baseline,chapterOutlinesBaseline:detailBaseline,bookId,branchId,...(expansion?{expansion:{...expansion,baseline:expansionBaseline}}:{})} };
         persistReviewStates(); showOutlineRevisionModal.value = true;
         showToast(expansion?'新增剧情、细纲和卷纲已生成，请先审阅；原规划尚未改变':'卷纲整理已生成，请在红绿对比中接受或拒绝；原卷纲尚未改变', 'success'); return true;
       } catch (error) {
@@ -31061,8 +31082,7 @@ function getModHubPermissionLabels(mod) {
       if (darklinePlanContext) prompt += '\n' + darklinePlanContext;
       const volumeContext = novelVolumes.value.map((vol, index) => '第' + (index + 1) + '卷｜' + (vol.title || '未命名卷') + '｜章节 ' + vol.startChapter + '-' + vol.endChapter + '｜框架摘要：' + (String(vol.summary || '（空）').split(String.fromCharCode(10)).join('；'))).join('\n');
       prompt += '\n【现有卷纲（必读且可按修改意见更新）】\n' + (volumeContext || '第一卷｜章节 1-10｜框架摘要：（空）') + '\n';
-      prompt += '\n【卷纲规划】如果作者明确说了卷数，必须按作者要求输出同样数量的卷；只说总章数时默认每卷约 10 章；篇幅不超过一卷时只建一卷。全新书可提出新增卷，已有卷只提出未占用范围内的新增卷，不能擅自删除已有卷。每卷都要给卷名、连续不重叠的章节范围、框架摘要、本卷写作内容要求和本卷结尾衔接点。格式示例：\n【卷纲规划】\n第1卷｜卷名：雾港｜章节 1-10｜框架摘要：……｜本卷写作内容要求：……｜本卷结尾衔接点：……\n第2卷｜卷名：回声｜章节 11-20｜框架摘要：……｜本卷写作内容要求：……｜本卷结尾衔接点：……\n第3卷｜卷名：归途｜章节 21-30｜框架摘要：……｜本卷写作内容要求：……｜本卷结尾衔接点：……\n';
-      prompt += '\n【卷纲输出要求】输出必须包含“【卷纲更新】”小节：位于全部大纲文本的最前面，逐卷输出——每卷先一行“第N卷｜卷名：XXX｜章节 X-Y｜框架摘要：XXX”，紧随其后按顺序为该卷章节范围内的每一章各输出一行“第M章：一句话大纲（不超过40字）”。单章大纲合在一起构成本卷卷纲，多卷卷纲合在一起构成完整总纲；不得用两三句话代替整卷推进。没有修改意见涉及卷纲时也必须输出该小节并照抄当前卷名、章节范围，框架摘要与章行大纲按大纲内容补齐，卷头后必须输出“承接上一卷：”“本卷推进与收束：”“下一卷起笔核对：”三行详细说明，每段至少100字；该小节之外的大纲正文中不要再重复卷纲列表。\n';
+      // 输出格式在共用模板里统一说明，避免多份 JSON / 文本格式要求相互覆盖。
       if (novel.value.outline) {
         prompt += '\n当前大纲:\n' + novel.value.outline + '\n';
         // 中文注释：已有大纲进入安全改写策略，要求 AI 只按用户意见局部调整，并输出完整大纲供 diff 审阅。
@@ -31101,7 +31121,8 @@ function getModHubPermissionLabels(mod) {
         // 结构化规划先转换成可读大纲再审阅，不依赖服务商名称；卷纲仍从结构化数据读取。
         const outlineCandidate = planning?.outlineText || raw;
         const volumeSource = planning?.volumes?.length ? JSON.stringify({ volumes:planning.volumes }) : raw;
-        const preparedVolumes=await prepareVolumePlan(volumeSource,{request,signal:controller.signal,isCurrent:()=>{assertOutlineRunActive('outline',runId,controller,sourceBookId);return true;},totalChapters:Number(novel.value.chapterCount)||undefined,prompt,userPrompt:outlineInput.value});
+        // 书里旧的计划章数只作无范围时的参考，不能截掉模型已明确给出的后续卷。
+        const preparedVolumes=await prepareVolumePlan(volumeSource,{request,signal:controller.signal,isCurrent:()=>{assertOutlineRunActive('outline',runId,controller,sourceBookId);return true;},fallbackTotal:Number(novel.value.chapterCount)||undefined,prompt,userPrompt:outlineInput.value}).catch(error=>{error.partialText=raw;throw error;});
         assertOutlineRunActive('outline',runId,controller,sourceBookId);
         // 中文注释：新书首次生成也必须先进入左右审阅，避免 AI 输出直接覆盖并让卷纲候选失去确认入口。
         const beforeOutline = String(novel.value.outline || '');
@@ -37530,10 +37551,10 @@ function getWritingModelLabel() {
       let chapterPlan = planningRows(chapterSource).map(normalizeChapter).filter(Boolean);
       let volumes = planningRows(volumeSource).map(normalizeVolume);
       // 中文注释：文本卷纲也必须进入共用规划入口，避免真实模型未返回 JSON 时把多卷压成一卷。
-      if (!volumes.length && typeof parseVolumePlan === 'function') {
+      if ((!volumes.length || !validateVolumeRanges(volumes,Math.max(...volumes.map(row=>Number(row.endChapter)||0)))) && typeof parseVolumePlan === 'function') {
         try {
           const parsedTextVolumes = parseVolumePlan(raw);
-          if (parsedTextVolumes.length) {
+          if (parsedTextVolumes.length && (!volumes.length || validateVolumeRanges(parsedTextVolumes,Math.max(...parsedTextVolumes.map(row=>Number(row.endChapter)||0))))) {
             volumes = parsedTextVolumes.map(normalizeVolume);
           }
         } catch {}
@@ -37814,6 +37835,8 @@ function getWritingModelLabel() {
 
             const coreTaskType = (c.genDetailed || c.genOutline) ? 'outline' : '';
             const text = await okStreamFetch(prompt, 'settings', signal, { taskType: coreTaskType,authorInput:newBookForm.value.theme });
+            // 成功识别的原文也随书保留，作者仍可不采用自动分类而手动选择。
+            outlineReview.value.rawOutput=text;persistReviewStates();
             const planning = normalizeOutlinePlanningPayload(text);
             if (planning?.incomplete) throw Object.assign(new Error('规划回复不完整，已保留原文，未当作完成结果采用'),{partialText:text});
             console.log('[一键开书-core] 输出长度:', text.length, '| 前300字:', text.substring(0, 300));

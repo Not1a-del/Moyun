@@ -50,3 +50,14 @@ test('卷纲整理提示明确只改卷纲且范围受已有章节约束',()=>{
  assert.match(src,/requireModuleRequest\('outline'\)/);
  assert.match(src,/getWorkbenchChapterScope\(input\)/);
 });
+
+test('细纲工作台遇到无效 JSON 卷范围时仍识别同份原文的分卷标题',async()=>{
+ const {c,novel}=harness(),before=JSON.stringify(novel.value);
+ c.createDiffRevisions=()=>[];vm.runInContext(fn('parseVolumePlan')+'\n'+fn('createReviewState'),c);
+ const invalid={volumes:[{number:1,title:'坏范围',startChapter:2,endChapter:1}]};
+ const raw=JSON.stringify(invalid)+'\n【卷纲更新】\n第一卷：来信\n章节范围：1-1\n框架摘要：追查旧信\n第二卷：港口\n章节范围：2-2\n框架摘要：找到寄信人';
+ c.fetchAdapterCompletion=async()=>({text:raw});c.parseAiStructuredJson=()=>invalid;c.showOutlineVolumePlanningFailure=()=>{};
+ assert.equal(await c.planWorkbenchVolumes('根据现有细纲重新划分卷纲'),true);
+ assert.equal(JSON.stringify(c.outlineReview.value.workbenchVolumes.rows.map(r=>[r.startChapter,r.endChapter])),JSON.stringify([[1,1],[2,2]]));
+ assert.equal(c.outlineReview.value.rawOutput,raw);assert.equal(JSON.stringify(novel.value),before);
+});
