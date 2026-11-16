@@ -1,0 +1,583 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "1280x800-light-character-blank",
+      "data": {
+        "editorWidth": 406,
+        "available": 406,
+        "sectionWidth": 406,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "1280x800-light-character-long",
+      "data": {
+        "editorWidth": 406,
+        "available": 406,
+        "sectionWidth": 406,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "1280x800-light-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": false
+      }
+    },
+    {
+      "name": "1280x800-light-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": false
+      }
+    },
+    {
+      "name": "1280x800-dark-character-blank",
+      "data": {
+        "editorWidth": 406,
+        "available": 406,
+        "sectionWidth": 406,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "1280x800-dark-character-long",
+      "data": {
+        "editorWidth": 406,
+        "available": 406,
+        "sectionWidth": 406,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "1280x800-dark-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": false
+      }
+    },
+    {
+      "name": "1280x800-dark-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": false
+      }
+    },
+    {
+      "name": "768x1024-light-character-blank",
+      "data": {
+        "editorWidth": 108,
+        "available": 108,
+        "sectionWidth": 108,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "768x1024-light-character-long",
+      "data": {
+        "editorWidth": 108,
+        "available": 108,
+        "sectionWidth": 108,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "768x1024-light-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "768x1024-light-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "768x1024-dark-character-blank",
+      "data": {
+        "editorWidth": 108,
+        "available": 108,
+        "sectionWidth": 108,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "768x1024-dark-character-long",
+      "data": {
+        "editorWidth": 108,
+        "available": 108,
+        "sectionWidth": 108,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "768x1024-dark-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "768x1024-dark-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "360x740-light-character-blank",
+      "data": {
+        "editorWidth": 334,
+        "available": 334,
+        "sectionWidth": 334,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "360x740-light-character-long",
+      "data": {
+        "editorWidth": 334,
+        "available": 334,
+        "sectionWidth": 334,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "360x740-light-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "360x740-light-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "360x740-dark-character-blank",
+      "data": {
+        "editorWidth": 334,
+        "available": 334,
+        "sectionWidth": 334,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "360x740-dark-character-long",
+      "data": {
+        "editorWidth": 334,
+        "available": 334,
+        "sectionWidth": 334,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "360x740-dark-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "360x740-dark-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "320x740-light-character-blank",
+      "data": {
+        "editorWidth": 294,
+        "available": 294,
+        "sectionWidth": 294,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "320x740-light-character-long",
+      "data": {
+        "editorWidth": 294,
+        "available": 294,
+        "sectionWidth": 294,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "320x740-light-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "320x740-light-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "320x740-dark-character-blank",
+      "data": {
+        "editorWidth": 294,
+        "available": 294,
+        "sectionWidth": 294,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "320x740-dark-character-long",
+      "data": {
+        "editorWidth": 294,
+        "available": 294,
+        "sectionWidth": 294,
+        "sameParent": true,
+        "adjacent": true,
+        "overflow": false,
+        "emptyInEditor": false
+      }
+    },
+    {
+      "name": "320x740-dark-switch-edge-#settings-search-second-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "320x740-dark-switch-edge-#settings-search-third-round button",
+      "data": {
+        "before": "true",
+        "changed": "false",
+        "restored": "true",
+        "touch": true
+      }
+    },
+    {
+      "name": "768x1024-light-resize-event-keyboard-offset",
+      "data": {
+        "bodyHeight": "692px",
+        "visibleHeight": 692,
+        "visibleBottom": 724,
+        "composer": {
+          "x": 384,
+          "y": 562,
+          "width": 384,
+          "height": 162,
+          "top": 562,
+          "right": 768,
+          "bottom": 724,
+          "left": 384
+        },
+        "button": {
+          "x": 651,
+          "y": 667,
+          "width": 96,
+          "height": 44,
+          "top": 667,
+          "right": 747,
+          "bottom": 711,
+          "left": 651
+        },
+        "reader": {
+          "x": 384,
+          "y": 32,
+          "width": 384,
+          "height": 530,
+          "top": 32,
+          "right": 768,
+          "bottom": 562,
+          "left": 384
+        },
+        "sidebar": {
+          "x": 0,
+          "y": 32,
+          "width": 384,
+          "height": 692,
+          "top": 32,
+          "right": 384,
+          "bottom": 724,
+          "left": 0
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "768x1024-light-settings-keyboard-offset",
+      "data": {
+        "top": 52.76777648925781,
+        "bottom": 711.140625,
+        "visibleTop": 32,
+        "visibleBottom": 724,
+        "hit": true
+      }
+    },
+    {
+      "name": "768x1024-dark-resize-event-keyboard-offset",
+      "data": {
+        "bodyHeight": "692px",
+        "visibleHeight": 692,
+        "visibleBottom": 724,
+        "composer": {
+          "x": 384,
+          "y": 562,
+          "width": 384,
+          "height": 162,
+          "top": 562,
+          "right": 768,
+          "bottom": 724,
+          "left": 384
+        },
+        "button": {
+          "x": 651,
+          "y": 667,
+          "width": 96,
+          "height": 44,
+          "top": 667,
+          "right": 747,
+          "bottom": 711,
+          "left": 651
+        },
+        "reader": {
+          "x": 384,
+          "y": 32,
+          "width": 384,
+          "height": 530,
+          "top": 32,
+          "right": 768,
+          "bottom": 562,
+          "left": 384
+        },
+        "sidebar": {
+          "x": 0,
+          "y": 32,
+          "width": 384,
+          "height": 692,
+          "top": 32,
+          "right": 384,
+          "bottom": 724,
+          "left": 0
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "768x1024-dark-settings-keyboard-offset",
+      "data": {
+        "top": 51.15050506591797,
+        "bottom": 712.7972412109375,
+        "visibleTop": 32,
+        "visibleBottom": 724,
+        "hit": true
+      }
+    },
+    {
+      "name": "1024x768-light-resize-event-keyboard-offset",
+      "data": {
+        "bodyHeight": "436px",
+        "visibleHeight": 436,
+        "visibleBottom": 468,
+        "composer": {
+          "x": 384,
+          "y": 306,
+          "width": 640,
+          "height": 162,
+          "top": 306,
+          "right": 1024,
+          "bottom": 468,
+          "left": 384
+        },
+        "button": {
+          "x": 907,
+          "y": 411,
+          "width": 96,
+          "height": 44,
+          "top": 411,
+          "right": 1003,
+          "bottom": 455,
+          "left": 907
+        },
+        "reader": {
+          "x": 384,
+          "y": 32,
+          "width": 640,
+          "height": 274,
+          "top": 32,
+          "right": 1024,
+          "bottom": 306,
+          "left": 384
+        },
+        "sidebar": {
+          "x": 0,
+          "y": 32,
+          "width": 384,
+          "height": 436,
+          "top": 32,
+          "right": 384,
+          "bottom": 468,
+          "left": 0
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1024x768-light-settings-keyboard-offset",
+      "data": {
+        "top": 38.39622497558594,
+        "bottom": 461.603759765625,
+        "visibleTop": 32,
+        "visibleBottom": 468,
+        "hit": true
+      }
+    },
+    {
+      "name": "1024x768-dark-resize-event-keyboard-offset",
+      "data": {
+        "bodyHeight": "436px",
+        "visibleHeight": 436,
+        "visibleBottom": 468,
+        "composer": {
+          "x": 384,
+          "y": 306,
+          "width": 640,
+          "height": 162,
+          "top": 306,
+          "right": 1024,
+          "bottom": 468,
+          "left": 384
+        },
+        "button": {
+          "x": 907,
+          "y": 411,
+          "width": 96,
+          "height": 44,
+          "top": 411,
+          "right": 1003,
+          "bottom": 455,
+          "left": 907
+        },
+        "reader": {
+          "x": 384,
+          "y": 32,
+          "width": 640,
+          "height": 274,
+          "top": 32,
+          "right": 1024,
+          "bottom": 306,
+          "left": 384
+        },
+        "sidebar": {
+          "x": 0,
+          "y": 32,
+          "width": 384,
+          "height": 436,
+          "top": 32,
+          "right": 384,
+          "bottom": 468,
+          "left": 0
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1024x768-dark-settings-keyboard-offset",
+      "data": {
+        "top": 38.39075469970703,
+        "bottom": 461.6092529296875,
+        "visibleTop": 32,
+        "visibleBottom": 468,
+        "hit": true
+      }
+    }
+  ],
+  "errors": [],
+  "consoleErrors": []
+}

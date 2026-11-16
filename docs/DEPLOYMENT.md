@@ -5,7 +5,9 @@
 - 托管：GitHub Pages
 - 发布分支：`main`
 - 发布目录：仓库根目录 `/`
-- 访问地址：https://not1a-del.github.io/Moyun/
+- 正式库／地址：`Not1a-del/Moyun:main`（upstream），https://not1a-del.github.io/Moyun/
+- 公测库／地址：`yydcm-129/Moyun:main`（origin），https://yydcm-129.github.io/Moyun/
+- 用户于 2026-11-16 确认复用现有 fork 作为公测库；不再使用旧 `yydcm-129-patch-1` 部署。设置变更、部署结果以本轮[发布回执](V0.0.19_HOTFIX_RELEASE_REPORT.md)为准。
 
 ## 发布新版本
 
@@ -13,11 +15,16 @@
 2. 运行 `npm run build`，生成根目录 `index.html` 和 `assets/`。
 3. 运行 `npm run audit`、`npm run gate`，需要完整浏览器回归时运行 `npm run gate:browser`；确认 `.ui-check/gate-report.json` 为 `passed=true` 且无失败/跳过。门禁已包含构建、生成脚本语法和受影响的功能回归；浏览器使用本机已有 Edge 及隔离档案。旧的 `output/bug-audit/` 路径不再使用。仅改公告或文档时，在此前完整门禁的基础上重跑普通门禁、公告及线上专项，不把旧报告当作新增检查的结果。
 4. 检查 `git diff --check`、真实暂存区和待提交清单；只暂存本轮明确文件，不使用 `git add .`。
-5. 只有用户明确批准上线后，才上传。先用 `git ls-remote` 核对 `upstream`（Not1a-del/Moyun）与 `origin`（yydcm-129/Moyun）的 `main`，取回远端引用并确认它们都是待发布提交的祖先；普通快进推送 `HEAD:main`，先 `upstream`、再 `origin`，不得 force push。不必切换当前开发分支。
+5. 用户批准公测上传后，先用插件和 `git ls-remote` 核对两仓 `main`，取回引用确认可快进。先将候选提交普通推送至 `origin/main`，不得 force push；核实公测 Pages 来源为 `main`、目录 `/`，部署成功且线上文件与候选一致。记录公测候选完整 SHA、范围、证据与待用户确认状态。
 6. GitHub Pages 会自动重新构建；通常在数分钟内生效。
 7. 硬刷新线上页面，用桌面与约 `390px` 手机视口复验加载、连接中心、正文主操作和本轮变更；若包含公告，再验证首次用户与已读用户状态。当前可用 `node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/`，本机需要代理时追加 `--proxy http://127.0.0.1:7890`。脚本核对线上运行文件与 Git 发布提交原始字节的 SHA-256、公告及设置入口（Windows 工作目录的 CRLF 会在提交时标准化为 LF，不能直接拿工作目录原始字节代替部署基准），证据写入 `.ui-check/release-smoke/`。
 
-8. 核对两仓远端 SHA 一致并记录 Pages 部署状态、线上资产指纹、测试范围、未覆盖边界及回滚点；同时更新 `UPDATE_LOG.md`、`TEST_REPORT.md` 和 `HANDOFF.md` 文首。旧阶段的“未上传”记录保留为历史，以最新发布回执为准。
+8. **等待用户明确确认公测候选后，才发布正式库。** 没有反馈、测试通过、部署成功均不算用户确认；公测期间可与正式库不同。用户确认后再次检查 upstream 可快进，推送同一候选到 `upstream/main`，复验正式 Pages 和线上文件；若候选之后又改了运行文件，要重新公测确认。两仓可追加相同的文档回执提交，不能借此夹带未经确认的代码。
+9. 记录两仓远端 SHA、两个 Pages 部署状态、线上资产指纹、测试范围、未覆盖边界、用户确认和回滚点；更新 `UPDATE_LOG.md`、`TEST_REPORT.md`、`HANDOFF.md` 文首。旧阶段的“未上传”仅是历史记录。
+
+本次 v0.0.19 第一轮热更新已获用户授权发布两站，不需再等待一次确认；后续更新执行上述先公测后确认流程。本次保留 `0.0.19`，不改页面内 1116 公告和已读键。文档更新不等于新增页面公告。
+
+GitHub 插件优先。它未提供仓库更新、Pages 设置和本地提交原样推送时，使用本机已授权的 `yydcm-129` Git/REST，操作前用 `/user` 核实账号。不要以提交 author 代替执行账号核对，不输出凭据；代理仅传当前命令。仓库默认分支和 Pages 来源分别核实，前者改对不代表后者已经改对。
 
 全量脚本中的当前线上检查是发布前的只读基线，不代表新候选已经部署。推送后必须使用新提交 SHA、生成资产指纹和预期公告文字重新执行线上冒烟。
 

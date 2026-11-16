@@ -7,6 +7,8 @@
 
 **在线体验：** https://not1a-del.github.io/Moyun/
 
+**公众测试：** https://yydcm-129.github.io/Moyun/ — 后续更新先在这里试用，经用户确认后再发布正式站。[公测与反馈说明](docs/PUBLIC_TESTING.md)
+
 ## 支持 Moyun
 
 Moyun 由 Not1a-del 持续维护与迭代。若项目对你有帮助，欢迎通过 [爱发电](https://ifdian.net/a/moyunapp) 自愿支持测试、设计与后续开发投入。

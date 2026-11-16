@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "a018e50",
+  "generatedAt": "2026-11-16T14:02:55.535Z",
+  "files": [
+    {
+      "file": "desktop-light-settings.png",
+      "bytes": 121787,
+      "sha256": "2f038344f784a5df1718b3bce960b80ae9a86979e70c4b82cd16131c40ad026f"
+    },
+    {
+      "file": "extra-results.json",
+      "bytes": 13348,
+      "sha256": "971664343a9bb37755a3a87d5b3c58238d1f4f88adb616fe5da2bff0aa59230f"
+    },
+    {
+      "file": "gate-results.json",
+      "bytes": 7256,
+      "sha256": "27f4f668c793d9aeb58a013a46bcc71648c924a82ad576b7644cd8ae21edaaf9"
+    },
+    {
+      "file": "mobile-dark-toggles.png",
+      "bytes": 55817,
+      "sha256": "39132b28fd5bf05510c8bba8c1b207642dd09b1fa24a92a98f2ddaeab076abe6"
+    },
+    {
+      "file": "mobile-light-keyboard.png",
+      "bytes": 38622,
+      "sha256": "ca43546c3453305ef98aa8e561f7b0abc03227e9b5af094f416d5e4f5894b3ed"
+    },
+    {
+      "file": "mobile-light-settings.png",
+      "bytes": 58079,
+      "sha256": "449279f88f58592297fffaddadb6086c142870a441ccaebbfe9bee914a40eb45"
+    },
+    {
+      "file": "mobile-results.json",
+      "bytes": 257746,
+      "sha256": "60ecc18441eaf68ff9a99ecd244931f539fcd85748f1b24175604911eadeef2b"
+    },
+    {
+      "file": "tablet-dark-keyboard.png",
+      "bytes": 58582,
+      "sha256": "3e7629609aa82e94450e0660b8e98c4103a4d57bde52031d3e2753a75b4e9bd3"
+    },
+    {
+      "file": "tablet-light-browser-bars.png",
+      "bytes": 170462,
+      "sha256": "cf92c24546563594c35a8d62e758109dfa1f708ab1436662765675d857cb1fa6"
+    },
+    {
+      "file": "tablet-results.json",
+      "bytes": 43093,
+      "sha256": "637b237c70061e7158bff6128695a107c1e9c9e3110f2401390b75c0c049adaf"
+    }
+  ]
+}
