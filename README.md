@@ -93,11 +93,12 @@ Moyun/
 ```powershell
 npm run build
 node --check assets/js/moyun.js
-node output/bug-audit/stage8-full-regression-runner.cjs
-node output/bug-audit/stage8-finalize-report.cjs
+npm run audit
+npm run gate
+npm run gate:browser
 ```
 
-全量回归会串行运行静态合同、连接中心、上下文、白鸟/MOD、干净导出、生成取消、弹窗、桌面/手机/短屏与当前线上只读基线，耗时明显长于普通 smoke。只有 `output/playwright/bug-audit-final-report.json` 显示 `passed=true`，且用户明确批准上线，才可以选择性暂存本轮文件、提交并推送；不要使用 `git add .`。
+门禁使用仓库内的脚本；浏览器回归使用已有 Edge 和隔离临时档案，不读取日常书库、不调用在线模型。只有 `.ui-check/gate-report.json` 显示 `passed=true`，且没有失败或跳过步骤、用户已明确批准上线，才可以选择性暂存本轮文件、提交并推送。上传目标和线上复验见 [部署流程](docs/DEPLOYMENT.md)；不要使用 `git add .`。旧的 `output/bug-audit/` 脚本不再作为发布门禁。
 
 ## 第三方依赖
 

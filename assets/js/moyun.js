@@ -79,6 +79,7 @@ const WEB_UPDATE_ANNOUNCEMENTS = Object.freeze([
       Object.freeze({ key:'favorites-and-style-source', tone:'new', title:'喜欢范文与文风来源', body:'章节支持整篇喜欢和段落喜欢，喜欢内容可集中查看，也可以作为文风来源或提炼成新的文风。素材随书保存，跨书副本与分支数据不会依赖原书临时读取。' }),
       Object.freeze({ key:'planning-review-expansion', tone:'new', title:'大纲与细纲工作台', body:'AI 修改先在底部流式展示，完成后通过对比弹窗审阅。可根据细纲创建更多卷纲，在未写正文的位置增加新剧情章节，保留已有内容；也支持细纲反推大纲和按书启用未完模式。' }),
       Object.freeze({ key:'context-api-config', tone:'new', title:'上下文和模型分区', body:'沉浸写作与团队开书可分别选用模型，团队内部模块也可单独调整，并可选择是否复用到已有书籍。设置说明支持搜索；API 配置输入框使用浮动标签，长内容也能分清每一项。' }),
+      Object.freeze({ key:'settings-search-aliases', tone:'perf', title:'设置常用词搜索', body:'按各项功能补充常用叫法：搜索“补写”可找到二轮和三轮补写，“时间”“不出字”可找到首字超时，“向量模型”“爱心”等也能定位对应设置。点击结果后自动跳转，团队开书二级配置会展开；喜欢查看可继续打开原列表。' }),
       Object.freeze({ key:'summary-storage-protection', tone:'new', title:'补摘要与保存保护', body:'目录底部可勾选章节补摘要，确认费用后才请求；停止后保留已完成摘要和未完成候选。前文字数上限可调整，较早内容由摘要和记忆补充；保存会排队并对偶发错误重试，失败时提示保留页面和备份。' }),
       Object.freeze({ key:'planning-recovery-fixes', tone:'fix', title:'解析失败与中断保护', body:'修复真实模型返回文本无法分卷、坏 JSON 阻挡文本兜底、失败后猜测均分和原文丢失的问题。一次格式修复仍失败时不改旧数据，并提供手动整理入口。' }),
       Object.freeze({ key:'group-howto-1116', kind:'group', title:'怎么用', body:'' }),

@@ -1,21 +1,24 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http=require('node:http');
 const {spawn}=require('node:child_process');
-const root=path.resolve(__dirname,'..'),port=4191,cdp=9251,base='http://127.0.0.1:'+port+'/index.html';
+const root=path.resolve(__dirname,'..'),port=4191,cdp=9251;
+const option=name=>{const index=process.argv.indexOf(name);return index<0?'':process.argv[index+1]||'';};
+const base=option('--url')||'http://127.0.0.1:'+port+'/index.html';
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function main(){
-  const server=http.createServer((req,res)=>{const pathname=new URL(req.url,base).pathname;const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}fs.readFile(file,(error,data)=>{res.writeHead(error?404:200,{'content-type':({'.html':'text/html;charset=utf-8','.js':'text/javascript;charset=utf-8','.css':'text/css;charset=utf-8'})[path.extname(file)]||'application/octet-stream'});res.end(error?'':data);});});
+  const server=http.createServer((req,res)=>{const pathname=new URL(req.url,base).pathname;const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}fs.readFile(file,(error,data)=>{res.writeHead(error?404:200,{'content-type':({'.html':'text/html;charset=utf-8','.js':'text/javascript;charset=utf-8','.css':'text/css;charset=utf-8','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});res.end(error?'':data);});});
   await new Promise(resolve=>server.listen(port,'127.0.0.1',resolve));
   const profile=fs.mkdtempSync(path.join(os.tmpdir(),'moyun-v19-outline-'));
   const edgePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(file=>fs.existsSync(file));
   if(!edgePath)throw Error('未找到本机 Edge');
-  const edge=spawn(edgePath,['--headless=new','--remote-debugging-port='+cdp,'--user-data-dir='+profile,'--no-first-run','--no-default-browser-check','about:blank'],{stdio:'ignore',windowsHide:true});
+  const edge=spawn(edgePath,['--headless=new','--remote-debugging-port='+cdp,'--user-data-dir='+profile,'--no-first-run','--no-default-browser-check',...(option('--proxy')?['--proxy-server='+option('--proxy')]:[]),'about:blank'],{stdio:'ignore',windowsHide:true});
   let c;
   try{
     for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:'+cdp+'/json/version')).ok)break;}catch{}await wait(100);}
     c=await require('./v16-r2-browser-session.cjs').connect(cdp,base);
     await c.navigate();
     await c.ev(()=>{window.__s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState;});
+    if(process.argv.includes('--release-smoke')){await require('./v19-release-smoke.cjs')(c);return;}
     if(process.argv.includes('--planning-recovery')){await require('./v19-planning-recovery-browser.cjs')(c);return;}
     if(process.argv.includes('--manual-planning')){await require('./v19-manual-planning-browser.cjs')(c);return;}
     if(process.argv.includes('--volume-classification')){await require('./v19-volume-classification-browser.cjs')(c);return;}
