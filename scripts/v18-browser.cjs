@@ -4,12 +4,14 @@ const {spawn,execFile}=require('node:child_process');
 const {promisify}=require('node:util');
 const root=path.resolve(__dirname,'..'), output=path.join(root,'.ui-check/v18');
 const legacy=process.argv.includes('--legacy');
-const port=legacy?4176:4188,cdp=9248,base='http://127.0.0.1:'+port+'/index.html';
+const cdp=9248;
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function main(){
  fs.mkdirSync(output,{recursive:true});
- const server=http.createServer((req,res)=>{const pathname=new URL(req.url,base).pathname;const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}fs.readFile(file,(e,b)=>{res.writeHead(e?404:200,{'content-type':({'.html':'text/html;charset=utf-8','.js':'text/javascript;charset=utf-8','.css':'text/css;charset=utf-8','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});res.end(e?'':b);});});
- await new Promise(r=>server.listen(port,'127.0.0.1',r));
+ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http://127.0.0.1').pathname;const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}fs.readFile(file,(e,b)=>{res.writeHead(e?404:200,{'content-type':({'.html':'text/html;charset=utf-8','.js':'text/javascript;charset=utf-8','.css':'text/css;charset=utf-8','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'});res.end(e?'':b);});});
+ // 让系统分配空闲端口，避免已有预览页面导致回归未执行。
+ await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+ const base='http://127.0.0.1:'+server.address().port+'/index.html';
  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'moyun-v18-'));
  const edgePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(p=>fs.existsSync(p));
  const edge=spawn(edgePath,['--headless=new','--remote-debugging-port='+cdp,'--user-data-dir='+profile,'--no-first-run','--no-default-browser-check','--window-size=1366,900','about:blank'],{stdio:'ignore',windowsHide:true});

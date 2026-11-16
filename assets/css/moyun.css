@@ -58,7 +58,9 @@ body{
   background:
     radial-gradient(circle at 18% 8%,var(--accent-soft),transparent 28%),
     linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 92%,var(--accent-soft)));
-  height:100dvh;overflow:hidden;display:flex;
+  /* 工作区高度共用实际可视区，避免平板双栏的续写按钮落到浏览器工具栏后面。 */
+  position:relative;top:var(--moyun-visual-viewport-top,0px);
+  height:100vh;height:var(--moyun-visual-viewport-height,100dvh);overflow:hidden;display:flex;
   -webkit-font-smoothing:antialiased;
   overscroll-behavior:none;touch-action:manipulation;
   transition:background .35s,color .35s;
@@ -161,7 +163,7 @@ button{cursor:pointer}
    开关控件
    ═══════════════════════════════════════════════ */
 .toggle-track{
-  width:44px;height:24px;border-radius:999px;
+  display:inline-block;width:44px;height:24px;border-radius:999px;
   position:relative;transition:background .2s;flex-shrink:0;cursor:pointer;
 }
 .toggle-thumb{
@@ -1170,15 +1172,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     font-size:13px;
     order:unset;
   }
-  .moyun-keyboard-open .moyun-soft-bottom-composer{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:var(--moyun-keyboard-inset, 0px)!important;
-    z-index:35;
-    padding-bottom:6px!important;
-    margin:0;
-  }
   .moyun-keyboard-open .theme-fab{display:none}
 }
 
@@ -1535,8 +1528,10 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   -webkit-backdrop-filter: blur(18px) saturate(120%);
   backdrop-filter: blur(18px) saturate(120%);
   border: 1px solid var(--bd);
-  position: sticky;
-  top: 65px;
+  /* 分类留在弹窗头部，不在长内容内悬浮，避免手机上滑到页面中间。 */
+  position: relative;
+  flex: 0 0 auto;
+  margin: 12px 20px 0;
   z-index: 9;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -1891,7 +1886,6 @@ img[role="button"]:focus-visible {
   }
   .character-action-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
   .character-action-grid > button { padding:6px 3px; font-size:10px; line-height:1.2; }
-  .settings-tab-bar { top:65px; }
   /* 中断草稿的放弃/保存/继续/复制是生成失败后最常用的一组操作，移动端必须给足触控高度。 */
   .interrupted-draft-actions > button { min-height:44px; }
   .sidebar-tab-more, .sidebar-tab-back { bottom:0; }
@@ -2127,3 +2121,23 @@ img[role="button"]:focus-visible {
 .moyun-composer-card .moyun-composer-icon-btn{width:44px;height:44px;min-width:44px!important;min-height:44px!important;flex-basis:44px}
 @media(max-width:1100px){.moyun-composer-controls,.moyun-composer-icon-row{grid-column:1/-1}.moyun-soft-bottom-composer .moyun-composer-card{max-height:42dvh}}
 .moyun-team-text{overflow-wrap:anywhere;max-height:280px;overflow:auto;min-width:0}
+/* 手机与触屏平板共用可视区避让，保留平板的双栏布局。 */
+@media(max-width:767px),(pointer:coarse){
+  .moyun-soft-bottom-composer .moyun-composer-card{max-height:min(42dvh,calc(var(--moyun-visual-viewport-height,100dvh) - var(--moyun-mobile-header-height) - 12px))}
+  [data-moyun-modal],.immersive-mode [data-moyun-region=main],.immersive-reveal-toolbar{top:var(--moyun-visual-viewport-top,0px)!important}
+  [data-moyun-modal],.immersive-mode [data-moyun-region=main]{bottom:auto;height:var(--moyun-visual-viewport-height,100dvh)}
+  [data-moyun-modal]{padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+  [data-moyun-modal] [data-moyun-modal-panel]{min-height:0;max-height:100%!important}
+  .theme-fab{bottom:calc(108px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  .immersive-toolbar{bottom:calc(18px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  .immersive-continue-panel{bottom:calc(90px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px));max-height:calc(var(--moyun-visual-viewport-height,100dvh) - 100px)}
+  .immersive-mode .immersive-exit{bottom:calc(20px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  [data-ai-text-streams]{bottom:calc(16px + var(--moyun-visual-viewport-bottom,0px))!important;max-height:calc(var(--moyun-visual-viewport-height,100dvh) * .38)!important}
+  .moyun-vv-short [data-settings-modal-header]{padding:6px 12px}
+  .moyun-vv-short [data-moyun-modal="settings"]{padding-top:max(4px,env(safe-area-inset-top))!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
+  .moyun-vv-short .settings-search-shell{padding:8px 12px}
+  .moyun-vv-short .settings-tab-bar{margin:6px 12px 0}
+  .moyun-vv-short [data-settings-modal-footer]>div{display:none}
+}
+@media(max-width:767px){.moyun-mobile-header,#moyun-sidebar{top:var(--moyun-visual-viewport-top,0px)!important}#moyun-sidebar{bottom:auto;height:var(--moyun-visual-viewport-height,100dvh)}}
+@media(min-width:600px) and (max-width:767px){.moyun-composer-controls,.moyun-composer-icon-row{grid-column:auto}}

@@ -30,6 +30,8 @@ const steps = [
   { id: 'v19', title: 'v0.0.19 功能回归', args: ['--test', ...fs.readdirSync(path.join(ROOT,'scripts')).filter(name => /^v19-.*\.test\.cjs$/.test(name)).sort().map(name => 'scripts/' + name)] }
 ];
 const browserSteps = [
+  { id: 'v19-mobile-layout', title: '手机开关、设置固定栏与可视区域（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--mobile-layout'], browser: true },
+  { id: 'v19-tablet-layout', title: '平板双栏底部可视区域（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--mobile-layout', '--tablet-layout'], browser: true },
   { id: 'v18-browser', title: '浏览器回归（桌面与手机尺寸）', args: ['scripts/v18-browser.cjs'], browser: true },
   { id: 'v18-browser-legacy', title: '浏览器回归（--legacy 对照）', args: ['scripts/v18-browser.cjs', '--legacy'], browser: true },
   { id: 'v19-planning-recovery', title: '通用规划解析与中断恢复（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--planning-recovery'], browser: true },

@@ -19,6 +19,7 @@ async function main(){
     await c.navigate();
     await c.ev(()=>{window.__s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState;});
     if(process.argv.includes('--release-smoke')){await require('./v19-release-smoke.cjs')(c);return;}
+    if(process.argv.includes('--mobile-layout')){await require('./v19-mobile-layout-browser.cjs')(c);return;}
     if(process.argv.includes('--planning-recovery')){await require('./v19-planning-recovery-browser.cjs')(c);return;}
     if(process.argv.includes('--manual-planning')){await require('./v19-manual-planning-browser.cjs')(c);return;}
     if(process.argv.includes('--volume-classification')){await require('./v19-volume-classification-browser.cjs')(c);return;}

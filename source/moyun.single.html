@@ -68,7 +68,9 @@ body{
   background:
     radial-gradient(circle at 18% 8%,var(--accent-soft),transparent 28%),
     linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 92%,var(--accent-soft)));
-  height:100dvh;overflow:hidden;display:flex;
+  /* 工作区高度共用实际可视区，避免平板双栏的续写按钮落到浏览器工具栏后面。 */
+  position:relative;top:var(--moyun-visual-viewport-top,0px);
+  height:100vh;height:var(--moyun-visual-viewport-height,100dvh);overflow:hidden;display:flex;
   -webkit-font-smoothing:antialiased;
   overscroll-behavior:none;touch-action:manipulation;
   transition:background .35s,color .35s;
@@ -171,7 +173,7 @@ button{cursor:pointer}
    开关控件
    ═══════════════════════════════════════════════ */
 .toggle-track{
-  width:44px;height:24px;border-radius:999px;
+  display:inline-block;width:44px;height:24px;border-radius:999px;
   position:relative;transition:background .2s;flex-shrink:0;cursor:pointer;
 }
 .toggle-thumb{
@@ -1180,15 +1182,6 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
     font-size:13px;
     order:unset;
   }
-  .moyun-keyboard-open .moyun-soft-bottom-composer{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:var(--moyun-keyboard-inset, 0px)!important;
-    z-index:35;
-    padding-bottom:6px!important;
-    margin:0;
-  }
   .moyun-keyboard-open .theme-fab{display:none}
 }
 
@@ -1545,8 +1538,10 @@ input::placeholder,textarea::placeholder{color:var(--tx3)!important;opacity:1!im
   -webkit-backdrop-filter: blur(18px) saturate(120%);
   backdrop-filter: blur(18px) saturate(120%);
   border: 1px solid var(--bd);
-  position: sticky;
-  top: 65px;
+  /* 分类留在弹窗头部，不在长内容内悬浮，避免手机上滑到页面中间。 */
+  position: relative;
+  flex: 0 0 auto;
+  margin: 12px 20px 0;
   z-index: 9;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -1901,7 +1896,6 @@ img[role="button"]:focus-visible {
   }
   .character-action-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
   .character-action-grid > button { padding:6px 3px; font-size:10px; line-height:1.2; }
-  .settings-tab-bar { top:65px; }
   /* 中断草稿的放弃/保存/继续/复制是生成失败后最常用的一组操作，移动端必须给足触控高度。 */
   .interrupted-draft-actions > button { min-height:44px; }
   .sidebar-tab-more, .sidebar-tab-back { bottom:0; }
@@ -2137,10 +2131,30 @@ img[role="button"]:focus-visible {
 .moyun-composer-card .moyun-composer-icon-btn{width:44px;height:44px;min-width:44px!important;min-height:44px!important;flex-basis:44px}
 @media(max-width:1100px){.moyun-composer-controls,.moyun-composer-icon-row{grid-column:1/-1}.moyun-soft-bottom-composer .moyun-composer-card{max-height:42dvh}}
 .moyun-team-text{overflow-wrap:anywhere;max-height:280px;overflow:auto;min-width:0}
+/* 手机与触屏平板共用可视区避让，保留平板的双栏布局。 */
+@media(max-width:767px),(pointer:coarse){
+  .moyun-soft-bottom-composer .moyun-composer-card{max-height:min(42dvh,calc(var(--moyun-visual-viewport-height,100dvh) - var(--moyun-mobile-header-height) - 12px))}
+  [data-moyun-modal],.immersive-mode [data-moyun-region=main],.immersive-reveal-toolbar{top:var(--moyun-visual-viewport-top,0px)!important}
+  [data-moyun-modal],.immersive-mode [data-moyun-region=main]{bottom:auto;height:var(--moyun-visual-viewport-height,100dvh)}
+  [data-moyun-modal]{padding-bottom:max(8px,env(safe-area-inset-bottom))!important}
+  [data-moyun-modal] [data-moyun-modal-panel]{min-height:0;max-height:100%!important}
+  .theme-fab{bottom:calc(108px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  .immersive-toolbar{bottom:calc(18px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  .immersive-continue-panel{bottom:calc(90px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px));max-height:calc(var(--moyun-visual-viewport-height,100dvh) - 100px)}
+  .immersive-mode .immersive-exit{bottom:calc(20px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
+  [data-ai-text-streams]{bottom:calc(16px + var(--moyun-visual-viewport-bottom,0px))!important;max-height:calc(var(--moyun-visual-viewport-height,100dvh) * .38)!important}
+  .moyun-vv-short [data-settings-modal-header]{padding:6px 12px}
+  .moyun-vv-short [data-moyun-modal="settings"]{padding-top:max(4px,env(safe-area-inset-top))!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
+  .moyun-vv-short .settings-search-shell{padding:8px 12px}
+  .moyun-vv-short .settings-tab-bar{margin:6px 12px 0}
+  .moyun-vv-short [data-settings-modal-footer]>div{display:none}
+}
+@media(max-width:767px){.moyun-mobile-header,#moyun-sidebar{top:var(--moyun-visual-viewport-top,0px)!important}#moyun-sidebar{bottom:auto;height:var(--moyun-visual-viewport-height,100dvh)}}
+@media(min-width:600px) and (max-width:767px){.moyun-composer-controls,.moyun-composer-icon-row{grid-column:auto}}
 </style>
 </head>
 
-<body class="h-screen flex overflow-hidden">
+<body class="flex overflow-hidden">
 <div id="moyun-page-loader" class="moyun-page-loader" role="status" aria-live="polite" aria-label="墨韵正在加载">
   <div class="moyun-loader-brand">
     <div class="moyun-loader-mark"><img src="../assets/favicon/moyun.svg" alt="墨韵图标"><span class="moyun-loader-seal" aria-hidden="true"></span></div>
@@ -7528,6 +7542,15 @@ img[role="button"]:focus-visible {
         </button>
       </div>
 
+      <!-- 分类独立于内容滚动区，始终紧跟设置标题。 -->
+      <div class="settings-tab-bar" role="tablist" aria-label="设置分类">
+        <button v-for="st in settingsTabs" :key="st.id" type="button" data-settings-tab
+                :id="'settings-tab-'+st.id" role="tab" :aria-selected="activeSettingsTab===st.id ? 'true' : 'false'" :aria-controls="'settings-panel-'+st.id"
+                :tabindex="activeSettingsTab===st.id ? 0 : -1" @click="activeSettingsTab=st.id" @keydown="handleSettingsTabKeydown($event, st.id)"
+                class="settings-tab-item" :class="{active:activeSettingsTab===st.id}">
+          {{ st.name }}
+        </button>
+      </div>
       <div class="p-5 space-y-5 settings-search-shell flex-1 min-h-0 overflow-y-auto">
         <div class="settings-search-area" data-settings-search-area>
           <div class="settings-search-control">
@@ -7554,16 +7577,6 @@ img[role="button"]:focus-visible {
         </div>
         <div v-if="settingsSearchFocused" class="settings-search-backdrop" aria-hidden="true" @click="settingsSearchQuery='';closeSettingsSearch()"></div>
         <div class="settings-search-body" :class="{'is-obscured':settingsSearchFocused}" :inert="settingsSearchFocused">
-        <!-- ── 设置内部Tab ── -->
-        <div class="settings-tab-bar" role="tablist" aria-label="设置分类">
-          <button v-for="st in settingsTabs" :key="st.id" type="button" data-settings-tab
-                  :id="'settings-tab-'+st.id" role="tab" :aria-selected="activeSettingsTab===st.id ? 'true' : 'false'" :aria-controls="'settings-panel-'+st.id"
-                  :tabindex="activeSettingsTab===st.id ? 0 : -1" @click="activeSettingsTab=st.id" @keydown="handleSettingsTabKeydown($event, st.id)"
-                  class="settings-tab-item" :class="{active:activeSettingsTab===st.id}">
-            {{ st.name }}
-          </button>
-        </div>
-
         <!-- ═══ API 连接中心 ═══ -->
         <div v-show="activeSettingsTab==='api'" id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" class="space-y-4">
           <div id="settings-search-api-profiles" class="flex items-center justify-between gap-3">
@@ -7687,12 +7700,12 @@ img[role="button"]:focus-visible {
               <span class="text-[10px]" style="color:var(--tx3)">首轮字数不足或摘要缺失时补写；缺摘要会先弹窗提醒</span><br>
               <span class="text-[10px]" style="color:var(--warn)">按次进行付费调用的用户请谨慎选择</span>
             </div>
-            <div @click="toggleSecondRoundSupplement()" class="toggle-track" role="switch"
+            <button type="button" @click="toggleSecondRoundSupplement()" class="moyun-toggle-hitbox shrink-0" role="switch"
                  :aria-checked="(settings.secondRoundSupplementEnabled!==false)?'true':'false'" aria-label="二轮补写开关"
-                 :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+                 ><span aria-hidden="true" class="toggle-track" :class="(settings.secondRoundSupplementEnabled!==false)?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
           </div>
           <div id="settings-search-third-round" class="flex items-center justify-between py-2" data-settings-third-round-toggle>
-            <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="toggle-track" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></button>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关"><span aria-hidden="true" class="toggle-track" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
           </div>
           <div id="settings-search-gemini-input" class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           <div id="settings-search-full-chapters" class="flex items-center justify-between py-2">
@@ -50460,16 +50473,6 @@ function getWritingModelLabel() {
     }
 
     /* ═══ 生命周期 ═══ */
-    function shouldUseMobileBrowserBottomFallback() {
-      const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
-      const noHover = window.matchMedia?.('(hover: none)')?.matches;
-      const touchPoints = Number(navigator.maxTouchPoints || 0);
-      const mobileWidth = window.innerWidth < 768;
-      const mobileUa = /Android|iPhone|iPad|iPod|Mobile|EdgA|CriOS|FxiOS/i.test(navigator.userAgent || '');
-      const localFileMobile = location.protocol === 'file:' && mobileWidth;
-      return mobileWidth && (coarsePointer || noHover || touchPoints > 0 || mobileUa || localFileMobile);
-    }
-
     function syncMobileHeaderOffset() {
       const root = document.documentElement;
       const header = document.querySelector('[data-moyun-region="mobile-header"]');
@@ -50491,7 +50494,7 @@ function getWritingModelLabel() {
       void header.offsetHeight;
       const rect = header.getBoundingClientRect();
       const visualOffsetTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
-      const spacerH = Math.max(headerH, Math.round(rect.bottom + visualOffsetTop));
+      const spacerH = Math.max(headerH, Math.round(rect.bottom - visualOffsetTop));
       if (spacer) spacer.style.height = spacerH + 'px';
     }
 
@@ -50501,26 +50504,19 @@ function getWritingModelLabel() {
       const visualHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight || 0));
       const visualOffsetTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
       const viewportDelta = Math.max(0, Math.round(window.innerHeight - visualHeight - visualOffsetTop));
-      const mobileViewport = window.innerWidth < 768;
       // 中文注释：软键盘会显著压缩 visualViewport；它不是浏览器底栏，不应只截断为 120px 的安全区。
-      const keyboardOpen = mobileViewport && viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
-      let bottom = 0;
+      const keyboardOpen = viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
       const testReserve = Number(window.__SNOWWING_SAFE_AREA_TEST_BOTTOM_RESERVE || 0);
-      if (Number.isFinite(testReserve) && testReserve > 0) {
-        bottom = testReserve;
-      } else if (!keyboardOpen && mobileViewport) {
-        const measured = visualViewport ? Math.min(viewportDelta, 48) : 0;
-        const isiOS = /iPhone|iPad|iPod|CriOS|FxiOS/i.test(navigator.userAgent || '');
-        const fallback = shouldUseMobileBrowserBottomFallback() ? (isiOS ? 72 : 56) : 0;
-        bottom = Math.max(measured, fallback);
-      }
-      bottom = Math.min(Math.max(bottom, 0), 120);
+      // 手机和平板共用实际可视高度；不按机型猜底栏高度，避免多余空白。
+      const bottom = Number.isFinite(testReserve) ? Math.min(120, Math.max(0, testReserve)) : 0;
       const keyboardInset = keyboardOpen ? viewportDelta : 0;
       root.style.setProperty('--moyun-mobile-browser-bottom', bottom + 'px');
       root.style.setProperty('--moyun-keyboard-inset', keyboardInset + 'px');
       root.style.setProperty('--moyun-visual-viewport-height', visualHeight + 'px');
+      root.style.setProperty('--moyun-visual-viewport-top', visualOffsetTop + 'px');
+      root.style.setProperty('--moyun-visual-viewport-bottom', viewportDelta + 'px');
       root.style.setProperty('--moyun-workbench-height', '100%');
-      root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
+      root.classList.toggle('moyun-vv-short', visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
       syncMobileHeaderOffset();
       if (keyboardOpen) { nextTick(autosizeComposerPrompt); nextTick(() => keepImmersiveCaretVisible()); immersiveToolbarHidden.value = false; }

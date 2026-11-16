@@ -41499,16 +41499,6 @@ function getWritingModelLabel() {
     }
 
     /* ═══ 生命周期 ═══ */
-    function shouldUseMobileBrowserBottomFallback() {
-      const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
-      const noHover = window.matchMedia?.('(hover: none)')?.matches;
-      const touchPoints = Number(navigator.maxTouchPoints || 0);
-      const mobileWidth = window.innerWidth < 768;
-      const mobileUa = /Android|iPhone|iPad|iPod|Mobile|EdgA|CriOS|FxiOS/i.test(navigator.userAgent || '');
-      const localFileMobile = location.protocol === 'file:' && mobileWidth;
-      return mobileWidth && (coarsePointer || noHover || touchPoints > 0 || mobileUa || localFileMobile);
-    }
-
     function syncMobileHeaderOffset() {
       const root = document.documentElement;
       const header = document.querySelector('[data-moyun-region="mobile-header"]');
@@ -41530,7 +41520,7 @@ function getWritingModelLabel() {
       void header.offsetHeight;
       const rect = header.getBoundingClientRect();
       const visualOffsetTop = Math.max(0, Math.round(window.visualViewport?.offsetTop || 0));
-      const spacerH = Math.max(headerH, Math.round(rect.bottom + visualOffsetTop));
+      const spacerH = Math.max(headerH, Math.round(rect.bottom - visualOffsetTop));
       if (spacer) spacer.style.height = spacerH + 'px';
     }
 
@@ -41540,26 +41530,19 @@ function getWritingModelLabel() {
       const visualHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight || 0));
       const visualOffsetTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
       const viewportDelta = Math.max(0, Math.round(window.innerHeight - visualHeight - visualOffsetTop));
-      const mobileViewport = window.innerWidth < 768;
       // 中文注释：软键盘会显著压缩 visualViewport；它不是浏览器底栏，不应只截断为 120px 的安全区。
-      const keyboardOpen = mobileViewport && viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
-      let bottom = 0;
+      const keyboardOpen = viewportDelta > Math.max(160, Math.round(window.innerHeight * 0.22));
       const testReserve = Number(window.__SNOWWING_SAFE_AREA_TEST_BOTTOM_RESERVE || 0);
-      if (Number.isFinite(testReserve) && testReserve > 0) {
-        bottom = testReserve;
-      } else if (!keyboardOpen && mobileViewport) {
-        const measured = visualViewport ? Math.min(viewportDelta, 48) : 0;
-        const isiOS = /iPhone|iPad|iPod|CriOS|FxiOS/i.test(navigator.userAgent || '');
-        const fallback = shouldUseMobileBrowserBottomFallback() ? (isiOS ? 72 : 56) : 0;
-        bottom = Math.max(measured, fallback);
-      }
-      bottom = Math.min(Math.max(bottom, 0), 120);
+      // 手机和平板共用实际可视高度；不按机型猜底栏高度，避免多余空白。
+      const bottom = Number.isFinite(testReserve) ? Math.min(120, Math.max(0, testReserve)) : 0;
       const keyboardInset = keyboardOpen ? viewportDelta : 0;
       root.style.setProperty('--moyun-mobile-browser-bottom', bottom + 'px');
       root.style.setProperty('--moyun-keyboard-inset', keyboardInset + 'px');
       root.style.setProperty('--moyun-visual-viewport-height', visualHeight + 'px');
+      root.style.setProperty('--moyun-visual-viewport-top', visualOffsetTop + 'px');
+      root.style.setProperty('--moyun-visual-viewport-bottom', viewportDelta + 'px');
       root.style.setProperty('--moyun-workbench-height', '100%');
-      root.classList.toggle('moyun-vv-short', mobileViewport && visualHeight <= 560);
+      root.classList.toggle('moyun-vv-short', visualHeight <= 560);
       root.classList.toggle('moyun-keyboard-open', keyboardOpen);
       syncMobileHeaderOffset();
       if (keyboardOpen) { nextTick(autosizeComposerPrompt); nextTick(() => keepImmersiveCaretVisible()); immersiveToolbarHidden.value = false; }
