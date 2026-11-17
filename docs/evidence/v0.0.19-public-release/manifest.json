@@ -1,0 +1,95 @@
+{
+  "textBytes": "JSON按Git LF字节核对",
+  "files": [
+    {
+      "file": "local-gate-results.json",
+      "bytes": 8256,
+      "sha256": "6ea93f995b9cce625de3fed5f0b42c77b23c5c06c20a6e323e6a101888b8df77"
+    },
+    {
+      "file": "online-gate-results.json",
+      "bytes": 2064,
+      "sha256": "cebd516203c2e985ec9ac4c688d82b83646a9c1195f6887a3932f8f489560818"
+    },
+    {
+      "file": "public-1280-light-site.png",
+      "bytes": 147383,
+      "sha256": "7d11a12f2fa1c91c60b57c6dd9fd1421f1fbe560fc33a075a403da7decae711a"
+    },
+    {
+      "file": "public-320-dark-site.png",
+      "bytes": 66696,
+      "sha256": "158d5a65528f4fccbea657baa4ef4c486b1f7724962343190c80cb8f2d4958fd"
+    },
+    {
+      "file": "public-first-pass.json",
+      "bytes": 1195,
+      "sha256": "ec80544a618648e61d587340a9af5384e01013f8103b9971466cd6a03afb751e"
+    },
+    {
+      "file": "public-metadata-403.json",
+      "bytes": 2785,
+      "sha256": "7a6832f6188fd68cbafad3cea23a88cf4e30e15d9c9c45ce48cf8c987e9bc27e"
+    },
+    {
+      "file": "public-release.json",
+      "bytes": 12076,
+      "sha256": "6228b5728ab011150fb76639ff2561c536fd132733cef48fe89780f25123f319"
+    },
+    {
+      "file": "public-tablet-dark-settings.png",
+      "bytes": 171857,
+      "sha256": "151143f37f7c579ccb3c40809cb3315d4a83768d40658f583d3995be3e2f532a"
+    },
+    {
+      "file": "public-tablet-light-browser-bars.png",
+      "bytes": 171687,
+      "sha256": "dbbe176a7b4de1262fac53bc3393be96d6ad4faf9eb441e63b8ede3cdca746c8"
+    },
+    {
+      "file": "public-tablet.json",
+      "bytes": 43097,
+      "sha256": "31b87ea402cdf388f8a027aa6a37117543d8a3eb84be12d03b29446f26c5995b"
+    },
+    {
+      "file": "release-receipt.json",
+      "bytes": 2253,
+      "sha256": "b0c097489ee76b25a6aba1018286efac7302311619743b09f1cc7c93fb2a8893"
+    },
+    {
+      "file": "repo-metadata.json",
+      "bytes": 666,
+      "sha256": "5400a64c56f315263a2860d17c5c400583257a04bfb73524050ddbf80be1800b"
+    },
+    {
+      "file": "stable-1280-light-site.png",
+      "bytes": 145844,
+      "sha256": "319b324bd423a2d03183786a7928804350f430c8634367b134fb53a87abc435c"
+    },
+    {
+      "file": "stable-320-dark-site.png",
+      "bytes": 65813,
+      "sha256": "b6753c14e1782c3a24d217ca07daf196da65d3cf6857ace26a87dde6ea535a64"
+    },
+    {
+      "file": "stable-release.json",
+      "bytes": 11466,
+      "sha256": "4e8946adc7c68328c15ef7715d3f7b3255b7dfd496b6c7a08586f50bbd299bd3"
+    },
+    {
+      "file": "stable-tablet-dark-settings.png",
+      "bytes": 170942,
+      "sha256": "6eae27b031ae5a9f10fef395d60d0aa330ef38b059929af07368947df0afa69a"
+    },
+    {
+      "file": "stable-tablet-light-browser-bars.png",
+      "bytes": 170234,
+      "sha256": "78fd618e29730bf1d6e9a75af285d5bf4391815d3252be32bc663e63b36bbd27"
+    },
+    {
+      "file": "stable-tablet.json",
+      "bytes": 42868,
+      "sha256": "9d8b36487b7edbc1ea266d3fab604358a8145dda93bb9ea96aa506e515e62fcd"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-11-17T15:19:11.898Z",
+  "version": "0.0.19",
+  "announcement": "1116（保留，未新增）",
+  "authorizedBy": "用户本轮明确授权直接同步主仓库；先公测部署验收后发布正式",
+  "account": "yydcm-129",
+  "runtimeCandidate": "89c1d831ae13704c27100d049a92f16a6a1489c7",
+  "deployedCandidate": "0dd2770d913afc817b7258f3b7e301d99d576526",
+  "runtimeUnchangedAfterFullGate": true,
+  "pages": [
+    {
+      "owner": "yydcm-129",
+      "html_url": "https://yydcm-129.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "status": "built",
+      "build_status": "built",
+      "commit": "0dd2770d913afc817b7258f3b7e301d99d576526",
+      "updated_at": "2026-11-17T15:00:13Z",
+      "pusher": "yydcm-129"
+    },
+    {
+      "owner": "Not1a-del",
+      "html_url": "https://not1a-del.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "status": "built",
+      "build_status": "built",
+      "commit": "0dd2770d913afc817b7258f3b7e301d99d576526",
+      "updated_at": "2026-11-17T15:04:18Z",
+      "pusher": "yydcm-129"
+    }
+  ],
+  "workflows": [
+    {
+      "owner": "yydcm-129",
+      "id": 44109183930,
+      "run_number": 21,
+      "head_sha": "0dd2770d913afc817b7258f3b7e301d99d576526",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/yydcm-129/Moyun/actions/runs/44109183930",
+      "updated_at": "2026-11-17T15:00:18Z",
+      "actor": "yydcm-129"
+    },
+    {
+      "owner": "Not1a-del",
+      "id": 44109963043,
+      "run_number": 84,
+      "head_sha": "0dd2770d913afc817b7258f3b7e301d99d576526",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Not1a-del/Moyun/actions/runs/44109963043",
+      "updated_at": "2026-11-17T15:04:24Z",
+      "actor": "yydcm-129"
+    }
+  ],
+  "local": {
+    "passed": true,
+    "steps": 21,
+    "v19": 297,
+    "at": "2026-11-17T14:53:25.300Z"
+  },
+  "online": {
+    "passed": true,
+    "checks": 110,
+    "at": "2026-11-17T15:16:23.381Z"
+  },
+  "rollback": {
+    "local": "c6ac50ae053aa2cbe4fb4d601c38d299908e6ac6",
+    "stableBefore": "5a0a1bb09999be6705d21f1f0756ad6fcd46c247"
+  }
+}

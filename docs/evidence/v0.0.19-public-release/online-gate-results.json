@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-11-17T15:16:23.381Z",
+  "commit": "0dd2770d913afc817b7258f3b7e301d99d576526",
+  "passed": true,
+  "selected": "all",
+  "results": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://yydcm-129.github.io/Moyun/ --proxy http://127.0.0.1:7890 --repo-metadata .ui-check/release-gate/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 295.8,
+      "checks": 25
+    },
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://yydcm-129.github.io/Moyun/ --proxy http://127.0.0.1:7890 --repo-metadata .ui-check/release-gate/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 46.5,
+      "checks": 30
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/ --proxy http://127.0.0.1:7890 --repo-metadata .ui-check/release-gate/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 295.3,
+      "checks": 25
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://not1a-del.github.io/Moyun/ --proxy http://127.0.0.1:7890 --repo-metadata .ui-check/release-gate/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 31.5,
+      "checks": 30
+    }
+  ],
+  "notCovered": [
+    "模拟视口不能代替 iOS 与厂商真机",
+    "不调用真实模型；Pages 来源和构建 SHA 另以 GitHub 回执核对"
+  ]
+}
