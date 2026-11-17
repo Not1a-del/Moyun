@@ -5319,18 +5319,47 @@
        role="dialog" aria-modal="true" aria-labelledby="moyun-snapshots-title"
        class="fixed inset-0 z-[80] flex items-end md:items-center justify-center p-0 md:p-4"
        style="box-sizing:border-box;background:var(--overlay);padding-top:calc(1rem + env(safe-area-inset-top));padding-bottom:calc(1rem + env(safe-area-inset-bottom) + var(--moyun-mobile-browser-bottom, 0px))" @click.self="showSnapshots=false">
-    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-md flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
+    <div data-moyun-modal-panel tabindex="-1" class="w-full max-w-2xl min-w-0 flex flex-col overflow-hidden rounded-t-2xl md:rounded-2xl"
          style="background:var(--bg-card);box-shadow:var(--sh3);max-height:min(80vh, calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--moyun-mobile-browser-bottom, 0px)))">
       <div class="px-5 py-3 flex justify-between items-center shrink-0" style="border-bottom:1px solid var(--bd)">
         <h3 id="moyun-snapshots-title" class="text-base font-bold" style="color:var(--tx)">🕐 快照历史</h3>
         <div class="flex gap-2 items-center">
-          <button @click="saveSnapshotManually()" class="btn-primary text-[11px] px-3 py-1">💾 保存快照</button>
-          <button type="button" data-moyun-modal-close data-snapshot-close @click="showSnapshots=false" class="moyun-icon-button" style="color:var(--tx3)" aria-label="关闭快照历史" title="关闭">
+          <button @click="saveSnapshotManually();snapshotTab='book'" class="btn-primary text-[11px] px-3 py-1" style="min-height:44px">保存书籍快照</button>
+          <button type="button" data-moyun-modal-close data-snapshot-close @click="showSnapshots=false" class="moyun-icon-button" style="color:var(--tx3);min-height:44px;min-width:44px" aria-label="关闭快照历史" title="关闭">
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
           </button>
         </div>
       </div>
-      <div class="flex-1 overflow-y-auto p-4 space-y-2">
+      <div class="px-4 py-2 flex flex-wrap gap-2 shrink-0" role="tablist" aria-label="快照类型" style="border-bottom:1px solid var(--bd)">
+        <button type="button" role="tab" :aria-selected="snapshotTab==='regen'" @click="snapshotTab='regen'" class="btn-ghost text-xs" style="min-height:44px" :style="snapshotTab==='regen'?{color:'var(--accent)'}:{}">章节重生成快照（{{ chapterRegenSnapshots.length }}）</button>
+        <button type="button" role="tab" :aria-selected="snapshotTab==='book'" @click="snapshotTab='book'" class="btn-ghost text-xs" style="min-height:44px" :style="snapshotTab==='book'?{color:'var(--accent)'}:{}">本机书籍快照</button>
+      </div>
+      <div v-if="snapshotTab==='regen'" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-2" data-regen-snapshot-list>
+        <p class="text-xs leading-relaxed" style="color:var(--tx3)">这里列出本书所有分支的首次生成请求，随全量备份导入；不是正文旧稿。可查看并删除，正文、旧稿、摘要和记忆不变。删除后不能复用该次首次请求，之后新生成的章节仍会保存新快照。</p>
+        <button type="button" data-regen-snapshot-delete-all @click="deleteChapterRegenSnapshots()" :disabled="!chapterRegenSnapshots.length || regenSnapshotCleanupBusy" class="btn-ghost text-xs" style="min-height:44px;color:var(--err)">{{ regenSnapshotCleanupBusy ? '正在保存…' : '删除本书全部重生成快照' }}</button>
+        <article v-for="row in chapterRegenSnapshots" :key="row.chapter.id" :data-regen-snapshot-row="row.chapter.id" class="card p-3 min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex-1 min-w-0 text-xs break-words">
+              <div class="font-bold">{{ row.branchName }} · 第{{ row.chapterNo }}章 · {{ row.chapter.title || '未命名章节' }}</div>
+              <div style="color:var(--tx3)">{{ row.chapter.regenSnapshot.createdAt ? new Date(row.chapter.regenSnapshot.createdAt).toLocaleString() : '时间未记录' }} · {{ row.characters }} 字注入内容</div>
+            </div>
+            <button type="button" data-regen-snapshot-view @click="expandedRegenSnapshotId=expandedRegenSnapshotId===row.chapter.id?'':row.chapter.id;regenSnapshotPage=0" :aria-expanded="expandedRegenSnapshotId===row.chapter.id" class="btn-ghost text-xs" style="min-height:44px">{{ expandedRegenSnapshotId===row.chapter.id ? '收起' : '查看' }}</button>
+            <button type="button" data-regen-snapshot-delete @click="deleteChapterRegenSnapshots(row.chapter.id)" :disabled="regenSnapshotCleanupBusy" class="btn-ghost text-xs" style="min-height:44px;color:var(--err)" :aria-label="'删除'+row.branchName+'第'+row.chapterNo+'章重生成快照'">删除</button>
+          </div>
+          <div v-if="expandedRegenSnapshotId===row.chapter.id" class="mt-2 min-w-0">
+            <div class="flex flex-wrap items-center gap-2 text-xs" style="color:var(--tx3)">
+              <button type="button" data-regen-snapshot-prev @click="regenSnapshotPage--" :disabled="regenSnapshotPage<=0" class="btn-ghost" style="min-height:44px">上一段</button>
+              <span>第 {{ regenSnapshotPage+1 }} / {{ selectedRegenSnapshotPageCount }} 段</span>
+              <button type="button" data-regen-snapshot-next @click="regenSnapshotPage++" :disabled="regenSnapshotPage+1>=selectedRegenSnapshotPageCount" class="btn-ghost" style="min-height:44px">下一段</button>
+            </div>
+            <p class="text-xs" style="color:var(--tx3)">完整请求分段显示，每段最多12000字符，未删减原文。</p>
+            <pre data-regen-snapshot-content class="mt-2 p-3 rounded-lg text-xs whitespace-pre-wrap break-words overflow-y-auto" style="max-height:40vh;background:var(--bg-inset);overflow-wrap:anywhere">{{ selectedRegenSnapshotText.slice(regenSnapshotPage*12000,(regenSnapshotPage+1)*12000) }}</pre>
+          </div>
+        </article>
+        <p v-if="!chapterRegenSnapshots.length" class="py-8 text-center text-xs" style="color:var(--tx3)">本书暂无章节重生成快照。</p>
+      </div>
+      <div v-else class="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+        <p class="text-xs leading-relaxed" style="color:var(--tx3)">本机保存的书籍恢复点，最多显示最近30条；现有全量备份不包含这份独立历史库，换浏览器或导入备份不会带回这里的记录。章节正文旧稿请在章节标题旁用 ‹ › 查看。</p>
         <div v-for="snap in snapshots" :key="snap.id"
              class="card p-3 flex items-center justify-between">
           <div class="min-w-0 overflow-hidden">
@@ -6832,7 +6861,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=fb1160c95916"></script>
+<script src="./assets/js/moyun.js?v=0cac996a24f1"></script>
 <!-- PART_1_END -->
 </body>
 </html>

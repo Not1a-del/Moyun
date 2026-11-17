@@ -38560,6 +38560,58 @@ function getWritingModelLabel() {
     })();
 
     const snapshots = ref([]);
+    const snapshotTab = ref('regen');
+    const expandedRegenSnapshotId = ref('');
+    const regenSnapshotPage = ref(0);
+    const regenSnapshotCleanupBusy = ref(false);
+    // 只列章节引用，不复制整份请求；打开单条详情时才格式化，避免长书一次渲染数百MB。
+    const chapterRegenSnapshots = computed(() => {
+      if (!showSnapshots.value) return [];
+      const counters = new Map(), names = new Map(branchList.value.map(row => [row.id, row.name]));
+      return chapters.value.flatMap(chapter => {
+        const bid = chapter.branchId || 'main', chapterNo = (counters.get(bid) || 0) + 1; counters.set(bid, chapterNo);
+        return chapter.regenSnapshot ? [{chapter, chapterNo, branchName:names.get(bid) || bid, characters:(chapter.regenSnapshot.messages || []).reduce((n, message) => n + String(message.content || '').length, 0)}] : [];
+      });
+    });
+    const selectedRegenSnapshotText = computed(() => {
+      if (!showSnapshots.value || snapshotTab.value !== 'regen' || !expandedRegenSnapshotId.value) return '';
+      const chapter = chapters.value.find(row => row.id === expandedRegenSnapshotId.value);
+      return chapter?.regenSnapshot ? JSON.stringify(chapter.regenSnapshot, null, 2) : '';
+    });
+    // 只减少页面一次渲染的文字量；完整快照仍保留，防止手机展开长请求时卡住。
+    const selectedRegenSnapshotPageCount = computed(() => Math.max(1, Math.ceil(selectedRegenSnapshotText.value.length / 12000)));
+    function deleteChapterRegenSnapshots(chapterId = '') {
+      if (regenSnapshotCleanupBusy.value || !canChangeBranch()) return;
+      const bookId = currentBookId.value;
+      const targets = chapterRegenSnapshots.value.filter(row => !chapterId || row.chapter.id === chapterId).map(row => ({chapter:row.chapter, snapshot:row.chapter.regenSnapshot}));
+      if (!targets.length) { showToast('没有可删除的重生成快照', 'info'); return; }
+      openConfirm({title:chapterId ? '删除章节重生成快照' : '删除本书全部重生成快照', confirmText:'删除快照',
+        message:'将删除 '+targets.length+' 份首次生成请求，删除后不能恢复，建议先导出全量备份。',
+        impactLines:['范围：'+(chapterId ? '指定章节' : '当前书籍的全部分支'), '只删除 regenSnapshot；正文、正文旧稿、摘要、记忆、卷纲和分支保持不变', '本机书籍快照独立保留；恢复旧备份或书籍快照可能带回这些请求', '删除后不能复用首次注入，可继续正常续写或分支重写']
+      }, async () => {
+        if (regenSnapshotCleanupBusy.value || !canChangeBranch()) return;
+        if (bookId !== currentBookId.value || targets.some(row => !chapters.value.includes(row.chapter) || row.chapter.regenSnapshot !== row.snapshot)) { showToast('书籍或快照已变化，请重新选择', 'warning'); return; }
+        regenSnapshotCleanupBusy.value = true;
+        targets.forEach(row => delete row.chapter.regenSnapshot);
+        try {
+          if (!await saveDataNow('删除章节重生成快照')) throw Error('保存未完成');
+          expandedRegenSnapshotId.value = '';
+          showToast('已删除 '+targets.length+' 份重生成快照，正文和记忆已保留', 'success');
+        } catch {
+          // 保存失败恢复内存和书架副本，避免后续自动保存或应急恢复把失败的删除当作成功。
+          const stored = books.value.find(book => book.id === bookId);
+          targets.forEach(row => {
+            row.chapter.regenSnapshot = row.snapshot;
+            const saved = stored?.chapters?.find(chapter => chapter.id === row.chapter.id);
+            if (saved && !saved.regenSnapshot) saved.regenSnapshot = row.snapshot;
+            const loaded = bookId === currentBookId.value && chapters.value.find(chapter => chapter.id === row.chapter.id);
+            if (loaded && !loaded.regenSnapshot) loaded.regenSnapshot = row.snapshot;
+          });
+          try { saveEmergencyBackup(buildLibrarySnapshot(), '删除快照失败回滚'); } catch {}
+          showToast('清理未完成，重生成快照已保留，请检查保存状态后重试', 'error');
+        } finally { regenSnapshotCleanupBusy.value = false; }
+      });
+    }
 
     function saveSnapshot(reason) {
       syncBookData();
@@ -41920,7 +41972,7 @@ function getWritingModelLabel() {
       suggestionPersona, generateSuggestion, buildSuggestionPrompt,
 
       // ── Part 4: 快照 ──
-      snapshots, saveSnapshot, saveSnapshotManually, loadSnapshots, deleteSnapshot, restoreSnapshot,
+      snapshots, snapshotTab, expandedRegenSnapshotId, regenSnapshotPage, selectedRegenSnapshotPageCount, chapterRegenSnapshots, selectedRegenSnapshotText, regenSnapshotCleanupBusy, deleteChapterRegenSnapshots, saveSnapshot, saveSnapshotManually, loadSnapshots, deleteSnapshot, restoreSnapshot,
 
       // ── Part 5: 搜索 ──
       searchQuery, replaceQuery, searchResults, currentMatchIndex, hasSearched,
