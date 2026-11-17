@@ -9,7 +9,7 @@ const out=path.join(root,'.ui-check/release-gate'),results=[];fs.mkdirSync(out,{
 for(const [site,url] of Object.entries(sites)){
  if(selected!=='all'&&selected!==site)continue;
  for(const mode of ['release','tablet']){
-  const args=['scripts/v19-outline-review-browser.cjs',...(mode==='release'?['--release-smoke']:['--mobile-layout','--tablet-layout']),'--url',url,...(option('--proxy')?['--proxy',option('--proxy')]:[])];
+  const args=['scripts/v19-outline-review-browser.cjs',...(mode==='release'?['--release-smoke']:['--mobile-layout','--tablet-layout']),'--url',url,...(option('--proxy')?['--proxy',option('--proxy')]:[]),...(option('--repo-metadata')?['--repo-metadata',option('--repo-metadata')]:[])];
   const evidence=path.join(root,mode==='release'?'.ui-check/release-smoke/live':'.ui-check/mobile-hotfix/tablet-smoke');
   // 只清理本轮报告，失败时不能把上次通过的文件复制为新证据。
   if(fs.existsSync(path.join(evidence,'results.json')))fs.unlinkSync(path.join(evidence,'results.json'));

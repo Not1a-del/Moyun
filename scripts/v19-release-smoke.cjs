@@ -29,7 +29,12 @@ module.exports=async function(c){
   await check('页面品牌图标实际解码成功',async()=>{const images=await c.ev(()=>[...document.querySelectorAll('img[src*="favicon"]')].map(node=>({src:node.getAttribute('src'),loaded:node.complete&&node.naturalWidth>0})));assert.ok(images.length);assert.ok(images.every(node=>node.loaded));return images;});
   const expectedChannel=new URL(url).hostname==='yydcm-129.github.io'?'public':new URL(url).hostname==='not1a-del.github.io'?'stable':'local';
   if(expectedChannel!=='local')await check('GitHub 仓库身份和静态站点入口一致',async()=>{
-   const owner=expectedChannel==='public'?'yydcm-129':'Not1a-del',data=await c.ev(async owner=>{const response=await fetch('https://api.github.com/repos/'+owner+'/Moyun');if(!response.ok)throw Error('GitHub 元信息 '+response.status);const repo=await response.json();return{full_name:repo.full_name,homepage:repo.homepage,description:repo.description,has_pages:repo.has_pages,has_issues:repo.has_issues,default_branch:repo.default_branch};},owner);
+   const owner=expectedChannel==='public'?'yydcm-129':'Not1a-del',metadataIndex=process.argv.indexOf('--repo-metadata');
+   // 共享代理可能耗尽匿名 API 配额；可读取插件刚核实的回执，不把登录凭据交给网页。
+   const receipt=metadataIndex<0?null:JSON.parse(fs.readFileSync(path.resolve(process.argv[metadataIndex+1]),'utf8'));
+   if(receipt){assert.equal(receipt.source,'Cindy GitHub 插件 get_repo（已登录账号）');const age=Date.now()-Date.parse(receipt.generatedAt);assert.ok(age>=0&&age<60*60*1000,'仓库元信息回执已过期，请用插件重新读取');}
+   const data=receipt?receipt.repos.find(row=>row.full_name===owner+'/Moyun'):await c.ev(async owner=>{const response=await fetch('https://api.github.com/repos/'+owner+'/Moyun');if(!response.ok)throw Error('GitHub 元信息 '+response.status+' '+await response.text());const repo=await response.json();return{full_name:repo.full_name,homepage:repo.homepage,description:repo.description,has_pages:repo.has_pages,has_issues:repo.has_issues,default_branch:repo.default_branch};},owner);
+   assert.ok(data,'仓库元信息回执缺少 '+owner+'/Moyun');
    assert.equal(data.homepage.toLowerCase(),new URL('./',url).href.toLowerCase());assert.equal(data.full_name,owner+'/Moyun');assert.equal(data.default_branch,'main');assert.equal(data.has_pages,true);if(expectedChannel==='public'){assert.match(data.description,/公测|公众测试/);assert.equal(data.has_issues,true);}return data;
   });
   for(const width of [1280,390])for(const dark of [false,true]){
