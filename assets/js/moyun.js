@@ -32,6 +32,12 @@ function debounce(fn, ms) {
   return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
 
+// 同一构建按实际站点显示公测身份，避免两仓同步后把测试入口标成正式站。
+function getMoyunReleaseChannel(hostname, pathname) {
+  if (!/^\/Moyun(?:\/|$)/i.test(pathname)) return 'local';
+  return ({'yydcm-129.github.io':'public','not1a-del.github.io':'stable'})[String(hostname).toLowerCase()] || 'local';
+}
+
 /* 项目说明：关于页与首次欢迎说明共用，避免两处文案漂移。 */
 const MOYUN_PROJECT_INTRO = Object.freeze({
   lead: 'Moyun 是面向小说创作的本地优先写作工作台。它把设定、角色、梗概、大纲、细纲、章节与资料放进同一条创作链路，让灵感可以从一句想法逐步沉淀为可继续书写的长篇工程。',
@@ -1461,6 +1467,8 @@ createApp({
   directives: { 'moyun-tip': MoyunTip },
   components: { ReviewPanel, BranchPanel, MaterialList, TeamBlockCard },
   setup() {
+    const releaseChannel = getMoyunReleaseChannel(location.hostname, location.pathname);
+    if (releaseChannel === 'public') document.title = '墨韵 · 公众测试站';
 
     /* ═══ 核心数据 ═══ */
     const novel = ref({
@@ -41798,7 +41806,7 @@ function getWritingModelLabel() {
       enterImmersiveWriting, enterImmersiveExpansion, onImmersiveWritingInput, keepImmersiveCaretVisible, saveImmersiveWriting, cancelImmersiveWriting, setImmersiveExpandTagTool, toggleImmersiveExpandTag, immersiveExpandTagLabel, immersiveExpandTagClass, immersiveExpandIsSelected, runImmersiveExpansion, stopImmersiveExpansion, updateImmersiveReview, applyImmersiveExpansion, discardImmersiveExpansion, getImmersiveExpansionRaw, openImmersiveContinue, sendImmersiveContinue, beginImmersiveWritingFromGeneration,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
-      projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement, openWebUpdateAnnouncement,
+      releaseChannel, projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement, openWebUpdateAnnouncement,
       webAnnouncementBrowseMode, webAnnouncementIndex, webAnnouncementScroll, webAnnouncementLive, webAnnouncementCount, latestWebAnnouncement,
       isFirstRunGuide, canViewEarlierAnnouncement, canViewNewerAnnouncement, viewEarlierAnnouncement, viewNewerAnnouncement, startWebAnnouncementSwipe, finishWebAnnouncementSwipe,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,

@@ -5,9 +5,16 @@
 
 > 面向长篇创作的纯前端小说写作工作台。
 
-**在线体验：** https://not1a-del.github.io/Moyun/
+**公众测试入口：[打开公测站](https://yydcm-129.github.io/Moyun/)**
 
-**公众测试：** https://yydcm-129.github.io/Moyun/ — 后续更新先在这里试用，经用户确认后再发布正式站。[公测与反馈说明](docs/PUBLIC_TESTING.md)
+`yydcm-129/Moyun` 是公众测试仓库，测试请使用上面的公测地址。`Not1a-del/Moyun` 是正式仓库。两库共用项目代码；后续更新先公测，经用户确认对应候选后再发布正式站，公测库不会自动发布到正式站。
+
+| 用途 | GitHub 仓库 | 静态网页 |
+| --- | --- | --- |
+| 公众测试、反馈新问题 | [yydcm-129/Moyun](https://github.com/yydcm-129/Moyun) | https://yydcm-129.github.io/Moyun/ |
+| 正式使用 | [Not1a-del/Moyun](https://github.com/Not1a-del/Moyun) | https://not1a-del.github.io/Moyun/ |
+
+公测网页标题与顶部显示公测身份；「全局设置 → 关于」可核对当前站点、打开两站及[提交公测反馈](https://github.com/yydcm-129/Moyun/issues)。两站的书库和接口配置独立，不会自动同步。[公测与反馈说明](docs/PUBLIC_TESTING.md)
 
 ## 支持 Moyun
 
@@ -34,7 +41,7 @@ Moyun 由 Not1a-del 持续维护与迭代。若项目对你有帮助，欢迎通
 
 ### 在线使用
 
-访问 https://not1a-del.github.io/Moyun/ ，在设置中填写你自己的 API 地址、API Key 和模型名称后开始使用。
+测试更新请访问 https://yydcm-129.github.io/Moyun/ ；正式使用访问 https://not1a-del.github.io/Moyun/ 。在设置中填写你自己的 API 地址、API Key 和模型名称后开始使用。
 
 ### 本地使用
 
@@ -99,6 +106,8 @@ npm run audit
 npm run gate
 npm run gate:browser
 ```
+
+部署后还必须运行 `npm run gate:release -- --site public`；获用户确认并发布正式站后运行 `npm run gate:release`。需要本机代理时追加 `--proxy http://127.0.0.1:7890`。线上门禁同时检查仓库站点入口、文件指纹、手机和平板布局，分站证据见 `.ui-check/release-gate/`。
 
 门禁使用仓库内的脚本；浏览器回归使用已有 Edge 和隔离临时档案，不读取日常书库、不调用在线模型。只有 `.ui-check/gate-report.json` 显示 `passed=true`，且没有失败或跳过步骤、用户已明确批准上线，才可以选择性暂存本轮文件、提交并推送。上传目标和线上复验见 [部署流程](docs/DEPLOYMENT.md)；不要使用 `git add .`。旧的 `output/bug-audit/` 脚本不再作为发布门禁。
 

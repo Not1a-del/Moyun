@@ -2204,7 +2204,7 @@ img[role="button"]:focus-visible {
   <button type="button" @click="mobileSidebarOpen=true" class="moyun-icon-button" style="color:var(--tx2)" title="打开侧栏" aria-label="打开侧栏">
     <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
   </button>
-  <span class="moyun-wordmark text-lg flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0">Moyun</span>
+  <span class="moyun-wordmark text-lg flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-5 h-5 shrink-0"><span class="flex flex-col leading-tight">Moyun<small v-if="releaseChannel==='public'" data-moyun-public-label class="text-[10px] font-normal" style="color:var(--accent)">公测站</small></span></span>
   <div class="flex items-center gap-0">
     <button type="button" @click="showSnapshots=true;loadSnapshots()" class="moyun-icon-button" style="color:var(--tx2)" title="快照历史" aria-label="打开快照历史">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0013 21a9 9 0 000-18z"/></svg>
@@ -2239,7 +2239,7 @@ img[role="button"]:focus-visible {
   <!-- 侧边栏顶部 -->
   <div class="px-5 py-4 flex justify-between items-center shrink-0 desktop-only"
        style="border-bottom:1px solid var(--bd);background:var(--bg-sidebar-h)">
-    <h1 class="moyun-wordmark text-2xl select-none flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-6 h-6 shrink-0">Moyun</h1>
+    <h1 class="moyun-wordmark text-2xl select-none flex items-center gap-1.5" style="color:var(--tx)"><img src="./assets/favicon/moyun.svg" alt="" aria-hidden="true" class="moyun-brand-mark w-6 h-6 shrink-0"><span class="flex flex-col leading-tight">Moyun<small v-if="releaseChannel==='public'" data-moyun-public-label class="text-[10px] font-normal" style="color:var(--accent)">公测站</small></span></h1>
     <div class="flex gap-1 items-center">
       <button @click="toggleDesktopSidebar" type="button" class="p-2 rounded-full" style="color:var(--tx3)" title="收起侧栏" aria-label="收起侧栏" aria-controls="moyun-sidebar" :aria-expanded="!settings.sidebarCollapsed"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h2v16H4V4zm14.6 3.4L17.2 6l-6 6 6 6 1.4-1.4-4.6-4.6 4.6-4.6z"/></svg></button>
       <button @click="toggleImmersive" class="p-2 rounded-full" style="color:var(--tx3)" title="沉浸阅读">
@@ -8595,6 +8595,15 @@ img[role="button"]:focus-visible {
 
         <!-- ═══ 关于/更新公告 ═══ -->
         <div v-show="activeSettingsTab==='changelog'" id="settings-panel-changelog" role="tabpanel" aria-labelledby="settings-tab-changelog" class="space-y-4">
+          <section data-moyun-site-info class="card p-4 space-y-2 text-xs">
+            <h3 class="font-bold">当前站点：{{ releaseChannel==='public' ? '公众测试站' : releaseChannel==='stable' ? '正式站' : '本地或自部署站点' }}</h3>
+            <p style="color:var(--tx3)">更新先在公测站试用，经用户确认后发布正式站。两站书库与接口配置独立，需要时请导出、导入备份。</p>
+            <div class="flex flex-wrap gap-2">
+              <a data-moyun-site-link="public" href="https://yydcm-129.github.io/Moyun/" target="_blank" rel="noopener noreferrer" class="btn-ghost min-h-[44px] inline-flex items-center">公测站</a>
+              <a data-moyun-site-link="stable" href="https://not1a-del.github.io/Moyun/" target="_blank" rel="noopener noreferrer" class="btn-ghost min-h-[44px] inline-flex items-center">正式站</a>
+              <a data-moyun-site-link="feedback" href="https://github.com/yydcm-129/Moyun/issues" target="_blank" rel="noopener noreferrer" class="btn-ghost min-h-[44px] inline-flex items-center">公测反馈</a>
+            </div>
+          </section>
 
           <!-- ═══════════════════════════════════════
                【在这里编辑项目信息和更新日志】
@@ -9033,6 +9042,12 @@ function uid() {
 function debounce(fn, ms) {
   let t;
   return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+}
+
+// 同一构建按实际站点显示公测身份，避免两仓同步后把测试入口标成正式站。
+function getMoyunReleaseChannel(hostname, pathname) {
+  if (!/^\/Moyun(?:\/|$)/i.test(pathname)) return 'local';
+  return ({'yydcm-129.github.io':'public','not1a-del.github.io':'stable'})[String(hostname).toLowerCase()] || 'local';
 }
 
 /* 项目说明：关于页与首次欢迎说明共用，避免两处文案漂移。 */
@@ -10464,6 +10479,8 @@ createApp({
   directives: { 'moyun-tip': MoyunTip },
   components: { ReviewPanel, BranchPanel, MaterialList, TeamBlockCard },
   setup() {
+    const releaseChannel = getMoyunReleaseChannel(location.hostname, location.pathname);
+    if (releaseChannel === 'public') document.title = '墨韵 · 公众测试站';
 
     /* ═══ 核心数据 ═══ */
     const novel = ref({
@@ -50801,7 +50818,7 @@ function getWritingModelLabel() {
       enterImmersiveWriting, enterImmersiveExpansion, onImmersiveWritingInput, keepImmersiveCaretVisible, saveImmersiveWriting, cancelImmersiveWriting, setImmersiveExpandTagTool, toggleImmersiveExpandTag, immersiveExpandTagLabel, immersiveExpandTagClass, immersiveExpandIsSelected, runImmersiveExpansion, stopImmersiveExpansion, updateImmersiveReview, applyImmersiveExpansion, discardImmersiveExpansion, getImmersiveExpansionRaw, openImmersiveContinue, sendImmersiveContinue, beginImmersiveWritingFromGeneration,
       toast, showToast, dismissToast,
       showInputPrompt, inputPromptCfg, inputPromptValue, openInputPrompt, cancelInputPrompt, execInputPrompt,
-      projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement, openWebUpdateAnnouncement,
+      releaseChannel, projectIntro, showWebUpdateAnnouncement, webUpdateAnnouncement, dismissWebUpdateAnnouncement, openWebUpdateAnnouncement,
       webAnnouncementBrowseMode, webAnnouncementIndex, webAnnouncementScroll, webAnnouncementLive, webAnnouncementCount, latestWebAnnouncement,
       isFirstRunGuide, canViewEarlierAnnouncement, canViewNewerAnnouncement, viewEarlierAnnouncement, viewNewerAnnouncement, startWebAnnouncementSwipe, finishWebAnnouncementSwipe,
       showConfirm, confirmCfg, openConfirm, execConfirm, execConfirmChoice, cancelConfirm, getConfirmModalClass, getConfirmModalStyle, getConfirmCancelButtonStyle, getConfirmPrimaryButtonStyle, getConfirmChoiceButtonStyle,

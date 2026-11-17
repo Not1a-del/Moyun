@@ -30,6 +30,7 @@ const steps = [
   { id: 'v19', title: 'v0.0.19 功能回归', args: ['--test', ...fs.readdirSync(path.join(ROOT,'scripts')).filter(name => /^v19-.*\.test\.cjs$/.test(name)).sort().map(name => 'scripts/' + name)] }
 ];
 const browserSteps = [
+  { id: 'v19-release-local', title: '站点标识、关于入口与公告（本地浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--release-smoke'], browser: true },
   { id: 'v19-regen-snapshot', title: '重生成快照查看、清理与保存回滚（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--snapshot-cleanup'], browser: true },
   { id: 'v19-legacy-memory', title: '百万字旧书导入、记忆发送与启动迁移（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--memory-recovery'], browser: true },
   { id: 'v19-mobile-layout', title: '手机开关、设置固定栏与可视区域（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--mobile-layout'], browser: true },
