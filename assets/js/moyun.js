@@ -7945,7 +7945,7 @@ function copyLastChapterContextText() {
       const controller=new AbortController();memoryController=controller;
       const assertScope=()=>{if(controller.signal.aborted || memoryController!==controller || String(currentBookId.value)!==bookId || String(activeBranchId.value)!==branchId || memorySettingsKey()!==settingsKey)throw new DOMException('记忆任务已过期','AbortError');};
       const valid=new Map(getValidMemoryRows(source).map(m=>[m.chapterId,m]));
-      const jobs=source.map((ch,i)=>({ch,no:i+1,hash:memoryChapterHash(ch)})).filter(j=>String(j.ch.content || '').trim() && !valid.has(String(j.ch.id)) && !memoryFailures.value[j.ch.id+':'+j.hash]);
+      const jobs=source.map((ch,i)=>({ch,no:i+1,hash:memoryChapterHash(ch)})).filter(j=>String(j.ch.content || '').trim() && (String(j.ch.id)===options.forceChapterId || !valid.has(String(j.ch.id))) && !memoryFailures.value[j.ch.id+':'+j.hash]);
       memoryProgress.value={busy:true,done:0,total:jobs.length,phase:'逐章记录',error:''};
       try {
         const req=jobs.length ? getMemoryRequest('classic') : null;
@@ -7996,7 +7996,8 @@ function copyLastChapterContextText() {
     }
     function editMemoryRow(row) { cancelMemoryWork(); delete row.vector; delete row.vectorTextHash; saveData(); }
     function toggleMemoryRow(row) { cancelMemoryWork(); row.enabled=row.enabled===false;saveData();scheduleMemoryWork(); }
-    function regenerateMemory(chapterId) { cancelMemoryWork();memoryLibrary.value.memories=memoryLibrary.value.memories.filter(m=>m.chapterId!==chapterId);saveData();runMemoryBackfill(); }
+    // 重新记录成功后再替换；请求失败或中止时保留旧记忆，避免重试反而删掉可用记录。
+    function regenerateMemory(chapterId) { cancelMemoryWork();return runMemoryBackfill({forceChapterId:String(chapterId)}); }
     function validMemoryGroups(rows) {
       const byId=new Map(rows.filter(m=>m.enabled!==false).map(m=>[m.chapterId,m]));
       return memoryLibrary.value.groups.filter(g=>g.sourceMemories.length===5 && g.sourceMemories.every(s=>{const m=byId.get(s.chapterId);return m && m.sourceHash===s.sourceHash && m.text===s.text;}));
@@ -8744,6 +8745,13 @@ function copyLastChapterContextText() {
       }).catch(() => null);
     }
 
+    function restoreLegacyBookContext(book, source) {
+      // 旧存档的顶层资料只补给当时的当前书；已有书内数据（包括主动清空的数据）不能被覆盖。
+      for (const key of ['memoryLibrary','modPrivateData','modPacks','summaries','chapterOutlines','chapterIndexDrafts','foreshadowMatrix','branchList','activeBranchId','branchData']) {
+        if (book[key] == null && source[key] != null) book[key] = deepClone(source[key]);
+      }
+    }
+
     // 中文注释：旧库落地为 v6 书架。原来的 v3 分支只取一本书（`bks.find(...) || bks[0]`），
     // 多本书的用户升级后其余书全部消失且没有任何提示；这里改成整架导入。
     function adoptLegacyLibrary(lib, label) {
@@ -8770,8 +8778,12 @@ function copyLastChapterContextText() {
       });
 
       const migrated = rawBooks.filter(Boolean).map(bk => {
+        bk = deepClone(bk);
+        if (String(bk.id) === String(lib.currentBookId || rawBooks[0]?.id)) restoreLegacyBookContext(bk, lib);
         const chapterList = normalizeLegacyChapters(bk.chapters);
         return {
+          // 迁移保留书籍自己的记忆和MOD资料，不能只挑正文等少数字段后丢弃其余数据。
+          ...bk,
           id: String(bk.id || uid()),
           title: String(bk.novel?.title || bk.title || '未命名书稿'),
           lastModified: Number(bk.lastModified) || Date.now(),
@@ -8987,10 +8999,7 @@ function copyLastChapterContextText() {
             });
             const bid = data.currentBookId || data.books[0].id;
             const currentBook = books.value.find(b => b.id === bid);
-            if (currentBook && (!currentBook.modPrivateData || typeof currentBook.modPrivateData !== 'object') && Object.keys(rootModPrivateData).length) {
-              // 中文注释：旧库若只有顶层插件私有数据，只迁移到当前书，不扩散到其它书。
-              currentBook.modPrivateData = deepClone(rootModPrivateData);
-            }
+            if (currentBook) restoreLegacyBookContext(currentBook, data);
             if (currentBook && !Array.isArray(currentBook.installedThemePacks) && installedThemePacks.value.length) {
               // 中文注释：兼容主题 UI 首版存档；若旧书未写入书籍级主题包，则把顶层主题包迁入当前书。
               currentBook.installedThemePacks = deepClone(installedThemePacks.value);
@@ -9070,6 +9079,8 @@ function copyLastChapterContextText() {
         currentBookId.value = bid;
         promptPresets.value = syncBuiltinPromptPresets([], narrativePerson.value);
         books.value[0].promptPresets = snapshotForSerialize(promptPresets.value);
+        // 单书旧档首次创建书架时，把已经恢复的记忆和规划一起存入书内，避免首次切书丢失。
+        syncBookData();
       }
     }
 
@@ -12581,11 +12592,19 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
     }
     async function readBookTransferFile(event){
       const file=event.target?.files?.[0];if(event.target)event.target.value='';if(!file)return;const readingBookId=currentBookId.value;
-      try{if(file.size>50*1024*1024)throw Error('JSON 文件超过 50MB');const raw=JSON.parse(await file.text());if(readingBookId!==currentBookId.value)throw Error('读取期间切换了书籍，请重新选择文件');validateTransferJson(raw);const book=validateBookPayload(resolveImportedBookData(raw));for(const key of ['_avatars','_imageCache'])if(raw[key]&&typeof raw[key]==='object'&&!Array.isArray(raw[key]))book[key]=raw[key];initTransfer('book',book,'导入小说 JSON',file.name);showImportExport.value=false;importJsonError.value='';}
+      // 长书的生成快照会让全量备份超过50MB；不按文件大小拒绝，继续保留格式校验和导入回滚。
+      try{const raw=JSON.parse(await file.text());if(readingBookId!==currentBookId.value)throw Error('读取期间切换了书籍，请重新选择文件');validateTransferJson(raw);const book=validateBookPayload(resolveImportedBookData(raw));for(const key of ['_avatars','_imageCache'])if(raw[key]&&typeof raw[key]==='object'&&!Array.isArray(raw[key]))book[key]=raw[key];initTransfer('book',book,'导入小说 JSON',file.name);showImportExport.value=false;importJsonError.value='';}
       catch(e){importJsonError.value=sanitizeApiErrorDetail(e.message||e);showImportExport.value=true;showToast('JSON 识别失败：'+importJsonError.value,'error');}
     }
     function mergeBookTransfer(target,data,strategy){
       const clone=deepClone(data), remap=new Map();
+      // 旧备份只有顶层规划时，补到主线，避免新书的空分支规划遮住已经导入的细纲。
+      if(clone.branchData==null){
+        const main={};
+        for(const key of ['chapterOutlines','chapterIndexDrafts','foreshadowMatrix','staleMarks'])if(Object.hasOwn(clone,key))main[key]=deepClone(clone[key]);
+        for(const key of ['outline','volumes'])if(Object.hasOwn(clone.novel||{},key))main[key]=deepClone(clone.novel[key]);
+        if(Object.keys(main).length)clone.branchData={main};
+      }
       if(strategy==='append'){
         function allocate(x,key=''){if(['modPacks','modPrivateData'].includes(key)||!x||typeof x!=='object')return;if(Array.isArray(x)){x.forEach(v=>allocate(v,key));return;}if(x.id&&x.id!=='main'){remap.set(String(x.id),uid());}Object.entries(x).forEach(([k,v])=>allocate(v,k));}
         allocate(clone);
@@ -35510,9 +35529,10 @@ function getWritingModelLabel() {
           const group=groups.find(g=>g.sourceMemories.some(m=>String(m.chapterId)===String(ch.id)));
           const range=summaryFor(i);
           const memory=byId.get(String(ch.id)),summary=cfg.contextUseChapterSummaries===false?'':cleanNarrativeChapterSummary(ch);
-          if(group){const key='g:'+group.id;if(!emitted.has(key)){replacement='【合并记忆，仅为已发生事实】\n'+group.text;emitted.add(key);}}
+          // 合并记忆存的是 key 而非 id；按当前记录去重，避免长书的不同组被当成同一组漏发。
+          if(group){if(!emitted.has(group)){replacement='【合并记忆，仅为已发生事实】\n'+group.text;emitted.add(group);}}
           else if(memory)replacement='【逐章记忆】\n'+memory.text;
-          else if(range){const key='s:'+range.id;if(!emitted.has(key)){replacement='【第'+range.startChapter+'-'+range.endChapter+'章总结】\n'+formatSnowwingSummaryStoryTimesContext(range)+cleanNarrativeSourceText(range.content,{keepSummaryTail:true});emitted.add(key);}}
+          else if(range){if(!emitted.has(range)){replacement='【第'+range.startChapter+'-'+range.endChapter+'章总结】\n'+formatSnowwingSummaryStoryTimesContext(range)+cleanNarrativeSourceText(range.content,{keepSummaryTail:true});emitted.add(range);}}
           else if(summary&&!ch.summaryIncomplete)replacement=summary;
           else if(body)missingChapters.push(no);
           if(replacement){hasSummaryContext=true;parts.push(replacement.startsWith('【第')?replacement+'\n\n':header+(memoryEnabled?'\n':': ')+replacement+'\n');}
@@ -35542,9 +35562,12 @@ function getWritingModelLabel() {
       const chapterOffset = handoffReady ? Number(previousVolume.endChapter || 0) : 0;
       const handoffPrefix = handoffReady ? '【上一卷卷末交接｜只保留上一卷实际总结，不再注入上一卷正文】\n' + handoff.content + (handoff.actualOutline ? '\n【上一卷实际卷纲修正】\n' + handoff.actualOutline : '') + '\n\n' : '';
       const history=buildBudgetedChapterHistory(scopedContext,{chapterOffset});
+      // 交接只替代上一卷；更早卷仍须带摘要与长期记忆，不能随上一卷正文一起被排空。
+      const earlierContext=handoffReady?allContext.slice(0,Math.max(0,Number(previousVolume.startChapter)-1)):[];
+      const earlierHistory=earlierContext.length?buildBudgetedChapterHistory(earlierContext,{fullN:0}):null;
       // 中文注释：交接替代上卷正文后，空历史不代表正在写全书第一章。
       if(handoffReady&&!scopedContext.length)history.text='请继续写第'+targetChapterNo+'章。';
-      return {...history,text:handoffPrefix+history.text,hasSummaryContext:!!handoffPrefix||history.hasSummaryContext};
+      return {...history,text:(earlierHistory?earlierHistory.text.replace(/\n请继续写下一章。$/,'')+'\n\n':'')+handoffPrefix+history.text,missingChapters:[...(earlierHistory?.missingChapters||[]),...history.missingChapters],hasSummaryContext:!!handoffPrefix||history.hasSummaryContext};
     }
 
     // 构建章节生成的消息列表
@@ -39546,7 +39569,9 @@ function getWritingModelLabel() {
         source = source.data;
       }
       if (source && Array.isArray(source.books)) {
-        const selected = source.books.find(b => b && b.id === source.currentBookId) || source.books[0] || {};
+        const selected = { ...(source.books.find(b => b && b.id === source.currentBookId) || source.books[0] || {}) };
+        // 旧书架备份也可能只在顶层保存当前书记忆，导入时沿用启动迁移的补缺规则。
+        restoreLegacyBookContext(selected, source);
         return Object.assign({}, selected, {
           novel: selected.novel || source.novel || {},
           memoryLibrary: selected.memoryLibrary, lastWritingUsage: selected.lastWritingUsage,

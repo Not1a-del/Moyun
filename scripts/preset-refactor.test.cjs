@@ -685,7 +685,7 @@ if (process.env.MOYUN_CAPTURE) {
     });
     const script = [
       'const ref = v => ({ value: v });\nconst computed = fn => ({ get value() { return fn(); } });\nconst localStorage = { getItem: () => null, setItem() {}, removeItem() {} };\nconst window = {};\nconst LEGACY_PRESET_ROOT_KEYS = [\'promptPipeline\', \'presets\', \'writingStyles\', \'currentWritingStyleId\', \'activeStyleIds\', \'atmosphereEnabled\', \'atmospherePrompt\'];\nconst legacyPresetRootFields = { value: {} };',
-      fnBlock('normalizeMemoryLibrary'), NEW_SECTION,
+      fnBlock('normalizeMemoryLibrary'), fnBlock('restoreLegacyBookContext'), NEW_SECTION,
       slice('    function normalizeStaleMarks(', '    function markStale('),fnBlock('parseChapterRefs'),
       slice('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'),
       slice('    function persistReviewStates(', '    function getSettingsRevisionTargets('),
