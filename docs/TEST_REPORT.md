@@ -1,4 +1,6 @@
-# v0.0.19 阅读导航设置（2026-11-18，本地追加修改）
+# v0.0.19 阅读导航设置（2026-11-18，公测已发布）
+
+候选 `418f969` 公测 Pages #24 成功，正式库仍为 `1a86b37`。`npm.cmd run gate:release -- --site public --repo-metadata .ui-check/reader-navigation-release/repo-metadata.json` 最终直连 55/55（入口 25、平板 30），8 个启动文件匹配候选，失败和跳过 0；未把早前超时运行拼接成通过。修正线上网络等待、后续刷新使用正常缓存和失败时旧报告数量残留，普通门禁重跑 9/9、v19 319/319。临时代理已关闭，7890 配置未变。完整命令、输入、失败、证据与边界见下方报告。
 
 `npm.cmd run audit` 通过、`npm.cmd run gate` 9/9（v19 回归 319/319）；`node scripts/v19-outline-review-browser.cjs --reader-onekey` 28/28，同入口 `--settings-search` 421/421，异常 0。新增默认关闭、可调显示／隐藏时间和搜索入口，设置保存刷新、立即关闭、0 秒显示、停顿归零、非法输入与自动定位均有检查。隔离 Edge、合成正文，320／360／768／1024／1280 明暗主题；真实鼠标／触摸、44px 命中和无横向滚动。具体方法、证据与边界见 [导航设置报告](V0.0.19_READER_NAVIGATION_SETTINGS_REPORT.md)。
 

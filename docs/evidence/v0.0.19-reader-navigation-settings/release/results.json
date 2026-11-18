@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-11-18T07:01:31.837Z",
+  "commit": "418f9697519fc3de76c593b571a1f10f4a44e6d3",
+  "passed": true,
+  "selected": "public",
+  "results": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/reader-navigation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 142,
+      "checks": 25
+    },
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/reader-navigation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 43.3,
+      "checks": 30
+    }
+  ],
+  "notCovered": [
+    "模拟视口不能代替 iOS 与厂商真机",
+    "不调用真实模型；Pages 来源和构建 SHA 另以 GitHub 回执核对"
+  ]
+}

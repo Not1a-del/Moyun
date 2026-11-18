@@ -1,6 +1,6 @@
 # 阅读导航设置本地验收证据（2026-11-18）
 
-本目录对应 `fix/v0.0.19-reader-navigation-settings` 的本地追加修改，基于已发布候选 `1a86b37`；验收时尚未提交，因此门禁记录的 commit 仍为该基线、workingTreeDirtyBeforeRun 为 true。新增设置尚未上传。
+本目录根部对应 `fix/v0.0.19-reader-navigation-settings` 的原本地验收，基于 `1a86b37`；当时尚未提交，因此根部门禁记录该基线、workingTreeDirtyBeforeRun 为 true。当前设置已随候选 `418f969` 发布公测，新增的 [release/](release/README.md) 保存本次完整线上 55 项结果、部署和代理清理回执。正式库尚未同步该候选。
 
 - `gate.json`：`npm.cmd run gate` 9/9，包括构建、结构审计、语法与 v19 319 项回归。没有跳过或失败；不是完整浏览器门禁。
 - `reader-results.json`：`node scripts/v19-outline-review-browser.cjs --reader-onekey` 28/28，含默认关闭、自定义时序、保存刷新、鼠标和触摸、相关角色与开书回归。

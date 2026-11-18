@@ -1,0 +1,9 @@
+{
+  "collectedAt": "2026-11-18T06:57:06.565Z",
+  "command": "curl.exe --noproxy * --connect-timeout 15 --max-time 120 --output NUL --write-out metrics https://yydcm-129.github.io/Moyun/assets/js/moyun.js?v=15bd8f28fff1",
+  "status": 200,
+  "bytes": 2687467,
+  "seconds": 110.735208,
+  "bytesPerSecond": 24269,
+  "exitCode": 0
+}

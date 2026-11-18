@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-11-18T06:32:21.796Z",
+  "login": "yydcm-129",
+  "repo": "yydcm-129/Moyun",
+  "pages": {
+    "status": "built",
+    "html_url": "https://yydcm-129.github.io/Moyun/",
+    "source": {
+      "branch": "main",
+      "path": "/"
+    },
+    "build_type": "legacy"
+  }
+}

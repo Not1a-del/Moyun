@@ -1,0 +1,17 @@
+{
+  "authorizedFor": "本次阅读导航设置公测验收",
+  "startedAt": "2026-11-18T06:49:16.612Z",
+  "configurationPreserved": true,
+  "stopped": true,
+  "pid": 6684,
+  "finishedAt": "2026-11-18T06:51:03.438Z",
+  "testExitCode": 1,
+  "initialStoppedFlag": false,
+  "stopVerifiedAt": "2026-11-18T06:53:22.846Z",
+  "stopVerification": {
+    "method": "Get-NetTCPConnection ? Get-Process ????",
+    "port7890Listening": false,
+    "proxyProcesses": [],
+    "note": "????? SIGTERM ??? exitCode ? null????????????????????"
+  }
+}

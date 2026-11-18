@@ -16,6 +16,7 @@ for(const [site,url] of Object.entries(sites)){
   const started=Date.now(),run=spawnSync(process.execPath,args,{cwd:root,encoding:'utf8',timeout:20*60*1000,maxBuffer:16*1024*1024,windowsHide:true});
   const log=String(run.stdout||'')+String(run.stderr||'');process.stdout.write(log);
   const target=path.join(out,site,mode);fs.mkdirSync(target,{recursive:true});fs.writeFileSync(path.join(target,'run.log'),log);
+  if(fs.existsSync(path.join(target,'results.json')))fs.unlinkSync(path.join(target,'results.json'));
   if(fs.existsSync(evidence))fs.cpSync(evidence,target,{recursive:true});
   const reportFile=path.join(target,'results.json'),report=fs.existsSync(reportFile)?JSON.parse(fs.readFileSync(reportFile,'utf8')):null;
   results.push({site,url,mode,command:'node '+args.join(' '),passed:run.status===0&&!run.error&&report?.passed===true,exitCode:run.status,error:run.error?.message||null,seconds:Math.round((Date.now()-started)/100)/10,checks:report?.results?.length||0});

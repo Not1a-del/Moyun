@@ -28,6 +28,8 @@ module.exports=async function(c){
     assert.equal(row.sha256,crypto.createHash('sha256').update(bytes).digest('hex'),row.file+' 不是当前发布基准');
    }return{baseline:label==='local'?'工作目录原始字节':'Git HEAD 发布原始字节',files:rows};
   });
+  // 最新文件已逐字节核对；后续按正常缓存刷新，reload 仍验证新文档完成初始化。
+  await c.send('Network.setCacheDisabled',{cacheDisabled:false});
   await check('页面品牌图标实际解码成功',async()=>{const images=await c.ev(()=>[...document.querySelectorAll('img[src*="favicon"]')].map(node=>({src:node.getAttribute('src'),loaded:node.complete&&node.naturalWidth>0})));assert.ok(images.length);assert.ok(images.every(node=>node.loaded));return images;});
   const expectedChannel=new URL(url).hostname==='yydcm-129.github.io'?'public':new URL(url).hostname==='not1a-del.github.io'?'stable':'local';
   if(expectedChannel!=='local')await check('GitHub 仓库身份和静态站点入口一致',async()=>{

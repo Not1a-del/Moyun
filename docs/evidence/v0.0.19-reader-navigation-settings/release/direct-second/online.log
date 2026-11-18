@@ -1,0 +1,9 @@
+
+> moyun-web@0.0.19 gate:release
+> node scripts/release-gate.cjs --site public --repo-metadata .ui-check/reader-navigation-release/repo-metadata.json
+
+Error: Vue 未就绪：
+    at ready (F:\yydcm129\codex 墨韵接手\Moyun\scripts\v16-r2-browser-session.cjs:14:324)
+    at async Object.navigate (F:\yydcm129\codex 墨韵接手\Moyun\scripts\v16-r2-browser-session.cjs:16:71)
+    at async main (F:\yydcm129\codex 墨韵接手\Moyun\scripts\v19-outline-review-browser.cjs:19:5)
+[release-gate] 未通过，不能作为上线验收通过 F:\yydcm129\codex 墨韵接手\Moyun\.ui-check\release-gate\results.json

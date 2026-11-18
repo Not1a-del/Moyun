@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-11-18T06:38:23.297Z",
+  "login": "yydcm-129",
+  "repository": "yydcm-129/Moyun",
+  "candidate": "418f9697519fc3de76c593b571a1f10f4a44e6d3",
+  "run": {
+    "id": 44252167543,
+    "number": 24,
+    "name": "pages build and deployment",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/yydcm-129/Moyun/actions/runs/44252167543"
+  },
+  "network": "direct",
+  "proxyStarted": false
+}
