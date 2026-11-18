@@ -913,6 +913,7 @@ details.cot-stream-box[open] .cot-stream-fold::after{transform:rotate(180deg)}
 .moyun-character-check-list label:last-of-type{border-bottom:0}
 .moyun-character-check-list label:has(input:checked){background:var(--accent-soft);color:var(--tx)}
 .moyun-character-check-list input{width:16px;height:16px;accent-color:var(--accent);flex:0 0 auto}
+.moyun-character-faction-name{min-width:0;flex:1;overflow-wrap:anywhere}
 .moyun-character-mobile-picker{position:sticky;top:0;z-index:3;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:0 0 10px;background:var(--bg)}
 .moyun-character-mobile-picker select{width:100%}
 .moyun-character-inspector{width:220px;flex:0 0 220px;padding:14px;overflow-y:auto;background:var(--bg-inset);border-left:1px solid var(--bd)}
@@ -3869,7 +3870,7 @@ img[role="button"]:focus-visible {
       </div>
     </div>
     <div class="flex flex-1 min-h-0 overflow-hidden">
-      <aside class="moyun-character-index hidden md:flex">
+      <aside class="moyun-character-index hidden xl:flex">
         <button type="button" @click="addCharacterFromWorkbench" class="btn-primary w-full text-xs py-2.5">＋ 新建角色</button>
         <label class="sr-only" for="moyun-character-search">搜索角色</label>
         <input id="moyun-character-search" v-model="characterWorkbenchSearch" class="input-field text-xs" placeholder="搜索角色…">
@@ -3885,7 +3886,7 @@ img[role="button"]:focus-visible {
         </div>
       </aside>
       <section class="moyun-character-main flex-1 min-w-0 overflow-y-auto" style="background:var(--bg)">
-        <div class="moyun-character-mobile-picker md:hidden">
+        <div class="moyun-character-mobile-picker grid xl:hidden">
           <label class="sr-only" for="moyun-character-mobile-select">选择角色</label>
           <!-- 中文注释：桌面侧栏走 filteredWorkbenchCharacters（含搜索与核心/POV/待补筛选），这里原本遍历全量，
                于是筛选后桌面显示“没有匹配角色”，手机上却还能选中被筛掉的角色，两端口径不一致。 -->
@@ -3917,6 +3918,13 @@ img[role="button"]:focus-visible {
               <label><span class="label">故事职责</span><input v-model="selectedWorkbenchCharacter.storyRole" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="主角、反派、POV..."></label>
             </div>
             <label><span class="label">人物简介</span><textarea v-model="selectedWorkbenchCharacter.desc" @change="touchSelectedCharacterWorkbench" rows="4" class="textarea-field" placeholder="性格、外貌、背景..."></textarea></label>
+            <div data-character-field="factions">
+              <div class="moyun-character-section-head" style="flex-wrap:wrap"><div><h3>阵营 / 势力</h3><p>与世界观里的势力资料共用成员关联；勾选后自动保存。</p></div><button type="button" @click="openCharacterFactionEntry()" class="btn-ghost" style="min-height:44px">＋ 新建势力</button></div>
+              <div class="moyun-character-check-list">
+                <label v-for="faction in relGraphFactionOptions" :key="faction.id"><input type="checkbox" :checked="(faction.characterIds||[]).includes(selectedWorkbenchCharacter.id)" @change="setCharacterFactionMembership(selectedWorkbenchCharacter.id,faction.id,$event.target.checked)"><span class="moyun-character-faction-name">{{ faction.name || faction.title || '未命名势力' }}</span><button type="button" @click.prevent="openCharacterFactionEntry(faction.id)" class="btn-ghost shrink-0" style="min-height:44px">编辑资料</button></label>
+                <div v-if="!relGraphFactionOptions.length" class="moyun-character-empty">尚无势力资料，可先新建再勾选成员。</div>
+              </div>
+            </div>
             <div class="moyun-character-fields two">
               <label data-character-field="currentState"><span class="label">当前状态</span><textarea v-model="selectedWorkbenchCharacter.profile.currentState" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="当前伤势、立场、情绪、认知阶段..."></textarea></label>
               <label><span class="label">写作约束</span><textarea v-model="selectedWorkbenchCharacter.characterPrompt" @change="touchSelectedCharacterWorkbench" rows="3" class="textarea-field" placeholder="写该角色时需要遵守的约束..."></textarea></label>
@@ -3959,7 +3967,7 @@ img[role="button"]:focus-visible {
           </section>
 
           <section v-if="selectedWorkbenchCharacter.profileLevel!=='sketch'" class="moyun-character-section" data-character-section="relationships">
-            <div class="moyun-character-section-head"><div><h3>角色关系</h3><p>关系始终指向稳定角色 ID；“当前态”沿用原关系描述字段。</p></div><button type="button" @click="addSelectedCharacterRelationship" class="btn-ghost text-xs px-3 py-2">＋ 添加关系</button></div>
+            <div class="moyun-character-section-head"><div><h3>角色关系</h3><p>关系指向稳定角色 ID；状态色只影响图谱显示，AI 依据关系类型与当前态原文。</p></div><button type="button" @click="addSelectedCharacterRelationship" class="btn-ghost text-xs px-3 py-2">＋ 添加关系</button></div>
             <div v-if="!selectedWorkbenchCharacter.relationships.length" class="moyun-character-empty">暂无关系。</div>
             <div v-for="(rel,ri) in selectedWorkbenchCharacter.relationships" :key="rel.id || ri" class="moyun-character-relationship-row" :data-character-relationship-id="rel.id || ''">
               <div class="moyun-character-row-head"><strong>{{ getCharacterNameById(rel.targetId) }}</strong><button type="button" @click="removeSelectedCharacterRelationship(ri)" class="moyun-character-delete" :aria-label="'删除与' + getCharacterNameById(rel.targetId) + '的关系'">×</button></div>
@@ -3967,6 +3975,7 @@ img[role="button"]:focus-visible {
                 <label><span class="label">关联角色</span><select v-model="rel.targetId" @change="touchSelectedCharacterWorkbench" class="select-field"><option value="">选择角色</option><option v-for="other in structuredCharacters.filter(item=>item.id!==selectedWorkbenchCharacter.id)" :key="other.id" :value="other.id">{{ other.name || '未命名' }}</option></select></label>
                 <label><span class="label">关系类型</span><input v-model="rel.type" @change="touchSelectedCharacterWorkbench" class="input-field" placeholder="盟友、师徒、对手..."></label>
                 <label data-character-field="relationshipState"><span class="label">当前态</span><input v-model="rel.attitude" @change="touchSelectedCharacterWorkbench" class="input-field" maxlength="30" placeholder="信任、疏离、试探…（30字内）"></label>
+                <label data-character-field="relationshipColor"><span class="label">图谱状态色</span><select v-model="rel.statusKey" @change="touchSelectedCharacterWorkbench" class="select-field" style="min-height:44px"><option value="auto">自动识别：{{ getRelStatusMeta(rel.attitude,rel.type).label }}</option><option v-for="state in relGraphStatusLegend" :key="state.key" :value="state.key">{{ state.label }}</option></select></label>
                 <label class="full" data-character-field="changeReason"><span class="label">变化原因</span><textarea v-model="rel.changeReason" @change="touchSelectedCharacterWorkbench" rows="2" class="textarea-field" placeholder="关系为何处于当前状态？"></textarea></label>
               </div>
             </div>
@@ -3986,7 +3995,7 @@ img[role="button"]:focus-visible {
             </div>
           </section>
 
-          <details class="moyun-character-mobile-inspector lg:hidden">
+          <details class="moyun-character-mobile-inspector 2xl:hidden">
             <summary>当前角色检查器</summary>
             <div class="moyun-character-inspector-stats"><span>状态记录<strong>{{ selectedCharacterWorkbenchStats.stateLog }}</strong></span><span>关系<strong>{{ selectedCharacterWorkbenchStats.relations }}</strong></span><span>章节<strong>{{ selectedCharacterWorkbenchStats.chapters }}</strong></span><span>细纲<strong>{{ selectedCharacterWorkbenchStats.outlines }}</strong></span></div>
             <p :data-invalid="selectedCharacterWorkbenchStats.invalid>0">{{ selectedCharacterWorkbenchStats.invalid ? ('发现 '+selectedCharacterWorkbenchStats.invalid+' 个失效引用，请保存后重试。') : '稳定 ID 引用完整；角色档案继续由统一上下文包按目标与预算使用。' }}</p>
@@ -3994,7 +4003,7 @@ img[role="button"]:focus-visible {
         </div>
         <div v-else class="max-w-md mx-auto text-center py-20"><div class="text-4xl mb-4">◌</div><div class="text-base font-bold" style="color:var(--tx)">先选一位角色</div><div class="text-xs mt-2" style="color:var(--tx3)">角色卡数据会保留；也可以从这里直接新建。</div><button type="button" @click="addCharacterFromWorkbench" class="btn-primary text-xs px-4 py-2 mt-5">＋ 新建角色</button></div>
       </section>
-      <aside class="moyun-character-inspector hidden lg:block">
+      <aside class="moyun-character-inspector hidden 2xl:block">
         <div class="text-xs font-black mb-3" style="color:var(--tx)">当前角色检查器</div>
         <template v-if="selectedWorkbenchCharacter">
           <div class="moyun-character-inspector-stats"><span>状态记录<strong>{{ selectedCharacterWorkbenchStats.stateLog }}</strong></span><span>关系<strong>{{ selectedCharacterWorkbenchStats.relations }}</strong></span><span>章节<strong>{{ selectedCharacterWorkbenchStats.chapters }}</strong></span><span>细纲<strong>{{ selectedCharacterWorkbenchStats.outlines }}</strong></span></div>
@@ -8895,7 +8904,7 @@ img[role="button"]:focus-visible {
 
       <div class="moyun-rel-filters" aria-label="关系图筛选">
         <label class="moyun-rel-filter"><span>角色</span><select v-model="relGraphCharacterFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部角色</option><option v-for="character in structuredCharacters" :key="character.id" :value="character.id">{{ character.name || '未命名角色' }}</option></select></label>
-        <label class="moyun-rel-filter"><span>阵营 / 势力资料</span><select v-model="relGraphFactionFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部阵营</option><option v-for="faction in relGraphFactionOptions" :key="faction.id" :value="faction.id">{{ faction.title || '未命名势力' }}</option></select></label>
+        <label class="moyun-rel-filter"><span>阵营 / 势力资料</span><select v-model="relGraphFactionFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部阵营</option><option v-for="faction in relGraphFactionOptions" :key="faction.id" :value="faction.id">{{ faction.name || faction.title || '未命名势力' }}</option></select></label>
         <label class="moyun-rel-filter"><span>关系类型</span><select v-model="relGraphTypeFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部类型</option><option v-for="option in relGraphTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <label class="moyun-rel-filter"><span>当前状态</span><select v-model="relGraphStatusFilter" @change="computeRelGraph" class="select-field text-xs"><option value="">全部状态</option><option v-for="option in relGraphStatusOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
         <button type="button" @click="resetRelationshipGraphFilters" class="btn-ghost moyun-rel-reset">重置筛选</button>
@@ -8904,13 +8913,14 @@ img[role="button"]:focus-visible {
       <div class="moyun-rel-legend" aria-label="关系状态颜色图例">
         <span class="moyun-rel-legend-label">状态色</span>
         <span v-for="item in relGraphStatusLegend" :key="item.key" class="moyun-rel-legend-item"><span class="moyun-rel-legend-dot" :style="{background:item.color}"></span>{{ item.label }}</span>
+        <span class="moyun-rel-legend-item" style="color:var(--accent)">虚线：双方状态不同</span>
       </div>
       <div class="moyun-rel-mobile-note">手机端图谱默认只读。选择节点或连线查看详情；编辑请使用页面底部的关系条目。</div>
 
       <div class="moyun-rel-scroll">
         <div class="moyun-rel-layout">
           <section class="moyun-rel-canvas" aria-label="关系图谱">
-            <div class="moyun-rel-canvas-head"><span>选择节点查看角色，选择连线查看双向事实。</span><span>{{ relGraphLines.length ? '视觉合并 ' + relGraphLines.length + ' 组' : '暂无连线' }}</span></div>
+            <div class="moyun-rel-canvas-head"><span>节点颜色区分人物；连线按关系状态着色，详情保留方向。</span><span>{{ relGraphLines.length ? '视觉合并 ' + relGraphLines.length + ' 组' : '暂无连线' }}</span></div>
             <div ref="relGraphViewport" class="moyun-rel-svg-wrap">
               <div v-if="!relGraphNodes.length" class="moyun-rel-empty"><strong>没有符合筛选的角色</strong><span>可重置筛选，或先在角色工作台添加角色和关系。</span></div>
               <svg v-else ref="relSvg" class="moyun-rel-svg" width="100%" height="100%" viewBox="0 0 760 500" preserveAspectRatio="xMidYMid meet" :aria-label="'人物关系图，共 ' + relGraphNodes.length + ' 个角色'">
@@ -8937,8 +8947,8 @@ img[role="button"]:focus-visible {
               <template v-if="selectedRelGraphEdge">
                 <div class="moyun-rel-detail-title">{{ selectedRelGraphEdge.fromName }} ↔ {{ selectedRelGraphEdge.toName }}</div>
                 <div class="moyun-rel-detail-sub">视觉上合并为一条线；下方 {{ selectedRelGraphEdge.facts.length }} 条有向事实仍分别保存。</div>
-                <div v-for="fact in selectedRelGraphEdge.facts" :key="fact.relationId" class="moyun-rel-fact" :style="{'--rel-color':getRelStatusColor(fact.attitude)}">
-                  <div class="moyun-rel-fact-head"><span>{{ fact.from }} → {{ fact.to }}</span><span class="moyun-rel-fact-state" :style="{color:getRelStatusColor(fact.attitude)}">{{ fact.attitude || '当前态未填写' }}</span></div>
+                <div v-for="fact in selectedRelGraphEdge.facts" :key="fact.relationId" class="moyun-rel-fact" :style="{'--rel-color':getRelStatusColor(fact.attitude,fact.type,fact.statusKey)}">
+                  <div class="moyun-rel-fact-head"><span>{{ fact.from }} → {{ fact.to }}</span><span class="moyun-rel-fact-state" :style="{color:getRelStatusColor(fact.attitude,fact.type,fact.statusKey)}">{{ fact.attitude || '当前态未填写' }} · {{ getRelStatusMeta(fact.attitude,fact.type,fact.statusKey).label }}</span></div>
                   <p>关系类型：{{ fact.type || '未定义' }}</p><p v-if="fact.changeReason">变化原因：{{ fact.changeReason }}</p>
                   <div class="moyun-rel-detail-actions"><button type="button" @click="openRelGraphRelationship(fact)" class="btn-ghost moyun-rel-edit-action">编辑这条关系</button></div>
                 </div>
@@ -8947,7 +8957,7 @@ img[role="button"]:focus-visible {
               <template v-else-if="selectedRelGraphNode">
                 <div class="moyun-rel-detail-title">{{ selectedRelGraphNode.fullName }}</div>
                 <div class="moyun-rel-detail-sub">{{ selectedRelGraphNode.storyRole || '故事职责未填写' }}</div>
-                <div class="moyun-rel-detail-sub">阵营：{{ getRelGraphCharacterFactions(selectedRelGraphNode.id).map(item=>item.title || '未命名势力').join('、') || '未关联势力资料' }}</div>
+                <div class="moyun-rel-detail-sub">阵营：{{ getRelGraphCharacterFactions(selectedRelGraphNode.id).map(item=>item.name || item.title || '未命名势力').join('、') || '未关联势力资料' }}</div>
                 <div class="moyun-rel-detail-sub">当前状态：{{ selectedRelGraphNode.currentState || '未填写' }}</div>
                 <div class="moyun-rel-detail-actions"><button type="button" @click="openRelGraphCharacter(selectedRelGraphNode.id)" class="btn-primary">打开角色档案</button></div>
                 <div class="moyun-rel-events"><div class="moyun-rel-events-title">角色相关事件 · {{ selectedRelGraphEvents.length }}</div><div class="moyun-rel-event-list"><button v-for="event in selectedRelGraphEvents" :key="event.id" type="button" @click="openRelGraphEvent(event.id)">{{ event.title || '未命名事件' }}<span v-if="event.timeText"> · {{ event.timeText }}</span></button><div v-if="!selectedRelGraphEvents.length" class="moyun-rel-detail-sub">暂无关联事件。</div></div></div>
@@ -14856,6 +14866,7 @@ createApp({
           next.id = id;
           next.targetId = String(next.targetId || '');
           next.type = String(next.type || '');
+          if (!['auto','positive','cooperate','tense','hostile','distant','other'].includes(next.statusKey)) next.statusKey = 'auto';
           // 中文注释：关系“当前态”是图谱连线与关系卡片的短标签，AI 常生成整段描述导致弹窗溢出。
           // 保存层统一截到 30 字，任何来源（手填、AI、导入）都不会超限。
           next.attitude = String(next.attitude || '').slice(0, 30);
@@ -42377,13 +42388,26 @@ function getModHubPermissionLabels(mod) {
       Object.freeze({ key:'other', label:'未说明 / 其它', color:'#78716c', pattern:null })
     ]);
 
-    function getRelStatusMeta(attitude) {
-      const value = String(attitude || '').trim();
-      return REL_STATUS_GROUPS.find(item => item.pattern && item.pattern.test(value)) || REL_STATUS_GROUPS[REL_STATUS_GROUPS.length - 1];
+    function getRelStatusMeta(attitude, type = '', statusKey = 'auto') {
+      const explicit = REL_STATUS_GROUPS.find(item => item.key === statusKey);
+      if (explicit) return explicit;
+      // 状态原文优先于关系类型；先处理否定和试探，避免“不信任”“盟友”被单字匹配成亲密。
+      const value = String(attitude || type || '').trim()
+        .replace(/(?:尚未|未曾|并不|不再|不|缺乏|失去)信任|敌友未明/g, '警惕')
+        .replace(/(?:并非|不是|不再|没有|并不)(?:敌对|仇恨|冲突|爱恋|亲近)|不爱/g, '未说明');
+      return ['tense','hostile','distant','cooperate','positive'].map(key => REL_STATUS_GROUPS.find(item => item.key === key))
+        .find(item => item.pattern.test(value)) || REL_STATUS_GROUPS[REL_STATUS_GROUPS.length - 1];
     }
 
-    function getRelStatusColor(attitude) {
-      return getRelStatusMeta(attitude).color;
+    function getRelStatusColor(attitude, type = '', statusKey = 'auto') {
+      return getRelStatusMeta(attitude, type, statusKey).color;
+    }
+
+    function getRelGraphGroupStatus(facts) {
+      // 同一状态的不同表述共用状态色；真正不同的有向状态才合并为混合虚线。
+      const states = (facts || []).map(fact => getRelStatusMeta(fact.attitude, fact.type, fact.statusKey));
+      const mixed = new Set(states.map(state => state.key)).size > 1;
+      return { mixed, color:mixed ? 'var(--accent)' : (states[0] || getRelStatusMeta('')).color };
     }
 
     const relGraphStatusLegend = computed(() => REL_STATUS_GROUPS);
@@ -42415,8 +42439,9 @@ function getModHubPermissionLabels(mod) {
             to: getRelGraphCharacterLabel(target),
             type: r.type || '未定义',
             attitude: r.attitude || '',
+            statusKey:r.statusKey || 'auto',
             changeReason:r.changeReason || '',
-            color:getRelStatusColor(r.attitude)
+            color:getRelStatusColor(r.attitude, r.type, r.statusKey)
           });
         });
       });
@@ -42425,8 +42450,25 @@ function getModHubPermissionLabels(mod) {
 
     const relGraphFactionOptions = computed(() => {
       const entries = Array.isArray(storyBible.value?.world?.entries) ? storyBible.value.world.entries : [];
-      return entries.filter(entry => entry && entry.id && entry.type === 'faction' && normalizeStoryBibleIdList(entry.characterIds).length);
+      return entries.filter(entry => entry && entry.id && entry.type === 'faction');
     });
+
+    function setCharacterFactionMembership(characterId, factionId, enabled) {
+      const faction = relGraphFactionOptions.value.find(entry => entry.id === factionId);
+      if (!faction || !structuredCharacters.value.some(character => character.id === characterId)) return;
+      // 角色页与资料页只修改同一份成员 ID，避免阵营显示与保存各存一份后不同步。
+      const ids = new Set(normalizeStoryBibleIdList(faction.characterIds));
+      if (enabled) ids.add(characterId); else ids.delete(characterId);
+      faction.characterIds = [...ids];
+      faction.updatedAt = Date.now();
+      touchStoryBible();
+    }
+
+    function openCharacterFactionEntry(entryId = '') {
+      if (!openStoryBibleWorkbench('entries')) return;
+      if (entryId) selectedStoryBibleEntryId.value = entryId;
+      else addStoryBibleEntry('faction');
+    }
 
     function getRelGraphCharacterFactions(characterId) {
       const id = String(characterId || '');
@@ -42720,8 +42762,7 @@ function getModHubPermissionLabels(mod) {
       const lines = groupRelationshipGraphFacts(filteredRelGraphFacts.value).map(group => {
         const fromNode = nodes.find(node => node.id === group.endpoints[0]);
         const toNode = nodes.find(node => node.id === group.endpoints[1]);
-        const exactStatuses = new Set(group.facts.map(fact => String(fact.attitude || '').trim() || '__empty__'));
-        const mixed = exactStatuses.size > 1;
+        const status = getRelGraphGroupStatus(group.facts);
         const types = Array.from(new Set(group.facts.map(fact => String(fact.type || '').trim()).filter(Boolean)));
         const label = types.length > 2 ? (group.facts.length + ' 条关系') : (types.join(' / ') || '未定义');
         return {
@@ -42738,8 +42779,8 @@ function getModHubPermissionLabels(mod) {
           labelX:Math.round((fromNode.x + toNode.x) / 2),
           labelY:Math.round((fromNode.y + toNode.y) / 2 - 8),
           label:label.substring(0, 16),
-          color:mixed ? '#7c3aed' : getRelStatusColor(group.facts[0]?.attitude),
-          mixed,
+          color:status.color,
+          mixed:status.mixed,
           ariaLabel:fromNode.fullName + ' 与 ' + toNode.fullName + '，' + group.facts.length + ' 条有向关系事实'
         };
       });
@@ -51075,7 +51116,7 @@ function getWritingModelLabel() {
       relGraphFactionOptions, relGraphTypeOptions, relGraphStatusOptions, relGraphStatusLegend,
       openRelationshipGraph, closeRelationshipGraph, resetRelationshipGraphFilters, computeRelGraph,
       selectRelGraphNode, selectRelGraphEdge, handleRelGraphKeydown, selectRelGraphFact, isRelLineActive, isRelLineMuted, isRelNodeActive, getRelNodeRelatedText,
-      getRelStatusColor, getRelGraphCharacterFactions, openRelGraphCharacter, openRelGraphRelationship, openRelGraphEvent,
+      getRelStatusMeta, getRelStatusColor, getRelGraphCharacterFactions, setCharacterFactionMembership, openCharacterFactionEntry, openRelGraphCharacter, openRelGraphRelationship, openRelGraphEvent,
 
     };
 

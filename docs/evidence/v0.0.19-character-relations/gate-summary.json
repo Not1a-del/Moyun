@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-11-18T01:52:42.748Z",
+  "baseline": "3a052bd",
+  "workingTreeDirtyBeforeRun": true,
+  "withBrowser": true,
+  "passed": true,
+  "results": [
+    {
+      "id": "build",
+      "title": "构建",
+      "command": "node scripts/build-static-site.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.1
+    },
+    {
+      "id": "syntax",
+      "title": "生成脚本语法检查",
+      "command": "node --check assets/js/moyun.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.2
+    },
+    {
+      "id": "audit",
+      "title": "结构审计",
+      "command": "node scripts/structure-audit.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.3
+    },
+    {
+      "id": "regression",
+      "title": "关键逻辑回归",
+      "command": "node scripts/regression-check.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.4
+    },
+    {
+      "id": "ai-protocol",
+      "title": "AI 协议回归（本地 mock）",
+      "command": "node scripts/ai-protocol-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.3
+    },
+    {
+      "id": "startup",
+      "title": "启动资源检查",
+      "command": "node --test scripts/startup-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.2
+    },
+    {
+      "id": "v17",
+      "title": "预设与上下文回归",
+      "command": "node --test scripts/preset-refactor.test.cjs scripts/v17-context-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.4
+    },
+    {
+      "id": "v18-memory",
+      "title": "记忆库回归",
+      "command": "node scripts/v18-memory-volume.test.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 0.1
+    },
+    {
+      "id": "v19",
+      "title": "v0.0.19 功能回归",
+      "command": "node --test scripts/v19-ai-storage-volume.test.cjs scripts/v19-announcement.test.cjs scripts/v19-branch-context.test.cjs scripts/v19-branch-data.test.cjs scripts/v19-branch-interaction.test.cjs scripts/v19-branch-transfer.test.cjs scripts/v19-character-isolation.test.cjs scripts/v19-character-relations.test.cjs scripts/v19-continuity.test.cjs scripts/v19-favorites.test.cjs scripts/v19-feedback.test.cjs scripts/v19-floating-tip.test.cjs scripts/v19-immersive.test.cjs scripts/v19-initial.test.cjs scripts/v19-legacy-memory.test.cjs scripts/v19-manual-planning.test.cjs scripts/v19-nine-review.test.cjs scripts/v19-onekey-retry-and-gemini-json.test.cjs scripts/v19-outline-boundary.test.cjs scripts/v19-outline-volume-accept.test.cjs scripts/v19-priority-input.test.cjs scripts/v19-regen-snapshot.test.cjs scripts/v19-release-channel.test.cjs scripts/v19-review.test.cjs scripts/v19-s0-infrastructure.test.cjs scripts/v19-save-retry.test.cjs scripts/v19-settings-search.test.cjs scripts/v19-style-source.test.cjs scripts/v19-summary-backfill.test.cjs scripts/v19-team-behavior.test.cjs scripts/v19-team-book.test.cjs scripts/v19-toc-handoff.test.cjs scripts/v19-unfinished-expansion.test.cjs scripts/v19-volume-workbench.test.cjs scripts/v19-workbench.test.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 5.3
+    },
+    {
+      "id": "v19-character-relations",
+      "title": "角色阵营、关系状态色与上下文统计（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --character-relations",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 22
+    },
+    {
+      "id": "v19-release-local",
+      "title": "站点标识、关于入口与公告（本地浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 61.7
+    },
+    {
+      "id": "v19-regen-snapshot",
+      "title": "重生成快照查看、清理与保存回滚（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --snapshot-cleanup",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 42.4
+    },
+    {
+      "id": "v19-legacy-memory",
+      "title": "百万字旧书导入、记忆发送与启动迁移（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --memory-recovery",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 60.9
+    },
+    {
+      "id": "v19-mobile-layout",
+      "title": "手机开关、设置固定栏与可视区域（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 72.2
+    },
+    {
+      "id": "v19-tablet-layout",
+      "title": "平板双栏底部可视区域（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 20.6
+    },
+    {
+      "id": "v18-browser",
+      "title": "浏览器回归（桌面与手机尺寸）",
+      "command": "node scripts/v18-browser.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 67.9
+    },
+    {
+      "id": "v18-browser-legacy",
+      "title": "浏览器回归（--legacy 对照）",
+      "command": "node scripts/v18-browser.cjs --legacy",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 123.8
+    },
+    {
+      "id": "v19-planning-recovery",
+      "title": "通用规划解析与中断恢复（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --planning-recovery",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 28.1
+    },
+    {
+      "id": "v19-manual-planning",
+      "title": "手动选择原文与分区填充（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --manual-planning",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 41.8
+    },
+    {
+      "id": "v19-volume-classification",
+      "title": "真实文本分卷、接受和刷新（浏览器本地重放）",
+      "command": "node scripts/v19-outline-review-browser.cjs --volume-classification",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 130.9
+    },
+    {
+      "id": "v19-branch-context",
+      "title": "三层分支实际请求隔离与1116公告（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --branch-context",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 41.2
+    },
+    {
+      "id": "v19-settings-search",
+      "title": "设置关联词搜索与定位（浏览器）",
+      "command": "node scripts/v19-outline-review-browser.cjs --settings-search",
+      "status": "PASS",
+      "exitCode": 0,
+      "seconds": 250
+    }
+  ],
+  "notCovered": [
+    "真实服务商的兼容性（本门禁只用本地 mock）",
+    "iOS Safari 与手机真机的键盘、手势行为",
+    "没有登记进本门禁的专项脚本（v16、v17 浏览器脚本、公告脚本等，需要手动启动 Edge 与本地服务）"
+  ]
+}

@@ -5844,6 +5844,7 @@ createApp({
           next.id = id;
           next.targetId = String(next.targetId || '');
           next.type = String(next.type || '');
+          if (!['auto','positive','cooperate','tense','hostile','distant','other'].includes(next.statusKey)) next.statusKey = 'auto';
           // 中文注释：关系“当前态”是图谱连线与关系卡片的短标签，AI 常生成整段描述导致弹窗溢出。
           // 保存层统一截到 30 字，任何来源（手填、AI、导入）都不会超限。
           next.attitude = String(next.attitude || '').slice(0, 30);
@@ -33365,13 +33366,26 @@ function getModHubPermissionLabels(mod) {
       Object.freeze({ key:'other', label:'未说明 / 其它', color:'#78716c', pattern:null })
     ]);
 
-    function getRelStatusMeta(attitude) {
-      const value = String(attitude || '').trim();
-      return REL_STATUS_GROUPS.find(item => item.pattern && item.pattern.test(value)) || REL_STATUS_GROUPS[REL_STATUS_GROUPS.length - 1];
+    function getRelStatusMeta(attitude, type = '', statusKey = 'auto') {
+      const explicit = REL_STATUS_GROUPS.find(item => item.key === statusKey);
+      if (explicit) return explicit;
+      // 状态原文优先于关系类型；先处理否定和试探，避免“不信任”“盟友”被单字匹配成亲密。
+      const value = String(attitude || type || '').trim()
+        .replace(/(?:尚未|未曾|并不|不再|不|缺乏|失去)信任|敌友未明/g, '警惕')
+        .replace(/(?:并非|不是|不再|没有|并不)(?:敌对|仇恨|冲突|爱恋|亲近)|不爱/g, '未说明');
+      return ['tense','hostile','distant','cooperate','positive'].map(key => REL_STATUS_GROUPS.find(item => item.key === key))
+        .find(item => item.pattern.test(value)) || REL_STATUS_GROUPS[REL_STATUS_GROUPS.length - 1];
     }
 
-    function getRelStatusColor(attitude) {
-      return getRelStatusMeta(attitude).color;
+    function getRelStatusColor(attitude, type = '', statusKey = 'auto') {
+      return getRelStatusMeta(attitude, type, statusKey).color;
+    }
+
+    function getRelGraphGroupStatus(facts) {
+      // 同一状态的不同表述共用状态色；真正不同的有向状态才合并为混合虚线。
+      const states = (facts || []).map(fact => getRelStatusMeta(fact.attitude, fact.type, fact.statusKey));
+      const mixed = new Set(states.map(state => state.key)).size > 1;
+      return { mixed, color:mixed ? 'var(--accent)' : (states[0] || getRelStatusMeta('')).color };
     }
 
     const relGraphStatusLegend = computed(() => REL_STATUS_GROUPS);
@@ -33403,8 +33417,9 @@ function getModHubPermissionLabels(mod) {
             to: getRelGraphCharacterLabel(target),
             type: r.type || '未定义',
             attitude: r.attitude || '',
+            statusKey:r.statusKey || 'auto',
             changeReason:r.changeReason || '',
-            color:getRelStatusColor(r.attitude)
+            color:getRelStatusColor(r.attitude, r.type, r.statusKey)
           });
         });
       });
@@ -33413,8 +33428,25 @@ function getModHubPermissionLabels(mod) {
 
     const relGraphFactionOptions = computed(() => {
       const entries = Array.isArray(storyBible.value?.world?.entries) ? storyBible.value.world.entries : [];
-      return entries.filter(entry => entry && entry.id && entry.type === 'faction' && normalizeStoryBibleIdList(entry.characterIds).length);
+      return entries.filter(entry => entry && entry.id && entry.type === 'faction');
     });
+
+    function setCharacterFactionMembership(characterId, factionId, enabled) {
+      const faction = relGraphFactionOptions.value.find(entry => entry.id === factionId);
+      if (!faction || !structuredCharacters.value.some(character => character.id === characterId)) return;
+      // 角色页与资料页只修改同一份成员 ID，避免阵营显示与保存各存一份后不同步。
+      const ids = new Set(normalizeStoryBibleIdList(faction.characterIds));
+      if (enabled) ids.add(characterId); else ids.delete(characterId);
+      faction.characterIds = [...ids];
+      faction.updatedAt = Date.now();
+      touchStoryBible();
+    }
+
+    function openCharacterFactionEntry(entryId = '') {
+      if (!openStoryBibleWorkbench('entries')) return;
+      if (entryId) selectedStoryBibleEntryId.value = entryId;
+      else addStoryBibleEntry('faction');
+    }
 
     function getRelGraphCharacterFactions(characterId) {
       const id = String(characterId || '');
@@ -33708,8 +33740,7 @@ function getModHubPermissionLabels(mod) {
       const lines = groupRelationshipGraphFacts(filteredRelGraphFacts.value).map(group => {
         const fromNode = nodes.find(node => node.id === group.endpoints[0]);
         const toNode = nodes.find(node => node.id === group.endpoints[1]);
-        const exactStatuses = new Set(group.facts.map(fact => String(fact.attitude || '').trim() || '__empty__'));
-        const mixed = exactStatuses.size > 1;
+        const status = getRelGraphGroupStatus(group.facts);
         const types = Array.from(new Set(group.facts.map(fact => String(fact.type || '').trim()).filter(Boolean)));
         const label = types.length > 2 ? (group.facts.length + ' 条关系') : (types.join(' / ') || '未定义');
         return {
@@ -33726,8 +33757,8 @@ function getModHubPermissionLabels(mod) {
           labelX:Math.round((fromNode.x + toNode.x) / 2),
           labelY:Math.round((fromNode.y + toNode.y) / 2 - 8),
           label:label.substring(0, 16),
-          color:mixed ? '#7c3aed' : getRelStatusColor(group.facts[0]?.attitude),
-          mixed,
+          color:status.color,
+          mixed:status.mixed,
           ariaLabel:fromNode.fullName + ' 与 ' + toNode.fullName + '，' + group.facts.length + ' 条有向关系事实'
         };
       });
@@ -42063,7 +42094,7 @@ function getWritingModelLabel() {
       relGraphFactionOptions, relGraphTypeOptions, relGraphStatusOptions, relGraphStatusLegend,
       openRelationshipGraph, closeRelationshipGraph, resetRelationshipGraphFilters, computeRelGraph,
       selectRelGraphNode, selectRelGraphEdge, handleRelGraphKeydown, selectRelGraphFact, isRelLineActive, isRelLineMuted, isRelNodeActive, getRelNodeRelatedText,
-      getRelStatusColor, getRelGraphCharacterFactions, openRelGraphCharacter, openRelGraphRelationship, openRelGraphEvent,
+      getRelStatusMeta, getRelStatusColor, getRelGraphCharacterFactions, setCharacterFactionMembership, openCharacterFactionEntry, openRelGraphCharacter, openRelGraphRelationship, openRelGraphEvent,
 
     };
 

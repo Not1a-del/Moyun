@@ -1,0 +1,180 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "私人备份只读统计：独立角色、资料与记忆",
+      "ok": true,
+      "data": {
+        "chapters": 311,
+        "characters": 0,
+        "relations": 0,
+        "worldChars": 9576,
+        "entries": 6,
+        "factions": 3,
+        "validMemories": 311,
+        "groups": 57
+      }
+    },
+    {
+      "name": "默认上下文最终发送统计 Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 69412,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 24504
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 38732
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 5492
+          },
+          {
+            "role": "user",
+            "chars": 247
+          }
+        ],
+        "groups": 57,
+        "groupsSent": 57,
+        "characters": 0,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 2,
+            "notSent": 1
+          },
+          {
+            "keyword": "关系",
+            "count": 4,
+            "notSent": 1
+          }
+        ],
+        "worldChars": 9576,
+        "worldWhole": false,
+        "worldHead": true,
+        "worldTail": false,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": false,
+          "speech": false,
+          "constraint": false,
+          "relations": false
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": false
+      }
+    },
+    {
+      "name": "默认上下文最终发送统计 Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 69412,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 24504
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 38732
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 5492
+          },
+          {
+            "role": "user",
+            "chars": 247
+          }
+        ],
+        "groups": 57,
+        "groupsSent": 57,
+        "characters": 0,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 2,
+            "notSent": 1
+          },
+          {
+            "keyword": "关系",
+            "count": 4,
+            "notSent": 1
+          }
+        ],
+        "worldChars": 9576,
+        "worldWhole": false,
+        "worldHead": true,
+        "worldTail": false,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": false,
+          "speech": false,
+          "constraint": false,
+          "relations": false
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": true
+      }
+    }
+  ],
+  "errorCount": 0
+}

@@ -1,0 +1,180 @@
+{
+  "bytes": 200656202,
+  "books": [
+    {
+      "chapters": 311,
+      "characters": 0,
+      "relationships": 0,
+      "worldChars": 9576,
+      "entries": 6,
+      "factions": 3,
+      "factionMemberLinks": 0,
+      "memories": 516,
+      "groups": 57,
+      "snapshots": 167,
+      "snapshotRequestMinChars": 27474,
+      "snapshotRequestMaxChars": 552237,
+      "latest": [
+        {
+          "chapterNo": 297,
+          "chars": 518369,
+          "messageSizes": [
+            {
+              "role": "system",
+              "chars": 28677
+            },
+            {
+              "role": "user",
+              "chars": 38
+            },
+            {
+              "role": "assistant",
+              "chars": 225
+            },
+            {
+              "role": "user",
+              "chars": 70
+            },
+            {
+              "role": "assistant",
+              "chars": 81
+            },
+            {
+              "role": "user",
+              "chars": 479284
+            },
+            {
+              "role": "user",
+              "chars": 549
+            },
+            {
+              "role": "user",
+              "chars": 5492
+            },
+            {
+              "role": "user",
+              "chars": 3945
+            }
+          ],
+          "worldWhole": false,
+          "worldFirst4000": true,
+          "worldTail": true,
+          "noCharacterPlaceholder": true,
+          "thirdPersonInstruction": true,
+          "entrySummaries": 0,
+          "entryDetails": 0
+        },
+        {
+          "chapterNo": 304,
+          "chars": 533963,
+          "messageSizes": [
+            {
+              "role": "system",
+              "chars": 28688
+            },
+            {
+              "role": "user",
+              "chars": 38
+            },
+            {
+              "role": "assistant",
+              "chars": 225
+            },
+            {
+              "role": "user",
+              "chars": 70
+            },
+            {
+              "role": "assistant",
+              "chars": 81
+            },
+            {
+              "role": "user",
+              "chars": 494983
+            },
+            {
+              "role": "user",
+              "chars": 524
+            },
+            {
+              "role": "user",
+              "chars": 5492
+            },
+            {
+              "role": "user",
+              "chars": 3854
+            }
+          ],
+          "worldWhole": false,
+          "worldFirst4000": true,
+          "worldTail": true,
+          "noCharacterPlaceholder": true,
+          "thirdPersonInstruction": true,
+          "entrySummaries": 0,
+          "entryDetails": 0
+        },
+        {
+          "chapterNo": 309,
+          "chars": 541740,
+          "messageSizes": [
+            {
+              "role": "system",
+              "chars": 28647
+            },
+            {
+              "role": "user",
+              "chars": 38
+            },
+            {
+              "role": "assistant",
+              "chars": 225
+            },
+            {
+              "role": "user",
+              "chars": 70
+            },
+            {
+              "role": "assistant",
+              "chars": 81
+            },
+            {
+              "role": "user",
+              "chars": 502816
+            },
+            {
+              "role": "user",
+              "chars": 474
+            },
+            {
+              "role": "user",
+              "chars": 5492
+            },
+            {
+              "role": "user",
+              "chars": 3889
+            }
+          ],
+          "worldWhole": false,
+          "worldFirst4000": true,
+          "worldTail": true,
+          "noCharacterPlaceholder": true,
+          "thirdPersonInstruction": true,
+          "entrySummaries": 0,
+          "entryDetails": 0
+        }
+      ],
+      "worldReferenceHints": [
+        {
+          "keyword": "性格",
+          "count": 2,
+          "after4000": 2
+        },
+        {
+          "keyword": "关系",
+          "count": 4,
+          "after4000": 3
+        }
+      ]
+    }
+  ]
+}

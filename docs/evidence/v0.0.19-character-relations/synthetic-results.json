@@ -1,0 +1,628 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "真实点击阵营勾选，写回原世界资料",
+      "ok": true,
+      "data": {
+        "members": [
+          "a"
+        ],
+        "name": true,
+        "factions": 2
+      }
+    },
+    {
+      "name": "同类状态合并保留状态色，盟友缺态度按类型识别，否定信任为警惕",
+      "ok": true,
+      "data": {
+        "edges": [
+          {
+            "id": "rel_edge_a__b",
+            "mixed": false,
+            "color": "#16a34a",
+            "facts": [
+              {
+                "from": "a",
+                "to": "b",
+                "color": "#16a34a"
+              },
+              {
+                "from": "b",
+                "to": "a",
+                "color": "#16a34a"
+              }
+            ]
+          },
+          {
+            "id": "rel_edge_a__c",
+            "mixed": false,
+            "color": "#d97706",
+            "facts": [
+              {
+                "from": "a",
+                "to": "c",
+                "color": "#d97706"
+              }
+            ]
+          },
+          {
+            "id": "rel_edge_b__c",
+            "mixed": false,
+            "color": "#0284c7",
+            "facts": [
+              {
+                "from": "b",
+                "to": "c",
+                "color": "#0284c7"
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "positive": "#16a34a",
+          "cooperate": "#0284c7",
+          "tense": "#d97706"
+        }
+      }
+    },
+    {
+      "name": "状态色下拉可修正无法识别的文字，双向冲突保留各自事实",
+      "ok": true,
+      "data": {
+        "mixed": true,
+        "facts": [
+          {
+            "from": "a",
+            "to": "b",
+            "statusKey": "hostile",
+            "color": "#dc2626"
+          },
+          {
+            "from": "b",
+            "to": "a",
+            "statusKey": "auto",
+            "color": "#16a34a"
+          }
+        ],
+        "selected": "hostile"
+      }
+    },
+    {
+      "name": "角色档案与关系图 1280 亮",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 590,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 814,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 1280 暗",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 590,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 814,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 1024 亮",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 564,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 646,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 1024 暗",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 564,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 646,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 768 亮",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 308,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 390,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 768 暗",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 308,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 390,
+          "height": 386,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 360 亮",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 308,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 336,
+          "height": 330,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 360 暗",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 308,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 336,
+          "height": 330,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 320 亮",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 268,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 296,
+          "height": 330,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "角色档案与关系图 320 暗",
+      "ok": true,
+      "data": {
+        "profile": {
+          "hit": true,
+          "exists": true,
+          "width": 268,
+          "overflow": false,
+          "buttonHeight": 44
+        },
+        "graph": {
+          "width": 296,
+          "height": 330,
+          "overflow": false,
+          "labels": true,
+          "edges": 3
+        }
+      }
+    },
+    {
+      "name": "编辑势力资料入口、新建入口均复用原世界资料编辑器",
+      "ok": true,
+      "data": {
+        "existing": true,
+        "newType": "faction",
+        "renamed": true,
+        "count": 3
+      }
+    },
+    {
+      "name": "保存刷新后阵营成员与手选状态色仍保留",
+      "ok": true,
+      "data": {
+        "members": [
+          "a"
+        ],
+        "status": "hostile",
+        "characters": 3
+      }
+    },
+    {
+      "name": "原导出导入流程保留阵营关联与关系状态色",
+      "ok": true,
+      "data": {
+        "members": [
+          "a"
+        ],
+        "status": "hostile"
+      }
+    },
+    {
+      "name": "默认上下文最终发送统计 Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 8847,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 8128
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 6
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 277
+          }
+        ],
+        "groups": 0,
+        "groupsSent": 0,
+        "characters": 3,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 0,
+            "notSent": 0
+          },
+          {
+            "keyword": "关系",
+            "count": 0,
+            "notSent": 0
+          }
+        ],
+        "worldChars": 5,
+        "worldWhole": true,
+        "worldHead": true,
+        "worldTail": true,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": true,
+          "speech": false,
+          "constraint": false,
+          "relations": false
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": false
+      }
+    },
+    {
+      "name": "默认上下文最终发送统计 Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 8249,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 7564
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 6
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 243
+          }
+        ],
+        "groups": 0,
+        "groupsSent": 0,
+        "characters": 3,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 0,
+            "notSent": 0
+          },
+          {
+            "keyword": "关系",
+            "count": 0,
+            "notSent": 0
+          }
+        ],
+        "worldChars": 5,
+        "worldWhole": true,
+        "worldHead": true,
+        "worldTail": true,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": true,
+          "speech": false,
+          "constraint": false,
+          "relations": false
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": true
+      }
+    },
+    {
+      "name": "显式读取角色详情可保留声音、约束与关系 false",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 8905,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 8186
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 6
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 277
+          }
+        ],
+        "groups": 0,
+        "groupsSent": 0,
+        "characters": 3,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 0,
+            "notSent": 0
+          },
+          {
+            "keyword": "关系",
+            "count": 0,
+            "notSent": 0
+          }
+        ],
+        "worldChars": 5,
+        "worldWhole": true,
+        "worldHead": true,
+        "worldTail": true,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": true,
+          "speech": true,
+          "constraint": true,
+          "relations": true
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": false
+      }
+    },
+    {
+      "name": "显式读取角色详情可保留声音、约束与关系 true",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "chars": 8294,
+        "messageSizes": [
+          {
+            "role": "system",
+            "chars": 7609
+          },
+          {
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "role": "assistant",
+            "chars": 225
+          },
+          {
+            "role": "user",
+            "chars": 70
+          },
+          {
+            "role": "assistant",
+            "chars": 81
+          },
+          {
+            "role": "user",
+            "chars": 6
+          },
+          {
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "role": "user",
+            "chars": 243
+          }
+        ],
+        "groups": 0,
+        "groupsSent": 0,
+        "characters": 3,
+        "worldFactHints": [
+          {
+            "keyword": "性格",
+            "count": 0,
+            "notSent": 0
+          },
+          {
+            "keyword": "关系",
+            "count": 0,
+            "notSent": 0
+          }
+        ],
+        "worldChars": 5,
+        "worldWhole": true,
+        "worldHead": true,
+        "worldTail": true,
+        "entrySummaries": 0,
+        "entryDetails": 0,
+        "thirdPerson": true,
+        "probe": {
+          "description": true,
+          "speech": true,
+          "constraint": true,
+          "relations": true
+        },
+        "settings": {
+          "world": 4000,
+          "characters": 6000,
+          "limited": true
+        },
+        "tools": true
+      }
+    }
+  ],
+  "errorCount": 0
+}
