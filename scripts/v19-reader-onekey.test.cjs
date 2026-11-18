@@ -15,17 +15,29 @@ test('只选角色不产生隐藏的设定请求和费用',()=>{
  vm.runInContext(source.slice(start,end)+';globalThis.estimate=okEstimate;'+fn('getOneKeyRequiredModelKeys'),c);
  assert.equal(c.estimate.textReqs,1);assert.deepEqual(Array.from(c.getOneKeyRequiredModelKeys()),['character']);
 });
-test('快速滚动才显示导航，停止后三秒隐藏，点击能到两端',()=>{
+function navigationHarness(settings={}) {
  let now=1000,id=0;const timers=new Map(),node={scrollTop:0,scrollHeight:8000,clientHeight:600,scrollTo(o){this.scrollTop=o.top;}};
- const c=vm.createContext({ref:value=>({value}),mainScroll:{value:node},performance:{now:()=>now},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),window:{matchMedia:()=>({matches:false})}});
+ const c=vm.createContext({ref:value=>({value}),settings:{value:settings},mainScroll:{value:node},performance:{now:()=>now},setTimeout:(fn,ms)=>{timers.set(++id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id),window:{matchMedia:()=>({matches:false})}});
  const start=source.indexOf('    const readerScrollNavVisible = ref(false);'),end=source.indexOf('    // 阅读快捷导航结束',start);assert.ok(start>=0&&end>start,'应有阅读快捷导航');
  vm.runInContext(source.slice(start,end)+';globalThis.visible=readerScrollNavVisible;',c);
- c.markReaderScrollInput();now+=100;node.scrollTop=10;c.handleReaderScroll();assert.equal(c.visible.value,false);
- c.markReaderScrollInput();now+=50;node.scrollTop=100;c.handleReaderScroll();assert.equal(c.visible.value,true);
- const timerBefore=[...timers.keys()][0];now+=1200;node.scrollTop=200;c.handleReaderScroll();assert.equal([...timers.keys()][0],timerBefore,'生成自动跟随不能推迟消失');
- assert.equal([...timers.values()].at(-1).ms,3000);c.scrollReaderToEdge('bottom');assert.equal(node.scrollTop,8000);
- c.scrollReaderToEdge('top');assert.equal(node.scrollTop,0);[...timers.values()].at(-1).fn();assert.equal(c.visible.value,false);
- node.scrollTop=600;now+=4000;c.handleReaderScroll();assert.equal(c.visible.value,false,'自动滚动不能弹出导航');
- c.resetReaderScrollNav();assert.equal(timers.size,0);
- node.scrollTop=1120;now+=1000;c.markReaderScrollInput();c.handleReaderScroll();assert.equal(c.visible.value,true,'合成线程先移动、后派发wheel时仍按上次位置识别速度');
+ c.normalizeReaderScrollSettings();return{c,node,timers,scroll:(ms=100,input=true)=>{now+=ms;if(input)c.markReaderScrollInput();node.scrollTop+=100;c.handleReaderScroll();}};
+}
+test('新旧设置默认关闭，任意滚动和按钮调用都不能显示导航',()=>{
+ const {c,node,timers,scroll}=navigationHarness();for(let i=0;i<20;i++)scroll();assert.equal(c.visible.value,false);assert.equal(timers.size,0);c.scrollReaderToEdge('top');assert.notEqual(node.scrollTop,0);assert.equal(c.settings.value.readerScrollShowSeconds,0.5);assert.equal(c.settings.value.readerScrollHideSeconds,3);
+ assert.match(source,/readerScrollNavEnabled: false/);assert.match(source,/v-if="settings.readerScrollNavEnabled && readerScrollNavVisible/);
+});
+test('达到连续滚动时间才显示，按自定义时长隐藏且保留两端跳转',()=>{
+ const {c,node,timers,scroll}=navigationHarness({readerScrollNavEnabled:true,readerScrollShowSeconds:0.5,readerScrollHideSeconds:2});
+ for(let i=0;i<5;i++)scroll();assert.equal(c.visible.value,false);scroll();assert.equal(c.visible.value,true);assert.equal([...timers.values()].at(-1).ms,2000);
+ const timerBefore=[...timers.keys()][0];scroll(1200,false);assert.equal([...timers.keys()][0],timerBefore,'生成自动跟随不能推迟消失');
+ c.scrollReaderToEdge('bottom');assert.equal(node.scrollTop,8000);c.scrollReaderToEdge('top');assert.equal(node.scrollTop,0);[...timers.values()].at(-1).fn();assert.equal(c.visible.value,false);scroll(4000,false);assert.equal(c.visible.value,false);
+});
+test('短暂滚动后停顿不累计，零秒设置支持立即显示，关闭清理定时器',()=>{
+ const {c,timers,scroll}=navigationHarness({readerScrollNavEnabled:true});for(let i=0;i<4;i++)scroll();scroll(1000);assert.equal(c.visible.value,false);for(let i=0;i<4;i++)scroll();assert.equal(c.visible.value,false);scroll();assert.equal(c.visible.value,true);
+ c.settings.value.readerScrollNavEnabled=false;scroll();assert.equal(c.visible.value,false);assert.equal(timers.size,0);
+ c.settings.value.readerScrollNavEnabled=true;c.settings.value.readerScrollShowSeconds=0;scroll();assert.equal(c.visible.value,true);
+});
+test('时间输入空值和非法值回默认，范围有限制且零秒显示不丢失',()=>{
+ for(const value of ['',null,undefined,NaN,Infinity,'无效']){const {c}=navigationHarness({readerScrollShowSeconds:value,readerScrollHideSeconds:value});assert.equal(c.settings.value.readerScrollShowSeconds,0.5);assert.equal(c.settings.value.readerScrollHideSeconds,3);}
+ const {c}=navigationHarness({readerScrollShowSeconds:-1,readerScrollHideSeconds:100});assert.equal(c.settings.value.readerScrollShowSeconds,0);assert.equal(c.settings.value.readerScrollHideSeconds,60);
 });

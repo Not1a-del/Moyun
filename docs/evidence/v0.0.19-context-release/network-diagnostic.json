@@ -1,0 +1,62 @@
+{
+  "events": [
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "7A60BF6931CAE673653703EC35108C01",
+      "timestamp": 18185.524347,
+      "type": "Document",
+      "errorText": "net::ERR_PROXY_CONNECTION_FAILED",
+      "canceled": false
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "468FBFA338D414D315D4AEE8B8A49B81",
+      "timestamp": 18186.663429,
+      "type": "Document",
+      "errorText": "net::ERR_PROXY_CONNECTION_FAILED",
+      "canceled": false
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "468FBFA338D414D315D4AEE8B8A49B81",
+      "timestamp": 18186.670576,
+      "type": "Document",
+      "errorText": "net::ERR_ABORTED",
+      "canceled": true
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "F328955BCDCC437B1EDE68FFC5F02CD2",
+      "timestamp": 18191.704291,
+      "type": "Document",
+      "errorText": "net::ERR_PROXY_CONNECTION_FAILED",
+      "canceled": false
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "F328955BCDCC437B1EDE68FFC5F02CD2",
+      "timestamp": 18191.712161,
+      "type": "Document",
+      "errorText": "net::ERR_ABORTED",
+      "canceled": true
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "1F9E9B689C507EE35B33437BB225EDA7",
+      "timestamp": 18221.747634,
+      "type": "Document",
+      "errorText": "net::ERR_PROXY_CONNECTION_FAILED",
+      "canceled": false
+    },
+    {
+      "event": "Network.loadingFailed",
+      "requestId": "1F9E9B689C507EE35B33437BB225EDA7",
+      "timestamp": 18221.756225,
+      "type": "Document",
+      "errorText": "net::ERR_ABORTED",
+      "canceled": true
+    }
+  ],
+  "errors": [],
+  "note": "????????????????????????????? ERR_PROXY_CONNECTION_FAILED?????????"
+}

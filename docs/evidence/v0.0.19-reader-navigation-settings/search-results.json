@@ -1,0 +1,1897 @@
+{
+  "source": ".ui-check/settings-search/results.json",
+  "passed": true,
+  "total": 421,
+  "errors": [],
+  "consoleErrors": [],
+  "results": [
+    {
+      "name": "1280-light全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "1280-light搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "1280-light搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 405,
+          "y": 484.5,
+          "width": 464,
+          "height": 60,
+          "top": 484.5,
+          "right": 869,
+          "bottom": 544.5,
+          "left": 405
+        },
+        "shell": {
+          "x": 385,
+          "y": 156,
+          "width": 510,
+          "height": 531,
+          "top": 156,
+          "right": 895,
+          "bottom": 687,
+          "left": 385
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "1280-light点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "1280-light点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "1280-light喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "1280-light无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "1280-dark全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "1280-dark搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "1280-dark搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 405,
+          "y": 590.5,
+          "width": 464,
+          "height": 60,
+          "top": 590.5,
+          "right": 869,
+          "bottom": 650.5,
+          "left": 405
+        },
+        "shell": {
+          "x": 385,
+          "y": 156,
+          "width": 510,
+          "height": 531,
+          "top": 156,
+          "right": 895,
+          "bottom": 687,
+          "left": 385
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "1280-dark点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "1280-dark点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "1280-dark喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "1280-dark无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "360-light全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "360-light搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "360-light搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 21,
+          "y": 554.75,
+          "width": 312,
+          "height": 76,
+          "top": 554.75,
+          "right": 333,
+          "bottom": 630.75,
+          "left": 21
+        },
+        "shell": {
+          "x": 1,
+          "y": 153,
+          "width": 358,
+          "height": 498,
+          "top": 153,
+          "right": 359,
+          "bottom": 651,
+          "left": 1
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "360-light点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "360-light点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "360-light喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "360-light无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "360-dark全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "360-dark搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "360-dark搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 21,
+          "y": 481.75,
+          "width": 312,
+          "height": 76,
+          "top": 481.75,
+          "right": 333,
+          "bottom": 557.75,
+          "left": 21
+        },
+        "shell": {
+          "x": 1,
+          "y": 153,
+          "width": 358,
+          "height": 498,
+          "top": 153,
+          "right": 359,
+          "bottom": 651,
+          "left": 1
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "360-dark点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "360-dark点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "360-dark喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "360-dark无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "320-light全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "320-light搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "320-light搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 21,
+          "y": 525,
+          "width": 272,
+          "height": 76,
+          "top": 525,
+          "right": 293,
+          "bottom": 601,
+          "left": 21
+        },
+        "shell": {
+          "x": 1,
+          "y": 153,
+          "width": 318,
+          "height": 498,
+          "top": 153,
+          "right": 319,
+          "bottom": 651,
+          "left": 1
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "320-light点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "320-light点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "320-light喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "320-light无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "320-dark全部常用关联词进入可见前十",
+      "ok": true
+    },
+    {
+      "name": "320-dark搜索“时间”布局",
+      "ok": true
+    },
+    {
+      "name": "320-dark搜索“补写”布局",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 上下箭头 → reader-navigation",
+      "ok": true,
+      "data": {
+        "target": "settings-search-reader-navigation",
+        "tab": "context",
+        "panel": "settings-panel-context",
+        "teamRoutes": false,
+        "query": "",
+        "focused": false,
+        "inert": false,
+        "visible": true,
+        "flash": true,
+        "box": {
+          "x": 21,
+          "y": 525,
+          "width": 272,
+          "height": 76,
+          "top": 525,
+          "right": 293,
+          "bottom": 601,
+          "left": 21
+        },
+        "shell": {
+          "x": 1,
+          "y": 153,
+          "width": 318,
+          "height": 498,
+          "top": 153,
+          "right": 319,
+          "bottom": 651,
+          "left": 1
+        },
+        "overflow": false,
+        "flashed": true,
+        "buttonHeight": 44
+      }
+    },
+    {
+      "name": "320-dark点击 接口网址 → api-profiles",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 思考深度 → global-controls",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 回复不完整 → anti-truncation",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 上下文是什么 → context-intro",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 一段话开书 → team-book",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 灵感拆解 → team-planner",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 世界观生成 → team-settings",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 开书角色 → team-character",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 开书卷纲 → team-outline",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 冲突判断 → team-review",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 旧书联动 → team-book-existing-routes",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 忘剧情 → context-workbench",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 AI读什么 → context-sources",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 发送前文 → context-full-text",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 前情提要 → context-chapter-summary",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 旧剧情回顾 → context-range-summary",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 按纲写作 → context-outline",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 防跑偏 → context-final-check",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 时间 → auto-timeline",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 省钱 → compact-mode",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 补写 → second-round",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 补写 → third-round",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 Gemini输入改写 → gemini-input",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 参考几章 → full-chapters",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 摘要几章 → summary-chapters",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 单章字数限制 → context-limits",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 跳到最新章节 → auto-scroll",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 关闭书评 → reviewer",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 同时评论 → inline-comment",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 评论几条 → comment-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 边写边显示 → stream",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 时间 → timeout",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 隐藏思考 → thinking",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 花费 → token-usage",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 字数控制 → word-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 总纲字数 → outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 章纲字数 → detailed-outline-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 灵感长度 → suggestion-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 人设长度 → character-word-count",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 前文长度 → history-limit",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 剧透 → outline-range",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 续写模型 → route-writing",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 补写模型 → route-supplement",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 沉浸扩写模型 → route-immersive-expand",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 沉浸续写模型 → route-immersive-continue",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 简介模型 → route-settings",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 角色补全模型 → route-character",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 图片标签模型 → route-imagetext",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 纲要整理模型 → route-outline",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 文风模型 → route-suggestion",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 章节点评模型 → route-review",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 补摘要模型 → route-summary",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 读者模型 → route-comments",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 翻译模型 → route-translate",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 真实上下文 → editable-preview",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 修改书名 → book-edit",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 建议助手 → suggestion-persona",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 提示词顺序 → editable-prompts",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 五感 → atmosphere",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 爱心 → favorites",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 口癖 → editable-characters",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 读者人设 → review-personas",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 插件安装 → plugin-manager",
+      "ok": true
+    },
+    {
+      "name": "320-dark点击 画图 → image",
+      "ok": true
+    },
+    {
+      "name": "320-dark喜欢查看入口抵达原有侧栏且可见",
+      "ok": true
+    },
+    {
+      "name": "320-dark无MOD空白角色与超长文本几何",
+      "ok": true
+    },
+    {
+      "name": "搜索与跳转不请求AI、没有未捕获异常",
+      "ok": true
+    }
+  ]
+}

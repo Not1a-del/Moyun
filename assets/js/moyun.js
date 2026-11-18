@@ -1819,29 +1819,44 @@ createApp({
     const currentBookId = ref('');
     const mainScroll = ref(null);
     const readerScrollNavVisible = ref(false);
-    let readerScrollTimer = null, readerScrollInputAt = 0, readerScrollSampleAt = 0, readerScrollTop = 0;
+    let readerScrollTimer = null, readerScrollInputAt = 0, readerScrollSampleAt = 0, readerScrollStartedAt = 0, readerScrollTop = 0;
+    function normalizeReaderScrollSettings() {
+      const cfg = settings.value;
+      cfg.readerScrollNavEnabled = cfg.readerScrollNavEnabled === true;
+      for (const [key, fallback, min, max] of [['readerScrollShowSeconds', 0.5, 0, 30], ['readerScrollHideSeconds', 3, 1, 60]]) {
+        const value = cfg[key];
+        cfg[key] = value === '' || value == null || !Number.isFinite(Number(value)) ? fallback : Math.min(max, Math.max(min, Number(value)));
+      }
+    }
     function resetReaderScrollNav() {
       clearTimeout(readerScrollTimer); readerScrollTimer = null; readerScrollNavVisible.value = false;
-      readerScrollInputAt = 0; readerScrollSampleAt = 0; readerScrollTop = mainScroll.value?.scrollTop || 0;
+      readerScrollInputAt = 0; readerScrollSampleAt = 0; readerScrollStartedAt = 0; readerScrollTop = mainScroll.value?.scrollTop || 0;
     }
     function keepReaderScrollNavVisible() {
+      if (!settings.value.readerScrollNavEnabled) return;
       clearTimeout(readerScrollTimer); readerScrollNavVisible.value = true;
-      readerScrollTimer = setTimeout(resetReaderScrollNav, 3000);
+      readerScrollTimer = setTimeout(resetReaderScrollNav, settings.value.readerScrollHideSeconds * 1000);
     }
     function markReaderScrollInput() {
+      if (!settings.value.readerScrollNavEnabled) return;
       const now = performance.now();
       // 浏览器可能先滚动画面再派发 wheel；距离保留上次 scroll 样本，不能在输入回调中清零。
-      if (now - readerScrollInputAt > 250) readerScrollSampleAt = now;
+      if (!readerScrollStartedAt || (now - readerScrollInputAt > 250 && now - readerScrollSampleAt > 250)) readerScrollStartedAt = now;
       readerScrollInputAt = now;
     }
     function handleReaderScroll() {
+      if (!settings.value.readerScrollNavEnabled) { resetReaderScrollNav(); return; }
       const node = mainScroll.value; if (!node) return;
       const now = performance.now(), distance = Math.abs(node.scrollTop - readerScrollTop);
-      // 只响应用户滚动；生成正文的自动跟随不能不断弹出导航。阈值约每秒 450 像素。
-      if (readerScrollInputAt > 0 && now - readerScrollInputAt < 1000 && (readerScrollNavVisible.value || (distance >= 12 && distance / Math.max(16, now - readerScrollSampleAt) >= 0.45))) keepReaderScrollNavVisible();
+      // 按用户设定的连续滚动时间显示；停顿后重新计时，自动定位不能触发。
+      if (distance > 0 && readerScrollInputAt > 0 && now - readerScrollInputAt < 1000) {
+        if (now - readerScrollSampleAt > 250 && now - readerScrollInputAt > 250) readerScrollStartedAt = now;
+        if (readerScrollNavVisible.value || now - readerScrollStartedAt >= settings.value.readerScrollShowSeconds * 1000) keepReaderScrollNavVisible();
+      }
       readerScrollTop = node.scrollTop; readerScrollSampleAt = now;
     }
     function scrollReaderToEdge(edge) {
+      if (!settings.value.readerScrollNavEnabled) return;
       const node = mainScroll.value; if (!node) return;
       keepReaderScrollNavVisible();
       node.scrollTo({ top:edge === 'top' ? 0 : node.scrollHeight, behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
@@ -4011,6 +4026,7 @@ createApp({
       outlineRequestMode: 'auto', detailedOutlineBatchSize: 5, detailedOutlineOnlyEmpty: true,
       autoCheckContinuity: true, allowAiNeighborAdjustment: false,
       commentCount: 8, autoScroll: true,
+      readerScrollNavEnabled: false, readerScrollShowSeconds: 0.5, readerScrollHideSeconds: 3,
       noOutputTimeoutSec: 45,
       enableReviewer: false, enableThinking: true,
       commentInline: false,
@@ -7045,6 +7061,7 @@ function copyLastChapterContextText() {
 
     // 中文注释：第五批上下文省 token 设置的兼容初始化，旧书加载后会自动补齐缺失字段。
     function normalizeContextSettings() {
+      normalizeReaderScrollSettings();
       const defaults = {
         contextUseFullText: true,
         contextHistoryCharLimit: 15000,
@@ -38961,6 +38978,7 @@ function getWritingModelLabel() {
       {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 摘要几章 参考多少章 总结章数 前情章数 summary zhangshu'},
       {tab:'context',target:'settings-search-context-limits',title:'上下文截断上限',keywords:'单章正文上限 摘要上限 世界观 角色信息 大纲细纲 字符数 token 截断 单章字数限制 摘要字数限制 世界观长度 角色长度 设定字数 发送长度 xianzhi'},
       {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 跳到最新章节 跳转正文 生成时跳转 滚动位置 scroll dingwei'},
+      {tab:'context',target:'settings-search-reader-navigation',title:'正文上下跳转按钮',keywords:'上下箭头 上下顶按钮 回到顶部 返回顶部 到底部 页首 页尾 滚动导航 翻页 滑动 显示时间 隐藏时间 自动消失 秒数 开关 scroll'},
       {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 开启书评 关闭书评 自动书评 作品评价 读者反馈 review tuan pinglun'},
       {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 同时评论 合并书评 随文点评 一次请求 inline comment suizhengwen'},
       {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 评论几条 读者人数 评论条数 点评数量 comment count pinglun shuliang'},
@@ -41800,6 +41818,7 @@ function getWritingModelLabel() {
     });
     watch([currentBookId, activeBranchId], resetImmersiveTools, { flush:'sync' });
     watch([currentBookId, activeBranchId, showOutlineInMain, showDetailedOutlineInMain, showStoryBibleWorkbench, showCharacterWorkbench, immersiveToolMode], resetReaderScrollNav);
+    watch(() => [settings.value.readerScrollNavEnabled, settings.value.readerScrollShowSeconds, settings.value.readerScrollHideSeconds], resetReaderScrollNav);
     watch(() => immersiveWritingText.value, () => { if (immersiveToolMode.value === 'write') nextTick(() => autosizeImmersiveWriting()); });
     watch(() => [currentBookId.value,activeBranchId.value,isGenerating.value,memorySettingsKey(),visibleChapters.value.map(ch => String(ch.id)+':'+memoryChapterHash(ch)).join('|')].join('~'), () => { cancelMemoryWork(); scheduleMemoryWork(); }, {flush:'sync'});
 
@@ -41812,7 +41831,7 @@ function getWritingModelLabel() {
       memoryLibrary, memoryProgress, memoryLastRecall, memoryFailures, memoryRows, memoryChapterHash, getValidMemoryRows, validMemoryGroups, normalizeMemoryLibrary, memorySettingsChanged, runMemoryBackfill, cancelMemoryWork, scheduleMemoryWork, editMemoryRow, toggleMemoryRow, regenerateMemory, buildMemoryHistory, appendEnhancedMemoryRecall, memoryTextHash, encodeMemoryVector, memoryCosine, memoryEmbeddingDiscovery, memoryEmbeddingSiteLabel, memoryEmbeddingModelOptions, fetchMemoryEmbeddingModels, reasoningEffortSlider, reasoningEffortLabel,
       lastWritingUsage, beginWritingUsage, formatTokenUsage, extractAiUsage, obfuscateGeminiInput, fixedWordCounts, editingWordCount, customWordCount, customWordCountInput, editWordCount, commitWordCount, holdWordCount, clearWordCountHold, selectWordCount,
       novel, chapters, structuredCharacters, books, currentBookId, mainScroll, generationStatusCard,
-      readerScrollNavVisible, markReaderScrollInput, handleReaderScroll, scrollReaderToEdge,
+      readerScrollNavVisible, markReaderScrollInput, handleReaderScroll, scrollReaderToEdge, normalizeReaderScrollSettings,
       settings, isDark, toggleTheme, installedThemePacks, activeThemePackId, enableThemePack, deleteInstalledThemePack, themeRuntimeError, themeSafeMode, enterThemeSafeMode, exitThemeSafeMode, disableCurrentThemePack, clearThemeFullAccessTrust, hasThemeSafeVariables, isFullAccessThemePack, isThemePackTrusted, getThemePackStats, normalizeNoOutputTimeout,
       previewMessageSources, focusPreviewSource, promptPreviewOverrideOnce, showPromptPreview, promptPreviewMode, promptPreviewMessages, promptPreviewError, promptPreviewSources, previewSourceQuery, previewSourceLimit, promptPreviewVisibleSources, lastSentPrompt, promptRoleLabel, promptComposerConfig, openPromptPreview, refreshPromptPreview, savePreviewSource, jumpToPreviewSource, addPromptFloor, movePromptFloor, removePromptFloor, savePromptFloor, overridePreviewMessage, addPipelineLayer, removePipelineLayer, presetOriginLabel,
       presetImportInput, transferState, transferBusy, transferError, transferQuery, transferLimit, visibleTransferRows, selectedTransferCount, selectTransferRows, openPresetTransfer, readPresetFile, closeTransfer, executeTransfer,

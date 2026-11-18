@@ -154,6 +154,7 @@ const pieces = [
   sliceInclusive('    const nextChapterPrompt = ref(\'\');', '    const nextChapterPrompt = ref(\'\');'),
   'const priorityEnabled = ref(false), priorityRequirement = ref(\'\');',
   fnBlock('normalizeNoOutputTimeout'),
+  fnBlock('normalizeReaderScrollSettings'),
   fnBlock('buildMemoryHistory'),
   fnBlock('isSummaryInCurrentBranch'),
   fnBlock('buildBranchNotePrompt'),

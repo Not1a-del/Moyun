@@ -1,0 +1,463 @@
+{
+  "passed": true,
+  "url": "https://yydcm-129.github.io/Moyun/",
+  "results": [
+    {
+      "name": "部署入口和全部启动文件与对应发布基准逐字节一致",
+      "ok": true,
+      "data": {
+        "baseline": "Git HEAD 发布原始字节",
+        "files": [
+          {
+            "file": "index.html",
+            "status": 200,
+            "bytes": 786106,
+            "sha256": "b2367d3e2ddc48fa570fb71b410834872f4842d22b86eef177014445f96bb459"
+          },
+          {
+            "file": "./assets/favicon/moyun.svg",
+            "status": 200,
+            "bytes": 962,
+            "sha256": "4c8281ce4f5c6fe8405186e84cfaa42633646df1c361acb0fc5ac71af081c87c"
+          },
+          {
+            "file": "./assets/vendor/vue.global.js",
+            "status": 200,
+            "bytes": 596415,
+            "sha256": "b191cf809aa83452971804f9df2d8c67de65de34caa40f0fcf828c508c7099e2"
+          },
+          {
+            "file": "./assets/vendor/tailwind-3.4.17.js",
+            "status": 200,
+            "bytes": 407279,
+            "sha256": "176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15"
+          },
+          {
+            "file": "./assets/vendor/marked.umd.js",
+            "status": 200,
+            "bytes": 73384,
+            "sha256": "d7931d1cd7bf727dd756c871637edcc9e0f8538003b927368400ec1ee47a9dd9"
+          },
+          {
+            "file": "./assets/vendor/diff_match_patch.js",
+            "status": 200,
+            "bytes": 19192,
+            "sha256": "aac7655a215d8448d95d9871e8d8a40ac3d9aaf38d81ab2ccc43c1cd267b8fa3"
+          },
+          {
+            "file": "./assets/css/moyun.css?v=90780297a62b",
+            "status": 200,
+            "bytes": 145272,
+            "sha256": "83e4781ffe68e1d9533dd5c68e95996eebe8ee511da3df343ed1d1166f90fe52"
+          },
+          {
+            "file": "./assets/js/moyun.js?v=5316e12d3b5f",
+            "status": 200,
+            "bytes": 2685845,
+            "sha256": "38e5f100e7bf99bd1a5affd03b2a1dcff6c39f0e3f077a7074b2b0495db4019b"
+          }
+        ]
+      }
+    },
+    {
+      "name": "页面品牌图标实际解码成功",
+      "ok": true,
+      "data": [
+        {
+          "src": "./assets/favicon/moyun.svg",
+          "loaded": true
+        },
+        {
+          "src": "./assets/favicon/moyun.svg",
+          "loaded": true
+        },
+        {
+          "src": "./assets/favicon/moyun.svg",
+          "loaded": true
+        },
+        {
+          "src": "./assets/favicon/moyun.svg",
+          "loaded": true
+        }
+      ]
+    },
+    {
+      "name": "GitHub 仓库身份和静态站点入口一致",
+      "ok": true,
+      "data": {
+        "full_name": "yydcm-129/Moyun",
+        "homepage": "https://yydcm-129.github.io/Moyun/",
+        "description": "墨韵公众测试仓库：更新先在此公测，经用户确认后发布正式站。",
+        "has_pages": true,
+        "has_issues": true,
+        "default_branch": "main"
+      }
+    },
+    {
+      "name": "1280-light首次说明→1116公告→已读刷新",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "overflow": false,
+        "bounds": true
+      }
+    },
+    {
+      "name": "1280-light旧版已读用户只看到新公告",
+      "ok": true,
+      "data": true
+    },
+    {
+      "name": "1280-light站点标识和关于页入口可见可点",
+      "ok": true,
+      "data": {
+        "identity": {
+          "channel": "public",
+          "title": "墨韵 · 公众测试站",
+          "labels": [
+            {
+              "text": "公测站",
+              "bounds": true
+            }
+          ]
+        },
+        "links": [
+          {
+            "key": "public",
+            "href": "https://yydcm-129.github.io/Moyun/",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "href": "https://not1a-del.github.io/Moyun/",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "href": "https://github.com/yydcm-129/Moyun/issues",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "1280-light正文续写入口和连接中心可用",
+      "ok": true,
+      "data": {
+        "composer": true,
+        "prompt": true,
+        "generate": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-light常用词可搜索并实际跳到首字超时",
+      "ok": true,
+      "data": {
+        "tab": "context",
+        "visible": true,
+        "inViewport": true,
+        "overflow": false,
+        "aiCalls": 0
+      }
+    },
+    {
+      "name": "1280-dark首次说明→1116公告→已读刷新",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "overflow": false,
+        "bounds": true
+      }
+    },
+    {
+      "name": "1280-dark旧版已读用户只看到新公告",
+      "ok": true,
+      "data": true
+    },
+    {
+      "name": "1280-dark站点标识和关于页入口可见可点",
+      "ok": true,
+      "data": {
+        "identity": {
+          "channel": "public",
+          "title": "墨韵 · 公众测试站",
+          "labels": [
+            {
+              "text": "公测站",
+              "bounds": true
+            }
+          ]
+        },
+        "links": [
+          {
+            "key": "public",
+            "href": "https://yydcm-129.github.io/Moyun/",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "href": "https://not1a-del.github.io/Moyun/",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "href": "https://github.com/yydcm-129/Moyun/issues",
+            "height": 44,
+            "hit": true,
+            "bounds": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "1280-dark正文续写入口和连接中心可用",
+      "ok": true,
+      "data": {
+        "composer": true,
+        "prompt": true,
+        "generate": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-dark常用词可搜索并实际跳到首字超时",
+      "ok": true,
+      "data": {
+        "tab": "context",
+        "visible": true,
+        "inViewport": true,
+        "overflow": false,
+        "aiCalls": 0
+      }
+    },
+    {
+      "name": "390-light首次说明→1116公告→已读刷新",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "overflow": false,
+        "bounds": true
+      }
+    },
+    {
+      "name": "390-light旧版已读用户只看到新公告",
+      "ok": true,
+      "data": true
+    },
+    {
+      "name": "390-light站点标识和关于页入口可见可点",
+      "ok": true,
+      "data": {
+        "identity": {
+          "channel": "public",
+          "title": "墨韵 · 公众测试站",
+          "labels": [
+            {
+              "text": "公测站",
+              "bounds": true
+            }
+          ]
+        },
+        "links": [
+          {
+            "key": "public",
+            "href": "https://yydcm-129.github.io/Moyun/",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "href": "https://not1a-del.github.io/Moyun/",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "href": "https://github.com/yydcm-129/Moyun/issues",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "390-light正文续写入口和连接中心可用",
+      "ok": true,
+      "data": {
+        "composer": true,
+        "prompt": true,
+        "generate": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "390-light常用词可搜索并实际跳到首字超时",
+      "ok": true,
+      "data": {
+        "tab": "context",
+        "visible": true,
+        "inViewport": true,
+        "overflow": false,
+        "aiCalls": 0
+      }
+    },
+    {
+      "name": "390-dark首次说明→1116公告→已读刷新",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "overflow": false,
+        "bounds": true
+      }
+    },
+    {
+      "name": "390-dark旧版已读用户只看到新公告",
+      "ok": true,
+      "data": true
+    },
+    {
+      "name": "390-dark站点标识和关于页入口可见可点",
+      "ok": true,
+      "data": {
+        "identity": {
+          "channel": "public",
+          "title": "墨韵 · 公众测试站",
+          "labels": [
+            {
+              "text": "公测站",
+              "bounds": true
+            }
+          ]
+        },
+        "links": [
+          {
+            "key": "public",
+            "href": "https://yydcm-129.github.io/Moyun/",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "href": "https://not1a-del.github.io/Moyun/",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "href": "https://github.com/yydcm-129/Moyun/issues",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "390-dark正文续写入口和连接中心可用",
+      "ok": true,
+      "data": {
+        "composer": true,
+        "prompt": true,
+        "generate": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "390-dark常用词可搜索并实际跳到首字超时",
+      "ok": true,
+      "data": {
+        "tab": "context",
+        "visible": true,
+        "inViewport": true,
+        "overflow": false,
+        "aiCalls": 0
+      }
+    },
+    {
+      "name": "320px light 公测身份、关于入口和横向边界",
+      "ok": true,
+      "data": {
+        "channel": "public",
+        "expected": "public",
+        "title": "墨韵 · 公众测试站",
+        "labels": 1,
+        "siteInfo": "当前站点：公众测试站\n\n更新先在公测站试用，经用户确认后发布正式站。两站书库与接口配置独立，需要时请导出、导入备份。\n\n公测站\n正式站\n公测反馈",
+        "links": [
+          {
+            "key": "public",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          }
+        ],
+        "overflow": false
+      }
+    },
+    {
+      "name": "320px dark 公测身份、关于入口和横向边界",
+      "ok": true,
+      "data": {
+        "channel": "public",
+        "expected": "public",
+        "title": "墨韵 · 公众测试站",
+        "labels": 1,
+        "siteInfo": "当前站点：公众测试站\n\n更新先在公测站试用，经用户确认后发布正式站。两站书库与接口配置独立，需要时请导出、导入备份。\n\n公测站\n正式站\n公测反馈",
+        "links": [
+          {
+            "key": "public",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "stable",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          },
+          {
+            "key": "feedback",
+            "height": 46,
+            "hit": true,
+            "bounds": true
+          }
+        ],
+        "overflow": false
+      }
+    }
+  ],
+  "errors": [],
+  "consoleErrors": []
+}

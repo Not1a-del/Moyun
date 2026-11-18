@@ -1,0 +1,29 @@
+{
+    "generatedAt":  "2026-11-18T05:52:14.6894023Z",
+    "source":  "GitHub REST Pages（同一已登录 Git 账号）",
+    "actor":  "yydcm-129",
+    "pages":  [
+                  {
+                      "repository":  "yydcm-129/Moyun",
+                      "status":  "built",
+                      "source":  {
+                                     "branch":  "main",
+                                     "path":  "/"
+                                 },
+                      "url":  "https://yydcm-129.github.io/Moyun/",
+                      "build_type":  "legacy",
+                      "https_enforced":  true
+                  },
+                  {
+                      "repository":  "Not1a-del/Moyun",
+                      "status":  "built",
+                      "source":  {
+                                     "branch":  "main",
+                                     "path":  "/"
+                                 },
+                      "url":  "https://not1a-del.github.io/Moyun/",
+                      "build_type":  "legacy",
+                      "https_enforced":  true
+                  }
+              ]
+}

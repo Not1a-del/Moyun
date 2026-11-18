@@ -28,6 +28,8 @@
 
 GitHub 插件优先。它未提供仓库更新、Pages 设置和本地提交原样推送时，使用本机已授权的 `yydcm-129` Git/REST，操作前用 `/user` 核实账号。不要以提交 author 代替执行账号核对，不输出凭据；代理仅传当前命令。仓库默认分支和 Pages 来源分别核实，前者改对不代表后者已经改对。
 
+2026-11-18 用户明确要求：只有用户已打开网络代理时才能使用，禁止助手主动启动或重启代理、开启系统代理。未开时用可用直连，若线上验收无法完成就如实报告并等待用户自行开启；不得为了通过验收替用户启动代理。
+
 共享代理下匿名 GitHub API 返回403时，先用 GitHub 插件 `get_repo` 重新读取两仓，将 `generatedAt`、`source: "Cindy GitHub 插件 get_repo（已登录账号）"` 和 `repos` 写入项目外或 `.ui-check/release-gate/repo-metadata.json`。每条保留 `full_name`、`homepage`、`description`、`has_pages`、`has_issues`、`default_branch`；线上命令追加 `--repo-metadata .ui-check/release-gate/repo-metadata.json`。脚本仍逐项断言，且只接受一小时内回执。凭据不放网页或回执，元信息失败不计通过。
 
 全量脚本中的当前线上检查是发布前的只读基线，不代表新候选已经部署。推送后必须使用新提交 SHA、生成资产指纹和预期公告文字重新执行线上冒烟。

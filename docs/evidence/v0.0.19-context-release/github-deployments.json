@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-11-18T05:46:47.551Z",
+  "source": "Cindy GitHub 插件 get_workflow_run",
+  "authorization": "用户明确要求本轮直接同步公测库和主库并验收",
+  "candidate": "1a86b3746e4427be4fda6019e986fad080611053",
+  "rollback": "3a052bdf0a952a7de648f9a4cc70dffe1d260386",
+  "runs": [
+    {
+      "repository": "yydcm-129/Moyun",
+      "id": 44246385571,
+      "runNumber": 23,
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "1a86b3746e4427be4fda6019e986fad080611053",
+      "actor": "yydcm-129",
+      "htmlUrl": "https://github.com/yydcm-129/Moyun/actions/runs/44246385571",
+      "updatedAt": "2026-11-18T05:45:41Z"
+    },
+    {
+      "repository": "Not1a-del/Moyun",
+      "id": 44246398800,
+      "runNumber": 86,
+      "status": "completed",
+      "conclusion": "success",
+      "headSha": "1a86b3746e4427be4fda6019e986fad080611053",
+      "actor": "yydcm-129",
+      "htmlUrl": "https://github.com/Not1a-del/Moyun/actions/runs/44246398800",
+      "updatedAt": "2026-11-18T05:45:46Z"
+    }
+  ]
+}

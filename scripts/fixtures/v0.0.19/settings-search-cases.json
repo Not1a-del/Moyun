@@ -1,4 +1,5 @@
 [
+  {"target":"reader-navigation","queries":["上下箭头","上下顶按钮","回到顶部","自动消失","隐藏时间","显示时间"]},
   {"target":"api-profiles","queries":["接口网址","API密钥","密匙","更换服务商","连接测试"]},
   {"target":"global-controls","queries":["思考深度","创意","随机程度","推理强度"]},
   {"target":"anti-truncation","queries":["回复不完整","被截断","断流","工具回复"]},

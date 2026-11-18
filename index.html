@@ -3019,7 +3019,7 @@
       </div><!-- 关闭 space-y-4 flex-1 pb-24 -->
     </div>
   </main>
-    <nav v-if="readerScrollNavVisible && visibleChapters.length && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench && !immersiveToolMode" class="moyun-reader-nav" aria-label="正文快捷滚动" data-reader-scroll-nav>
+    <nav v-if="settings.readerScrollNavEnabled && readerScrollNavVisible && visibleChapters.length && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench && !immersiveToolMode" class="moyun-reader-nav" aria-label="正文快捷滚动" data-reader-scroll-nav>
       <button type="button" class="btn-ghost" @click="scrollReaderToEdge('top')" aria-label="到正文顶部" title="到正文顶部"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V5m-6 6 6-6 6 6M5 4h14"/></svg></button>
       <button type="button" class="btn-ghost" @click="scrollReaderToEdge('bottom')" aria-label="到正文底部" title="到正文底部"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v15m-6-6 6 6 6-6M5 20h14"/></svg></button>
     </nav>
@@ -5666,6 +5666,17 @@
             <div @click="settings.autoScroll=!settings.autoScroll;saveData()"
                  class="toggle-track" :class="settings.autoScroll?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
+          <div id="settings-search-reader-navigation" class="py-2">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">正文上下跳转按钮</span><p class="text-xs mt-1" style="color:var(--tx3)">默认关闭。开启后，连续滚动正文达到设定时间才显示顶部、底部按钮。</p></div>
+              <button type="button" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.readerScrollNavEnabled" aria-label="正文上下跳转按钮" data-reader-navigation-toggle @click="settings.readerScrollNavEnabled=!settings.readerScrollNavEnabled;saveData()"><span class="toggle-track" :class="settings.readerScrollNavEnabled?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+            </div>
+            <div v-if="settings.readerScrollNavEnabled" class="space-y-2 mt-3">
+              <label class="flex items-center justify-between gap-3 text-xs"><span>连续滚动多久后显示</span><span class="flex items-center gap-1 shrink-0"><input type="number" v-model.number="settings.readerScrollShowSeconds" @change="normalizeReaderScrollSettings();saveData()" min="0" max="30" step="0.1" class="input-field text-center" style="width:72px;min-height:44px" aria-label="连续滚动后显示秒数"><span>秒</span></span></label>
+              <label class="flex items-center justify-between gap-3 text-xs"><span>停止操作多久后隐藏</span><span class="flex items-center gap-1 shrink-0"><input type="number" v-model.number="settings.readerScrollHideSeconds" @change="normalizeReaderScrollSettings();saveData()" min="1" max="60" step="0.5" class="input-field text-center" style="width:72px;min-height:44px" aria-label="停止操作后隐藏秒数"><span>秒</span></span></label>
+              <p class="text-xs" style="color:var(--tx3)">停止滚动或点击按钮后开始计时；自动定位不会触发显示。</p>
+            </div>
+          </div>
 
           <div class="divider"></div>
 
@@ -6887,7 +6898,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=5316e12d3b5f"></script>
+<script src="./assets/js/moyun.js?v=15bd8f28fff1"></script>
 <!-- PART_1_END -->
 </body>
 </html>
