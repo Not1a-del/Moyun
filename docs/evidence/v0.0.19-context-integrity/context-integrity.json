@@ -1,0 +1,225 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "旧记忆已启用也不会擅自总结、索引或替换原文",
+      "ok": true,
+      "data": {
+        "auto": false,
+        "replace": false,
+        "requests": 0,
+        "valid": 12
+      }
+    },
+    {
+      "name": "记忆授权界面 1280 亮",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 1280 暗",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 1024 亮",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 1024 暗",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 768 亮",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 768 暗",
+      "ok": true,
+      "data": {
+        "height": 44,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 360 亮",
+      "ok": true,
+      "data": {
+        "height": 46,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 360 暗",
+      "ok": true,
+      "data": {
+        "height": 46,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 320 亮",
+      "ok": true,
+      "data": {
+        "height": 46,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "记忆授权界面 320 暗",
+      "ok": true,
+      "data": {
+        "height": 46,
+        "hit": true,
+        "overflow": false,
+        "replace": true
+      }
+    },
+    {
+      "name": "原有保存流程刷新后角色、记忆和文风逐字段一致",
+      "ok": true,
+      "data": {
+        "before": "b763e8b6078148bea37ccde3e5a7eed6a2caa19200d0a26be9380da79668622a",
+        "after": "b763e8b6078148bea37ccde3e5a7eed6a2caa19200d0a26be9380da79668622a",
+        "characters": 2,
+        "memories": 12
+      }
+    },
+    {
+      "name": "实际正文请求包含关键角色、近期原文和旧记忆 Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "tools": false,
+        "added": 1,
+        "chars": 17174,
+        "factsUnchanged": true,
+        "markers": {
+          "声音哨兵": true,
+          "禁止改写性格哨兵": true,
+          "自定义对话哨兵": true,
+          "作者当前状态哨兵": true,
+          "阿甲 → 乙": true,
+          "守城军": true,
+          "正文事实12": true,
+          "旧合并记忆哨兵": true,
+          "第二卷计划哨兵": true,
+          "旧卷交接哨兵": true,
+          "文风哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "实际正文请求包含关键角色、近期原文和旧记忆 Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "tools": true,
+        "added": 1,
+        "chars": 16491,
+        "factsUnchanged": true,
+        "markers": {
+          "声音哨兵": true,
+          "禁止改写性格哨兵": true,
+          "自定义对话哨兵": true,
+          "作者当前状态哨兵": true,
+          "阿甲 → 乙": true,
+          "守城军": true,
+          "正文事实12": true,
+          "旧合并记忆哨兵": true,
+          "第二卷计划哨兵": true,
+          "旧卷交接哨兵": true,
+          "文风哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "原生全量导出和新建导入完整保留角色关联、文风指南及旧预设",
+      "ok": true,
+      "data": {
+        "bytes": 160797,
+        "characters": 2,
+        "voice": "voice",
+        "before": "3d8afec3ade3fcc287de540cc1a21fe2d4a2f235202bf7989b308f9e64c72719",
+        "after": "3d8afec3ade3fcc287de540cc1a21fe2d4a2f235202bf7989b308f9e64c72719"
+      }
+    },
+    {
+      "name": "导入后的书再次刷新，角色、文风和记忆指纹一致",
+      "ok": true,
+      "data": {
+        "before": "3d8afec3ade3fcc287de540cc1a21fe2d4a2f235202bf7989b308f9e64c72719",
+        "after": "3d8afec3ade3fcc287de540cc1a21fe2d4a2f235202bf7989b308f9e64c72719"
+      }
+    },
+    {
+      "name": "追加导入同步重映射对话类型、关系和势力成员",
+      "ok": true,
+      "data": {
+        "count": 4,
+        "original": true,
+        "voice": true,
+        "relationship": true,
+        "faction": true
+      }
+    },
+    {
+      "name": "导入保存失败时撤回新书和关联，不留下半截记录",
+      "ok": true,
+      "data": {
+        "calls": 1,
+        "error": true,
+        "books": true,
+        "current": true,
+        "characters": true
+      }
+    },
+    {
+      "name": "手动授权开关可开启、关闭，保存刷新不会自行复开",
+      "ok": true,
+      "data": {
+        "auto": false,
+        "replace": false
+      }
+    }
+  ],
+  "errors": []
+}

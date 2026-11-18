@@ -10,7 +10,7 @@ module.exports=async function(c,check,shot){
     __s.chapters=Array.from({length:5},(_,i)=>({id:'scope-'+i,branchId:'main',content:'CHAPTER_BODY_'+(i+1),summary:'WRONG_SHORT_SUMMARY_'+(i+1)}));
     const start=__wire.length;await __s.runMemoryBackfill();
     const prompts=__wire.slice(start).map(r=>JSON.stringify(r.body));
-    __s.memoryLibrary.settings.enabled=true;
+    __s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;
     return {keep,prompts,rows:__s.getValidMemoryRows().length,history:__s.buildMemoryHistory(__s.visibleChapters).text};
    }finally{__s.cancelMemoryWork();__s.chapters=chapters;__s.memoryLibrary=original;}
   });assert.equal(d.keep,7);assert.equal(d.rows,5);assert.equal(d.prompts.length,5);
@@ -38,7 +38,7 @@ module.exports=async function(c,check,shot){
   const d=await c.ev(async()=>{
    const before=fetch,original=JSON.parse(JSON.stringify(__s.memoryLibrary));
    try{
-    __s.cancelMemoryWork();__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.mode='enhanced';
+    __s.cancelMemoryWork();__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;__s.memoryLibrary.settings.mode='enhanced';
     for(const m of __s.memoryLibrary.memories)delete m.vector;
     const messages=[{role:'user',content:'FALLBACK_WRITING'}];
     window.fetch=async()=>new Response('{"error":{"message":"offline"}}',{status:503});const fallback=await __s.appendEnhancedMemoryRecall(messages,__s.visibleChapters,'铜钥匙',new AbortController().signal);
@@ -53,7 +53,7 @@ module.exports=async function(c,check,shot){
    window.__optOriginalFetch=fetch;window.__optModel=__s.connectionCenter.profiles[0].defaultModel;
    __s.connectionCenter.profiles[0].defaultModel='gemini-3-test';__s.settings.preventTruncation=true;__s.settings.temperature=.36;__s.settings.reasoningEffort='low';__s.settings.geminiTestInput=true;
    window.fetch=async(url,opts)=>{const response=await __optOriginalFetch(url,opts);if(!String(url).includes('v18.invalid') || !JSON.parse(opts.body || '{}').tools?.some(t=>t.function?.name==='output_reply'))return response;const data=await response.json(),text=data.choices[0].message.content;data.choices[0].message={tool_calls:[{id:'reply',type:'function',function:{name:'output_reply',arguments:JSON.stringify({content:text})}}]};data.choices[0].finish_reason='tool_calls';return new Response(JSON.stringify(data));};
-   __s.memoryLibrary.settings.enabled=true;__s.nextChapterPrompt='V18_TOOL_WRITE：阿雪在东门等待，钥匙仍在她手中。';__s.startGeneration();
+   __s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;__s.nextChapterPrompt='V18_TOOL_WRITE：阿雪在东门等待，钥匙仍在她手中。';__s.startGeneration();
   });
   try{
    for(let i=0;i<150;i++){if(!await c.ev(()=>__s.isGenerating))break;await delay(80);}await delay(1000);

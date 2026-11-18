@@ -18,6 +18,8 @@ async function main(){
     c=await require('./v16-r2-browser-session.cjs').connect(cdp,base);
     await c.navigate();
     await c.ev(()=>{window.__s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState;});
+    if(process.argv.includes('--context-integrity')){await require('./v19-context-integrity-browser.cjs')(c);return;}
+    if(process.argv.includes('--reader-onekey')){await require('./v19-reader-onekey-browser.cjs')(c);return;}
     if(process.argv.includes('--release-smoke')){await require('./v19-release-smoke.cjs')(c);return;}
     if(process.argv.includes('--mobile-layout')){await require('./v19-mobile-layout-browser.cjs')(c);return;}
     if(process.argv.includes('--planning-recovery')){await require('./v19-planning-recovery-browser.cjs')(c);return;}

@@ -8,7 +8,7 @@ function fn(name){const at=source.search(new RegExp('    (?:async )?function '+n
 
 test('正文实时携带最新卷纲摘要与交接，下一卷起笔章号正确',()=>{
  const volumes=[{id:'v1',title:'上卷',startChapter:1,endChapter:2,summary:'上卷计划',handoffSummaries:{main:{content:'手改交接',actualOutline:'实际修正'}}},{id:'v2',title:'下卷',startChapter:3,endChapter:5,summary:'刚接受的卷纲'}];
- const c={novel:ref({volumes}),activeBranchId:ref('main'),normalizeNovelVolumes:value=>value,getVolumeForChapter:no=>volumes.find(v=>no>=v.startChapter&&no<=v.endChapter),getVolumeHandoff:(volume,bid)=>volume.handoffSummaries?.[bid],buildBudgetedChapterHistory:()=>({text:'请写第一章。',rawChars:0,missingChapters:[]}),visibleChapters:ref([{},{}])};vm.createContext(c);vm.runInContext([fn('buildVolumeConstraintPrompt'),fn('buildChapterHistoryContext')].join('\n'),c);
+ const c={novel:ref({volumes}),memoryLibrary:ref({settings:{replaceHistoryWithSummaries:true}}),activeBranchId:ref('main'),normalizeNovelVolumes:value=>value,getVolumeForChapter:no=>volumes.find(v=>no>=v.startChapter&&no<=v.endChapter),getVolumeHandoff:(volume,bid)=>volume.handoffSummaries?.[bid],buildBudgetedChapterHistory:()=>({text:'请写第一章。',rawChars:0,missingChapters:[]}),visibleChapters:ref([{},{}])};vm.createContext(c);vm.runInContext([fn('buildVolumeConstraintPrompt'),fn('buildChapterHistoryContext')].join('\n'),c);
  assert.match(c.buildVolumeConstraintPrompt(3),/刚接受的卷纲/);volumes[1].summary='作者又修改了卷纲';assert.match(c.buildVolumeConstraintPrompt(3),/作者又修改了卷纲/);const history=c.buildChapterHistoryContext([{},{}]);assert.match(history.text,/手改交接/);assert.match(history.text,/请继续写第3章/);assert.doesNotMatch(history.text,/请写第一章/);
 });
 

@@ -17,21 +17,21 @@ test('细纲无正文也能创建并进入独立分支，规划按所选章截�
   assert.match(toasts.at(-1)[0],/尚无正文.*细纲/);
 });
 
-test('主支线各2章时插入第3章的标题、角色状态和记忆事件均用支线章号3',async()=>{
+test('主支线各2章时插入第3章的标题及手动授权的记忆事件均用支线章号3，角色档案不自动改写',async()=>{
   const {c}=branchHarness();c.chapters.value=c.chapters.value.slice(0,2);const branch=await c.forkBranch(1);
   Object.assign(c,{buildDefaultChapterTitle:no=>'第'+no+'章',remapDarklineChapterReferences:()=>0,remapSummaryChapterRanges:()=>({}),describeSummaryRemapResult:()=>'',runModEventHandlers(){},nextTick:fn=>fn(),scrollToChapter(){}});
   vm.runInContext(fn('insertChapterAt'),c);c.insertChapterAt(2);const chapter=c.visibleChapters.value[2];
   assert.equal(chapter.title,'第3章');assert.equal(chapter.tempTitle,'第3章');assert.equal(chapter.branchId,branch.id);
   chapter.content='林远平静地发现了旧灯背后的线索，决定继续追查。';
   const bible={world:{events:[],entries:[]}};
-  Object.assign(c,{settings:{value:{}},ensureStoryBible:()=>bible,normalizeStoryBibleEvent:row=>row,cleanNarrativeChapterContent:row=>row.content,structuredCharacters:{value:[{name:'林远',desc:'寻灯人'}]},escapeRegExp:value=>value});
-  vm.runInContext(fn('updateStoryMemoryFromChapter'),c);c.updateStoryMemoryFromChapter(chapter);
-  assert.equal(c.structuredCharacters.value[0].stateLog[0].chapter,3);
+  Object.assign(c,{settings:{value:{autoTimelineSupplement:true}},ensureStoryBible:()=>bible,normalizeStoryBibleEvent:row=>row,cleanNarrativeChapterContent:row=>row.content,structuredCharacters:{value:[{name:'林远',desc:'寻灯人'}]},escapeRegExp:value=>value});
+  c.memoryLibrary.value.settings.autoSummarize=true;vm.runInContext(fn('updateStoryMemoryFromChapter'),c);c.updateStoryMemoryFromChapter(chapter);
+  assert.equal(c.structuredCharacters.value[0].stateLog,undefined);
   assert.ok(bible.world.events.length>0);assert.ok(bible.world.events.every(row=>row.chapterNo===3));
 });
 
 test('自动总结仅统计当前分支章数，不把其他分支算进触发范围',()=>{
-  const c=vm.createContext({autoSummaryConfig:{value:{enabled:true,frequency:2}},visibleChapters:{value:[{},{}]},chapters:{value:Array(20).fill({})},summaryStart:{},summaryEnd:{},showToast(){},setTimeout:fn=>fn(),generateSummaryRange(){c.generated=true;}});
+  const c=vm.createContext({memoryLibrary:{value:{settings:{autoSummarize:true}}},currentBookId:{value:'a'},activeBranchId:{value:'main'},autoSummaryConfig:{value:{enabled:true,frequency:2}},visibleChapters:{value:[{},{}]},chapters:{value:Array(20).fill({})},summaryStart:{},summaryEnd:{},showToast(){},setTimeout:fn=>fn(),generateSummaryRange(){c.generated=true;}});
   vm.runInContext(fn('checkAutoSummary'),c);c.checkAutoSummary();assert.equal(c.summaryEnd.value,2);
 });
 

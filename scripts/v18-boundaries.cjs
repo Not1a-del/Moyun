@@ -44,7 +44,7 @@ module.exports=async function(c,check){
  });
  await check('记忆换向量模型：写作前补建索引，召回不混用旧模型；坏向量可重建',async()=>{
   const d=await c.ev(async()=>{
-   __s.cancelMemoryWork();__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.mode='enhanced';__s.settings.memoryEmbeddingModel='v18-vector-next';
+   __s.cancelMemoryWork();__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;__s.memoryLibrary.settings.mode='enhanced';__s.settings.memoryEmbeddingModel='v18-vector-next';
    const first=__s.getValidMemoryRows()[0];if(first)first.vector={data:'broken',dims:10};
    const messages=await __s.appendEnhancedMemoryRecall([{role:'user',content:'铜钥匙'}],__s.visibleChapters,'铜钥匙',new AbortController().signal);
    __s.cancelMemoryWork();return{models:[...new Set(__s.getValidMemoryRows().filter(m=>m.enabled!==false).map(m=>m.vectorModel))],hits:__s.getValidMemoryRows().filter(m=>m.enabled!==false).length,recalled:messages[0].content.includes('enhanced_memory_recall')};

@@ -165,9 +165,9 @@ test('G5 unsupported estimates fail quietly; backup export suppresses 80 percent
 test('G5 failed browser save and unavailable image store still allow current in-memory book rescue',async()=>{
   const ref=value=>({value}), messages=[]; let downloadCount=0, data;
   const ctx=vm.createContext({
-    syncBookData:()=>{},saveDataNow:async()=>false,showToast:(...args)=>messages.push(args),snapshotForSerialize:value=>JSON.parse(JSON.stringify(value)),
+    syncBookData:()=>{},saveDataNow:async()=>false,showToast:(...args)=>messages.push(args),snapshotForSerialize:value=>JSON.parse(JSON.stringify(value)),currentPresetBundle:()=>({}),
     novel:ref({title:'救援书',immersiveHandwritingDrafts:{main:{content:'未落盘手写'}}}),memoryLibrary:ref({}),lastWritingUsage:ref({}),storyBible:ref({}),chapters:ref([{id:'c1',content:'未落盘正文',tempContent:'未落盘草稿'}]),structuredCharacters:ref([]),branchList:ref([]),activeBranchId:ref('side'),branchData:ref({main:{chapterOutlines:[{id:'main',content:'主线'}]},side:{chapterOutlines:[{id:'side',content:'分支'}]}}),chapterOutlines:ref([]),chapterIndexDrafts:ref([]),foreshadowMatrix:ref([]),staleMarks:ref([]),summaries:ref([]),promptPresets:ref([]),narrativePerson:ref('third'),coverImage:ref(''),modPacks:ref([]),imageProfiles:ref([]),activeProfileId:ref(''),currentBookId:ref('book'),
-    writingStyles:ref([]),currentWritingStyleId:ref(''),activeStyleIds:ref([]),buildSanitizedModPrivateDataForExport:()=>({}),buildCurrentInterruptedDraftRecord:()=>({content:'中断稿'}),ImageStore:{exportBook:async()=>{throw Error('IDB unavailable');}},
+    writingStyles:ref([]),currentWritingStyleId:ref(''),activeStyleIds:ref([]),outlineRevisions:ref([]),installedThemePacks:ref([]),activeThemePackId:ref(''),buildSanitizedModPrivateDataForExport:()=>({}),buildCurrentInterruptedDraftRecord:()=>({content:'中断稿'}),ImageStore:{exportBook:async()=>{throw Error('IDB unavailable');}},
     Blob:class{constructor(parts){data=JSON.parse(parts[0]);}},URL:{createObjectURL:()=> 'blob:fixture',revokeObjectURL:()=>{}},document:{createElement:()=>({click:()=>downloadCount++}),body:{appendChild:()=>{},removeChild:()=>{}}},setTimeout:()=>1,storageQuotaExportedThisSession:false,storageQuotaNoticeLevel:3
   });
   vm.runInContext(extract('    async function performExportBookFullBackup(', '    // 书名与章节名'),ctx);

@@ -139,7 +139,7 @@ const pieces = [
   sliceInclusive('    const storyBible = ref(null);', '    const storyBible = ref(null);'),
 
   // D：角色回退组装
-  slice('    function buildFallbackCharacterPromptText() {', '    function buildStoryBibleWritingContextPackage(options = {}) {'),
+  slice('    function buildFallbackCharacterPromptText(options = {}) {', '    function buildStoryBibleWritingContextPackage(options = {}) {'),
 
   // E：Story Bible 正文资料包
   slice('    function buildStoryBibleWritingContextPackage(options = {}) {', '    /* Phase B.4.3'),
@@ -221,7 +221,7 @@ const pieces = [
   // 一并进入脚本——第 1 刀把它插在该区间内部，无需也不可重复切片。
   `
   this.__api = {
-    buildChapterMessages, buildFullSystemPrompt, buildNsfwMessages,
+    memoryLibrary, buildChapterMessages, buildFullSystemPrompt, buildNsfwMessages,
     buildSnowwingAuthorContextPrompt, buildPipelineLayerPrompt, getMergedStylePrompt,
     buildChapterHistoryContext,
     collectEnabledPromptPresets, buildHostPresetSystemSections, buildPromptPresetMessages, buildCotPresetContent,
@@ -403,7 +403,11 @@ function buildScenarios(api) {
 }
 
 function loadGolden() {
-  return JSON.parse(fs.readFileSync(GOLDEN_PATH, 'utf8'));
+  const golden = JSON.parse(fs.readFileSync(GOLDEN_PATH, 'utf8'));
+  // v19 经实际请求确认：无细纲时也需限制文风改人设。只声明这一处预期增量，历史对照文件不改，其余仍逐字比较。
+  const anchor = '新章节的文风必须优先遵守系统预设中的规定文风。';
+  const boundary = '作者确认的性格和人物关系不得为迎合文风或范文而改写。';
+  return Object.fromEntries(Object.entries(golden).map(([key, value]) => [key, typeof value === 'string' ? value.replace(anchor, anchor + boundary) : value]));
 }
 
 if (process.env.MOYUN_CAPTURE) {
@@ -486,6 +490,7 @@ if (process.env.MOYUN_CAPTURE) {
   test('第4刀 golden：范围总结注入历史且 COT 恰带一份动态记忆段', () => {
     const api = harness();
     baseState(api);
+    api.memoryLibrary.value.settings.replaceHistoryWithSummaries = true;
     api.summaries.value = [{ useForContext: true, startChapter: 1, endChapter: 2, content: '第一至二章：林晚接手书店并受托寻人。' }];
     const msgs = api.buildChapterMessages(baseOptions());
     assert.equal(serialize(msgs), golden.rangeSummary);
@@ -685,6 +690,7 @@ if (process.env.MOYUN_CAPTURE) {
     });
     const script = [
       'const ref = v => ({ value: v });\nconst computed = fn => ({ get value() { return fn(); } });\nconst localStorage = { getItem: () => null, setItem() {}, removeItem() {} };\nconst window = {};\nconst LEGACY_PRESET_ROOT_KEYS = [\'promptPipeline\', \'presets\', \'writingStyles\', \'currentWritingStyleId\', \'activeStyleIds\', \'atmosphereEnabled\', \'atmospherePrompt\'];\nconst legacyPresetRootFields = { value: {} };',
+      source.match(/    const PRESET_FIELDS=.*;/)[0],source.match(/    const BOOK_FIELDS=.*;/)[0],fnBlock('currentPresetBundle'),
       fnBlock('normalizeMemoryLibrary'), fnBlock('restoreLegacyBookContext'), NEW_SECTION,
       slice('    function normalizeStaleMarks(', '    function markStale('),fnBlock('parseChapterRefs'),
       slice('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'),

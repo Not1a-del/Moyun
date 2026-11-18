@@ -1,0 +1,24 @@
+
+> moyun-web@0.0.19 audit
+> node scripts/structure-audit.cjs
+
+[structure-audit] 模板区 718345 字符
+  PASS 标签平衡（跨层/多余/残留 = 0）
+  PASS DOM 模板自定义组件显式闭合
+  PASS v-else/v-else-if 配对（共 179 处）
+  PASS editor-head 锚点存在
+  PASS editor-head 闭合平衡（<div> 6 = </div> 6）
+  PASS editor-head 与 levels 同级（中间无其他元素）
+  PASS <transition> 开闭一致（35/35）
+  PASS <transition-group> 开闭一致（1/1）
+  PASS <keep-alive> 开闭一致（0/0）
+  PASS <template> 开闭一致（66/66）
+[structure-audit] 追加检查（基线：scripts/audit-baseline.json）
+  PASS localStorage：没有未登记的新增键（共 13 个字面量键）
+  PASS localStorage：变量/拼接键的读写点没有增加
+  PASS localStorage：遍历/清空类访问没有增加
+  PASS IndexedDB：没有未登记的新增库（共 4 个）
+  PASS 同缩进同名函数：没有未登记的重复声明（已登记 3 组为不同作用域的同名内部函数）
+  PASS 已删除符号没有残留引用（登记 6 个）
+
+STRUCT AUDIT PASSED: 模板结构无跨层/无配对缺失/关键锚点平衡

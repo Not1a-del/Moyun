@@ -1,0 +1,671 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "AI新建角色→审阅接受→保存 Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "name": "林舟",
+        "found": true,
+        "configUnchanged": true,
+        "tools": false,
+        "stream": true
+      }
+    },
+    {
+      "name": "AI新建角色→审阅接受→保存 Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "name": "星禾",
+        "found": true,
+        "configUnchanged": true,
+        "tools": true,
+        "stream": true
+      }
+    },
+    {
+      "name": "刷新后新角色与启用文风同时进入实际正文请求 false",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "unchanged": true,
+        "tools": false,
+        "markers": {
+          "林舟声音哨兵": true,
+          "星禾声音哨兵": true,
+          "林舟不背叛师门哨兵": true,
+          "星禾不背叛师门哨兵": true,
+          "守灯人口吻哨兵": true,
+          "文风样本哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "刷新后新角色与启用文风同时进入实际正文请求 true",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "unchanged": true,
+        "tools": true,
+        "markers": {
+          "林舟声音哨兵": true,
+          "星禾声音哨兵": true,
+          "林舟不背叛师门哨兵": true,
+          "星禾不背叛师门哨兵": true,
+          "守灯人口吻哨兵": true,
+          "文风样本哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "旧书顶层角色资料→文件导入→保存刷新完整保留",
+      "ok": true,
+      "data": {
+        "characters": 2,
+        "chapters": 2,
+        "fieldsPreserved": true
+      }
+    },
+    {
+      "name": "旧格式导入后人物资料仍进入正文请求",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "unchanged": true,
+        "tools": false,
+        "markers": {
+          "林舟声音哨兵": true,
+          "星禾声音哨兵": true,
+          "林舟不背叛师门哨兵": true,
+          "星禾不背叛师门哨兵": true,
+          "守灯人口吻哨兵": true,
+          "文风样本哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "长角色库末尾的新角色仍完整进入正文 旧格式",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "unchanged": true,
+        "tools": false,
+        "markers": {
+          "林舟声音哨兵": true,
+          "星禾声音哨兵": true,
+          "林舟不背叛师门哨兵": true,
+          "星禾不背叛师门哨兵": true,
+          "守灯人口吻哨兵": true,
+          "文风样本哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "长角色库末尾的新角色仍完整进入正文 设定包",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "unchanged": true,
+        "tools": true,
+        "markers": {
+          "林舟声音哨兵": true,
+          "星禾声音哨兵": true,
+          "林舟不背叛师门哨兵": true,
+          "星禾不背叛师门哨兵": true,
+          "守灯人口吻哨兵": true,
+          "文风样本哨兵": true,
+          "作者确认的性格和人物关系不得为迎合文风或范文而改写": true
+        }
+      }
+    },
+    {
+      "name": "一键开书选项 world Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "海港按潮汐值守，守灯人守护航道。",
+        "outline": "",
+        "characters": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "一键开书选项 characters Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "",
+        "outline": "",
+        "characters": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "一键开书选项 title Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "灯塔来信",
+        "synopsis": "守灯人在海港追查旧信。",
+        "world": "",
+        "outline": "",
+        "characters": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "一键开书选项 incomplete Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [
+          "core"
+        ],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "",
+        "outline": "",
+        "characters": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "一键开书选项 world Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "海港按潮汐值守，守灯人守护航道。",
+        "outline": "",
+        "characters": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "一键开书选项 characters Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "",
+        "outline": "",
+        "characters": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "一键开书选项 title Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [],
+        "title": "灯塔来信",
+        "synopsis": "守灯人在海港追查旧信。",
+        "world": "",
+        "outline": "",
+        "characters": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "一键开书选项 incomplete Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "estimated": 1,
+        "actual": 1,
+        "failed": [
+          "core"
+        ],
+        "title": "作者原书名",
+        "synopsis": "",
+        "world": "",
+        "outline": "",
+        "characters": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "滚动导航 1280 亮",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 520,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 1224,
+              "y": 642,
+              "width": 44,
+              "height": 44,
+              "top": 642,
+              "right": 1268,
+              "bottom": 686,
+              "left": 1224
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 1224,
+              "y": 692,
+              "width": 44,
+              "height": 44,
+              "top": 692,
+              "right": 1268,
+              "bottom": 736,
+              "left": 1224
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 1280 暗",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 520,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 1224,
+              "y": 642,
+              "width": 44,
+              "height": 44,
+              "top": 642,
+              "right": 1268,
+              "bottom": 686,
+              "left": 1224
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 1224,
+              "y": 692,
+              "width": 44,
+              "height": 44,
+              "top": 692,
+              "right": 1268,
+              "bottom": 736,
+              "left": 1224
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 1024 亮",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 370,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 968,
+              "y": 1208,
+              "width": 44,
+              "height": 44,
+              "top": 1208,
+              "right": 1012,
+              "bottom": 1252,
+              "left": 968
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 968,
+              "y": 1258,
+              "width": 44,
+              "height": 44,
+              "top": 1258,
+              "right": 1012,
+              "bottom": 1302,
+              "left": 968
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 1024 暗",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 377,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 968,
+              "y": 1208,
+              "width": 44,
+              "height": 44,
+              "top": 1208,
+              "right": 1012,
+              "bottom": 1252,
+              "left": 968
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 968,
+              "y": 1258,
+              "width": 44,
+              "height": 44,
+              "top": 1258,
+              "right": 1012,
+              "bottom": 1302,
+              "left": 968
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 768 亮",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 428,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 712,
+              "y": 642,
+              "width": 44,
+              "height": 44,
+              "top": 642,
+              "right": 756,
+              "bottom": 686,
+              "left": 712
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 712,
+              "y": 692,
+              "width": 44,
+              "height": 44,
+              "top": 692,
+              "right": 756,
+              "bottom": 736,
+              "left": 712
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 768 暗",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 392,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 712,
+              "y": 642,
+              "width": 44,
+              "height": 44,
+              "top": 642,
+              "right": 756,
+              "bottom": 686,
+              "left": 712
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 712,
+              "y": 692,
+              "width": 44,
+              "height": 44,
+              "top": 692,
+              "right": 756,
+              "bottom": 736,
+              "left": 712
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 360 亮",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 379,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 252,
+              "y": 580,
+              "width": 44,
+              "height": 44,
+              "top": 580,
+              "right": 296,
+              "bottom": 624,
+              "left": 252
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 252,
+              "y": 630,
+              "width": 44,
+              "height": 44,
+              "top": 630,
+              "right": 296,
+              "bottom": 674,
+              "left": 252
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 360 暗",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 374,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 252,
+              "y": 580,
+              "width": 44,
+              "height": 44,
+              "top": 580,
+              "right": 296,
+              "bottom": 624,
+              "left": 252
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 252,
+              "y": 630,
+              "width": 44,
+              "height": 44,
+              "top": 630,
+              "right": 296,
+              "bottom": 674,
+              "left": 252
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 320 亮",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 392,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 212,
+              "y": 580,
+              "width": 44,
+              "height": 44,
+              "top": 580,
+              "right": 256,
+              "bottom": 624,
+              "left": 212
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 212,
+              "y": 630,
+              "width": 44,
+              "height": 44,
+              "top": 630,
+              "right": 256,
+              "bottom": 674,
+              "left": 212
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "滚动导航 320 暗",
+      "ok": true,
+      "data": {
+        "visible": true,
+        "scrollTop": 369,
+        "inside": true,
+        "overflow": false,
+        "buttons": [
+          {
+            "rect": {
+              "x": 212,
+              "y": 580,
+              "width": 44,
+              "height": 44,
+              "top": 580,
+              "right": 256,
+              "bottom": 624,
+              "left": 212
+            },
+            "hitTag": "<path d=\"M12 20V5m-6 6 6-6 6 6M5 4h14\"></path>",
+            "height": 44,
+            "hit": true
+          },
+          {
+            "rect": {
+              "x": 212,
+              "y": 630,
+              "width": 44,
+              "height": 44,
+              "top": 630,
+              "right": 256,
+              "bottom": 674,
+              "left": 212
+            },
+            "hitTag": "<path d=\"M12 4v15m-6-6 6 6 6-6M5 20h14\"></path>",
+            "height": 44,
+            "hit": true
+          }
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

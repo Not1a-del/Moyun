@@ -87,7 +87,7 @@ module.exports=async function(c,check,shot){
  });
  await check('记忆：旧章替换总结、最新原文保留、召回最多10条按时间排序',async()=>{
   const d=await c.ev(async()=>{
-   __s.memoryLibrary.settings.enabled=true;
+   __s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;
    const history=__s.buildMemoryHistory(__s.visibleChapters);
    const messages=await __s.appendEnhancedMemoryRecall([{role:'user',content:'铜钥匙在哪里？'}],__s.visibleChapters,'铜钥匙在哪里？',new AbortController().signal);
    __s.cancelMemoryWork();return{history,messages,hits:messages[0].content.match(/<memory_fragment /g)?.length || 0};
@@ -133,7 +133,7 @@ module.exports=async function(c,check,shot){
   const d=await c.ev(()=>{const input=document.querySelector('[data-custom-word-count]');const focused=document.activeElement===input;input.value='876.25';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));return{focused,value:__s.wordCountTarget};});assert.equal(d.focused,true);assert.equal(d.value,876.25);return d;
  });
  await check('自动记录与真实写作请求接线：记忆和自定义字数进入请求，token更新',async()=>{
-  await c.ev(()=>{__s.activeBranchId='main';__s.chapters=__s.chapters.slice(0,3);__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.summaryKeepChapters=5;__s.settings.geminiTestInput=true;__s.wordCountTarget=300.5;__s.nextChapterPrompt='V18_STORY_INPUT：阿雪按约定携铜钥匙到东门。';__s.startGeneration();});
+  await c.ev(()=>{__s.activeBranchId='main';__s.chapters=__s.chapters.slice(0,3);__s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;__s.memoryLibrary.settings.summaryKeepChapters=5;__s.settings.geminiTestInput=true;__s.wordCountTarget=300.5;__s.nextChapterPrompt='V18_STORY_INPUT：阿雪按约定携铜钥匙到东门。';__s.startGeneration();});
   for(let i=0;i<100;i++){if(!await c.ev(()=>__s.isGenerating))break;await delay(80);}
   await delay(1200);
   const d=await c.ev(()=>({chapters:__s.chapters.length,last:__s.chapters.at(-1),usage:__s.lastWritingUsage,rows:__s.getValidMemoryRows().length,request:__wire.filter(r=>!r.url.includes('embeddings') && JSON.stringify(r.body).includes('V18_STORY_INPUT') && !JSON.stringify(r.body).includes('逐章记忆整理器')).at(-1),progress:__s.memoryProgress}));

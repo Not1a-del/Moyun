@@ -10,7 +10,7 @@
 <script src="./assets/vendor/tailwind-3.4.17.js"></script>
 <script src="./assets/vendor/marked.umd.js"></script>
 <script src="./assets/vendor/diff_match_patch.js"></script>
-<link rel="stylesheet" href="./assets/css/moyun.css?v=a1a416ab5e05">
+<link rel="stylesheet" href="./assets/css/moyun.css?v=90780297a62b">
 </head>
 
 <body class="flex overflow-hidden">
@@ -919,11 +919,11 @@
       <!-- 自动总结配置 -->
       <div class="card p-3">
         <div class="flex items-center justify-between">
-          <div><span class="text-sm font-bold" style="color:var(--tx)">自动总结</span><br><span class="text-[10px]" style="color:var(--tx3)">每N章自动生成一次总结</span></div>
-          <div @click="autoSummaryConfig.enabled=!autoSummaryConfig.enabled;saveData()"
-               class="toggle-track" :class="autoSummaryConfig.enabled?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
+          <div><span class="text-sm font-bold" style="color:var(--tx)">自动总结</span><br><span class="text-[10px]" style="color:var(--tx3)">每 N 章生成总结；开启也会授权记忆库的自动总结与后台维护，可在记忆库关闭</span></div>
+          <div @click="autoSummaryConfig.enabled=!(autoSummaryConfig.enabled && memoryLibrary.settings.autoSummarize);if(autoSummaryConfig.enabled)memoryLibrary.settings.autoSummarize=true;memorySettingsChanged()"
+               class="toggle-track" :class="autoSummaryConfig.enabled && memoryLibrary.settings.autoSummarize?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
         </div>
-        <div v-if="autoSummaryConfig.enabled" class="flex items-center gap-2 text-xs mt-2" style="color:var(--tx2)">
+        <div v-if="autoSummaryConfig.enabled && memoryLibrary.settings.autoSummarize" class="flex items-center gap-2 text-xs mt-2" style="color:var(--tx2)">
           <span>每</span>
           <input type="number" v-model.number="autoSummaryConfig.frequency" @change="saveData()" min="1" max="20"
                  class="input-field text-center" style="width:48px;height:26px;padding:0;font-size:12px">
@@ -1373,14 +1373,14 @@
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
             <div>
               <div class="text-base font-black" style="color:var(--tx)">事件时间线</div>
-              <div class="text-xs mt-1" style="color:var(--tx3)">按作者定义的时间与顺序整理世界历史和故事主线；每章正文完成后会自动记录，并作为下一章的辅助记忆。</div>
+              <div class="text-xs mt-1" style="color:var(--tx3)">按作者定义的时间与顺序整理世界历史和故事主线；已有事件继续作为辅助记忆，新增事件可手动整理。</div>
             </div>
             <div class="flex flex-col items-end"><div class="flex items-center gap-2"><button type="button" @click="openStoryEventRangePrompt()" :disabled="isAiSupplementingStoryBible" class="btn-primary text-xs px-3 py-2.5 whitespace-nowrap" :style="isAiSupplementingStoryBible?'opacity:.55':''" data-story-event-ai-full>{{ isAiSupplementingStoryBible ? '补充中…' : '全文时间线补充' }}</button><button type="button" @click="addStoryBibleEvent('story')" class="btn-primary text-xs px-4 py-2.5 whitespace-nowrap" data-story-event-create>＋ 新建事件</button></div><span v-if="isAiSupplementingStoryBible && storyEventSupplementProgress" class="text-[10px] mt-1 whitespace-nowrap" style="color:var(--tx3)" role="status" aria-live="polite">{{ storyEventSupplementProgress }}</span></div>
           </div>
 
           <!-- v0.0.11 新功能6：事件时间线自动补录开关，默认开启；关闭后正文生成不再自动写入时间线。参考既有 toggle-track 样式，PC/移动端通排。 -->
           <div class="flex items-center justify-between py-1" data-story-event-auto-toggle>
-            <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
+            <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">需先在记忆库手动开启「自动总结与后台维护」，此开关才生效；关闭后仅手动整理，不修改角色档案</span></div>
             <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录"><div class="toggle-thumb"></div></div>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2" data-story-event-stats>
@@ -1544,9 +1544,11 @@
         <div v-else-if="storyBibleWorkbenchSection==='memory'" data-memory-library class="max-w-5xl mx-auto space-y-4">
           <section class="card p-4 space-y-4">
             <div class="flex items-center justify-between gap-3">
-              <div class="min-w-0"><h3 class="text-base font-black" style="color:var(--tx)">记忆库</h3><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">按章自动总结，用于后续写作。本书各分支分别读取可见章节。</p></div>
+              <div class="min-w-0"><h3 class="text-base font-black" style="color:var(--tx)">记忆库</h3><p class="text-xs mt-1 leading-relaxed" style="color:var(--tx3)">读取本书当前分支已有记忆。只开启记忆库不会自动请求总结、合并或改写设定。</p></div>
               <button type="button" @click="memoryLibrary.settings.enabled=!memoryLibrary.settings.enabled;memorySettingsChanged()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="memoryLibrary.settings.enabled" aria-label="记忆库开关"><span class="toggle-track" :class="memoryLibrary.settings.enabled?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
             </div>
+            <div class="flex items-center justify-between gap-3"><div class="min-w-0"><span class="label">自动总结与后台维护</span><p class="text-xs leading-relaxed" style="color:var(--tx3)">默认关闭。手动开启后允许后台补录、合并旧记忆及自动生成卷末交接，会产生额外费用；不会自动改写已存记忆、近期原文或角色档案。既有增强记忆召回仍按下方记忆模式读取。</p></div><button type="button" class="moyun-toggle-hitbox shrink-0" data-memory-auto-summary role="switch" :aria-checked="memoryLibrary.settings.autoSummarize" aria-label="自动总结与后台维护" @click="memoryLibrary.settings.autoSummarize=!memoryLibrary.settings.autoSummarize;memorySettingsChanged()"><span class="toggle-track" :class="memoryLibrary.settings.autoSummarize?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
+            <div class="flex items-center justify-between gap-3"><div class="min-w-0"><span class="label">允许总结替换近期原文</span><p class="text-xs leading-relaxed" style="color:var(--tx3)">默认关闭，近期章节优先带原文，预算外旧章仍用已有记忆或摘要补足。开启后范围总结、建议摘要和卷末交接可主动替换原文。</p></div><button type="button" class="moyun-toggle-hitbox shrink-0" data-memory-replace-history role="switch" :aria-checked="memoryLibrary.settings.replaceHistoryWithSummaries" aria-label="允许总结替换近期原文" @click="memoryLibrary.settings.replaceHistoryWithSummaries=!memoryLibrary.settings.replaceHistoryWithSummaries;memorySettingsChanged()"><span class="toggle-track" :class="memoryLibrary.settings.replaceHistoryWithSummaries?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label class="space-y-1"><span class="label">记忆模式</span><select v-model="memoryLibrary.settings.mode" @change="memorySettingsChanged" class="select-field w-full"><option value="classic">基础记忆 · 逐章总结</option><option value="enhanced">增强记忆 · 总结与向量召回</option></select></label>
               <label class="space-y-1"><span class="label">保留最近章节（1–50）</span><input v-model.number="memoryLibrary.settings.summaryKeepChapters" @change="memorySettingsChanged" type="number" min="1" max="50" step="1" class="input-field w-full"><span class="text-xs" style="color:var(--tx3)">最近 {{ memoryLibrary.settings.summaryKeepChapters }} 章保留原文，更早章节使用记忆。逐章总结读取目标章及此前最多 {{ memoryLibrary.settings.summaryKeepChapters }} 章背景。</span></label>
@@ -1558,9 +1560,9 @@
               <div class="flex flex-wrap items-center justify-between gap-2"><div class="text-xs break-words min-w-0" style="color:var(--tx3)">全局向量设置 · 默认 API：{{ memoryEmbeddingSiteLabel }}</div><button type="button" @click="fetchMemoryEmbeddingModels" :disabled="memoryEmbeddingDiscovery.loading" class="btn-ghost text-xs px-3 py-2">{{ memoryEmbeddingDiscovery.loading ? '获取中…' : '获取默认 API 模型' }}</button></div>
               <label class="block space-y-1"><span class="label">向量模型（全局）</span><select v-model="settings.memoryEmbeddingModel" @change="memorySettingsChanged" class="select-field w-full" data-memory-embedding-model><option value="">请选择向量模型</option><option v-for="id in memoryEmbeddingModelOptions" :key="id" :value="id">{{ id }}</option></select></label>
               <p v-if="memoryEmbeddingDiscovery.error" class="text-xs break-words" role="alert" style="color:var(--err)">{{ memoryEmbeddingDiscovery.error }}</p>
-              <p class="text-xs leading-relaxed" style="color:var(--tx3)">模型选择全局保存，切换书籍仍保留；记忆内容按书籍与分支隔离。请选择支持 embeddings 的模型。相关度至少 0.48，最多召回 10 条；更换模型或默认站点后自动重建索引。</p>
+              <p class="text-xs leading-relaxed" style="color:var(--tx3)">模型选择全局保存，切换书籍仍保留；记忆内容按书籍与分支隔离。请选择支持 embeddings 的模型。相关度至少 0.48，最多召回 10 条；更换模型或默认站点后，可手动重建索引，开启自动总结后也会自动重建。</p>
             </div>
-            <div class="text-xs leading-relaxed" style="color:var(--tx3)">启用后在正文生成结束时自动补齐。超过最近 25 章的旧记忆，每 5 章合并一次，保留原逐章细节供查看；失败可补录重试。记忆请求使用所选连接，会产生模型用量。</div>
+            <div class="text-xs leading-relaxed" style="color:var(--tx3)">已有记忆及合并记录继续保留。下方补录按钮只执行本次手动任务；自动总结关闭时不在后台重写。手动补录或开启自动总结后，超过最近 25 章的记忆可每 5 章合并，原逐章记录仍保留。</div>
             <div class="flex flex-wrap items-center gap-3">
               <button type="button" @click="runMemoryBackfill()" :disabled="memoryProgress.busy || isGenerating" class="btn-primary text-xs px-4 py-2">补录缺失记忆 / 重建索引</button>
               <button v-if="memoryProgress.busy" type="button" @click="cancelMemoryWork" class="btn-ghost text-xs px-4 py-2">停止</button>
@@ -1571,7 +1573,7 @@
           </section>
           <section class="space-y-3">
             <div class="text-sm font-bold" style="color:var(--tx)">当前分支 · {{ memoryRows.filter(r=>r.valid).length }}/{{ memoryRows.length }} 章已记录</div>
-            <div v-if="!memoryRows.length" class="card p-6 text-sm text-center" style="color:var(--tx3)">当前还没有正文。启用记忆库后，新章节完成时会自动记录。</div>
+            <div v-if="!memoryRows.length" class="card p-6 text-sm text-center" style="color:var(--tx3)">当前还没有正文。写作后可手动补录，或主动开启自动总结。</div>
             <article v-for="row in memoryRows" :key="row.chapter.id" class="card p-4 space-y-3 min-w-0">
               <div class="flex items-center justify-between gap-3 flex-wrap"><div class="text-sm font-bold break-words" style="color:var(--tx)">第{{ row.no }}章 {{ row.chapter.title }} <span class="text-xs font-normal" style="color:var(--tx3)">{{ !row.memory ? '待记录' : !row.valid ? '正文已变化，待重新记录' : row.memory.enabled===false ? '已停用' : '可用于写作' }}</span></div><div class="flex items-center gap-2"><button v-if="row.memory" type="button" @click="toggleMemoryRow(row.memory)" class="btn-ghost text-xs px-3 py-1.5">{{ row.memory.enabled===false ? '启用' : '停用' }}</button><button type="button" @click="regenerateMemory(row.chapter.id)" :disabled="memoryProgress.busy || isGenerating" class="btn-ghost text-xs px-3 py-1.5">重新记录</button></div></div>
               <textarea v-if="row.memory" v-model="row.memory.text" @input="editMemoryRow(row.memory)" @change="scheduleMemoryWork" :aria-label="'第'+row.no+'章记忆内容'" rows="4" class="textarea-field w-full text-xs leading-relaxed"></textarea>
@@ -2497,7 +2499,8 @@
 
   <!-- 正文主区域 -->
   <div class="moyun-reader-column flex-1 min-w-0 min-h-0 flex flex-col h-full">
-  <main data-moyun-region="main" class="flex-1 min-h-0 overflow-y-auto relative scroll-smooth scrollbar-hide md:scrollbar-auto" :class="{'immersive-tool-active': immersiveMode && immersiveToolMode}" ref="mainScroll" style="-webkit-overflow-scrolling:touch">
+  <div class="moyun-reader-scroll-shell flex-1 min-h-0 relative">
+  <main data-moyun-region="main" class="h-full min-h-0 overflow-y-auto relative scroll-smooth scrollbar-hide md:scrollbar-auto" :class="{'immersive-tool-active': immersiveMode && immersiveToolMode}" ref="mainScroll" @scroll.passive="handleReaderScroll" @wheel.passive="markReaderScrollInput" @touchstart.passive="markReaderScrollInput" @touchmove.passive="markReaderScrollInput" @pointerdown.passive="markReaderScrollInput" style="-webkit-overflow-scrolling:touch">
     <div class="max-w-4xl mx-auto px-4 md:px-12 pt-4 pb-0 md:py-16 min-h-full flex flex-col">
       <section v-if="immersiveMode && immersiveToolMode==='write'" class="immersive-writing-shell" aria-label="沉浸手写">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4" style="color:var(--tx3)">
@@ -3016,6 +3019,11 @@
       </div><!-- 关闭 space-y-4 flex-1 pb-24 -->
     </div>
   </main>
+    <nav v-if="readerScrollNavVisible && visibleChapters.length && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench && !immersiveToolMode" class="moyun-reader-nav" aria-label="正文快捷滚动" data-reader-scroll-nav>
+      <button type="button" class="btn-ghost" @click="scrollReaderToEdge('top')" aria-label="到正文顶部" title="到正文顶部"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V5m-6 6 6-6 6 6M5 4h14"/></svg></button>
+      <button type="button" class="btn-ghost" @click="scrollReaderToEdge('bottom')" aria-label="到正文底部" title="到正文底部"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v15m-6-6 6 6 6-6M5 20h14"/></svg></button>
+    </nav>
+  </div>
       <!-- 底部控制栏（大纲/细纲面板打开时隐藏） -->
       <div v-show="!immersiveMode && !novel.isInfiniteMode && !showOutlineInMain && !showDetailedOutlineInMain && !showStoryBibleWorkbench && !showCharacterWorkbench" data-moyun-region="composer" class="moyun-soft-bottom-composer shrink-0 z-10">
         <button v-if="composerCollapsed" type="button" @click="composerCollapsed=false" class="btn-primary min-h-[44px] block mx-auto" data-composer-expand>展开写作输入{{ nextChapterPrompt || priorityRequirement ? '（有未发送内容）' : '' }}</button>
@@ -5558,7 +5566,7 @@
           <div id="settings-search-context-sources" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
             <!-- v0.0.11 新功能6：自动补录开关同步放进设置-上下文页，与事件工作台入口共用同一 settings.autoTimelineSupplement。 -->
             <div id="settings-search-auto-timeline" class="flex items-center justify-between py-1">
-              <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后每章正文完成会自动提取事件写入时间线；关闭后只保留手动新建和 AI 批量补充</span></div>
+              <div><span class="text-sm font-bold" style="color:var(--tx)">事件时间线自动补录</span><br><span class="text-[10px]" style="color:var(--tx3)">需先在记忆库手动开启「自动总结与后台维护」，此开关才生效；关闭后仅手动整理，不修改角色档案</span></div>
               <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录" data-settings-auto-timeline><div class="toggle-thumb"></div></div>
             </div>
             <div id="settings-search-compact-mode" class="flex items-center justify-between py-1">
@@ -6879,7 +6887,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=e76b12dce5a2"></script>
+<script src="./assets/js/moyun.js?v=5316e12d3b5f"></script>
 <!-- PART_1_END -->
 </body>
 </html>

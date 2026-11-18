@@ -2112,6 +2112,10 @@ img[role="button"]:focus-visible {
 .moyun-favorite-heart{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--tx3);vertical-align:middle;cursor:pointer;flex-shrink:0}
 .moyun-favorite-heart svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7}
 .moyun-favorite-heart.is-liked{color:var(--err)}.moyun-favorite-heart.is-liked svg{fill:currentColor}
+.moyun-reader-nav{position:absolute;right:12px;bottom:12px;z-index:20;display:flex;flex-direction:column;gap:6px}
+.moyun-reader-nav button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border:1px solid var(--bd);border-radius:12px;background:var(--bg-inset);color:var(--tx3);box-shadow:var(--sh1)}
+@media(max-width:767px){.moyun-reader-nav{right:64px}} /* 避开手机原有主题切换按钮，两个入口都能点中。 */
+.immersive-mode .moyun-reader-nav{position:fixed;z-index:61;bottom:calc(76px + env(safe-area-inset-bottom) + var(--moyun-visual-viewport-bottom,0px))}
 .moyun-reader-column>.moyun-soft-bottom-composer{position:relative!important;bottom:auto!important;left:auto!important;right:auto!important;padding:4px 12px max(4px,env(safe-area-inset-bottom));margin:0;background:var(--bg)}
 .moyun-soft-bottom-composer .moyun-composer-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px!important;padding:8px!important;max-width:760px;max-height:38dvh;overflow-y:auto}
 .moyun-composer-prompt-row,[data-writing-token-usage],.moyun-composer-reuse-hint,[data-priority-input]{grid-column:1/-1}

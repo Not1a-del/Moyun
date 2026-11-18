@@ -1,0 +1,180 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "原生导入选择页：默认新建、未发AI请求",
+      "ok": true,
+      "data": {
+        "kind": "book",
+        "target": "new",
+        "rows": 1761,
+        "requests": 0,
+        "readMs": 3671,
+        "bytes": 200656202
+      }
+    },
+    {
+      "name": "确认导入并由原有保存流程写入IndexedDB",
+      "ok": true,
+      "data": {
+        "chapterCount": 311,
+        "proseChars": 2829398,
+        "memories": 516,
+        "validMemories": 311,
+        "groups": 57,
+        "groupsSent": 57,
+        "historyChars": 53493,
+        "missingChapters": [],
+        "details": 510,
+        "summaries": 32,
+        "volumes": 4,
+        "modDataBytes": 167,
+        "regenSnapshots": 167,
+        "storedMemories": 516,
+        "persisted": {
+          "chapters": 311,
+          "memories": 516,
+          "groups": 57,
+          "regenSnapshots": 167
+        },
+        "importAndSaveMs": 8708
+      }
+    },
+    {
+      "name": "刷新后正文、细纲、总结、有效记忆与合并组完整恢复",
+      "ok": true,
+      "data": {
+        "chapterCount": 311,
+        "proseChars": 2829398,
+        "memories": 516,
+        "validMemories": 311,
+        "groups": 57,
+        "groupsSent": 57,
+        "historyChars": 53493,
+        "missingChapters": [],
+        "details": 510,
+        "summaries": 32,
+        "volumes": 4,
+        "modDataBytes": 167,
+        "regenSnapshots": 167,
+        "storedMemories": 516
+      }
+    },
+    {
+      "name": "实际写作请求：Gemini双开关false，向量失败回退仍保留全部合并记忆",
+      "ok": true,
+      "data": {
+        "before": 311,
+        "after": 312,
+        "writingRequests": 1,
+        "embeddingRequests": 1,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "bodyChars": 84329,
+        "tools": false,
+        "stillGenerating": false,
+        "toast": "第312章已生成"
+      }
+    },
+    {
+      "name": "实际写作请求：Gemini双开关true，向量失败回退仍保留全部合并记忆",
+      "ok": true,
+      "data": {
+        "before": 312,
+        "after": 313,
+        "writingRequests": 1,
+        "embeddingRequests": 1,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "bodyChars": 83577,
+        "tools": true,
+        "stillGenerating": false,
+        "toast": "第313章已生成"
+      }
+    },
+    {
+      "name": "1280 浅色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 83370,
+        "historyChars": 53521,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 1280,
+        "modalHeight": 800
+      }
+    },
+    {
+      "name": "1280 深色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 83370,
+        "historyChars": 53521,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 1280,
+        "modalHeight": 800
+      }
+    },
+    {
+      "name": "360 浅色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 83370,
+        "historyChars": 53521,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 360,
+        "modalHeight": 740
+      }
+    },
+    {
+      "name": "360 深色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 83370,
+        "historyChars": 53521,
+        "groupCount": 57,
+        "groupsSent": 57,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 360,
+        "modalHeight": 740
+      }
+    },
+    {
+      "name": "全量导出再导入：正文、全部记忆、规划和生成快照逐项一致",
+      "ok": true,
+      "data": {
+        "bytes": 200672079,
+        "before": {
+          "chapters": "68434203:1de6wez:xjas6f",
+          "memories": "2668653:1t40dha:d4927k",
+          "details": "279228:qd4vig:qbv0no",
+          "summaries": "107397:4svpgq:1lwjih4",
+          "volumes": "19871:77dd2n:15fy15x",
+          "modData": "167:1ij17xr:1xmrmpx"
+        },
+        "after": {
+          "chapters": "68434203:1de6wez:xjas6f",
+          "memories": "2668653:1t40dha:d4927k",
+          "details": "279228:qd4vig:qbv0no",
+          "summaries": "107397:4svpgq:1lwjih4",
+          "volumes": "19871:77dd2n:15fy15x",
+          "modData": "167:1ij17xr:1xmrmpx"
+        },
+        "chapters": 311,
+        "validMemories": 311,
+        "memories": 516,
+        "groups": 57
+      }
+    }
+  ],
+  "errors": []
+}
