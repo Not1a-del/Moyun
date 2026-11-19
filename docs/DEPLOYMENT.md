@@ -7,6 +7,7 @@
 - 发布目录：仓库根目录 `/`
 - 正式库／地址：`Not1a-del/Moyun:main`（upstream），https://not1a-del.github.io/Moyun/
 - 公测库／地址：`yydcm-129/Moyun:main`（origin），https://yydcm-129.github.io/Moyun/
+- v0.0.19 阅读导航候选 `f5671a48445f4918d748b5b5709b92f2f3154d67` 已同步两仓；公测 Pages #25、正式 Pages #87 成功。两站线上门禁各 55/55，详情见 `docs/V0.0.19_READER_NAVIGATION_SETTINGS_REPORT.md`。
 - 用户于 2026-11-16 确认复用现有 fork 作为公测库；不再使用旧 `yydcm-129-patch-1` 部署。设置变更、部署结果以本轮[发布回执](V0.0.19_HOTFIX_RELEASE_REPORT.md)为准。
 
 ## 发布新版本
