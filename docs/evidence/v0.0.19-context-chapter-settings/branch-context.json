@@ -1,0 +1,642 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "1280-light公告显示、滚动和关闭入口",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "viewport": [
+          1280,
+          800
+        ],
+        "buttonHeight": 44,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-light 主线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-light 主线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-light 支线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-light 支线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-light 孙线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-light 孙线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-light三层路线图在独立图框内滚动",
+      "ok": true,
+      "data": {
+        "positions": {
+          "id_1795075395937_ufjv2m8k": {
+            "x": 0,
+            "y": 2
+          },
+          "id_1795075395839_yb4amvjv": {
+            "x": 0,
+            "y": 1
+          },
+          "main": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        "edges": [
+          {
+            "from": "main",
+            "to": "id_1795075395839_yb4amvjv"
+          },
+          {
+            "from": "id_1795075395839_yb4amvjv",
+            "to": "id_1795075395937_ufjv2m8k"
+          }
+        ],
+        "nodes": 3,
+        "scrollHeight": 336,
+        "clientHeight": 240,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-light IndexedDB刷新后按三条线恢复",
+      "ok": true,
+      "data": {
+        "bookId": "final-branch-context-1795075395785",
+        "rows": [
+          {
+            "bid": "main",
+            "label": "主线哨兵",
+            "outline": "主线哨兵总纲",
+            "volume": "主线哨兵当前卷纲",
+            "detail": "主线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075395839_yb4amvjv",
+            "label": "支线哨兵",
+            "outline": "支线哨兵总纲",
+            "volume": "支线哨兵当前卷纲",
+            "detail": "支线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075395937_ufjv2m8k",
+            "label": "孙线哨兵",
+            "outline": "孙线哨兵总纲",
+            "volume": "孙线哨兵当前卷纲",
+            "detail": "孙线哨兵细纲4",
+            "chapters": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "1280-dark公告显示、滚动和关闭入口",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "viewport": [
+          1280,
+          800
+        ],
+        "buttonHeight": 44,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-dark 主线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-dark 主线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-dark 支线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-dark 支线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-dark 孙线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "1280-dark 孙线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "1280-dark三层路线图在独立图框内滚动",
+      "ok": true,
+      "data": {
+        "positions": {
+          "id_1795075404531_uoxx992f": {
+            "x": 0,
+            "y": 2
+          },
+          "id_1795075404455_u7bu6swz": {
+            "x": 0,
+            "y": 1
+          },
+          "main": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        "edges": [
+          {
+            "from": "main",
+            "to": "id_1795075404455_u7bu6swz"
+          },
+          {
+            "from": "id_1795075404455_u7bu6swz",
+            "to": "id_1795075404531_uoxx992f"
+          }
+        ],
+        "nodes": 3,
+        "scrollHeight": 336,
+        "clientHeight": 240,
+        "overflow": false
+      }
+    },
+    {
+      "name": "1280-dark IndexedDB刷新后按三条线恢复",
+      "ok": true,
+      "data": {
+        "bookId": "final-branch-context-1795075404423",
+        "rows": [
+          {
+            "bid": "main",
+            "label": "主线哨兵",
+            "outline": "主线哨兵总纲",
+            "volume": "主线哨兵当前卷纲",
+            "detail": "主线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075404455_u7bu6swz",
+            "label": "支线哨兵",
+            "outline": "支线哨兵总纲",
+            "volume": "支线哨兵当前卷纲",
+            "detail": "支线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075404531_uoxx992f",
+            "label": "孙线哨兵",
+            "outline": "孙线哨兵总纲",
+            "volume": "孙线哨兵当前卷纲",
+            "detail": "孙线哨兵细纲4",
+            "chapters": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "360-light公告显示、滚动和关闭入口",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "viewport": [
+          360,
+          740
+        ],
+        "buttonHeight": 46,
+        "overflow": false
+      }
+    },
+    {
+      "name": "360-light 主线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-light 主线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-light 支线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-light 支线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-light 孙线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-light 孙线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-light三层路线图在独立图框内滚动",
+      "ok": true,
+      "data": {
+        "positions": {
+          "id_1795075413199_risgat6w": {
+            "x": 0,
+            "y": 2
+          },
+          "id_1795075413139_i0cho1og": {
+            "x": 0,
+            "y": 1
+          },
+          "main": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        "edges": [
+          {
+            "from": "main",
+            "to": "id_1795075413139_i0cho1og"
+          },
+          {
+            "from": "id_1795075413139_i0cho1og",
+            "to": "id_1795075413199_risgat6w"
+          }
+        ],
+        "nodes": 3,
+        "scrollHeight": 336,
+        "clientHeight": 222,
+        "overflow": false
+      }
+    },
+    {
+      "name": "360-light IndexedDB刷新后按三条线恢复",
+      "ok": true,
+      "data": {
+        "bookId": "final-branch-context-1795075413107",
+        "rows": [
+          {
+            "bid": "main",
+            "label": "主线哨兵",
+            "outline": "主线哨兵总纲",
+            "volume": "主线哨兵当前卷纲",
+            "detail": "主线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075413139_i0cho1og",
+            "label": "支线哨兵",
+            "outline": "支线哨兵总纲",
+            "volume": "支线哨兵当前卷纲",
+            "detail": "支线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075413199_risgat6w",
+            "label": "孙线哨兵",
+            "outline": "孙线哨兵总纲",
+            "volume": "孙线哨兵当前卷纲",
+            "detail": "孙线哨兵细纲4",
+            "chapters": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "360-dark公告显示、滚动和关闭入口",
+      "ok": true,
+      "data": {
+        "title": "1116更新",
+        "date": "2026-11-16",
+        "viewport": [
+          360,
+          740
+        ],
+        "buttonHeight": 46,
+        "overflow": false
+      }
+    },
+    {
+      "name": "360-dark 主线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-dark 主线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "主线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-dark 支线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-dark 支线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "支线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-dark 孙线哨兵 Gemini双开关false 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 9882,
+        "chapterNo": 4,
+        "otherBranchSentinels": 0,
+        "tools": false
+      }
+    },
+    {
+      "name": "360-dark 孙线哨兵 Gemini双开关true 实际写作请求",
+      "ok": true,
+      "data": {
+        "branch": "孙线哨兵",
+        "model": "gemini-branch-check",
+        "messages": 8,
+        "bodyChars": 10381,
+        "chapterNo": 5,
+        "otherBranchSentinels": 0,
+        "tools": true
+      }
+    },
+    {
+      "name": "360-dark三层路线图在独立图框内滚动",
+      "ok": true,
+      "data": {
+        "positions": {
+          "id_1795075421607_fn4udndo": {
+            "x": 0,
+            "y": 2
+          },
+          "id_1795075421529_3f4n61eo": {
+            "x": 0,
+            "y": 1
+          },
+          "main": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        "edges": [
+          {
+            "from": "main",
+            "to": "id_1795075421529_3f4n61eo"
+          },
+          {
+            "from": "id_1795075421529_3f4n61eo",
+            "to": "id_1795075421607_fn4udndo"
+          }
+        ],
+        "nodes": 3,
+        "scrollHeight": 336,
+        "clientHeight": 222,
+        "overflow": false
+      }
+    },
+    {
+      "name": "360-dark IndexedDB刷新后按三条线恢复",
+      "ok": true,
+      "data": {
+        "bookId": "final-branch-context-1795075421496",
+        "rows": [
+          {
+            "bid": "main",
+            "label": "主线哨兵",
+            "outline": "主线哨兵总纲",
+            "volume": "主线哨兵当前卷纲",
+            "detail": "主线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075421529_3f4n61eo",
+            "label": "支线哨兵",
+            "outline": "支线哨兵总纲",
+            "volume": "支线哨兵当前卷纲",
+            "detail": "支线哨兵细纲4",
+            "chapters": 5
+          },
+          {
+            "bid": "id_1795075421607_fn4udndo",
+            "label": "孙线哨兵",
+            "outline": "孙线哨兵总纲",
+            "volume": "孙线哨兵当前卷纲",
+            "detail": "孙线哨兵细纲4",
+            "chapters": 5
+          }
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

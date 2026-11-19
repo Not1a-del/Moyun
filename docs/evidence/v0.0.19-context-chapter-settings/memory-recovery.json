@@ -1,0 +1,311 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "原生导入选择页：默认新建、未发AI请求",
+      "ok": true,
+      "data": {
+        "kind": "book",
+        "target": "new",
+        "rows": 331,
+        "requests": 0,
+        "readMs": 164
+      }
+    },
+    {
+      "name": "确认导入并由原有保存流程写入IndexedDB",
+      "ok": true,
+      "data": {
+        "chapterCount": 320,
+        "proseChars": 1056000,
+        "memories": 320,
+        "validMemories": 320,
+        "groups": 59,
+        "groupsSent": 59,
+        "historyChars": 12934,
+        "missingChapters": [],
+        "details": 1,
+        "summaries": 0,
+        "volumes": 0,
+        "modDataBytes": 52,
+        "regenSnapshots": 0,
+        "storedMemories": 320,
+        "persisted": {
+          "chapters": 320,
+          "memories": 320,
+          "groups": 59,
+          "regenSnapshots": 0
+        },
+        "importAndSaveMs": 1022
+      }
+    },
+    {
+      "name": "刷新后正文、细纲、总结、有效记忆与合并组完整恢复",
+      "ok": true,
+      "data": {
+        "chapterCount": 320,
+        "proseChars": 1056000,
+        "memories": 320,
+        "validMemories": 320,
+        "groups": 59,
+        "groupsSent": 59,
+        "historyChars": 12934,
+        "missingChapters": [],
+        "details": 1,
+        "summaries": 0,
+        "volumes": 0,
+        "modDataBytes": 52,
+        "regenSnapshots": 0,
+        "storedMemories": 320
+      }
+    },
+    {
+      "name": "实际写作请求：Gemini双开关false，向量失败回退仍保留全部合并记忆",
+      "ok": true,
+      "data": {
+        "before": 320,
+        "after": 321,
+        "writingRequests": 1,
+        "embeddingRequests": 0,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "bodyChars": 21656,
+        "tools": false,
+        "stillGenerating": false,
+        "toast": "第321章已生成"
+      }
+    },
+    {
+      "name": "实际写作请求：Gemini双开关true，向量失败回退仍保留全部合并记忆",
+      "ok": true,
+      "data": {
+        "before": 321,
+        "after": 322,
+        "writingRequests": 1,
+        "embeddingRequests": 0,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "bodyChars": 18430,
+        "tools": true,
+        "stillGenerating": false,
+        "toast": "第322章已生成"
+      }
+    },
+    {
+      "name": "1280 浅色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 15867,
+        "historyChars": 7848,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 1280,
+        "modalHeight": 800
+      }
+    },
+    {
+      "name": "1280 深色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 15867,
+        "historyChars": 7848,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 1280,
+        "modalHeight": 800
+      }
+    },
+    {
+      "name": "360 浅色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 15867,
+        "historyChars": 7848,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 360,
+        "modalHeight": 740
+      }
+    },
+    {
+      "name": "360 深色 真实上下文窗口显示与脱敏计数",
+      "ok": true,
+      "data": {
+        "actualChars": 15867,
+        "historyChars": 7848,
+        "groupCount": 59,
+        "groupsSent": 59,
+        "overflow": false,
+        "preview": true,
+        "modalWidth": 360,
+        "modalHeight": 740
+      }
+    },
+    {
+      "name": "全量导出再导入：正文、全部记忆、规划和生成快照逐项一致",
+      "ok": true,
+      "data": {
+        "bytes": 3370606,
+        "before": {
+          "chapters": "1088317:18c7t6v:ln5ddb",
+          "memories": "70887:1v78qdx:xjhteh",
+          "details": "84:jtx81z:sqgb9t",
+          "summaries": "2:w7k42t:3hntv",
+          "volumes": "2:w7k42t:3hntv",
+          "modData": "52:1omxass:k5ixuw"
+        },
+        "after": {
+          "chapters": "1088317:18c7t6v:ln5ddb",
+          "memories": "70887:1v78qdx:xjhteh",
+          "details": "84:jtx81z:sqgb9t",
+          "summaries": "2:w7k42t:3hntv",
+          "volumes": "2:w7k42t:3hntv",
+          "modData": "52:1omxass:k5ixuw"
+        },
+        "chapters": 320,
+        "validMemories": 320,
+        "memories": 320,
+        "groups": 59
+      }
+    },
+    {
+      "name": "v6-current-mirror启动迁移：顶层资料仅恢复当前书，首次切书和刷新不丢失",
+      "ok": true,
+      "data": {
+        "loaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        },
+        "switched": {
+          "otherMemories": 0,
+          "memories": 40,
+          "details": 1,
+          "summaries": 1
+        },
+        "reloaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        }
+      }
+    },
+    {
+      "name": "v6-single启动迁移：顶层资料仅恢复当前书，首次切书和刷新不丢失",
+      "ok": true,
+      "data": {
+        "loaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        },
+        "switched": {
+          "otherMemories": 0,
+          "memories": 40,
+          "details": 1,
+          "summaries": 1
+        },
+        "reloaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        }
+      }
+    },
+    {
+      "name": "v5启动迁移：顶层资料仅恢复当前书，首次切书和刷新不丢失",
+      "ok": true,
+      "data": {
+        "loaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        },
+        "switched": {
+          "otherMemories": 0,
+          "memories": 40,
+          "details": 1,
+          "summaries": 1
+        },
+        "reloaded": {
+          "chapterCount": 40,
+          "proseChars": 132000,
+          "memories": 40,
+          "validMemories": 40,
+          "groups": 3,
+          "groupsSent": 3,
+          "historyChars": 10633,
+          "missingChapters": [],
+          "details": 1,
+          "summaries": 1,
+          "volumes": 0,
+          "modDataBytes": 52,
+          "regenSnapshots": 0,
+          "storedMemories": 40
+        }
+      }
+    }
+  ],
+  "errors": []
+}

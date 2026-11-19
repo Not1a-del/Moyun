@@ -1,0 +1,627 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "未失焦的全文章数输入立即保存，刷新仍为8",
+      "ok": true,
+      "data": {
+        "full": 8,
+        "summary": 10,
+        "compact": false
+      }
+    },
+    {
+      "name": "省token开启时保存8与摘要12，刷新不回写为2或6",
+      "ok": true,
+      "data": {
+        "stored": {
+          "full": 8,
+          "summary": 12,
+          "compact": true
+        },
+        "raw": [],
+        "tails": [
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "0章保存刷新后不发送原文，已有摘要仍在",
+      "ok": true,
+      "data": {
+        "full": 0,
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "compact": true,
+        "raw": [],
+        "tails": []
+      }
+    },
+    {
+      "name": "设置输入可见可点击 1280 亮",
+      "ok": true,
+      "data": {
+        "width": 1280,
+        "height": 800,
+        "rect": {
+          "x": 789,
+          "y": 399.5,
+          "width": 80,
+          "height": 44,
+          "top": 399.5,
+          "right": 869,
+          "bottom": 443.5,
+          "left": 789
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 1280 暗",
+      "ok": true,
+      "data": {
+        "width": 1280,
+        "height": 800,
+        "rect": {
+          "x": 789,
+          "y": 399.5,
+          "width": 80,
+          "height": 44,
+          "top": 399.5,
+          "right": 869,
+          "bottom": 443.5,
+          "left": 789
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 1024 亮",
+      "ok": true,
+      "data": {
+        "width": 1024,
+        "height": 1366,
+        "rect": {
+          "x": 661,
+          "y": 686.5,
+          "width": 80,
+          "height": 44,
+          "top": 686.5,
+          "right": 741,
+          "bottom": 730.5,
+          "left": 661
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 1024 暗",
+      "ok": true,
+      "data": {
+        "width": 1024,
+        "height": 1366,
+        "rect": {
+          "x": 661,
+          "y": 686.5,
+          "width": 80,
+          "height": 44,
+          "top": 686.5,
+          "right": 741,
+          "bottom": 730.5,
+          "left": 661
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 768 亮",
+      "ok": true,
+      "data": {
+        "width": 768,
+        "height": 800,
+        "rect": {
+          "x": 533,
+          "y": 403.5,
+          "width": 80,
+          "height": 44,
+          "top": 403.5,
+          "right": 613,
+          "bottom": 447.5,
+          "left": 533
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 768 暗",
+      "ok": true,
+      "data": {
+        "width": 768,
+        "height": 800,
+        "rect": {
+          "x": 533,
+          "y": 403.5,
+          "width": 80,
+          "height": 44,
+          "top": 403.5,
+          "right": 613,
+          "bottom": 447.5,
+          "left": 533
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 360 亮",
+      "ok": true,
+      "data": {
+        "width": 360,
+        "height": 740,
+        "rect": {
+          "x": 253,
+          "y": 380.25,
+          "width": 80,
+          "height": 44,
+          "top": 380.25,
+          "right": 333,
+          "bottom": 424.25,
+          "left": 253
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 360 暗",
+      "ok": true,
+      "data": {
+        "width": 360,
+        "height": 740,
+        "rect": {
+          "x": 253,
+          "y": 380.25,
+          "width": 80,
+          "height": 44,
+          "top": 380.25,
+          "right": 333,
+          "bottom": 424.25,
+          "left": 253
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 320 亮",
+      "ok": true,
+      "data": {
+        "width": 320,
+        "height": 740,
+        "rect": {
+          "x": 213,
+          "y": 379.5,
+          "width": 80,
+          "height": 44,
+          "top": 379.5,
+          "right": 293,
+          "bottom": 423.5,
+          "left": 213
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置输入可见可点击 320 暗",
+      "ok": true,
+      "data": {
+        "width": 320,
+        "height": 740,
+        "rect": {
+          "x": 213,
+          "y": 379.5,
+          "width": 80,
+          "height": 44,
+          "top": 379.5,
+          "right": 293,
+          "bottom": 423.5,
+          "left": 213
+        },
+        "hit": true,
+        "overflow": false
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 false {\"full\":8,\"compact\":false,\"budget\":60000,\"perChapter\":1000,\"memory\":true,\"want\":[],\"wantTails\":[5,6,7,8,9,10,11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": false,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 false {\"full\":8,\"compact\":false,\"budget\":60000,\"memory\":true,\"want\":[5,6,7,8,9,10,11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": false,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "tails": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 false {\"full\":8,\"compact\":true,\"budget\":60000,\"memory\":true,\"want\":[],\"wantTails\":[11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": false,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 false {\"full\":0,\"compact\":false,\"budget\":60000,\"memory\":true,\"want\":[]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": false,
+        "savedFull": 0,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 false {\"full\":8,\"compact\":false,\"budget\":15000,\"memory\":false,\"want\":[9,10,11,12],\"partial\":true}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": false,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [
+          9,
+          10,
+          11,
+          12
+        ],
+        "tails": [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 true {\"full\":8,\"compact\":false,\"budget\":60000,\"perChapter\":1000,\"memory\":true,\"want\":[],\"wantTails\":[5,6,7,8,9,10,11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": true,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 true {\"full\":8,\"compact\":false,\"budget\":60000,\"memory\":true,\"want\":[5,6,7,8,9,10,11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": true,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "tails": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 true {\"full\":8,\"compact\":true,\"budget\":60000,\"memory\":true,\"want\":[],\"wantTails\":[11,12]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": true,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 true {\"full\":0,\"compact\":false,\"budget\":60000,\"memory\":true,\"want\":[]}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": true,
+        "savedFull": 0,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [],
+        "tails": [],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "name": "实际发送与预览一致 Gemini双开关 true {\"full\":8,\"compact\":false,\"budget\":15000,\"memory\":false,\"want\":[9,10,11,12],\"partial\":true}",
+      "ok": true,
+      "data": {
+        "requests": 1,
+        "previewEqual": true,
+        "realEqual": true,
+        "tools": true,
+        "savedFull": 8,
+        "added": 1,
+        "memoryUnchanged": true,
+        "currentOutline": true,
+        "raw": [
+          9,
+          10,
+          11,
+          12
+        ],
+        "tails": [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "summary": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

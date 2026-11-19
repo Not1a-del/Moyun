@@ -1551,7 +1551,7 @@
             <div class="flex items-center justify-between gap-3"><div class="min-w-0"><span class="label">允许总结替换近期原文</span><p class="text-xs leading-relaxed" style="color:var(--tx3)">默认关闭，近期章节优先带原文，预算外旧章仍用已有记忆或摘要补足。开启后范围总结、建议摘要和卷末交接可主动替换原文。</p></div><button type="button" class="moyun-toggle-hitbox shrink-0" data-memory-replace-history role="switch" :aria-checked="memoryLibrary.settings.replaceHistoryWithSummaries" aria-label="允许总结替换近期原文" @click="memoryLibrary.settings.replaceHistoryWithSummaries=!memoryLibrary.settings.replaceHistoryWithSummaries;memorySettingsChanged()"><span class="toggle-track" :class="memoryLibrary.settings.replaceHistoryWithSummaries?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label class="space-y-1"><span class="label">记忆模式</span><select v-model="memoryLibrary.settings.mode" @change="memorySettingsChanged" class="select-field w-full"><option value="classic">基础记忆 · 逐章总结</option><option value="enhanced">增强记忆 · 总结与向量召回</option></select></label>
-              <label class="space-y-1"><span class="label">保留最近章节（1–50）</span><input v-model.number="memoryLibrary.settings.summaryKeepChapters" @change="memorySettingsChanged" type="number" min="1" max="50" step="1" class="input-field w-full"><span class="text-xs" style="color:var(--tx3)">最近 {{ memoryLibrary.settings.summaryKeepChapters }} 章保留原文，更早章节使用记忆。逐章总结读取目标章及此前最多 {{ memoryLibrary.settings.summaryKeepChapters }} 章背景。</span></label>
+              <label class="space-y-1"><span class="label">保留最近章节（1–50）</span><input v-model.number="memoryLibrary.settings.summaryKeepChapters" @change="memorySettingsChanged" type="number" min="1" max="50" step="1" class="input-field w-full"><span class="text-xs" style="color:var(--tx3)">主动替换原文开启后，最近 {{ memoryLibrary.settings.summaryKeepChapters }} 章以内可保留原文，同时受全局全文章数和字数上限限制；只读记忆时按全局全文章数发送。逐章总结读取目标章及此前最多 {{ memoryLibrary.settings.summaryKeepChapters }} 章背景。</span></label>
               <label class="space-y-1"><span class="label">总结连接</span><select v-model="memoryLibrary.settings.classicProfileId" @change="memorySettingsChanged" class="select-field w-full"><option value="">跟随总结模块</option><option v-for="profile in connectionCenter.profiles" :key="profile.id" :value="profile.id">{{ profile.name || profile.defaultModel }}</option></select></label>
               <label class="moyun-floating-field"><input v-model="memoryLibrary.settings.classicModel" @change="memorySettingsChanged" class="input-field w-full" placeholder=" " aria-label="总结模型（留空使用连接默认模型）" autocomplete="off"><span>总结模型（留空使用连接默认模型）</span></label>
               <label class="space-y-1"><span class="label">补录并发数（1–10）</span><input v-model.number="memoryLibrary.settings.classicConcurrency" @change="memorySettingsChanged" type="number" min="1" max="10" class="input-field w-full"></label>
@@ -5570,7 +5570,7 @@
               <div @click="toggleAutoTimelineSupplement()" class="toggle-track" :class="autoTimelineSupplementOn?'toggle-on':'toggle-off'" role="switch" :aria-checked="autoTimelineSupplementOn?'true':'false'" aria-label="事件时间线自动补录" data-settings-auto-timeline><div class="toggle-thumb"></div></div>
             </div>
             <div id="settings-search-compact-mode" class="flex items-center justify-between py-1">
-              <div><span class="text-sm font-bold" style="color:var(--tx)">省 token 模式</span><br><span class="text-[10px]" style="color:var(--tx3)">自动收紧全文章数和单章截断长度，适合小上下文模型</span></div>
+              <div><span class="text-sm font-bold" style="color:var(--tx)">省 token 模式</span><br><span class="text-[10px]" style="color:var(--tx3)">请求时最多带 2 章原文并收紧单章长度；保留填写的设置，关闭后恢复使用</span></div>
               <div @click="settings.contextCompactMode=!settings.contextCompactMode;saveData()"
                    class="toggle-track" :class="settings.contextCompactMode?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
             </div>
@@ -5613,14 +5613,15 @@
           </div>
           <div id="settings-search-gemini-input" class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           <div id="settings-search-full-chapters" class="flex items-center justify-between py-2">
-            <div><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">发送最近N章完整正文</span></div>
-            <input type="number" v-model.number="settings.contextFullChapters" @change="saveData()" min="0" max="20"
-                   class="input-field text-center" style="width:80px;height:32px">
+            <div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">最近 N 章的原文数量上限，0 为不发送原文；仍受下方字数上限限制</span><br><span v-if="settings.contextCompactMode" class="text-[10px]" style="color:var(--warn)">省 token 模式开启：实际最多带 2 章原文</span><span v-else-if="settings.contextUseFullText===false" class="text-[10px]" style="color:var(--warn)">“发送最近正文”已关闭：本次不发送原文</span><span v-if="memoryLibrary.settings.enabled && memoryLibrary.settings.replaceHistoryWithSummaries" class="block text-[10px]" style="color:var(--warn)">已主动开启记忆替换：同时受记忆库“保留最近章节”限制</span></div>
+            <!-- 中文注释：章数输入立即走原保存队列，避免手机未失焦或快速刷新时仍留下旧值。 -->
+            <input type="number" v-model.number="settings.contextFullChapters" @input="saveDataNow('更新全文章数')" @change="normalizeContextSettings();saveData()" min="0" max="20" step="1" aria-label="全文章数"
+                   class="input-field text-center shrink-0" style="width:80px;min-height:44px">
           </div>
           <div id="settings-search-summary-chapters" class="flex items-center justify-between py-2">
             <div><span class="text-sm font-bold" style="color:var(--tx)">摘要章数</span><br><span class="text-[10px]" style="color:var(--tx3)">更早的章节只发标题+摘要</span></div>
-            <input type="number" v-model.number="settings.contextSummaryChapters" @change="saveData()" min="0" max="50"
-                   class="input-field text-center" style="width:80px;height:32px">
+            <input type="number" v-model.number="settings.contextSummaryChapters" @input="saveDataNow('更新摘要章数')" @change="normalizeContextSettings();saveData()" min="0" max="50" step="1" aria-label="摘要章数"
+                   class="input-field text-center shrink-0" style="width:80px;min-height:44px">
           </div>
           <!-- 中文注释：这里的“上限”只限制发送给 AI 的参考文本长度，不会删除书籍正文、摘要、世界观或角色卡原文。 -->
           <div id="settings-search-context-limits" class="p-3 rounded-xl space-y-3" style="background:var(--bg-inset);border:1px solid var(--bd)">
@@ -6898,7 +6899,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=15bd8f28fff1"></script>
+<script src="./assets/js/moyun.js?v=c1ef1e39c01f"></script>
 <!-- PART_1_END -->
 </body>
 </html>

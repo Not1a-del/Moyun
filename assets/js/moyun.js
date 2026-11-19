@@ -7063,6 +7063,8 @@ function copyLastChapterContextText() {
     function normalizeContextSettings() {
       normalizeReaderScrollSettings();
       const defaults = {
+        contextFullChapters: 3,
+        contextSummaryChapters: 10,
         contextUseFullText: true,
         contextHistoryCharLimit: 15000,
         contextUseChapterSummaries: true,
@@ -7085,6 +7087,11 @@ function copyLastChapterContextText() {
       Object.keys(defaults).forEach(key => {
         if (settings.value[key] === undefined || settings.value[key] === null || settings.value[key] === '') settings.value[key] = defaults[key];
       });
+      // 中文注释：只校正非法章数；省 token 的临时限制不能在加载或生成时改写用户保存值，0 也是真实选择。
+      for (const [key, max] of [['contextFullChapters',20],['contextSummaryChapters',50]]) {
+        const value=Number(settings.value[key]);
+        settings.value[key]=Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):defaults[key];
+      }
       if (!['auto', 'stream', 'nonstream'].includes(String(settings.value.outlineRequestMode || ''))) settings.value.outlineRequestMode = 'auto';
       settings.value.contextHistoryCharLimit=Math.max(0,Number(settings.value.contextHistoryCharLimit)||0);
       settings.value.noOutputTimeoutSec = normalizeNoOutputTimeout(settings.value.noOutputTimeoutSec);
@@ -7094,15 +7101,6 @@ function copyLastChapterContextText() {
       if (settings.value.allowAiNeighborAdjustment === undefined) settings.value.allowAiNeighborAdjustment = false;
       // v0.0.11 新功能6：旧存档补上自动补录默认值（默认开），保证升级后行为与全新安装一致。
       if (settings.value.autoTimelineSupplement === undefined) settings.value.autoTimelineSupplement = true;
-      if (settings.value.contextCompactMode) {
-        settings.value.contextFullChapters = Math.min(Number(settings.value.contextFullChapters) || 1, 2);
-        settings.value.contextSummaryChapters = Math.min(Number(settings.value.contextSummaryChapters) || 0, 6);
-        settings.value.contextMaxFullChapterChars = Math.min(Number(settings.value.contextMaxFullChapterChars) || 2500, 2500);
-        settings.value.contextMaxChapterSummaryChars = Math.min(Number(settings.value.contextMaxChapterSummaryChars) || 300, 300);
-        settings.value.contextMaxWorldChars = Math.min(Number(settings.value.contextMaxWorldChars) || 2500, 2500);
-        settings.value.contextMaxCharacterChars = Math.min(Number(settings.value.contextMaxCharacterChars) || 3500, 3500);
-        settings.value.contextMaxOutlineChars = Math.min(Number(settings.value.contextMaxOutlineChars) || 5000, 5000);
-      }
     }
 
     /* ═══ 细纲精准注入（旧版能力整合） ═══ */
@@ -35603,11 +35601,14 @@ function getWritingModelLabel() {
       const memoryEnabled=!!memoryLibrary.value.settings.enabled;
       const replaceSummaries=memoryLibrary.value.settings.replaceHistoryWithSummaries === true;
       const summaryFor=i=>cfg.contextUseRangeSummaries===false?null:summaries.value.find(s=>s.type!=='volume-handoff'&&s.useForContext&&isSummaryInCurrentBranch(s,i+offset)&&i+offset+1>=s.startChapter&&i+offset+1<=s.endChapter&&Number(s.endChapter)<=rows.length+offset);
-      const fullN=cfg.contextUseFullText===false?0:(options.fullN ?? (memoryEnabled?memoryLibrary.value.settings.summaryKeepChapters:(cfg.contextCompactMode?Math.min(Number(cfg.contextFullChapters)||1,2):Number(cfg.contextFullChapters)||3)));
-      const perChapter=options.wholeChapters||memoryEnabled||cfg.contextUseContextLimit===false?Infinity:(cfg.contextCompactMode?Math.min(Number(cfg.contextMaxFullChapterChars)||2500,2500):Number(cfg.contextMaxFullChapterChars)||5000);
-      const limit=Math.max(0,Number(cfg.contextHistoryCharLimit ?? 15000)||0),rawById=new Map();let remaining=limit,olderOnly=false;
+      // 中文注释：只读记忆不能盖过全文章数；主动替换、省 token 只收紧本次请求，不回写保存值。
+      const configuredFullN=Number(cfg.contextFullChapters ?? 3);
+      const fullN=cfg.contextUseFullText===false?0:(options.fullN ?? Math.min(Number.isFinite(configuredFullN)?Math.max(0,Math.floor(configuredFullN)):3,cfg.contextCompactMode?2:Infinity,memoryEnabled&&replaceSummaries?memoryLibrary.value.settings.summaryKeepChapters:Infinity));
+      const perChapter=options.wholeChapters||cfg.contextUseContextLimit===false?Infinity:(cfg.contextCompactMode?Math.min(Number(cfg.contextMaxFullChapterChars)||2500,2500):Number(cfg.contextMaxFullChapterChars)||5000);
+      const limit=Math.max(0,Number(cfg.contextHistoryCharLimit ?? 15000)||0),rawById=new Map();let remaining=limit;
       // 原文只占用户给的预算；较早或超长章节同时补摘要/记忆，不再悄悄丢掉。
-      for(let i=rows.length-1;i>=0;i--){if(i<rows.length-fullN||olderOnly||(replaceSummaries&&(summaryFor(i)||(options.preferSummaries&&cleanNarrativeChapterSummary(rows[i])&&!rows[i].summaryIncomplete))))continue;const raw=cleanNarrativeChapterContent(rows[i]),n=Math.min(raw.length,perChapter,remaining);if(n>0){rawById.set(i,raw.slice(-n));remaining-=n;}if(raw.length>n)olderOnly=true;}
+      // 中文注释：单章达到上限不能连带跳过前面的章；只读记忆也要遵守相同字数设置，剩余预算继续使用。
+      for(let i=rows.length-1;i>=0&&remaining>0;i--){if(i<rows.length-fullN||(replaceSummaries&&(summaryFor(i)||(options.preferSummaries&&cleanNarrativeChapterSummary(rows[i])&&!rows[i].summaryIncomplete))))continue;const raw=cleanNarrativeChapterContent(rows[i]),n=Math.min(raw.length,perChapter,remaining);if(n>0){rawById.set(i,raw.slice(-n));remaining-=n;}}
       const memories=memoryEnabled?getValidMemoryRows(rows).filter(m=>m.enabled!==false):[],byId=new Map(memories.map(m=>[String(m.chapterId),m]));
       const older=new Set(rows.filter((ch,i)=>!rawById.has(i)).map(ch=>String(ch.id)));
       const groups=memoryEnabled?validMemoryGroups(memories).filter(g=>g.sourceMemories.every(m=>older.has(String(m.chapterId)))):[];
@@ -35663,6 +35664,7 @@ function getWritingModelLabel() {
 
     // 构建章节生成的消息列表
     function buildChapterMessages(options = {}) {
+      normalizeContextSettings();
       const messageMode = options.mode || 'generate';
       const priorityRequest=String(options.priorityRequirement ?? (priorityEnabled.value?priorityRequirement.value:'')).trim();
       const contextChapters = Array.isArray(options.contextChapters) ? options.contextChapters : visibleChapters.value;
@@ -35733,7 +35735,6 @@ function getWritingModelLabel() {
         });
       }
 
-      normalizeContextSettings();
       // 与预览使用同一份前文；启用记忆时由记忆库替换旧章节。
       msgs.push({role:'user',content:historyContext.text});
 
@@ -41859,7 +41860,7 @@ function getWritingModelLabel() {
       // ── Part 1: NSFW ──
       isAutoFilling, getSettingsAiDisabledReason, getSettingsAiDisabledActionLabel, resolveSettingsAiDisabledAction, aiAutoFillSettings, showNsfwEditor, nsfwModules, nsfwSettings, getNsfwPrompt, nsfwSystemPrompt, nsfwInjectionPrompt, discussionPrompt, oneKeySystemPrompt, nsfwSystemPromptBadge, nsfwSystemPromptTag, builtinSystemPromptCards, getNsfwOnlyBuiltinPromptCards, getNonNsfwBuiltinPromptCards, getBuiltinSystemPrompt, setBuiltinSystemPrompt, isBuiltinSystemPromptExpanded, toggleBuiltinSystemPrompt, restoreBuiltinSystemPrompt, restoreDefaultNsfwSystemPrompt, getDefaultNsfwSystemPrompt, getFullNsfwSystemPrompt,
       // ── Part 1: 基本操作 ──
-      saveData, buildLibrarySnapshot, syncBookData, loadBook, switchBook, returnToWritingSurface, deleteBook, tryRestoreEmergencyBackup,
+      saveData, saveDataNow, buildLibrarySnapshot, syncBookData, loadBook, switchBook, returnToWritingSurface, deleteBook, tryRestoreEmergencyBackup,
       openNewBookModal, requestCloseNewBookModal, handleNewBookConfirm,
       openBookEditor, closeBookEditor, requestCloseBookEditor, handleBookCoverFile, removeBookEditorCover, saveBookEditor,
       openSettings, openSettingsTab, clearAll,
@@ -42066,7 +42067,7 @@ function getWritingModelLabel() {
       /* Part 9: AI改标题/摘要 */
       rewritingTitleIdx, rewritingSummaryIdx,
       aiRewriteTitle, aiRewriteSummary,
-      summaryBackfillPicker,summaryBackfill,selectedSummaryBackfillCount,openSummaryBackfill,confirmSummaryBackfill,startSummaryBackfill,stopSummaryBackfill,adoptSummaryCandidate,buildBudgetedChapterHistory,
+      summaryBackfillPicker,summaryBackfill,selectedSummaryBackfillCount,openSummaryBackfill,confirmSummaryBackfill,startSummaryBackfill,stopSummaryBackfill,adoptSummaryCandidate,buildBudgetedChapterHistory,normalizeContextSettings,
 	  
       // ── 每章书评系统 ──
 	  generateChapterComments, regenerateComments, likeComment, likeReply, toggleChapterComments,

@@ -30,6 +30,7 @@ const steps = [
   { id: 'v19', title: 'v0.0.19 功能回归', args: ['--test', ...fs.readdirSync(path.join(ROOT,'scripts')).filter(name => /^v19-.*\.test\.cjs$/.test(name)).sort().map(name => 'scripts/' + name)] }
 ];
 const browserSteps = [
+  { id: 'v19-chapter-settings', title: '全文章数保存、刷新和实际前文请求（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--chapter-settings'], browser: true },
   { id: 'v19-reader-onekey', title: '角色持久化、旧格式导入、文风与阅读导航、开书选项（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--reader-onekey'], browser: true },
   { id: 'v19-context-integrity', title: '作者设定、旧记忆默认只读与完整备份（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--context-integrity'], browser: true },
   { id: 'v19-character-relations', title: '角色阵营、关系状态色与上下文统计（浏览器）', args: ['scripts/v19-outline-review-browser.cjs', '--character-relations'], browser: true },
