@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-11-19T09:19:14.558Z",
+  "commit": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+  "passed": true,
+  "selected": "all",
+  "results": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/context-chapter-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 90.1,
+      "checks": 25
+    },
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/context-chapter-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 42,
+      "checks": 30
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/context-chapter-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 97,
+      "checks": 25
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/context-chapter-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 26,
+      "checks": 30
+    }
+  ],
+  "notCovered": [
+    "模拟视口不能代替 iOS 与厂商真机",
+    "不调用真实模型；Pages 来源和构建 SHA 另以 GitHub 回执核对"
+  ]
+}

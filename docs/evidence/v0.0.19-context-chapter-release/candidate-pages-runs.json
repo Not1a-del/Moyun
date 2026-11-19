@@ -1,0 +1,25 @@
+{
+  "candidate": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+  "account": "yydcm-129",
+  "generatedAt": "2026-11-19T09:15:46.520Z",
+  "runs": [
+    {
+      "site": "public",
+      "id": 44494469739,
+      "number": 31,
+      "head_sha": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/yydcm-129/Moyun/actions/runs/44494469739"
+    },
+    {
+      "site": "stable",
+      "id": 44494481184,
+      "number": 93,
+      "head_sha": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/Not1a-del/Moyun/actions/runs/44494481184"
+    }
+  ]
+}

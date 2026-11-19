@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-11-19T09:21:00.960Z",
+  "candidate": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+  "account": "yydcm-129",
+  "authorization": "user requested both repositories in this round",
+  "sites": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "build": {
+        "status": "built",
+        "commit": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+        "createdAt": "2026-11-19T09:13:43Z"
+      }
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "build": {
+        "status": "built",
+        "commit": "19ef13d1aabb36778caea8725ba0cef11a0ea7b4",
+        "createdAt": "2026-11-19T09:13:47Z"
+      }
+    }
+  ],
+  "proxy": {
+    "checkedAt": "2026-11-19T09:21:00.8094480Z",
+    "proxyUsed": false,
+    "proxyEnable": 0,
+    "proxyServer": "127.0.0.1:7890",
+    "port7890Listening": false,
+    "coreProcesses": [],
+    "managementService": [
+      {
+        "Name": "clash_verge_service",
+        "Status": 4
+      }
+    ],
+    "configurationPreserved": true
+  }
+}

@@ -1,3 +1,9 @@
+# v0.0.19 全文章数双仓上线（2026-11-19）
+
+候选19ef13d，两仓普通快进、Pages main:/来源和部署提交已核对：公测#31、正式#93成功。重新执行npm.cmd run audit／npm.cmd run gate：通过，9/9、v19 326/326。执行npm.cmd run gate:release -- --repo-metadata .ui-check/context-chapter-release/repo-metadata.json：两站各25项入口+30项平板，共110/110，失败／跳过0；8个启动文件分别与Git候选原始字节一致。1280／390／320明暗、1116公告、新手与已读刷新、点击、设置搜索，1024×1366触屏平板／1280×800恢复电脑、工具栏和正文末段均已覆盖。
+
+使用本机隔离Edge访问实际HTTPS，没有调用真实模型；运行态章数专项仍为发布前23+40项本地SSE结果，不把它称作真实模型保证。代理未启用，系统代理0、7890无监听，配置保留；管理服务未改。发布证据与边界见 [双仓报告](V0.0.19_CONTEXT_CHAPTER_RELEASE_REPORT.md)。
+
 # v0.0.19 全文章数运行中回退（2026-11-19，补充本地验收）
 
 旧版完整页面 --chapter-settings-lifecycle --expect-reset 4/4：未刷新，输入5保存／空闲／重开设置均5，下一次正文生成捕获 normalizeContextSettings 把5改2的同步调用栈，界面和IndexedDB均2。省token开启是已证实的触发条件，未获得反馈用户当前开关状态。
