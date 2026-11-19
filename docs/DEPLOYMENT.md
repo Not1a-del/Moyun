@@ -29,7 +29,7 @@
 
 GitHub 插件优先。它未提供仓库更新、Pages 设置和本地提交原样推送时，使用本机已授权的 `yydcm-129` Git/REST，操作前用 `/user` 核实账号。不要以提交 author 代替执行账号核对，不输出凭据；代理仅传当前命令。仓库默认分支和 Pages 来源分别核实，前者改对不代表后者已经改对。
 
-2026-11-18 用户明确要求：默认只用用户已打开的代理，未经本轮明确授权，不得主动启动或重启代理、开启系统代理。保留 7890 端口配置。单次授权也优先直连，确实受限才临时启用，用后关闭并核对进程与监听；关闭不删除配置，授权不延伸到后续任务。没有临时授权且无法直连时，如实报告并等待用户自行开启。
+2026-11-19 用户补充代理限制：只允许 GitHub 使用代理，不能用于其他网站。GitHub 自有 API、源码／产物及 Pages 属于发布范围；例如 github.com、api.github.com、githubusercontent.com、github.io，其他流量必须直连或拒绝。优先直连；未经本轮授权不主动启停代理。确需临时启用时，仅给 GitHub 命令或域名配置代理，不开启系统全局代理、不永久改 Git 设置。保留 7890 配置，上传与验收结束后关闭临时代理，核查进程、端口和系统代理状态。无法可靠关闭时须如实说明，不声称已关闭。授权不延伸到后续任务。
 
 共享代理下匿名 GitHub API 返回403时，先用 GitHub 插件 `get_repo` 重新读取两仓，将 `generatedAt`、`source: "Cindy GitHub 插件 get_repo（已登录账号）"` 和 `repos` 写入项目外或 `.ui-check/release-gate/repo-metadata.json`。每条保留 `full_name`、`homepage`、`description`、`has_pages`、`has_issues`、`default_branch`；线上命令追加 `--repo-metadata .ui-check/release-gate/repo-metadata.json`。脚本仍逐项断言，且只接受一小时内回执。凭据不放网页或回执，元信息失败不计通过。
 
