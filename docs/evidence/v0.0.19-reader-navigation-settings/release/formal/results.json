@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-11-19T00:40:51.686Z",
+  "commit": "f5671a48445f4918d748b5b5709b92f2f3154d67",
+  "passed": true,
+  "selected": "stable",
+  "results": [
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/reader-navigation-release/formal-repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 66.3,
+      "checks": 25
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/reader-navigation-release/formal-repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 23,
+      "checks": 30
+    }
+  ],
+  "notCovered": [
+    "模拟视口不能代替 iOS 与厂商真机",
+    "不调用真实模型；Pages 来源和构建 SHA 另以 GitHub 回执核对"
+  ]
+}

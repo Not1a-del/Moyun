@@ -1,0 +1,13 @@
+{
+  "verifiedAt": "2026-11-19T00:40:51.686Z",
+  "releaseCommit": "f5671a48445f4918d748b5b5709b92f2f3154d67",
+  "publicMain": "f5671a48445f4918d748b5b5709b92f2f3154d67",
+  "formalMain": "f5671a48445f4918d748b5b5709b92f2f3154d67",
+  "publicPagesRun": 44257978745,
+  "formalPagesRun": 44430580566,
+  "formalChecks": 55,
+  "actor": "yydcm-129",
+  "version": "0.0.19",
+  "announcement": "1116",
+  "proxy": "用户手动开启；助手未更改开关"
+}
