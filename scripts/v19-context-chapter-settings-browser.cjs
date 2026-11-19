@@ -34,4 +34,5 @@ module.exports=async function(c){
   });
   assert.deepEqual(c.errors,[]);passed=true;
  }finally{fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({passed,results,errors:c.errors},null,2)+'\n');}
+ await c.navigate();await require('./v19-context-chapter-lifecycle-browser.cjs')(c);
 };

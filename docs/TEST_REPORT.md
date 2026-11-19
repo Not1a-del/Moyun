@@ -1,3 +1,9 @@
+# v0.0.19 全文章数运行中回退（2026-11-19，补充本地验收）
+
+旧版完整页面 --chapter-settings-lifecycle --expect-reset 4/4：未刷新，输入5保存／空闲／重开设置均5，下一次正文生成捕获 normalizeContextSettings 把5改2的同步调用栈，界面和IndexedDB均2。省token开启是已证实的触发条件，未获得反馈用户当前开关状态。
+
+当前 --chapter-settings 23/23，加运行态40/40；1280×800／360×740、省token开／关、Gemini输入改写／抗截断全开／全关的成功请求、切书／支线、预览、排队保存、失败／停止、设置重开及刷新保留5；停止保留300字半稿。HTTP400／中止用Gemini两项均关，不访问服务商。npm.cmd run audit 通过、npm.cmd run gate 9/9，v19 326/326，无失败／跳过。脚本首轮停止入口误用已修正并保留失败日志；产品源码无追加修改。详见 [范围、命令与证据](V0.0.19_CONTEXT_CHAPTER_SETTINGS_REPORT.md)。仍未上传，未做数小时待机、反馈原书、真机或完整gate:browser。
+
 # v0.0.19 全文章数与前文范围（2026-11-19，本地验收）
 
 执行 npm.cmd run audit、npm.cmd run gate：通过，普通门禁9/9，v19 326/326。新增章数单元7/7；隔离浏览器 --chapter-settings 23/23、--context-integrity 19/19、--memory-recovery 13/13、--branch-context 36/36；失败／跳过0。输入未失焦写库、刷新不变、0章、长章单章上限、实际请求与预览／真实上下文一致；320／360／768／1024／1280明暗和Gemini两功能全开／全关已覆盖。百万字合成书320记忆、59合并组保留。

@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "expectReset": true,
+  "results": [
+    {
+      "name": "360 compact=true 已输入5并保存",
+      "ok": true,
+      "data": {
+        "phase": "输入后",
+        "elapsedMs": 3147,
+        "value": 5,
+        "input": "5",
+        "stored": 5,
+        "compact": true,
+        "requests": 0,
+        "trace": [
+          {
+            "from": 2,
+            "to": 5,
+            "phase": "真实输入5",
+            "elapsedMs": 509,
+            "stack": "Error\n    at window.__stopChapterTrace.Vue.watch.flush (<anonymous>:13:324)\n    at callWithErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2593:21)\n    at callWithAsyncErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2600:19)\n    at baseWatchOptions.call (http://127.0.0.1:4191/assets/vendor/vue.global.js:3262:49)\n    at ReactiveEffect.job [as scheduler] (http://127.0.0.1:4191/assets/vendor/vue.global.js:2324:20)\n    at ReactiveEffect.trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:719:14)\n    at endBatch (http://127.0.0.1:4191/assets/vendor/vue.global.js:777:15)\n    at trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:1178:5)\n    at MutableReactiveHandler.set (http://127.0.0.1:4191/assets/vendor/vue.global.js:1506:11)\n    at onUpdate:modelValue (eval at compileToFunction (http://127.0.0.1:4191/assets/vendor/vue.global.js:18797:20), <anonymous>:25088:100)\n    at HTMLInputElement.<anonymous> (http://127.0.0.1:4191/assets/vendor/vue.global.js:12673:22)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "360 compact=true 空闲10秒、未刷新仍为5",
+      "ok": true,
+      "data": {
+        "phase": "空闲10秒",
+        "elapsedMs": 13159,
+        "value": 5,
+        "input": "5",
+        "stored": 5,
+        "compact": true,
+        "requests": 0,
+        "trace": [
+          {
+            "from": 2,
+            "to": 5,
+            "phase": "真实输入5",
+            "elapsedMs": 509,
+            "stack": "Error\n    at window.__stopChapterTrace.Vue.watch.flush (<anonymous>:13:324)\n    at callWithErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2593:21)\n    at callWithAsyncErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2600:19)\n    at baseWatchOptions.call (http://127.0.0.1:4191/assets/vendor/vue.global.js:3262:49)\n    at ReactiveEffect.job [as scheduler] (http://127.0.0.1:4191/assets/vendor/vue.global.js:2324:20)\n    at ReactiveEffect.trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:719:14)\n    at endBatch (http://127.0.0.1:4191/assets/vendor/vue.global.js:777:15)\n    at trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:1178:5)\n    at MutableReactiveHandler.set (http://127.0.0.1:4191/assets/vendor/vue.global.js:1506:11)\n    at onUpdate:modelValue (eval at compileToFunction (http://127.0.0.1:4191/assets/vendor/vue.global.js:18797:20), <anonymous>:25088:100)\n    at HTMLInputElement.<anonymous> (http://127.0.0.1:4191/assets/vendor/vue.global.js:12673:22)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "旧页面关闭设置再打开仍为5",
+      "ok": true,
+      "data": {
+        "phase": "设置重开",
+        "elapsedMs": 15816,
+        "value": 5,
+        "input": "5",
+        "stored": 5,
+        "compact": true,
+        "requests": 0,
+        "trace": [
+          {
+            "from": 2,
+            "to": 5,
+            "phase": "真实输入5",
+            "elapsedMs": 509,
+            "stack": "Error\n    at window.__stopChapterTrace.Vue.watch.flush (<anonymous>:13:324)\n    at callWithErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2593:21)\n    at callWithAsyncErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2600:19)\n    at baseWatchOptions.call (http://127.0.0.1:4191/assets/vendor/vue.global.js:3262:49)\n    at ReactiveEffect.job [as scheduler] (http://127.0.0.1:4191/assets/vendor/vue.global.js:2324:20)\n    at ReactiveEffect.trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:719:14)\n    at endBatch (http://127.0.0.1:4191/assets/vendor/vue.global.js:777:15)\n    at trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:1178:5)\n    at MutableReactiveHandler.set (http://127.0.0.1:4191/assets/vendor/vue.global.js:1506:11)\n    at onUpdate:modelValue (eval at compileToFunction (http://127.0.0.1:4191/assets/vendor/vue.global.js:18797:20), <anonymous>:25088:100)\n    at HTMLInputElement.<anonymous> (http://127.0.0.1:4191/assets/vendor/vue.global.js:12673:22)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "旧页面下一次生成将5改成2并持久保存（不刷新）",
+      "ok": true,
+      "data": {
+        "phase": "旧版生成完成",
+        "elapsedMs": 19094,
+        "value": 2,
+        "input": "2",
+        "stored": 2,
+        "compact": true,
+        "requests": 1,
+        "trace": [
+          {
+            "from": 2,
+            "to": 5,
+            "phase": "真实输入5",
+            "elapsedMs": 509,
+            "stack": "Error\n    at window.__stopChapterTrace.Vue.watch.flush (<anonymous>:13:324)\n    at callWithErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2593:21)\n    at callWithAsyncErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2600:19)\n    at baseWatchOptions.call (http://127.0.0.1:4191/assets/vendor/vue.global.js:3262:49)\n    at ReactiveEffect.job [as scheduler] (http://127.0.0.1:4191/assets/vendor/vue.global.js:2324:20)\n    at ReactiveEffect.trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:719:14)\n    at endBatch (http://127.0.0.1:4191/assets/vendor/vue.global.js:777:15)\n    at trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:1178:5)\n    at MutableReactiveHandler.set (http://127.0.0.1:4191/assets/vendor/vue.global.js:1506:11)\n    at onUpdate:modelValue (eval at compileToFunction (http://127.0.0.1:4191/assets/vendor/vue.global.js:18797:20), <anonymous>:25088:100)\n    at HTMLInputElement.<anonymous> (http://127.0.0.1:4191/assets/vendor/vue.global.js:12673:22)"
+          },
+          {
+            "from": 5,
+            "to": 2,
+            "phase": "正文请求 success Gemini=false",
+            "elapsedMs": 15857,
+            "stack": "Error\n    at window.__stopChapterTrace.Vue.watch.flush (<anonymous>:13:324)\n    at callWithErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2593:21)\n    at callWithAsyncErrorHandling (http://127.0.0.1:4191/assets/vendor/vue.global.js:2600:19)\n    at baseWatchOptions.call (http://127.0.0.1:4191/assets/vendor/vue.global.js:3262:49)\n    at ReactiveEffect.job [as scheduler] (http://127.0.0.1:4191/assets/vendor/vue.global.js:2324:20)\n    at ReactiveEffect.trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:719:14)\n    at endBatch (http://127.0.0.1:4191/assets/vendor/vue.global.js:777:15)\n    at trigger (http://127.0.0.1:4191/assets/vendor/vue.global.js:1178:5)\n    at MutableReactiveHandler.set (http://127.0.0.1:4191/assets/vendor/vue.global.js:1506:11)\n    at normalizeContextSettings (http://127.0.0.1:4191/.ui-check/context-delay-baseline.html:16143:44)\n    at buildChapterMessages (http://127.0.0.1:4191/.ui-check/context-delay-baseline.html:44781:7)\n    at doGenerateOne (http://127.0.0.1:4191/.ui-check/context-delay-baseline.html:45365:11)\n    at Proxy.startGeneration (http://127.0.0.1:4191/.ui-check/context-delay-baseline.html:45307:7)"
+          }
+        ],
+        "generated": {
+          "requests": 1,
+          "tools": false,
+          "added": 1,
+          "history": [
+            11,
+            12
+          ]
+        }
+      }
+    }
+  ],
+  "errors": []
+}
