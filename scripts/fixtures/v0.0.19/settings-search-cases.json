@@ -22,6 +22,8 @@
   {"target":"compact-mode","queries":["省钱","精简上下文","小窗口","减少输入"]},
   {"target":"second-round","queries":["补写","字数不够","没写够","第二轮","补摘要"]},
   {"target":"third-round","queries":["补写","补摘要","摘要缺失","第三轮","补全摘要"]},
+  {"target":"generation-truncation","queries":["截断设置","超字数","超长","保留全文","2.5倍","不截断"]},
+  {"target":"auto-comment","queries":["评论自动跟随生成","自动评论","关闭自动评论","紧接生成"]},
   {"target":"gemini-input","queries":["Gemini输入改写","用户输入改写","输入混淆"]},
   {"target":"full-chapters","queries":["参考几章","携带几章","最近几章"]},
   {"target":"summary-chapters","queries":["摘要几章","总结章数","前情章数"]},

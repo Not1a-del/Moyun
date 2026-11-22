@@ -4033,6 +4033,7 @@ createApp({
       // v0.0.13 req2：二轮补写开关，默认开启；关闭后首轮字数不足不再自动追加第二次请求。
       secondRoundSupplementEnabled: true,
       thirdRoundSupplementEnabled: true,
+      generationTruncationEnabled: true,
       geminiTestInput: false, showTokenUsage: false, preventTruncation:false,
       temperature:1, reasoningEffort:'', memoryEmbeddingModel:null,
       moduleModels: {
@@ -35594,6 +35595,10 @@ function getWritingModelLabel() {
       return Math.min(64000, Math.max(8192, (bodyBudget + reasoningHeadroom) * scale));
     }
 
+    function getChapterRunawayCeiling(target = wordCountTarget.value) {
+      return Math.max(1200, Math.round(getChapterLengthContract(target).targetWords * 2.5));
+    }
+
     // 中文注释：v0.0.17 新预设系统配套——前文组装独立函数，返回 hasSummaryContext 供 COT 动态记忆段判定。
     // 组装逻辑与我方 v0.0.16 前文块逐字一致，仅把"是否有总结进入上下文"提取为返回值。
     function buildBudgetedChapterHistory(context, options = {}) {
@@ -36503,7 +36508,7 @@ function getWritingModelLabel() {
         // 中文注释：模型退化成重复循环时会一路写到 token 上限才失败（实测一次白烧 1.6 万字、约三分钟）。
         // 目标 4000 字以下没有落盘上限，退化稿甚至可能被直接存成章节。这里在流式侧自己设失控线：
         // 可见正文超过目标字数 2.5 倍就停收，已收到的内容仍保留为草稿，不丢东西。
-        const runawayCeilingWords = Math.max(1200, Math.round(getChapterLengthContract(generationContext.wordCountTarget).targetWords * 2.5));
+        const runawayCeilingWords = getChapterRunawayCeiling(generationContext.wordCountTarget);
         let runawayCheckedLen = 0, lastStreamPaint=0;
         run.flushPreview=()=>{const parts=extractResponseReasoningBlocks(full);streamContent.value=cleanAIResponse(parts.body);updateStreamThinkingDisplay(parts.thinking,cot,snowwingPreflightCot,snowwingCotContext);};
 
@@ -36550,7 +36555,7 @@ function getWritingModelLabel() {
             if (full.length - runawayCheckedLen >= 400) {
               runawayCheckedLen = full.length;
               const visibleWords = getCleanWordCount(streamContent.value);
-              if (visibleWords > runawayCeilingWords) {
+              if (settings.value.generationTruncationEnabled !== false && visibleWords > runawayCeilingWords) {
                 try { reader.cancel(); } catch (e) { /* 取消失败不影响已收到的内容 */ }
                 const partial = buildPartialStreamResult(full, cot.trim(), {
                   finishReason: 'runaway-stop',
@@ -36772,7 +36777,7 @@ function getWritingModelLabel() {
         const chapterGate = buildAiResponseGate(p.content, {
           label: '章节正文',
           minWords: supplementAttempted ? 20 : getChapterLengthContract(generationContext.wordCountTarget).persistenceMinWords,
-          maxWords: getChapterLengthContract(generationContext.wordCountTarget).persistenceMaxWords,
+          maxWords: settings.value.generationTruncationEnabled === false ? 0 : getChapterLengthContract(generationContext.wordCountTarget).persistenceMaxWords,
           hardConstraints: generationContext.hardConstraints,
           finishReason: resultFinishReason
         });
@@ -36836,6 +36841,7 @@ function getWritingModelLabel() {
           notifyModMemoryChapterChanged(targetCh, 'source-changed-by-reroll');
           markBodyContinuityStale(targetCh);
           updateStoryMemoryFromChapter(targetCh);
+          applyAutomaticChapterComments(targetCh, p.rawComments);
           const rerollVisibleIndex = visibleChapters.value.findIndex(c => c.id === rerollChapterId);
           runModEventHandlers('generationFinished', { source: 'rerollChapter', chapterIndex: rerollVisibleIndex, chapterNumber: rerollVisibleIndex + 1, chapterId: targetCh.id, chapterTitle: targetCh.title || '', remainingCount: 0, runId });
           if (typeof checkAutoSummary === 'function') checkAutoSummary();
@@ -36913,27 +36919,7 @@ function getWritingModelLabel() {
 
 
 
-        // 书评处理
-        if (shouldAutoGenerateChapterComments() && settings.value.commentInline) {
-          if (_inlineCommentsRaw) {
-            let rcRaw = _inlineCommentsRaw.replace(/```json/g,'').replace(/```/g,'').trim();
-            const rcMatch = rcRaw.match(/\[[\s\S]*\]/);
-            if (rcMatch) {
-              try {
-                const locs = ["北京","上海","广东","浙江","江苏","四川","山东"];
-                const rl = () => locs[Math.floor(Math.random()*locs.length)];
-                const inlineComments = cleanReaderCommentTree(JSON.parse(rcMatch[0]));
-                inlineComments.forEach(c => { c.level=Math.floor(Math.random()*20)+1; if(!c.location)c.location=rl(); c.isLiked=false; c.replies=c.replies||[]; c.replies.forEach(r=>{r.level=Math.floor(Math.random()*15)+1;r.likes=r.likes||0;r.isLiked=false;if(!r.location)r.location=rl();}); });
-                newCh.comments = inlineComments.slice(0, getRequestedCommentCount());
-              } catch(e) { console.warn('内联评论解析失败', e); }
-            }
-          }
-          if (!newCh.comments || newCh.comments.length === 0) {
-            generateChapterComments(storageChapterIndex);
-          }
-        } else if (shouldAutoGenerateChapterComments()) {
-          generateChapterComments(storageChapterIndex);
-        }
+        applyAutomaticChapterComments(newCh, _inlineCommentsRaw);
 
         streamContent.value = '';
         streamCotContent.value = '';
@@ -37398,7 +37384,7 @@ function getWritingModelLabel() {
         const mergedChapterGate = buildAiResponseGate(p.content, {
           label: '中断续写合并正文',
           minWords: getChapterLengthContract(generationContext.wordCountTarget).persistenceMinWords,
-          maxWords: getChapterLengthContract(generationContext.wordCountTarget).persistenceMaxWords,
+          maxWords: settings.value.generationTruncationEnabled === false ? 0 : getChapterLengthContract(generationContext.wordCountTarget).persistenceMaxWords,
           hardConstraints: generationContext.hardConstraints,
           finishReason: resultFinishReason
         });
@@ -37441,6 +37427,7 @@ function getWritingModelLabel() {
         streamNativeThinking.value = '';
         streamCotActive.value = false;
         clearInterruptedDraftState('中断续写完成');
+        applyAutomaticChapterComments(newCh, p.rawComments);
         archiveSuccessfulNextChapterPrompt(generationContext.promptOverride, run.options);
         finishPriorityInput(generationContext,run.options);
         runModEventHandlers('generationFinished', { source: 'continueGeneration', mode: 'continue', chapterIndex: visibleChapterNo - 1, chapterNumber: visibleChapterNo, storageChapterIndex, chapterId: newCh.id, chapterTitle: newCh.title || '', runId:run.id });
@@ -38974,6 +38961,7 @@ function getWritingModelLabel() {
       {tab:'context',target:'settings-search-compact-mode',title:'省 Token 模式',keywords:'上下文小窗口 限制章节 字数 token 省钱 省费用 节约费用 精简上下文 减少输入 小窗口 compact sheng token'},
       {tab:'context',target:'settings-search-second-round',title:'二轮补写',keywords:'字数不足 追加续写 再生成 摘要缺少 补写 字数不够 没写够 补足字数 自动补写 第二轮 二次生成 续写后自动补写 补摘要 补全摘要 补写费用 erlun buxie'},
       {tab:'context',target:'settings-search-third-round',title:'三轮摘要补写',keywords:'二轮后补摘要 额外模型请求 补写 补摘要 补全摘要 摘要缺失 没有摘要 第三轮 三次生成 摘要补录 补写费用 sanlun zhaiyao'},
+      {tab:'context',target:'settings-search-generation-truncation',title:'截断设置',keywords:'生成截断 输出截断 超长 超字数 字数超标 字数截断 失控保护 2.5倍 保留全文 不截断 取消截断 停止接收 正文字数限制 runaway truncation jieduan'},
       {tab:'context',target:'settings-search-gemini-input',title:'Gemini 测试输入',keywords:'混淆输入 输入改写 Gemini输入改写 用户输入改写 输入混淆 实验功能 gemini ceshi shuru'},
       {tab:'context',target:'settings-search-full-chapters',title:'最近正文的章节数',keywords:'发送最近N章 几章全文 全文章数 前文章数 参考几章 正文章数 携带几章 最近几章 chapters zhangjie quanwen'},
       {tab:'context',target:'settings-search-summary-chapters',title:'章节摘要数量',keywords:'更早章节 标题摘要 摘要章数 摘要几章 参考多少章 总结章数 前情章数 summary zhangshu'},
@@ -40566,6 +40554,22 @@ function getWritingModelLabel() {
       return settings.value.enableReviewer && settings.value.commentAutoGenerate !== false && getRequestedCommentCount() > 0;
     }
 
+    // 首次生成、重生成和中断续写共用同一道自动评论开关。
+    function applyAutomaticChapterComments(ch, rawComments) {
+      if (!shouldAutoGenerateChapterComments()) return;
+      if (settings.value.commentInline && rawComments) {
+        try {
+          const comments = cleanReaderCommentTree(parseAiStructuredJson(rawComments, 'array')).slice(0, getRequestedCommentCount());
+          const locs=['北京','上海','广东','浙江','江苏','四川','山东'],rl=()=>locs[Math.floor(Math.random()*locs.length)];
+          comments.forEach(c => { c.level=Math.floor(Math.random()*20)+1; c.location=c.location||rl(); c.isLiked=false; c.replies=c.replies||[]; c.replies.forEach(r=>{r.level=Math.floor(Math.random()*15)+1;r.likes=r.likes||0;r.isLiked=false;r.location=r.location||rl();}); });
+          ch.comments = comments;
+          if (comments.length) return;
+        } catch (error) { console.warn('内联评论解析失败', error); }
+      }
+      const index = chapters.value.indexOf(ch);
+      if (index >= 0) generateChapterComments(index);
+    }
+
     function generateChapterComments(chapterIndex) {
       const commentCount = getRequestedCommentCount();
       if (!commentCount) { showToast('如果生成数量为0时，则不会生成评论哦', 'info'); return; }
@@ -41923,7 +41927,7 @@ function getWritingModelLabel() {
       showCharacterDraftReview, isGeneratingCharacterDraft, characterDraftReview, characterDraftCounts,
       requestCloseCharacterDraftReview, stopCharacterDraftGeneration, setCharacterDraftItemDecision, setCharacterDraftTargetDecision,
       getCharacterDraftKindLabel, getCharacterDraftKindStyle, getCharacterDraftRelationOptions, refreshCharacterDraftRelationItem, applyCharacterAiDraft,
-      getCompletionsUrl, okStreamFetch, normalizeOutlinePlanningPayload, normalizeGeminiOutlinePayload, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, buildAiResponseGate, assertAiResponseGate,
+      getCompletionsUrl, okStreamFetch, normalizeOutlinePlanningPayload, normalizeGeminiOutlinePayload, requestOutlineAiOnce, requestReasoningOnlyRescue, requestSnowwingActiveContextContinuation, cleanAIResponse, cleanNarrativeSourceText, cleanNarrativeChapterContent, cleanNarrativeChapterSummary, getAiResponseFinishReason, extractNarrativeHardConstraints, evaluateNarrativeHardConstraints, getChapterLengthContract, getChapterRunawayCeiling, buildAiResponseGate, assertAiResponseGate,
       // ── Part 2: 提示词流水线 ──
       pipelineExpanded, promptPipeline, normalizePromptPipeline, buildFullSystemPrompt: () => MOD_PUBLIC_DETAILS_CLOSED_TEXT, getPipelineLayer, movePipelineLayer, getPipelineLayerTriggerDesc,
       regenerateInlineImage, editInlineImagePrompt, renderChapterImageEditor, switchInlineImageVersion,

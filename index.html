@@ -5611,6 +5611,10 @@
           <div id="settings-search-third-round" class="flex items-center justify-between py-2" data-settings-third-round-toggle>
             <div><span class="text-sm font-bold" style="color:var(--tx)">三轮摘要补写</span><br><span class="text-[10px]" style="color:var(--tx3)">二轮补写后仍缺摘要时，再额外补写一次</span><br><span class="text-[10px]" style="color:var(--warn)">会额外发起一次模型请求</span></div><button type="button" @click="toggleThirdRoundSupplement()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.thirdRoundSupplementEnabled!==false?'true':'false'" aria-label="三轮摘要补写开关"><span aria-hidden="true" class="toggle-track" :class="settings.thirdRoundSupplementEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
           </div>
+          <div id="settings-search-generation-truncation" class="flex items-center justify-between gap-3 py-2">
+            <div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">截断设置</span><br><span class="text-[10px]" style="color:var(--tx3)">开启后，正文流式输出超过目标字数的 2.5 倍（最低 1200 字）时中止并保留草稿；当前为 {{ getChapterRunawayCeiling() }} 字。关闭后保留超长全文，不按字数拦截保存；服务商自身输出上限仍有效。</span></div>
+            <button type="button" @click="settings.generationTruncationEnabled=settings.generationTruncationEnabled===false;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.generationTruncationEnabled!==false" aria-label="截断设置"><span aria-hidden="true" class="toggle-track" :class="settings.generationTruncationEnabled!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+          </div>
           <div id="settings-search-gemini-input" class="flex items-center justify-between gap-3" data-settings-gemini-input><div><span class="text-sm font-bold" style="color:var(--tx)">Gemini测试输入</span><br><span class="text-[10px]" style="color:var(--tx3)">实验功能</span></div><button type="button" @click="settings.geminiTestInput=!settings.geminiTestInput;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="!!settings.geminiTestInput" aria-label="Gemini测试输入开关"><span class="toggle-track" :class="settings.geminiTestInput?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button></div>
           <div id="settings-search-full-chapters" class="flex items-center justify-between py-2">
             <div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">全文章数</span><br><span class="text-[10px]" style="color:var(--tx3)">最近 N 章的原文数量上限，0 为不发送原文；仍受下方字数上限限制</span><br><span v-if="settings.contextCompactMode" class="text-[10px]" style="color:var(--warn)">省 token 模式开启：实际最多带 2 章原文</span><span v-else-if="settings.contextUseFullText===false" class="text-[10px]" style="color:var(--warn)">“发送最近正文”已关闭：本次不发送原文</span><span v-if="memoryLibrary.settings.enabled && memoryLibrary.settings.replaceHistoryWithSummaries" class="block text-[10px]" style="color:var(--warn)">已主动开启记忆替换：同时受记忆库“保留最近章节”限制</span></div>
@@ -6903,7 +6907,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=b5b9b11262c5"></script>
+<script src="./assets/js/moyun.js?v=a7cd16d9b94f"></script>
 <!-- PART_1_END -->
 </body>
 </html>
