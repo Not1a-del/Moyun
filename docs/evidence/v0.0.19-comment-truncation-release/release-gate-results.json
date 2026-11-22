@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-11-22T06:20:34.121Z",
+  "commit": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+  "passed": true,
+  "selected": "all",
+  "results": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 160.7,
+      "checks": 25
+    },
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://yydcm-129.github.io/Moyun/ --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 41.1,
+      "checks": 30
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "release",
+      "command": "node scripts/v19-outline-review-browser.cjs --release-smoke --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 161.6,
+      "checks": 25
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "mode": "tablet",
+      "command": "node scripts/v19-outline-review-browser.cjs --mobile-layout --tablet-layout --url https://not1a-del.github.io/Moyun/ --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json",
+      "passed": true,
+      "exitCode": 0,
+      "error": null,
+      "seconds": 62.3,
+      "checks": 30
+    }
+  ],
+  "notCovered": [
+    "模拟视口不能代替 iOS 与厂商真机",
+    "不调用真实模型；Pages 来源和构建 SHA 另以 GitHub 回执核对"
+  ]
+}

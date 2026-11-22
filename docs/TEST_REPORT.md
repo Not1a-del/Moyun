@@ -1,3 +1,9 @@
+# v0.0.19 评论与截断双仓上线（2026-11-22）
+
+候选 f624e0c 已发布两仓，公测Pages#33、正式#96均成功。发布前重跑 npm.cmd run audit／npm.cmd run gate：通过、9/9。执行 npm.cmd run gate:release -- --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json，两站各25项入口+30项平板，共110/110；8个启动文件与Git候选原始字节一致。随后顺序执行 node scripts/v19-outline-review-browser.cjs --comment-truncation --url <两站各自HTTPS地址>，公测55/55、正式55/55；线上合计220/220，失败／跳过0。
+
+使用隔离Edge、合成书库及本地SSE／JSON mock，Gemini输入改写和抗截断全开／全关；0条评论自动／手动均不发请求，关闭截断后13658字正文完整分类保存，开关搜索和未失焦保存刷新通过。320／360／768／1024触屏／1280明暗、44px点击、tooltip，以及常规线上390手机与平板工具栏／末段均覆盖。命令、输入、逐项结果、Pages回执及未覆盖真实模型／真机边界见 [发布报告](V0.0.19_COMMENT_TRUNCATION_RELEASE_REPORT.md)。保持19／1116，直连未开代理；下文为本地历史。
+
 # v0.0.19 评论与截断（2026-11-22，本地）
 
 新增浏览器专项55/55通过；目标4000字开启截断时约1万字中止保留草稿，关闭时13658字完整保存，摘要／评论分开；中断续写保留旧稿和新稿，正文重生成遵守同一自动评论开关。Gemini输入改写／抗截断全开全关、0条评论反复点击不发请求、320／360／768／1024触屏平板／1280明暗与实际点击、tooltip悬停／点按／自动消失、设置搜索定位及刷新均覆盖。执行npm.cmd run audit、npm.cmd run gate、npm.cmd run gate:browser；最终整套26/26（含基础9步）、v19 332/332、设置搜索433/433、旧版浏览器115/115，失败／跳过0。首轮旧夹具不符合章数与作者主动替换规则，按实际页面修正测试后完整复验，未回退产品规则；命令、输入和证据见 [专项报告](V0.0.19_COMMENT_TRUNCATION_REPORT.md)。本地SSE及JSON mock，不代表真实服务商或真机验收，未上传。

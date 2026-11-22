@@ -1,0 +1,46 @@
+[
+  {
+    "repo": "yydcm-129/Moyun",
+    "pages": {
+      "build_type": "legacy",
+      "html_url": "https://yydcm-129.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "status": "built"
+    },
+    "build": {
+      "commit": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+      "created_at": "2026-11-22T06:12:13Z",
+      "error": {
+        "message": null
+      },
+      "pusher": "yydcm-129",
+      "status": "built",
+      "updated_at": "2026-11-22T06:13:01Z"
+    }
+  },
+  {
+    "repo": "Not1a-del/Moyun",
+    "pages": {
+      "build_type": "legacy",
+      "html_url": "https://not1a-del.github.io/Moyun/",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "status": "built"
+    },
+    "build": {
+      "commit": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+      "created_at": "2026-11-22T06:12:30Z",
+      "error": {
+        "message": null
+      },
+      "pusher": "yydcm-129",
+      "status": "built",
+      "updated_at": "2026-11-22T06:13:05Z"
+    }
+  }
+]

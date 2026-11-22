@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-11-22T06:14:23.873Z",
+  "source": "Cindy GitHub 插件 get_workflow_run",
+  "workflows": [
+    {
+      "repository": "yydcm-129/Moyun",
+      "runId": 44992671280,
+      "runNumber": 33,
+      "commit": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/yydcm-129/Moyun/actions/runs/44992671280",
+      "actor": "yydcm-129",
+      "createdAt": "2026-11-22T06:12:14Z",
+      "updatedAt": "2026-11-22T06:13:06Z"
+    },
+    {
+      "repository": "Not1a-del/Moyun",
+      "runId": 44992689823,
+      "runNumber": 96,
+      "commit": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Not1a-del/Moyun/actions/runs/44992689823",
+      "actor": "yydcm-129",
+      "createdAt": "2026-11-22T06:12:31Z",
+      "updatedAt": "2026-11-22T06:13:11Z"
+    }
+  ]
+}

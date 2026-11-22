@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-11-22T06:11:32.777Z",
+  "source": "Cindy GitHub 插件 get_repo（已登录账号）",
+  "repos": [
+    {
+      "full_name": "yydcm-129/Moyun",
+      "homepage": "https://yydcm-129.github.io/Moyun/",
+      "description": "墨韵公众测试仓库：更新先在此公测，经用户确认后发布正式站。",
+      "has_pages": true,
+      "has_issues": true,
+      "default_branch": "main"
+    },
+    {
+      "full_name": "Not1a-del/Moyun",
+      "homepage": "https://not1a-del.github.io/Moyun/",
+      "description": "Moyun小说创作台",
+      "has_pages": true,
+      "has_issues": false,
+      "default_branch": "main"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-11-22T06:25:29.081Z",
+  "candidate": "f624e0c390e8f4af514ccd2d2f4f4cf9e4f7ee89",
+  "passed": true,
+  "account": "yydcm-129",
+  "proxyUsed": false,
+  "onlineChecks": 110,
+  "featureChecks": 110,
+  "total": 220,
+  "sites": [
+    {
+      "site": "public",
+      "url": "https://yydcm-129.github.io/Moyun/",
+      "features": 55,
+      "release": 25,
+      "tablet": 30
+    },
+    {
+      "site": "stable",
+      "url": "https://not1a-del.github.io/Moyun/",
+      "features": 55,
+      "release": 25,
+      "tablet": 30
+    }
+  ],
+  "featureCommand": "node scripts/v19-outline-review-browser.cjs --comment-truncation --url <site-url>",
+  "ai": "local SSE and JSON mock in isolated browser; no paid provider calls"
+}
