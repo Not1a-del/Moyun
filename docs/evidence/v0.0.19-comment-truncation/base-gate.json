@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-11-22T05:11:57.689Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "commit": "6a32c94",
+  "workingTreeDirtyBeforeRun": true,
+  "withBrowser": false,
+  "passed": true,
+  "results": [
+    {
+      "id": "build",
+      "title": "构建",
+      "command": "node scripts/build-static-site.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.1,
+      "outputTail": "{\"cssPath\":\"F:\\\\yydcm129\\\\codex 墨韵接手\\\\Moyun\\\\assets\\\\css\\\\moyun.css\",\"cssVersion\":\"90780297a62b\",\"jsPath\":\"F:\\\\yydcm129\\\\codex 墨韵接手\\\\Moyun\\\\assets\\\\js\\\\moyun.js\",\"jsVersion\":\"0e7b89a34722\",\"outputHtmlPath\":\"F:\\\\yydcm129\\\\codex 墨韵接手\\\\Moyun\\\\index.html\"}\n"
+    },
+    {
+      "id": "syntax",
+      "title": "生成脚本语法检查",
+      "command": "node --check assets/js/moyun.js",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.2,
+      "outputTail": ""
+    },
+    {
+      "id": "audit",
+      "title": "结构审计",
+      "command": "node scripts/structure-audit.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.2,
+      "outputTail": "[structure-audit] 模板区 722887 字符\n  PASS 标签平衡（跨层/多余/残留 = 0）\n  PASS DOM 模板自定义组件显式闭合\n  PASS v-else/v-else-if 配对（共 180 处）\n  PASS editor-head 锚点存在\n  PASS editor-head 闭合平衡（<div> 6 = </div> 6）\n  PASS editor-head 与 levels 同级（中间无其他元素）\n  PASS <transition> 开闭一致（35/35）\n  PASS <transition-group> 开闭一致（1/1）\n  PASS <keep-alive> 开闭一致（0/0）\n  PASS <template> 开闭一致（66/66）\n[structure-audit] 追加检查（基线：scripts/audit-baseline.json）\n  PASS localStorage：没有未登记的新增键（共 13 个字面量键）\n  PASS localStorage：变量/拼接键的读写点没有增加\n  PASS localStorage：遍历/清空类访问没有增加\n  PASS IndexedDB：没有未登记的新增库（共 4 个）\n  PASS 同缩进同名函数：没有未登记的重复声明（已登记 3 组为不同作用域的同名内部函数）\n  PASS 已删除符号没有残留引用（登记 6 个）\n\nSTRUCT AUDIT PASSED: 模板结构无跨层/无配对缺失/关键锚点平衡\n"
+    },
+    {
+      "id": "regression",
+      "title": "关键逻辑回归",
+      "command": "node scripts/regression-check.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.5,
+      "outputTail": "  PASS S1 改名按钮\n  PASS S1 范围弹窗\n  PASS S1 弹窗确认执行\n  PASS S1 范围校验\n  PASS S2 时间线填对提示词\n  PASS S2 稳定排序\n  PASS S3 段进度状态\n  PASS S3 事件批进度\n  PASS S3 通用提示挂载\n  PASS S3 细纲批进度\n  PASS S3 流水线段进度\n  PASS package.json 版本 0.0.19\n[3/5] applyAiVolumeUpdates\n  PASS 抽取 applyAiVolumeUpdates\n  PASS 新格式：卷一摘要含 3 条章行\n  PASS 新格式：卷二摘要含 3 条章行\n  PASS 新格式：卷名回填\n  PASS 新格式：摘要含框架摘要行\n  PASS 旧格式兼容：仅回填摘要\n  PASS 臆造卷行被忽略\n[4/5] extractStreamFieldValue\n  PASS 抽取 extractStreamFieldValue\n  PASS JSON 完整值\n  PASS JSON 半截流（未闭合引号）\n  PASS 行式取值\n  PASS 字段缺失返回 null\n[5/5] clamps + ratio\n  PASS EVENT_FIELD_MAX 硬限表\n  PASS 事件标题 120 上限\n  PASS 条目摘要 60/详情300 提示\n  PASS 1:4.5 比例: 正文600 → 每章细纲≈200字\n  PASS 1:4.5 比例: 正文2500 → 每章细纲≈556字\n  PASS 1:4.5 比例: 正文10000 → 每章细纲≈2222字\n  PASS 1:4.5 比例: 正文15000 → 每章细纲≈3333字\n  PASS 比例总预算下限 600\n  PASS 旧 6% 比例已移除（批量）\n  PASS 旧 6% 比例已移除（单章）\n\nREGRESSION PASSED: 全部检查通过\n"
+    },
+    {
+      "id": "ai-protocol",
+      "title": "AI 协议回归（本地 mock）",
+      "command": "node scripts/ai-protocol-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.4,
+      "outputTail": "PASS Gemini测试输入只搬移标记的本轮作者要求，不搬移最终校验且不添加零宽前缀\nPASS Gemini无明确作者输入时不猜测最后一条user层\nPASS Gemini抗截断与输入工具同时启用时，提醒位于原版占位用户层\nPASS 全局温度覆盖模块固定值、旧存档默认及范围归一化，诊断保留局部值\nPASS 全局六档强度使用对应协议字段，默认与诊断不传，Anthropic预算与温度兼容\nPASS 原消息不变，普通请求不强制流式\nPASS 真实消费者保留分段、转义、Unicode和逐字节UTF8\nPASS 完成前真实流式交付\nPASS 末尾无换行、多行SSE、缺事件空行\nPASS 非流式JSON及流式请求收到JSON均能读取\nPASS 累积式正文不重复追加\nPASS 原生思考保持独立，不混入正文\nPASS HTTP200错误不伪装成功且不工具重试\nPASS 过滤不伪装成功且不工具重试\nPASS 拒绝不伪装成功且不工具重试\nPASS 损坏SSE不伪装成功且不工具重试\nPASS 空响应不伪装成功且不工具重试\nPASS 空正文与思考空回均只请求一次\nPASS Gemini原生普通文本\nPASS Anthropic原生普通文本\nPASS JSON有限修复、类型和危险字段校验保持有效\nPASS HTTP错误保持状态且不额外重发\nPASS length与MAX_TOKENS报错且不重试\nPASS 非流式截断仍报错但保留已收到正文供用户审阅\nPASS 取消等待中的流会终止读取\nPASS 网络读失败不会变成成功\nPASS 二轮首轮正文、JSON提醒复用和业务字段校验保留\nPASS 空闲超时结束读取并清理\nPASS 抗截断工具非流式：四种协议恢复完整正文、不泄漏JSON外壳\nPASS 抗截断工具流：工具名、参数和Unicode转义逐字符跨块，UTF8逐字节\nPASS 抗截断原生流：Gemini函数调用与Anthropic参数分段均恢复正文\nPASS 抗截断正文在工具参数完成前增量交付，不输出半个Unicode代理对\nPASS 抗截断混返优先工具正文、不重复普通正文；无工具时普通累积正文兜底\nPASS 抗截断重复、未知工具、无可保留正文与错误结构均拒绝且不重试\nPASS 抗截断工具JSON尾部缺失时保留已解码正文，混合正文不重复\nPASS 抗截断跨四协议和流式模式尽量保留length、MAX_TOKENS正文\nPASS 抗截断真正空回最多三次，第二次成功可恢复，思考空回不重试\nPASS 抗截断取消仍终止等待中的底层流且不重试\nAI PROTOCOL PASSED: 41\n"
+    },
+    {
+      "id": "startup",
+      "title": "启动资源检查",
+      "command": "node --test scripts/startup-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.2,
+      "outputTail": "✔ 双击入口和 source 的全部启动脚本、样式及图标均存在于本地 (24.9885ms)\n✔ 本地依赖使用经典脚本，无 file:// 不支持的模块加载 (3.8021ms)\n✔ 启动失败有提示，书库读取完成后立即解除遮罩 (12.8814ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 151.2062\n"
+    },
+    {
+      "id": "v17",
+      "title": "预设与上下文回归",
+      "command": "node --test scripts/preset-refactor.test.cjs scripts/v17-context-regression.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.5,
+      "outputTail": "[PromptPresets] 跳过非法预设条目: null\n[PromptPresets] 跳过非法预设条目: x\n✔ 第0刀 golden：普通正文请求的消息序列与基线逐字一致 (19.9928ms)\n✔ 第0刀 golden：白鸟锁定请求的消息序列与基线逐字一致 (6.6003ms)\n✔ 第4刀 golden：宿主 COT 关闭后无推演协议、无动态段、无末尾提醒 (3.3223ms)\n✔ 第4刀 golden：白鸟承载独立于旧开关——审计旗关闭承载后其余逐字不变 (2.566ms)\n✔ 第4刀 golden：严格主题保留新位、负面注入退出 (3.7257ms)\n✔ 第4刀 golden：范围总结注入历史且 COT 恰带一份动态记忆段 (3.0356ms)\n✔ 第0刀 golden：白鸟锁定态的 buildFullSystemPrompt 与基线逐字一致 (1.7351ms)\n✔ 第0刀 golden：buildNsfwMessages 通用组装与基线逐字一致 (3.3548ms)\n✔ v0.0.18 旧预设：按作用模块注入，关闭后保持通用请求与画图隔离 (1.8531ms)\n✔ 第4刀 结构：system 置首排尾 + 预注入独立消息 + 宿主硬编码全部退出 (2.8643ms)\n✔ 第4刀 结构：锁定请求为独立白鸟承载、宿主预设零注入 (3.4388ms)\n✔ 第1刀 T01：16 条内置常量与冻结 Markdown 逐字一致（含 role/默认/锚点/隐藏） (62.7378ms)\n✔ 第1刀 T02：同步幂等，保留开关/顺序，刷回冻结正文，按锚点补缺 (17.5483ms)\n✔ 第1刀 T03：NSFW 缺失补默认占位且默认关；用户文本/空串不覆盖；人称互斥 (13.6014ms)\n✔ 第1刀 T04：A/B 新字段隔离，保存/备份/快照/导入全链往返 (30.8959ms)\n✔ 第1刀 T05：旧档缺新字段按缺省初始化；普通/白鸟锁定请求 golden 不变 (12.7428ms)\n✔ 第2刀 T06：资料分支三分 helper 语义与提取前一致 (2.4348ms)\n✔ 第4刀 T10：锁定全链无宿主新预设；解锁后普通请求恢复；建议/无限不接新预设 (4.6552ms)\n✔ 第4刀 T12：预设 UI 权限/编辑/排序/导入改名/锁定拦截/人称联动 (14.8702ms)\n✔ 建议优先用已有摘要；细纲保留为计划，不混进前文事实 (8.9045ms)\n✔ 已启用范围摘要优先，关闭或超过当前分支章数的范围不注入 (9.3739ms)\n✔ 目标细纲、邻章边界、卷纲、世界和角色、作者输入同时来自当前状态 (7.4706ms)\n✔ 上下文取当前分支最近五章且保留正文结尾，去除推演与图片标签 (9.191ms)\n✔ 长大纲保留尾部、关闭截断时完整；全空书可给开局建议 (8.2993ms)\n✔ 旧图片缓存升级、选中第0张和格式错误历史归一化 (2.3592ms)\n✔ 手工图片格式支持嵌套权重与换行，未闭合标签保留文本 (8.685ms)\nℹ tests 26\nℹ suites 0\nℹ pass 26\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 452.7405\n"
+    },
+    {
+      "id": "v18-memory",
+      "title": "记忆库回归",
+      "command": "node scripts/v18-memory-volume.test.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 0.1,
+      "outputTail": "V18 MEMORY/VOLUME PROMPT TEST PASSED\n"
+    },
+    {
+      "id": "v19",
+      "title": "v0.0.19 功能回归",
+      "command": "node --test scripts/v19-ai-storage-volume.test.cjs scripts/v19-announcement.test.cjs scripts/v19-branch-context.test.cjs scripts/v19-branch-data.test.cjs scripts/v19-branch-interaction.test.cjs scripts/v19-branch-transfer.test.cjs scripts/v19-character-isolation.test.cjs scripts/v19-character-relations.test.cjs scripts/v19-comment-controls.test.cjs scripts/v19-context-chapter-settings.test.cjs scripts/v19-context-integrity.test.cjs scripts/v19-continuity.test.cjs scripts/v19-favorites.test.cjs scripts/v19-feedback.test.cjs scripts/v19-floating-tip.test.cjs scripts/v19-immersive.test.cjs scripts/v19-initial.test.cjs scripts/v19-legacy-memory.test.cjs scripts/v19-manual-planning.test.cjs scripts/v19-nine-review.test.cjs scripts/v19-onekey-retry-and-gemini-json.test.cjs scripts/v19-outline-boundary.test.cjs scripts/v19-outline-volume-accept.test.cjs scripts/v19-priority-input.test.cjs scripts/v19-reader-onekey.test.cjs scripts/v19-regen-snapshot.test.cjs scripts/v19-release-channel.test.cjs scripts/v19-review.test.cjs scripts/v19-s0-infrastructure.test.cjs scripts/v19-save-retry.test.cjs scripts/v19-settings-search.test.cjs scripts/v19-style-source.test.cjs scripts/v19-summary-backfill.test.cjs scripts/v19-team-behavior.test.cjs scripts/v19-team-book.test.cjs scripts/v19-toc-handoff.test.cjs scripts/v19-unfinished-expansion.test.cjs scripts/v19-volume-workbench.test.cjs scripts/v19-workbench.test.cjs",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "seconds": 6.7,
+      "outputTail": "✔ 策划员取消后即使请求晚返回也不会回写方案 (0.8439ms)\n✔ 停止后重试失败块不会复用已中止的请求信号 (2.7668ms)\n✔ 离开团队结果页前必须先留在页面或明确写入草稿 (5.0867ms)\n✔ 运行中选择停止后仍留在恢复页，不直接关闭并丢掉团队结果 (4.1199ms)\n✔ 细纲反推已有大纲先审阅再改卷纲，并支持停止 (4.1157ms)\n✔ E2：生成期间切书、切分支、改正文或手改交接时，迟到结果不得覆盖 (174.6562ms)\n✔ E2：手动清空交接仍保留编辑标记，不能回退到旧交接 (38.2349ms)\n✔ E2：总结 API 缺失时保留交接并返回配置原因 (30.2842ms)\n✔ E2-01/02/03/10：分组保留可见章号、未归属章放最后、无卷老书无标题 (33.6765ms)\n✔ E2-06/07/09/10/11：目录和总结共用保存，写回原卷、主线兼容字段与分支隔离，往返保留 (44.5593ms)\n✔ E2-08/09：手改交接重新生成先确认，取消不请求，确认后两份同步并清标记 (39.0163ms)\n✔ E2：自动交接覆盖手改也须确认；分支正文包含分叉前继承章 (39.4736ms)\n✔ 已有大纲与细纲可开启未完，普通书预设入口独立于白鸟锁定 (51.3173ms)\n✔ 区分纯重分卷与新增剧情，不把其他分支50章算进本线两章 (49.3136ms)\n✔ 实际新增细纲、重新分卷并在接受前保留原文，只有作者原话标记输入 (49.6654ms)\n✔ 拒绝与稍后序列化恢复不写入新增内容；刷新补齐UI默认值后仍可应用和撤销 (43.7503ms)\n✔ 没有新细纲、缺章、重排旧章、缺新章正文或范围错误均保留原规划及原始输出 (203.0509ms)\n✔ 已写正文前插章明确拒绝，末尾追加允许 (43.0098ms)\n✔ 接受期间新增正文、手改细纲、大纲或切分支都不覆盖 (224.3344ms)\n✔ 撤销不覆盖应用后手改细纲，生成时切书不弹迟到候选 (39.6516ms)\n✔ 普通一键开书的预设模块可以带入未完模式 (4.5854ms)\n✔ 工作台共用完整实时上下文，候选先审阅；拒绝不改变卷纲 (58.4202ms)\n✔ 接受后实时卷纲和交接更新，总纲不受损；并行修改不被候选覆盖 (44.7569ms)\n✔ 细纲批量输入也走卷纲候选审阅，提示明确普通修改范围 (7.8596ms)\n✔ 大纲/细纲没有正文时仍按文本章号推断卷纲范围 (42.4226ms)\n✔ 六章细纲优先于空白默认十章卷范围 (46.9306ms)\n✔ 大纲正文审阅完成后仍保留卷纲候选的第二次确认 (44.7888ms)\n✔ 卷纲整理提示明确只改卷纲且范围受已有章节约束 (10.3989ms)\n✔ 细纲工作台遇到无效 JSON 卷范围时仍识别同份原文的分卷标题 (54.538ms)\n✔ 分支图按parentId显示三层独立路线，自有章节统计准确，损坏的父级不会递归卡死 (6.9331ms)\n✔ 细纲入口不再引用已删除撤销函数，四个入口共享一个分支面板 (22.7989ms)\nℹ tests 330\nℹ suites 0\nℹ pass 330\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 6616.4221\n"
+    }
+  ],
+  "notCovered": [
+    "真实服务商的兼容性（本门禁只用本地 mock）",
+    "iOS Safari 与手机真机的键盘、手势行为",
+    "没有登记进本门禁的专项脚本（v16、v17 浏览器脚本、公告脚本等，需要手动启动 Edge 与本地服务）",
+    "浏览器回归（本次没有加 --browser）"
+  ]
+}

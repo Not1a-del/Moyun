@@ -1,0 +1,2340 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "干净首开：首本空白书已装载全部新旧预设",
+      "ok": true,
+      "data": {
+        "books": 1,
+        "chapters": 0,
+        "total": 16,
+        "visible": 14,
+        "old": 11
+      }
+    },
+    {
+      "name": "旧版预设位于分区底部，编辑、开关、作用模块可用",
+      "ok": true,
+      "data": {
+        "cards": 11,
+        "bottom": true,
+        "content": "V18_LEGACY_SCOPE",
+        "enabled": true,
+        "scope": [
+          "writing",
+          "outline"
+        ],
+        "outline": "V18_LEGACY_SCOPE",
+        "character": ""
+      }
+    },
+    {
+      "name": "作用模块按钮保持紧凑尺寸、单行和选中状态",
+      "ok": true,
+      "data": {
+        "count": 5,
+        "listWidth": 319,
+        "buttons": [
+          {
+            "key": "writing",
+            "width": 38,
+            "height": 32,
+            "scrollWidth": 38,
+            "scrollHeight": 32,
+            "whiteSpace": "nowrap",
+            "flex": "0 0 auto",
+            "pressed": "true",
+            "selected": true
+          },
+          {
+            "key": "outline",
+            "width": 38,
+            "height": 32,
+            "scrollWidth": 38,
+            "scrollHeight": 32,
+            "whiteSpace": "nowrap",
+            "flex": "0 0 auto",
+            "pressed": "true",
+            "selected": true
+          },
+          {
+            "key": "character",
+            "width": 38,
+            "height": 32,
+            "scrollWidth": 38,
+            "scrollHeight": 32,
+            "whiteSpace": "nowrap",
+            "flex": "0 0 auto",
+            "pressed": "false",
+            "selected": false
+          },
+          {
+            "key": "suggestion",
+            "width": 38,
+            "height": 32,
+            "scrollWidth": 38,
+            "scrollHeight": 32,
+            "whiteSpace": "nowrap",
+            "flex": "0 0 auto",
+            "pressed": "false",
+            "selected": false
+          },
+          {
+            "key": "review",
+            "width": 38,
+            "height": 32,
+            "scrollWidth": 38,
+            "scrollHeight": 32,
+            "whiteSpace": "nowrap",
+            "flex": "0 0 auto",
+            "pressed": "false",
+            "selected": false
+          }
+        ],
+        "display": "flex",
+        "wrap": "wrap",
+        "overflow": false
+      }
+    },
+    {
+      "name": "启用勾选框外观方正且保留手机触控面积",
+      "ok": true,
+      "data": {
+        "mobile": false,
+        "rows": [
+          {
+            "label": "防跑偏",
+            "button": {
+              "width": 20,
+              "height": 20,
+              "minWidth": "20px",
+              "minHeight": "20px"
+            },
+            "indicator": {
+              "width": 20,
+              "height": 20,
+              "text": "✓"
+            },
+            "checked": "true"
+          },
+          {
+            "label": "防神化",
+            "button": {
+              "width": 20,
+              "height": 20,
+              "minWidth": "20px",
+              "minHeight": "20px"
+            },
+            "indicator": {
+              "width": 20,
+              "height": 20,
+              "text": "✓"
+            },
+            "checked": "true"
+          },
+          {
+            "label": "人格内核",
+            "button": {
+              "width": 20,
+              "height": 20,
+              "minWidth": "20px",
+              "minHeight": "20px"
+            },
+            "indicator": {
+              "width": 20,
+              "height": 20,
+              "text": "✓"
+            },
+            "checked": "true"
+          }
+        ]
+      }
+    },
+    {
+      "name": "作用模块切换写入全局预设并在刷新后保留",
+      "ok": true,
+      "data": {
+        "before": {
+          "applyTo": [
+            "writing",
+            "outline"
+          ]
+        },
+        "toggled": {
+          "applyTo": [
+            "writing",
+            "outline",
+            "character"
+          ]
+        },
+        "toggledUi": {
+          "pressed": "true"
+        },
+        "after": {
+          "applyTo": [
+            "writing",
+            "outline",
+            "character"
+          ],
+          "pressed": "true"
+        }
+      }
+    },
+    {
+      "name": "预设布局与作用模块按钮 1366x900",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "legacyWidth": 345,
+        "left": 16,
+        "right": 361,
+        "viewport": 1366,
+        "listWidth": 319,
+        "buttons": [
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          }
+        ],
+        "toggles": [
+          {
+            "width": 20,
+            "height": 20,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 20,
+            "height": 20,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 20,
+            "height": 20,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "启用开关触控区域边缘可点且状态可逆 1366x900",
+      "ok": true,
+      "data": {
+        "point": {
+          "x": 32,
+          "y": 558,
+          "before": "true"
+        },
+        "before": "true",
+        "changed": "false",
+        "restored": "true"
+      }
+    },
+    {
+      "name": "预设布局与作用模块按钮 390x844",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "legacyWidth": 284.6875,
+        "left": 16,
+        "right": 300.6875,
+        "viewport": 390,
+        "listWidth": 258.6875,
+        "buttons": [
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          }
+        ],
+        "toggles": [
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "启用开关触控区域边缘可点且状态可逆 390x844",
+      "ok": true,
+      "data": {
+        "point": {
+          "x": 32,
+          "y": 521.2538452148438,
+          "before": "true"
+        },
+        "before": "true",
+        "changed": "false",
+        "restored": "true"
+      }
+    },
+    {
+      "name": "预设布局与作用模块按钮 320x568",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "legacyWidth": 226.59375,
+        "left": 16,
+        "right": 242.59375,
+        "viewport": 320,
+        "listWidth": 200.59375,
+        "buttons": [
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          }
+        ],
+        "toggles": [
+          {
+            "width": 44,
+            "height": 44.000030517578125,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20.000030517578125
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "启用开关触控区域边缘可点且状态可逆 320x568",
+      "ok": true,
+      "data": {
+        "point": {
+          "x": 32,
+          "y": 391.6715393066406,
+          "before": "true"
+        },
+        "before": "true",
+        "changed": "false",
+        "restored": "true"
+      }
+    },
+    {
+      "name": "预设布局与作用模块按钮 667x375",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "legacyWidth": 345,
+        "left": 16,
+        "right": 361,
+        "viewport": 667,
+        "listWidth": 319,
+        "buttons": [
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          },
+          {
+            "width": 38,
+            "height": 32,
+            "flex": "0 0 auto",
+            "whiteSpace": "nowrap",
+            "scrollHeight": 32
+          }
+        ],
+        "toggles": [
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          },
+          {
+            "width": 44,
+            "height": 44,
+            "indicatorWidth": 20,
+            "indicatorHeight": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "启用开关触控区域边缘可点且状态可逆 667x375",
+      "ok": true,
+      "data": {
+        "point": {
+          "x": 32,
+          "y": 286.75,
+          "before": "true"
+        },
+        "before": "true",
+        "changed": "false",
+        "restored": "true"
+      }
+    },
+    {
+      "name": "真实请求：旧预设作用模块开启才注入",
+      "ok": true,
+      "data": {
+        "enabledInjected": true,
+        "disabledExcluded": true
+      }
+    },
+    {
+      "name": "卷纲：三段衔接完整保存，超过2000字不截断",
+      "ok": true,
+      "data": {
+        "length": 2539,
+        "chapterLinesInSummary": true,
+        "second": true
+      }
+    },
+    {
+      "name": "Gemini测试输入仅作用于Gemini模型与原生协议，并只搬移本轮作者要求",
+      "ok": true,
+      "data": {
+        "adapters": [
+          "openai-compatible",
+          "anthropic-messages",
+          "gemini-generate"
+        ],
+        "geminiOnly": true,
+        "randomPrefix": false,
+        "manualOnly": true
+      }
+    },
+    {
+      "name": "Token真实用量：三种接口、0与缺失、多请求合计",
+      "ok": true,
+      "data": {
+        "samples": [
+          {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "reasoning": null
+          },
+          {
+            "prompt": 120,
+            "completion": null,
+            "cached": 30,
+            "total": null,
+            "reasoning": null
+          },
+          {
+            "prompt": 200,
+            "completion": 90,
+            "cached": 100,
+            "total": 290,
+            "reasoning": null
+          }
+        ],
+        "usage": {
+          "at": 1795326757138,
+          "prompt": 240,
+          "completion": 160,
+          "cached": 80,
+          "total": 400,
+          "reasoning": null
+        }
+      }
+    },
+    {
+      "name": "记忆：历史章补录、并发、增强向量与旧记忆合并保留源细节",
+      "ok": true,
+      "data": {
+        "total": 31,
+        "vectors": 31,
+        "groups": 1,
+        "originals": 5
+      }
+    },
+    {
+      "name": "记忆：旧章替换总结、最新原文保留、召回最多10条按时间排序",
+      "ok": true,
+      "data": {
+        "hits": 10,
+        "summary": true
+      }
+    },
+    {
+      "name": "记忆：正文重写立即失效、停用回退原文、支线隔离",
+      "ok": true,
+      "data": {
+        "staleExcluded": true,
+        "disabledUsesOriginal": true,
+        "branchIds": []
+      }
+    },
+    {
+      "name": "记忆：切书取消在途请求，书籍/Token/模型互不覆盖",
+      "ok": true,
+      "data": {
+        "fresh": {
+          "memory": 0,
+          "usage": null
+        },
+        "restored": 31,
+        "usage": {
+          "at": 1795326757138,
+          "prompt": 240,
+          "completion": 160,
+          "cached": 80,
+          "total": 400,
+          "reasoning": null
+        },
+        "model": "v18-summary",
+        "sameModel": true
+      }
+    },
+    {
+      "name": "自定义字数：桌面双击、小数保存、固定档位仍可选",
+      "ok": true,
+      "data": {
+        "value": 1234.5,
+        "editing": false
+      }
+    },
+    {
+      "name": "记忆工作台布局 1366",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 738,
+        "left": 598,
+        "right": 1336,
+        "inner": 1366
+      }
+    },
+    {
+      "name": "记忆工作台布局 390",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 352,
+        "left": 16,
+        "right": 368,
+        "inner": 390
+      }
+    },
+    {
+      "name": "手机长按字数：显示输入框且获得焦点",
+      "ok": true,
+      "data": {
+        "focused": true,
+        "value": 876.25
+      }
+    },
+    {
+      "name": "自动记录与真实写作请求接线：记忆和自定义字数进入请求，token更新",
+      "ok": true,
+      "data": {
+        "chapters": 4,
+        "recorded": 4,
+        "usage": {
+          "at": 1795326760171,
+          "prompt": 240,
+          "completion": 160,
+          "cached": 80,
+          "total": 400,
+          "reasoning": null
+        },
+        "volumeHandoffIncluded": true,
+        "geminiInputExcludedFromOpenAI": true
+      }
+    },
+    {
+      "name": "Token SSE：跨字节分段、累计快照不重复相加、缺失用量不冒充合计",
+      "ok": true,
+      "data": {
+        "result": "测试分段",
+        "cumulative": {
+          "at": 1795326761490,
+          "prompt": 120,
+          "completion": 80,
+          "cached": 40,
+          "total": 200,
+          "reasoning": null
+        },
+        "missing": {
+          "at": 1795326761497,
+          "prompt": null,
+          "completion": null,
+          "cached": null,
+          "total": null,
+          "reasoning": null
+        },
+        "gemini": {
+          "prompt": 100,
+          "completion": 50,
+          "cached": null,
+          "total": 150,
+          "reasoning": 30
+        }
+      }
+    },
+    {
+      "name": "记忆失败与停止：自动不重复重试、手动可补录，停止或换模型后旧结果不写入",
+      "ok": true,
+      "data": {
+        "failed": {
+          "calls": 1,
+          "rows": 0,
+          "error": "API 503: 测试临时失败"
+        },
+        "automatic": 1,
+        "retried": 1,
+        "stopped": 0,
+        "changed": 0,
+        "busy": false
+      }
+    },
+    {
+      "name": "记忆换向量模型：写作前补建索引，召回不混用旧模型；坏向量可重建",
+      "ok": true,
+      "data": {
+        "models": [
+          "[\"openai-compatible\",\"https://v18.invalid/v1\",\"v18-vector-next\"]"
+        ],
+        "hits": 3,
+        "recalled": true
+      }
+    },
+    {
+      "name": "字数输入边界：空值、非数字和越界不覆盖原值，固定选项可恢复",
+      "ok": true,
+      "data": {
+        "prior": 300.5,
+        "results": [
+          {
+            "value": 300.5,
+            "editing": true
+          },
+          {
+            "value": 300.5,
+            "editing": true
+          },
+          {
+            "value": 300.5,
+            "editing": true
+          },
+          {
+            "value": 300.5,
+            "editing": true
+          }
+        ],
+        "fixed": 1500
+      }
+    },
+    {
+      "name": "后卷真实写作：携带上一卷交接和本卷边界，自动记忆与自定义字数进入请求",
+      "ok": true,
+      "data": {
+        "count": 3,
+        "recorded": 3,
+        "handoffRows": 2,
+        "usage": {
+          "at": 1795326761822,
+          "prompt": 120,
+          "completion": 80,
+          "cached": 40,
+          "total": 200,
+          "reasoning": null
+        }
+      }
+    },
+    {
+      "name": "中断续写：旧稿保留，增强记忆与原输入接入，保存后自动记录",
+      "ok": true,
+      "data": {
+        "chapterId": "id_1795326762765_qbbhb54h",
+        "recorded": true,
+        "volumeHandoffIncluded": true,
+        "usage": {
+          "at": 1795326762773,
+          "prompt": 240,
+          "completion": 160,
+          "cached": 80,
+          "total": 400,
+          "reasoning": null
+        }
+      }
+    },
+    {
+      "name": "书籍导入：记忆随追加章节重映射、重复导入不叠加、全局模型连接不被改号",
+      "ok": true,
+      "data": {
+        "first": {
+          "chapters": 4,
+          "rows": 4,
+          "settings": {
+            "enabled": false,
+            "autoSummarize": false,
+            "replaceHistoryWithSummaries": false,
+            "mode": "classic",
+            "classicProfileId": "",
+            "classicModel": "",
+            "summaryKeepChapters": 10,
+            "classicConcurrency": 5
+          },
+          "ids": [
+            "id_1795326763717_ioeig84d",
+            "id_1795326763717_ldoqxaxm",
+            "id_1795326763717_xc7l0ay1",
+            "id_1795326763717_32j73gog"
+          ]
+        },
+        "count": 34,
+        "second": {
+          "count": 34,
+          "valid": 4
+        },
+        "replaced": {
+          "classic": "v18-profile",
+          "embedding": "v18-vector-next",
+          "valid": 4,
+          "ids": [
+            "v18-profile",
+            "memory-2",
+            "id_1795326761831_6xv6ir6z",
+            "id_1795326762765_qbbhb54h"
+          ]
+        },
+        "created": {
+          "classic": "v18-profile",
+          "embedding": "v18-vector-next",
+          "valid": 4,
+          "ids": [
+            "v18-profile",
+            "memory-2",
+            "id_1795326761831_6xv6ir6z",
+            "id_1795326762765_qbbhb54h"
+          ]
+        },
+        "expected": 4
+      }
+    },
+    {
+      "name": "章节迁移、最近N章原文与目标章节范围，不读取未来章节",
+      "ok": true,
+      "data": {
+        "keep": 7,
+        "chapters": 5,
+        "recentOriginal": 2
+      }
+    },
+    {
+      "name": "全局向量模型获取：使用默认API，手选保留，切站旧结果不污染新列表，错误可重试",
+      "ok": true,
+      "data": {
+        "defaultSite": true,
+        "manualSelection": true,
+        "staleExcluded": true,
+        "retried": true
+      }
+    },
+    {
+      "name": "向量失败和重复索引不阻断写作，回退逐章上下文；取消仍抛出",
+      "ok": true,
+      "data": {
+        "fallback": "[{\"role\":\"user\",\"content\":\"FALLBACK_WRITING\"}]",
+        "duplicate": "[{\"role\":\"user\",\"content\":\"FALLBACK_WRITING\"}]",
+        "vectors": 0,
+        "aborted": true
+      }
+    },
+    {
+      "name": "抗截断进入实际写作与记忆总结，工具外壳不进入章节，全局采样覆盖固定值",
+      "ok": true,
+      "data": {
+        "saved": true,
+        "recorded": true,
+        "temperature": 0.36,
+        "effort": "low"
+      }
+    },
+    {
+      "name": "记忆模型按钮与手选：加载状态、全局保存、切书不丢且无串书",
+      "ok": true,
+      "data": {
+        "loading": true,
+        "selected": "v18-ui-vector",
+        "other": {
+          "model": "v18-ui-vector",
+          "mixed": false
+        },
+        "returned": "v18-ui-vector",
+        "rows": 0
+      }
+    },
+    {
+      "name": "记忆补录按钮：两章正文各自总结并创建向量索引",
+      "ok": true,
+      "data": {
+        "busy": false,
+        "error": "",
+        "memories": [
+          {
+            "id": "ui-chapter-1",
+            "text": "记忆1：林舟在旧仓库将铜钥匙交给阿雪，约定次日到东门，守门人尚不知情。",
+            "vector": true
+          },
+          {
+            "id": "ui-chapter-2",
+            "text": "记忆2：林舟在旧仓库将铜钥匙交给阿雪，约定次日到东门，守门人尚不知情。",
+            "vector": true
+          }
+        ],
+        "labels": [
+          "第1章 按钮测试1 可用于写作停用重新记录",
+          "第2章 按钮测试2 可用于写作停用重新记录"
+        ]
+      }
+    },
+    {
+      "name": "记忆编辑、停用/启用与重新记录按钮：写作上下文实时更新",
+      "ok": true,
+      "data": {
+        "edited": "【前文剧情与长期记忆】\n第1章 按钮测试1\n【逐章记忆】\nUI_EDITED_MEMORY：阿雪保管钥匙。\n第2章 按钮测试2\nUI_CHAPTER_2：铜钥匙在阿雪手中。\n\n\n请继续写下一章。",
+        "cleared": true,
+        "disabled": "【前文剧情与长期记忆】\n第1章 按钮测试1\nUI_SUMMARY_1：铜钥匙由阿雪保管。\n第2章 按钮测试2\nUI_CHAPTER_2：铜钥匙在阿雪手中。\n\n\n请继续写下一章。",
+        "enabled": "【前文剧情与长期记忆】\n第1章 按钮测试1\n【逐章记忆】\nUI_EDITED_MEMORY：阿雪保管钥匙。\n第2章 按钮测试2\nUI_CHAPTER_2：铜钥匙在阿雪手中。\n\n\n请继续写下一章。",
+        "recorded": "记忆1：林舟在旧仓库将铜钥匙交给阿雪，约定次日到东门，守门人尚不知情。",
+        "error": ""
+      }
+    },
+    {
+      "name": "记忆停止按钮：取消在途补录，晚到响应不写入",
+      "ok": true,
+      "data": {
+        "running": true,
+        "busy": false,
+        "rows": 0,
+        "stopped": true
+      }
+    },
+    {
+      "name": "全局滑块交互与键盘焦点 1366x900",
+      "ok": true,
+      "data": {
+        "effort": "high",
+        "temp": 0.42,
+        "focus": true,
+        "label": "高（High）",
+        "heights": [
+          44,
+          44
+        ],
+        "left": 448,
+        "right": 912,
+        "viewport": 1366,
+        "overflow": false,
+        "text": "温度与思考强度全局设置，应用于所有书籍及模块；默认强度由模型决定。思考强度高（High）温度0.42Gemini抗截断Gemini 模型通过工具提交回复；其他模型保持普通输出。"
+      }
+    },
+    {
+      "name": "Gemini说明仅实验功能 1366",
+      "ok": true,
+      "data": "实验功能"
+    },
+    {
+      "name": "旧预设长文本可读与警告 1366x900",
+      "ok": true,
+      "data": {
+        "warning": true,
+        "left": 16,
+        "right": 361,
+        "width": 345,
+        "viewport": 1366,
+        "overflow": false,
+        "textareaWidth": 319,
+        "fontSize": 12
+      }
+    },
+    {
+      "name": "预设编辑弹窗居中、可读宽度、焦点与滚动 1366x900",
+      "ok": true,
+      "data": {
+        "left": 427,
+        "right": 939,
+        "width": 512,
+        "top": 195.0625,
+        "bottom": 704.9375,
+        "viewport": 1366,
+        "height": 900,
+        "overflow": false,
+        "scrollable": false,
+        "focused": true,
+        "saveVisible": true
+      }
+    },
+    {
+      "name": "预设弹窗 Escape 关闭并还原焦点 1366",
+      "ok": true,
+      "data": {
+        "closed": true,
+        "focus": "+ 新建"
+      }
+    },
+    {
+      "name": "全局向量选择与章节文案布局 1366x900",
+      "ok": true,
+      "data": {
+        "left": 615,
+        "right": 1319,
+        "selected": "v18-vector-next"
+      }
+    },
+    {
+      "name": "全局滑块交互与键盘焦点 390x844",
+      "ok": true,
+      "data": {
+        "effort": "high",
+        "temp": 0.42,
+        "focus": true,
+        "label": "高（High）",
+        "heights": [
+          44,
+          44
+        ],
+        "left": 21,
+        "right": 363,
+        "viewport": 390,
+        "overflow": false,
+        "text": "温度与思考强度全局设置，应用于所有书籍及模块；默认强度由模型决定。思考强度高（High）温度0.42Gemini抗截断Gemini 模型通过工具提交回复；其他模型保持普通输出。"
+      }
+    },
+    {
+      "name": "Gemini说明仅实验功能 390",
+      "ok": true,
+      "data": "实验功能"
+    },
+    {
+      "name": "旧预设长文本可读与警告 390x844",
+      "ok": true,
+      "data": {
+        "warning": true,
+        "left": 16,
+        "right": 300.6875,
+        "width": 284.6875,
+        "viewport": 390,
+        "overflow": false,
+        "textareaWidth": 258.6875,
+        "fontSize": 14
+      }
+    },
+    {
+      "name": "预设编辑弹窗居中、可读宽度、焦点与滚动 390x844",
+      "ok": true,
+      "data": {
+        "left": 0,
+        "right": 390,
+        "width": 390,
+        "top": 213.5625,
+        "bottom": 836,
+        "viewport": 390,
+        "height": 844,
+        "overflow": false,
+        "scrollable": false,
+        "focused": true,
+        "saveVisible": true
+      }
+    },
+    {
+      "name": "预设弹窗 Escape 关闭并还原焦点 390",
+      "ok": true,
+      "data": {
+        "closed": true,
+        "focus": "+ 新建"
+      }
+    },
+    {
+      "name": "全局向量选择与章节文案布局 390x844",
+      "ok": true,
+      "data": {
+        "left": 33,
+        "right": 351,
+        "selected": "v18-vector-next"
+      }
+    },
+    {
+      "name": "全局滑块交互与键盘焦点 320x568",
+      "ok": true,
+      "data": {
+        "effort": "high",
+        "temp": 0.42,
+        "focus": true,
+        "label": "高（High）",
+        "heights": [
+          44,
+          44
+        ],
+        "left": 21,
+        "right": 293,
+        "viewport": 320,
+        "overflow": false,
+        "text": "温度与思考强度全局设置，应用于所有书籍及模块；默认强度由模型决定。思考强度高（High）温度0.42Gemini抗截断Gemini 模型通过工具提交回复；其他模型保持普通输出。"
+      }
+    },
+    {
+      "name": "Gemini说明仅实验功能 320",
+      "ok": true,
+      "data": "实验功能"
+    },
+    {
+      "name": "旧预设长文本可读与警告 320x568",
+      "ok": true,
+      "data": {
+        "warning": true,
+        "left": 16,
+        "right": 242.59375,
+        "width": 226.59375,
+        "viewport": 320,
+        "overflow": false,
+        "textareaWidth": 200.59375,
+        "fontSize": 14
+      }
+    },
+    {
+      "name": "预设编辑弹窗居中、可读宽度、焦点与滚动 320x568",
+      "ok": true,
+      "data": {
+        "left": 0,
+        "right": 320,
+        "width": 320,
+        "top": 16,
+        "bottom": 560,
+        "viewport": 320,
+        "height": 568,
+        "overflow": false,
+        "scrollable": true,
+        "focused": true,
+        "saveVisible": true
+      }
+    },
+    {
+      "name": "预设弹窗 Escape 关闭并还原焦点 320",
+      "ok": true,
+      "data": {
+        "closed": true,
+        "focus": "+ 新建"
+      }
+    },
+    {
+      "name": "全局向量选择与章节文案布局 320x568",
+      "ok": true,
+      "data": {
+        "left": 33,
+        "right": 281,
+        "selected": "v18-vector-next"
+      }
+    },
+    {
+      "name": "全局滑块交互与键盘焦点 667x375",
+      "ok": true,
+      "data": {
+        "effort": "high",
+        "temp": 0.42,
+        "focus": true,
+        "label": "高（High）",
+        "heights": [
+          44,
+          44
+        ],
+        "left": 90.5,
+        "right": 570.5,
+        "viewport": 667,
+        "overflow": false,
+        "text": "温度与思考强度全局设置，应用于所有书籍及模块；默认强度由模型决定。思考强度高（High）温度0.42Gemini抗截断Gemini 模型通过工具提交回复；其他模型保持普通输出。"
+      }
+    },
+    {
+      "name": "Gemini说明仅实验功能 667",
+      "ok": true,
+      "data": "实验功能"
+    },
+    {
+      "name": "旧预设长文本可读与警告 667x375",
+      "ok": true,
+      "data": {
+        "warning": true,
+        "left": 16,
+        "right": 361,
+        "width": 345,
+        "viewport": 667,
+        "overflow": false,
+        "textareaWidth": 319,
+        "fontSize": 14
+      }
+    },
+    {
+      "name": "预设编辑弹窗居中、可读宽度、焦点与滚动 667x375",
+      "ok": true,
+      "data": {
+        "left": 77.5,
+        "right": 589.5,
+        "width": 512,
+        "top": 16,
+        "bottom": 367,
+        "viewport": 667,
+        "height": 375,
+        "overflow": false,
+        "scrollable": true,
+        "focused": true,
+        "saveVisible": true
+      }
+    },
+    {
+      "name": "预设弹窗 Escape 关闭并还原焦点 667",
+      "ok": true,
+      "data": {
+        "closed": true,
+        "focus": "+ 新建"
+      }
+    },
+    {
+      "name": "全局向量选择与章节文案布局 667x375",
+      "ok": true,
+      "data": {
+        "left": 33,
+        "right": 628,
+        "selected": "v18-vector-next"
+      }
+    },
+    {
+      "name": "设置开关位置与点击 gemini 1366",
+      "ok": true,
+      "data": {
+        "previous": "截断设置开启后，正文流式输出超过目标字数的 2.5 倍（最低 1200 字）时中止并保留草稿；当前为 1200 字。关闭后保留超长全文，不按字数拦截保存；服务商自身输出上限仍有效。",
+        "before": true,
+        "after": false,
+        "restored": true,
+        "width": 44,
+        "height": 24,
+        "hitHeight": 44,
+        "left": 868,
+        "right": 912,
+        "viewport": 1366,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置开关位置与点击 token 1366",
+      "ok": true,
+      "data": {
+        "previous": "显示思维链展示AI的思考过程（如DeepSeek的推理）",
+        "before": true,
+        "after": false,
+        "restored": true,
+        "width": 44,
+        "height": 24,
+        "hitHeight": 44,
+        "left": 868,
+        "right": 912,
+        "viewport": 1366,
+        "overflow": false
+      }
+    },
+    {
+      "name": "无MOD角色卡几何 空白角色 1366",
+      "ok": true,
+      "data": {
+        "width": 706,
+        "workbenchWidth": 982,
+        "left": 384,
+        "right": 1366,
+        "viewport": 1366,
+        "adjacent": true,
+        "ratios": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "overflow": false,
+        "mods": 0
+      }
+    },
+    {
+      "name": "无MOD角色卡几何 超长文本 1366",
+      "ok": true,
+      "data": {
+        "width": 706,
+        "workbenchWidth": 982,
+        "left": 384,
+        "right": 1366,
+        "viewport": 1366,
+        "adjacent": true,
+        "ratios": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "overflow": false,
+        "mods": 0
+      }
+    },
+    {
+      "name": "Token位置与三列排列 1366",
+      "ok": true,
+      "data": {
+        "text": "输入 120输出 80缓存命中 40",
+        "bottom": 699,
+        "inputTop": 703,
+        "cols": [
+          {
+            "x": 504,
+            "y": 683,
+            "text": "输入 120"
+          },
+          {
+            "x": 570.921875,
+            "y": 683,
+            "text": "输出 80"
+          },
+          {
+            "x": 632.25,
+            "y": 683,
+            "text": "缓存命中 40"
+          }
+        ],
+        "display": "flex"
+      }
+    },
+    {
+      "name": "设置开关位置与点击 gemini 390",
+      "ok": true,
+      "data": {
+        "previous": "截断设置开启后，正文流式输出超过目标字数的 2.5 倍（最低 1200 字）时中止并保留草稿；当前为 1200 字。关闭后保留超长全文，不按字数拦截保存；服务商自身输出上限仍有效。",
+        "before": true,
+        "after": false,
+        "restored": true,
+        "width": 44,
+        "height": 24,
+        "hitHeight": 46,
+        "left": 319,
+        "right": 363,
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "设置开关位置与点击 token 390",
+      "ok": true,
+      "data": {
+        "previous": "显示思维链展示AI的思考过程（如DeepSeek的推理）",
+        "before": true,
+        "after": false,
+        "restored": true,
+        "width": 44,
+        "height": 24,
+        "hitHeight": 46,
+        "left": 319,
+        "right": 363,
+        "viewport": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "无MOD角色卡几何 空白角色 390",
+      "ok": true,
+      "data": {
+        "width": 364,
+        "workbenchWidth": 390,
+        "left": 0,
+        "right": 390,
+        "viewport": 390,
+        "adjacent": true,
+        "ratios": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "overflow": false,
+        "mods": 0
+      }
+    },
+    {
+      "name": "无MOD角色卡几何 超长文本 390",
+      "ok": true,
+      "data": {
+        "width": 364,
+        "workbenchWidth": 390,
+        "left": 0,
+        "right": 390,
+        "viewport": 390,
+        "adjacent": true,
+        "ratios": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "overflow": false,
+        "mods": 0
+      }
+    },
+    {
+      "name": "Token位置与三列排列 390",
+      "ok": true,
+      "data": {
+        "text": "输入 120输出 80缓存命中 40",
+        "bottom": 693,
+        "inputTop": 700.609375,
+        "cols": [
+          {
+            "x": 21,
+            "y": 677,
+            "text": "输入 120"
+          },
+          {
+            "x": 87.921875,
+            "y": 677,
+            "text": "输出 80"
+          },
+          {
+            "x": 149.25,
+            "y": 677,
+            "text": "缓存命中 40"
+          }
+        ],
+        "display": "flex"
+      }
+    },
+    {
+      "name": "手机真实触摸长按：切换自定义字数并聚焦输入框",
+      "ok": true,
+      "data": {
+        "exists": true,
+        "focused": true
+      }
+    },
+    {
+      "name": "图片替代文字与布局 1366",
+      "ok": true,
+      "data": {
+        "avatar": "林舟头像",
+        "portrait": "林舟立绘，点击放大",
+        "cover": "《键盘验收》封面，点击放大",
+        "overflow": false
+      }
+    },
+    {
+      "name": "键盘图片预览、Tab与Escape焦点还原 立绘 1366",
+      "ok": true,
+      "data": {
+        "opened": {
+          "open": true,
+          "focus": true,
+          "label": "图片预览",
+          "height": 44,
+          "inside": true
+        },
+        "closed": {
+          "closed": true,
+          "restored": true,
+          "outline": "solid"
+        }
+      }
+    },
+    {
+      "name": "键盘图片预览、Tab与Escape焦点还原 封面 1366",
+      "ok": true,
+      "data": {
+        "opened": {
+          "open": true,
+          "focus": true,
+          "label": "图片预览",
+          "height": 44,
+          "inside": true
+        },
+        "closed": {
+          "closed": true,
+          "restored": true,
+          "outline": "solid"
+        }
+      }
+    },
+    {
+      "name": "SVG角色头像及节点可访问名称 1366",
+      "ok": true,
+      "data": {
+        "node": "选择角色 林舟",
+        "image": "林舟头像",
+        "role": "img"
+      }
+    },
+    {
+      "name": "系统动态效果切换 1366 no-preference",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "smooth"
+          }
+        ],
+        "main": "smooth",
+        "transition": "0.2s, 0.2s",
+        "animation": "0.6s",
+        "iterations": "infinite"
+      }
+    },
+    {
+      "name": "系统动态效果切换 1366 reduce",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "auto"
+          }
+        ],
+        "main": "auto",
+        "transition": "1e-05s",
+        "animation": "1e-05s",
+        "iterations": "1"
+      }
+    },
+    {
+      "name": "系统动态效果切换 1366 no-preference",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "smooth"
+          }
+        ],
+        "main": "smooth",
+        "transition": "0.2s, 0.2s",
+        "animation": "0.6s",
+        "iterations": "infinite"
+      }
+    },
+    {
+      "name": "图片替代文字与布局 390",
+      "ok": true,
+      "data": {
+        "avatar": "林舟头像",
+        "portrait": "林舟立绘，点击放大",
+        "cover": "《键盘验收》封面，点击放大",
+        "overflow": false
+      }
+    },
+    {
+      "name": "键盘图片预览、Tab与Escape焦点还原 立绘 390",
+      "ok": true,
+      "data": {
+        "opened": {
+          "open": true,
+          "focus": true,
+          "label": "图片预览",
+          "height": 44,
+          "inside": true
+        },
+        "closed": {
+          "closed": true,
+          "restored": true,
+          "outline": "solid"
+        }
+      }
+    },
+    {
+      "name": "键盘图片预览、Tab与Escape焦点还原 封面 390",
+      "ok": true,
+      "data": {
+        "opened": {
+          "open": true,
+          "focus": true,
+          "label": "图片预览",
+          "height": 44,
+          "inside": true
+        },
+        "closed": {
+          "closed": true,
+          "restored": true,
+          "outline": "solid"
+        }
+      }
+    },
+    {
+      "name": "SVG角色头像及节点可访问名称 390",
+      "ok": true,
+      "data": {
+        "node": "选择角色 林舟",
+        "image": "林舟头像",
+        "role": "img"
+      }
+    },
+    {
+      "name": "系统动态效果切换 390 no-preference",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "smooth"
+          }
+        ],
+        "main": "smooth",
+        "transition": "0.2s, 0.2s",
+        "animation": "0.6s",
+        "iterations": "infinite"
+      }
+    },
+    {
+      "name": "系统动态效果切换 390 reduce",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "auto"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "auto"
+          }
+        ],
+        "main": "auto",
+        "transition": "1e-05s",
+        "animation": "1e-05s",
+        "iterations": "1"
+      }
+    },
+    {
+      "name": "系统动态效果切换 390 no-preference",
+      "ok": true,
+      "data": {
+        "calls": [
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollBy",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollIntoView",
+            "behavior": "smooth"
+          },
+          {
+            "method": "scrollTo",
+            "behavior": "smooth"
+          }
+        ],
+        "main": "smooth",
+        "transition": "0.2s, 0.2s",
+        "animation": "0.6s",
+        "iterations": "infinite"
+      }
+    },
+    {
+      "name": "新建书籍按钮的可访问名称",
+      "ok": true,
+      "data": {
+        "label": "新建书籍",
+        "text": "新建书籍",
+        "icon": "true"
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 book-review 1366",
+      "ok": true,
+      "data": {
+        "width": 900,
+        "left": 233,
+        "right": 1133,
+        "viewport": 1366,
+        "scrollWidth": 900,
+        "clientWidth": 900,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 branch-panel 1366",
+      "ok": true,
+      "data": {
+        "width": 520,
+        "left": 423,
+        "right": 943,
+        "viewport": 1366,
+        "scrollWidth": 518,
+        "clientWidth": 518,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 book-review 390",
+      "ok": true,
+      "data": {
+        "width": 390,
+        "left": 0,
+        "right": 390,
+        "viewport": 390,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 branch-panel 390",
+      "ok": true,
+      "data": {
+        "width": 390,
+        "left": 0,
+        "right": 390,
+        "viewport": 390,
+        "scrollWidth": 388,
+        "clientWidth": 388,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 book-review 320",
+      "ok": true,
+      "data": {
+        "width": 320,
+        "left": 0,
+        "right": 320,
+        "viewport": 320,
+        "scrollWidth": 320,
+        "clientWidth": 320,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 branch-panel 320",
+      "ok": true,
+      "data": {
+        "width": 320,
+        "left": 0,
+        "right": 320,
+        "viewport": 320,
+        "scrollWidth": 318,
+        "clientWidth": 318,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 book-review 667",
+      "ok": true,
+      "data": {
+        "width": 667,
+        "left": 0,
+        "right": 667,
+        "viewport": 667,
+        "scrollWidth": 667,
+        "clientWidth": 667,
+        "overflow": false
+      }
+    },
+    {
+      "name": "max-width误报实际弹窗尺寸 branch-panel 667",
+      "ok": true,
+      "data": {
+        "width": 667,
+        "left": 0,
+        "right": 667,
+        "viewport": 667,
+        "scrollWidth": 665,
+        "clientWidth": 665,
+        "overflow": false
+      }
+    },
+    {
+      "name": "搜索目录锚点：静态与团队动态目标都存在且排除关于",
+      "ok": true,
+      "data": {
+        "targets": 54,
+        "dynamic": [
+          {
+            "id": "settings-search-team-planner",
+            "exists": true
+          },
+          {
+            "id": "settings-search-team-settings",
+            "exists": true
+          },
+          {
+            "id": "settings-search-team-character",
+            "exists": true
+          },
+          {
+            "id": "settings-search-team-outline",
+            "exists": true
+          },
+          {
+            "id": "settings-search-team-review",
+            "exists": true
+          }
+        ],
+        "includesAbout": false
+      }
+    },
+    {
+      "name": "设置搜索：中文单字、错序词、拼音与相邻换位容错",
+      "ok": true,
+      "data": {
+        "single": [
+          "全局温度与思考强度"
+        ],
+        "reordered": [
+          "章节摘要数量",
+          "发送章节摘要",
+          "正文参考资料开关",
+          "发送长期总结"
+        ],
+        "pinyin": [
+          "全局温度与思考强度",
+          "连接中心｜API 配置",
+          "发送最近正文"
+        ],
+        "transposed": [
+          "全局温度与思考强度",
+          "连接中心｜API 配置",
+          "发送最近正文"
+        ],
+        "multi": [
+          "全局温度与思考强度"
+        ],
+        "memory": [
+          "创作设定工作台与记忆库入口",
+          "模块模型分配｜AI总结",
+          "前文字数上限"
+        ],
+        "typo": [
+          "首字超时"
+        ]
+      }
+    },
+    {
+      "name": "设置搜索：只查全局设置，不包含关于",
+      "ok": true,
+      "data": {
+        "results": [],
+        "empty": "没有找到相关设置。可尝试单字、错序关键词或拼音，例如“温”“章摘”“wednu”。这里只搜索全局设置，不包含“关于”。"
+      }
+    },
+    {
+      "name": "设置搜索：Enter 跳到首字超时控件",
+      "ok": true,
+      "data": {
+        "tab": "context",
+        "query": "",
+        "focused": false,
+        "target": true
+      }
+    },
+    {
+      "name": "设置搜索：生图结果落在可见开关，不落到隐藏锚点",
+      "ok": true,
+      "data": {
+        "tab": "image",
+        "visible": true,
+        "label": "生图功能AI自动插入场景图片",
+        "scrolled": false
+      }
+    },
+    {
+      "name": "上下文模块入口：描述齐全，黄色链接逐项抵达对应页面",
+      "ok": true,
+      "data": {
+        "moduleCount": 13,
+        "described": 13,
+        "modelLinks": 14,
+        "workbenchLinks": 6,
+        "linkColor": "rgb(251, 191, 36)",
+        "destinations": [
+          "正文生成→正文续写",
+          "续写补写→正文补写",
+          "沉浸模式 AI 扩写→沉浸模式 AI 扩写",
+          "沉浸模式 AI 续写→沉浸模式 AI 续写",
+          "设定模块→设定补全",
+          "角色模块→角色卡",
+          "封面/立绘→封面与立绘",
+          "大纲模块→大纲与细纲",
+          "预设模块→AI 建议",
+          "预设模块→提示词预设",
+          "AI书评→章节书评",
+          "AI总结→章节总结",
+          "AI总结→记忆库",
+          "AI评论→读者评论"
+        ],
+        "translateReserved": true
+      }
+    },
+    {
+      "name": "记忆库入口：手机视口直达正确栏目",
+      "ok": true,
+      "data": {
+        "before": {
+          "target": true,
+          "visible": false
+        },
+        "after": {
+          "modal": false,
+          "workbench": true,
+          "section": "memory",
+          "mobileSidebar": false,
+          "visible": true,
+          "width": 352,
+          "viewport": 390
+        }
+      }
+    },
+    {
+      "name": "搜索遮挡：输入时模糊且 inert，点遮罩后立即还原",
+      "ok": true,
+      "data": {
+        "during": {
+          "inert": true,
+          "filter": "blur(4px)"
+        },
+        "after": {
+          "focused": false,
+          "query": "",
+          "inert": false,
+          "filter": "none",
+          "backdrop": false
+        }
+      }
+    },
+    {
+      "name": "设置搜索：Escape 清空搜索并解除遮挡",
+      "ok": true,
+      "data": {
+        "focused": false,
+        "query": "",
+        "inert": false,
+        "filter": "none"
+      }
+    },
+    {
+      "name": "正文 Markdown：波浪线显示为原文，常规格式与代码不变",
+      "ok": true,
+      "data": {
+        "html": "<p>前文&#126;&#126;保留波浪线&#126;&#126;后文 <strong>加粗</strong>，行内 <code>~~代码~~</code>。</p>\n<pre><code class=\"language-text\">~~围栏代码~~\n</code></pre>\n",
+        "text": "前文~~保留波浪线~~后文 加粗，行内 ~~代码~~。\n~~围栏代码~~\n\n",
+        "bold": true,
+        "inline": "~~代码~~",
+        "block": "~~围栏代码~~\n",
+        "cotDel": 0
+      }
+    },
+    {
+      "name": "设置搜索响应式与触控布局 1366x900",
+      "ok": true,
+      "data": {
+        "viewport": 1366,
+        "scrollWidth": 1366,
+        "overflow": false,
+        "panel": {
+          "left": 427,
+          "right": 939,
+          "width": 512,
+          "height": 828
+        },
+        "area": {
+          "left": 448,
+          "right": 912,
+          "width": 464,
+          "height": 46
+        },
+        "control": {
+          "left": 448,
+          "right": 912,
+          "width": 464,
+          "height": 46
+        },
+        "list": {
+          "left": 448,
+          "right": 912,
+          "width": 464,
+          "height": 188
+        },
+        "bodyInert": true,
+        "results": 4
+      }
+    },
+    {
+      "name": "设置搜索响应式与触控布局 390x844",
+      "ok": true,
+      "data": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "overflow": false,
+        "panel": {
+          "left": 0,
+          "right": 390,
+          "width": 390,
+          "height": 820
+        },
+        "area": {
+          "left": 21,
+          "right": 363,
+          "width": 342,
+          "height": 54
+        },
+        "control": {
+          "left": 21,
+          "right": 363,
+          "width": 342,
+          "height": 54
+        },
+        "list": {
+          "left": 21,
+          "right": 363,
+          "width": 342,
+          "height": 188
+        },
+        "bodyInert": true,
+        "results": 4
+      }
+    },
+    {
+      "name": "设置搜索响应式与触控布局 320x568",
+      "ok": true,
+      "data": {
+        "viewport": 320,
+        "scrollWidth": 320,
+        "overflow": false,
+        "panel": {
+          "left": 0,
+          "right": 320,
+          "width": 320,
+          "height": 544
+        },
+        "area": {
+          "left": 21,
+          "right": 293,
+          "width": 272,
+          "height": 54
+        },
+        "control": {
+          "left": 21,
+          "right": 293,
+          "width": 272,
+          "height": 54
+        },
+        "list": {
+          "left": 21,
+          "right": 293,
+          "width": 272,
+          "height": 188
+        },
+        "bodyInert": true,
+        "results": 4
+      }
+    },
+    {
+      "name": "设置搜索响应式与触控布局 667x375",
+      "ok": true,
+      "data": {
+        "viewport": 667,
+        "scrollWidth": 667,
+        "overflow": false,
+        "panel": {
+          "left": 77.5,
+          "right": 589.5,
+          "width": 512,
+          "height": 367
+        },
+        "area": {
+          "left": 90.5,
+          "right": 570.5,
+          "width": 480,
+          "height": 54
+        },
+        "control": {
+          "left": 90.5,
+          "right": 570.5,
+          "width": 480,
+          "height": 54
+        },
+        "list": {
+          "left": 90.5,
+          "right": 570.5,
+          "width": 480,
+          "height": 157.5
+        },
+        "bodyInert": true,
+        "results": 4
+      }
+    },
+    {
+      "name": "设置弹窗滚动边界：上下栏不重叠，滑块不越界",
+      "ok": true,
+      "data": {
+        "before": {
+          "panel": {
+            "top": 4,
+            "bottom": 371,
+            "left": 77.5,
+            "right": 589.5,
+            "width": 512,
+            "height": 367
+          },
+          "header": {
+            "top": 5,
+            "bottom": 63,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 58
+          },
+          "footer": {
+            "top": 309,
+            "bottom": 370,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 61
+          },
+          "shell": {
+            "top": 123,
+            "bottom": 309,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 186
+          },
+          "shellScrollTop": 0,
+          "shellScrollHeight": 721,
+          "shellClientHeight": 186,
+          "panelOverflow": "hidden",
+          "display": "flex",
+          "borderTop": "1px",
+          "borderBottom": "1px",
+          "card": {
+            "top": 553.5,
+            "bottom": 835.5,
+            "left": 90.5,
+            "right": 570.5,
+            "width": 480,
+            "height": 282
+          },
+          "ranges": [
+            {
+              "top": 638,
+              "bottom": 682,
+              "left": 103.5,
+              "right": 557.5,
+              "width": 454,
+              "height": 44
+            },
+            {
+              "top": 719,
+              "bottom": 763,
+              "left": 103.5,
+              "right": 557.5,
+              "width": 454,
+              "height": 44
+            }
+          ]
+        },
+        "after": {
+          "panel": {
+            "top": 4,
+            "bottom": 371,
+            "left": 77.5,
+            "right": 589.5,
+            "width": 512,
+            "height": 367
+          },
+          "header": {
+            "top": 5,
+            "bottom": 63,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 58
+          },
+          "footer": {
+            "top": 309,
+            "bottom": 370,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 61
+          },
+          "shell": {
+            "top": 123,
+            "bottom": 309,
+            "left": 78.5,
+            "right": 588.5,
+            "width": 510,
+            "height": 186
+          },
+          "shellScrollTop": 535,
+          "shellScrollHeight": 721,
+          "shellClientHeight": 186,
+          "panelOverflow": "hidden",
+          "display": "flex",
+          "borderTop": "1px",
+          "borderBottom": "1px",
+          "card": {
+            "top": 18.5,
+            "bottom": 300.5,
+            "left": 90.5,
+            "right": 570.5,
+            "width": 480,
+            "height": 282
+          },
+          "ranges": [
+            {
+              "top": 103,
+              "bottom": 147,
+              "left": 103.5,
+              "right": 557.5,
+              "width": 454,
+              "height": 44
+            },
+            {
+              "top": 184,
+              "bottom": 228,
+              "left": 103.5,
+              "right": 557.5,
+              "width": 454,
+              "height": 44
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "保存刷新：记忆库、旧预设开关、自定义字数及Token恢复",
+      "ok": true,
+      "data": {
+        "records": 35,
+        "usage": {
+          "at": 1795326764239,
+          "prompt": 120,
+          "completion": 80,
+          "cached": 40,
+          "total": 200,
+          "reasoning": null
+        },
+        "wordCount": 300.5,
+        "old": "V18_LEGACY_SCOPE",
+        "oldEnabled": false,
+        "gemini": true,
+        "token": true,
+        "temperature": 0.42,
+        "effort": "high",
+        "anti": true,
+        "embedding": "v18-vector-next"
+      }
+    }
+  ],
+  "errors": []
+}

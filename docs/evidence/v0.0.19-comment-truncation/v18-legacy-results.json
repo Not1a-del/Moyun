@@ -1,0 +1,113 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "旧版浏览器回归 v17-preset-smoke.cjs",
+      "ok": true,
+      "data": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "旧版浏览器回归 v17-preset-transfer-browser.cjs",
+      "ok": true,
+      "data": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "旧版浏览器回归 v17-image-suggestion-browser.cjs",
+      "ok": true,
+      "data": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "旧版浏览器回归 v17-image-boundary-browser.cjs",
+      "ok": true,
+      "data": {
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "旧版浏览器回归 v17-image-correction-browser.cjs",
+      "ok": true,
+      "data": {
+        "passed": true,
+        "results": [
+          {
+            "name": "确认弹窗只有取消、AI 改词、直接重生三个按钮，PC/手机顺序正确且取消不请求",
+            "ok": true
+          },
+          {
+            "name": "AI 重生读取当前正文且使用封面立绘专用模型，新词传入生图并入库",
+            "ok": true,
+            "data": {
+              "model": "cover-portrait-model",
+              "tag": "fresh sailboat, girl on deck"
+            }
+          },
+          {
+            "name": "PC 悬停样式显示、解除后隐藏，图片点击打开预览",
+            "ok": true,
+            "data": {
+              "hover": true,
+              "leave": true,
+              "preview": true
+            }
+          },
+          {
+            "name": "正文编辑显示当前提示词，蓝色箭头切换历史并同步图片",
+            "ok": true
+          },
+          {
+            "name": "手动编辑提示词直接生图，不调用文本 AI，追加第三版",
+            "ok": true
+          },
+          {
+            "name": "手机控件缩小、可触达且不重叠，编辑提示词历史清晰",
+            "ok": true
+          },
+          {
+            "name": "文本失败或空回不提交图片、不丢历史",
+            "ok": true
+          },
+          {
+            "name": "AI 读词期间修改正文，旧结果不提交图片",
+            "ok": true
+          },
+          {
+            "name": "旧版本选中后保存和刷新，图片及提示词仍对应",
+            "ok": true
+          },
+          {
+            "name": "右侧直接按当前选中旧版的词重生，无文本 AI 配置也可用，忽略未提交草稿",
+            "ok": true,
+            "data": {
+              "current": 3,
+              "tags": [
+                "original lighthouse",
+                "fresh sailboat, girl on deck",
+                "manual tags, [[soft light]]",
+                "fresh sailboat, girl on deck"
+              ]
+            }
+          },
+          {
+            "name": "失败只弹一次原有提示，图片下不留错误，重绘不重试，手动再次失败仍提示",
+            "ok": true
+          },
+          {
+            "name": "无旧图首次失败也清除图下错误并阻止自动再次提交",
+            "ok": true
+          },
+          {
+            "name": "等待时收起章节仍提示一次失败，切换书籍后不弹旧任务错误",
+            "ok": true
+          }
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

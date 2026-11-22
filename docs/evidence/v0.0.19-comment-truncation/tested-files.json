@@ -1,0 +1,22 @@
+{
+  "productCommit": "8826d7e",
+  "verificationCommit": "aebf8c1",
+  "files": [
+    {
+      "path": "source/moyun.single.html",
+      "sha256": "f64893cb55ace6f997078d97d7b0da735f54b9cdde33f0876cac6782f4252de6"
+    },
+    {
+      "path": "index.html",
+      "sha256": "173db991dbadbf4c2075bdf7f18f5c3cf816958e4c03f023fc29e4b8d41594a9"
+    },
+    {
+      "path": "assets/js/moyun.js",
+      "sha256": "ed7747321041bd7b6ef3cf511d9b29159c5a635116cde3456d70c564025996c6"
+    },
+    {
+      "path": "assets/css/moyun.css",
+      "sha256": "641097fe1676c1e180fa233ea1b94162d939041567de4064048c07d97dc3a015"
+    }
+  ]
+}
