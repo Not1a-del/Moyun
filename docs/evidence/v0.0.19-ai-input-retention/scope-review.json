@@ -1,0 +1,25 @@
+{
+  "baseline": "d094253fb7233a22348fbd8e773ed07b079c70c9",
+  "rows": [
+    {
+      "name": "normalizeContextSettings",
+      "unchanged": true,
+      "sha256": "f3c7849abd55cafa2b1b3e2fe2de4c81e9815379edb900d9b2d13cdc5607b340"
+    },
+    {
+      "name": "buildOutlineContext",
+      "unchanged": true,
+      "sha256": "fc80eb01a3116abd8b28088860ae6384df173cfc8f6de5fb7a735c01e5a33aa9"
+    },
+    {
+      "name": "normalizeMemoryLibrary",
+      "unchanged": true,
+      "sha256": "b10bf6fb83f46beb11bc9114b9e0a1bbe8e24f559f8ccc93d39e7959c1cf7834"
+    },
+    {
+      "name": "buildChapterMessages",
+      "unchanged": true,
+      "sha256": "f2ac415c91a0223f8989f0fc963b2ecd13076cd82aeb70b444ef855da2387240"
+    }
+  ]
+}

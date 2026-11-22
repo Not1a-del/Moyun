@@ -18,6 +18,7 @@ async function main(){
     c=await require('./v16-r2-browser-session.cjs').connect(cdp,base);
     await c.navigate();
     await c.ev(()=>{window.__s=document.querySelector('#app').__vue_app__._instance.proxy.$.setupState;});
+    if(process.argv.includes('--ai-input-retention')){await require('./v19-ai-input-retention-browser.cjs')(c);return;}
     if(process.argv.includes('--comment-truncation')){await require('./v19-comment-truncation-browser.cjs')(c);return;}
     if(process.argv.includes('--chapter-settings-lifecycle')){await require('./v19-context-chapter-lifecycle-browser.cjs')(c,{expectReset:process.argv.includes('--expect-reset')});return;}
     if(process.argv.includes('--chapter-settings')){await require('./v19-context-chapter-settings-browser.cjs')(c);return;}

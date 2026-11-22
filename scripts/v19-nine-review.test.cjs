@@ -22,14 +22,14 @@ function teamHarness(){
  const payload={characters:[{name:'甲',desc:'守灯人',personalityTags:['冷静'],dialogueType:'quiet',speakingStyle:'只说短句',exampleDialogues:['灯还亮着。'],characterPrompt:'动作中表现克制',avatarPrompt:'portrait lighthouse',relationships:[{targetName:'乙',type:'朋友',attitude:'信任'}]},{name:'乙',desc:'守港人',dialogueType:'quiet',relationships:[]}],dialogueStyles:[{id:'quiet',label:'克制',prompt:'冷静短句模板',isCustom:true}],presets:[{content:''}],styles:[{prompt:''}],pipeline:{pre:'不应写入'}};
  const c={ref,computed,Date,AbortController,DOMException,deepClone:clone,uid:()=> 'id-'+(++serial),
   teamPlan:ref({titleCandidates:['团队书'],characters:[{name:'甲'},{name:'乙'}],volumes:[{number:1,title:'卷一',startChapter:1,endChapter:2}]}),teamBrief:ref('甲与乙守灯'),teamBlocks:ref([{id:'characters',status:'pending'}]),teamDraft:ref(null),_teamAbort:null,
-  teamAppendMode:false,teamExistingBookId:'',currentBookId:ref('old-book'),books:ref([{id:'old-book',title:'原书'}]),novel:ref({title:'原书',volumes:[]}),
+  teamAppendMode:false,teamExistingBookId:'',aiInputDrafts:new Map([['team-fixture',{brief:'甲与乙守灯'}]]),teamInputScope:'team-fixture',newBookInputCompleted:false,currentBookId:ref('old-book'),books:ref([{id:'old-book',title:'原书'}]),novel:ref({title:'原书',volumes:[]}),
   visibleChapters:ref([]),chapterOutlines:ref([]),chapterIndexDrafts:ref([]),foreshadowMatrix:ref([]),structuredCharacters:ref([]),dialogueTypes:ref([{id:'old-type',label:'原类型',prompt:'原模板'}]),
   showNewBook:ref(true),showToast(){},normalizeNovelVolumes:clone,normalizeChapterIndexDrafts:clone,normalizeForeshadowMatrix:clone,normalizeCharacterProfile:character=>character,createCharacterRelationshipRecord:row=>({id:'relation-'+(++serial),...row}),
   buildTeamSettingTable:()=> '设定总表',getModuleRequestConfig:key=>({ok:true,key}),
   okStreamFetch:async(prompt,key)=>{calls.push({prompt,key});return JSON.stringify(payload);},repairAiStructured:async()=>({ok:true,value:clone(payload)}),saveSnapshot:async()=>({ok:true}),syncBookData(){},
   createNewBook(title){const id='new-book';c.books.value.push({id,title});return id;},loadBook(id){c.currentBookId.value=id;c.novel.value={title:c.books.value.find(b=>b.id===id).title,volumes:[]};c.structuredCharacters.value=[];return true;},
   saveData(){},saveDataNow:async reason=>{saves.push({reason,characters:clone(c.structuredCharacters.value),dialogueTypes:clone(c.dialogueTypes.value),novel:clone(c.novel.value)});return true;},runModEventHandlers(){}};
- vm.createContext(c);vm.runInContext([fn('sanitizeCharacterGenerationResult'),fn('teamSpecialistPrompt'),fn('runTeamBlock'),section('    function normalizeTeamCharacters(','    async function reviewTeamDraft('),fn('commitTeamDraft')].join('\n'),c);
+ vm.createContext(c);vm.runInContext([fn('sanitizeCharacterGenerationResult'),fn('teamSpecialistPrompt'),fn('runTeamBlock'),section('    function normalizeTeamCharacters(','    async function reviewTeamDraft('),fn('finishTeamBookInput'),fn('commitTeamDraft')].join('\n'),c);
  return {c,saves,calls};
 }
 test('团队角色保留关系、立绘提示和对话模板，提交后同书保存且不带全书配置',async()=>{
@@ -41,6 +41,7 @@ test('团队角色保留关系、立绘提示和对话模板，提交后同书�
  assert.equal(c.teamDraft.value.characters.find(row=>row.name==='甲').avatarPrompt,'portrait lighthouse');
  assert.equal(c.teamDraft.value.dialogueStyles.find(row=>row.id==='quiet').prompt,'冷静短句模板');
  assert.equal(await c.commitTeamDraft(),true);
+ assert.equal(c.newBookInputCompleted,true);assert.equal(c.aiInputDrafts.has('team-fixture'),false);
  const saved=saves.at(-1),first=saved.characters.find(row=>row.name==='甲'),second=saved.characters.find(row=>row.name==='乙');
  assert.equal(first.dialogueType,'quiet');assert.equal(first.speakingStyle,'只说短句');assert.equal(first.avatarPrompt,'portrait lighthouse');
  assert.ok(first.relationships.some(row=>row.targetId===second.id&&row.type==='朋友'),'关系应指向同书角色稳定 id');

@@ -1,0 +1,40 @@
+{
+  "baseline": "d094253fb7233a22348fbd8e773ed07b079c70c9",
+  "method": "从git读取改前真实函数和模板点击表达式，在隔离VM执行，不修改用户书库",
+  "rows": [
+    {
+      "entry": "aiCharDesc",
+      "handler": "showAiCharModal=true;aiCharDesc=''",
+      "before": "作者角色要求",
+      "after": "",
+      "count": 7
+    },
+    {
+      "entry": "batchCharPrompt",
+      "handler": "showBatchCharModal=true;batchCharCount=3;batchCharPrompt=''",
+      "before": "作者批量要求",
+      "after": "",
+      "count": 3
+    },
+    {
+      "entry": "openNewBookModal",
+      "before": {
+        "theme": "作者主题",
+        "title": "作者书名",
+        "worldView": "作者世界观"
+      },
+      "after": {
+        "theme": "",
+        "title": "",
+        "worldView": "",
+        "charCount": 3,
+        "strictTheme": false
+      }
+    },
+    {
+      "entry": "openAiEdit",
+      "before": "作者修改要求",
+      "after": ""
+    }
+  ]
+}

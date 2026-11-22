@@ -14,6 +14,7 @@ function harness(extra={}){
     teamPlan:{value:plan},teamBrief:{value:'主角在雾港寻找旧灯'},teamPlanOptions:{unfinishedMode:true,chapterCount:3},
     teamBlocks:{value:[]},teamDraft:{value:null},teamReview:{value:null},teamPhase:{value:'input'},oneKeyPhase:{value:'config'},teamRawView:{value:''},
     _teamAbort:null,_teamRunId:0,teamAppendMode:false,teamExistingBookId:'',
+    aiInputDrafts:new Map([['team-fixture',{brief:'待提交的要求'}]]),teamInputScope:'team-fixture',newBookInputCompleted:false,
     settings:{value:{detailedOutlineBatchSize:3}},moduleModelConfig:[],confirmStorageHeadroom:async()=>true,
     normalizeNovelVolumes:rows=>clone(rows),normalizeChapterIndexDrafts:rows=>clone(rows),normalizeForeshadowMatrix:rows=>clone(rows),
     getModuleRequestConfig:key=>({ok:true,module:key}),
@@ -24,6 +25,7 @@ function harness(extra={}){
   });
   vm.runInContext(extract('    function parseAiJsonSyntax(', '    function parseCharacterAiJsonEnvelope('),ctx);
   vm.runInContext(extract('    function sanitizeCharacterGenerationResult(', '    function getOneKeyRequiredModelKeys('),ctx);
+  vm.runInContext(extract('    function finishTeamBookInput(', '    function activateTeamBookInput('),ctx);
   vm.runInContext(extract('    function parseChapterNoValue(', '    // v0.0.11 修复3：细纲流式落卡'),ctx);
   vm.runInContext(extract('    function validateVolumeRanges(', '    async function prepareVolumePlan(')+extract('    function teamPlanFallback(', '    function getOneKeyDetailedChapterCount('),ctx);
   const queue=values=>{ctx.okStreamFetch=async(prompt,modelKey,signal,options)=>{calls.push({prompt,modelKey,aborted:signal?.aborted,options:clone(options)});const value=values.shift();if(value instanceof Error)throw value;if(value===undefined)throw Error('Fake response queue exhausted');return typeof value==='function'?value({signal,prompt,options}):value;};};
@@ -158,6 +160,7 @@ for(const append of [false,true])test((append?'append':'new book')+' concurrent 
   assert.equal(await second,false);assert.equal(h.ctx.books.value.length,1);assert.equal(h.writes.length,0);
   release({ok:true});assert.equal(await first,true);
   assert.equal(h.ctx.teamDraft.value,null,'Successful draft must be consumed');assert.equal(h.ctx.showNewBook.value,false);assert.equal(h.writes.length,1);
+  assert.equal(h.ctx.newBookInputCompleted,true);assert.equal(h.ctx.aiInputDrafts.has('team-fixture'),false);
   assert.equal(await h.ctx.commitTeamDraft(),false,'Consumed draft cannot be submitted again');assert.equal(h.snapshots.length,1);
   assert.equal(h.ctx.books.value.length,append?1:2);assert.equal(h.created.length,append?0:1);
   assert.equal(h.ctx.chapterOutlines.value.filter(row=>row.content==='新细纲哨兵').length,1);
@@ -166,6 +169,7 @@ for(const append of [false,true])test((append?'append':'new book')+' concurrent 
 test('failed draft save restores the original book and permits a deliberate retry',async()=>{
   const h=commitHarness();h.ctx.saveDataNow=async()=>false;
   assert.equal(await h.ctx.commitTeamDraft(),false);assert.equal(h.ctx.books.value.length,1);assert.equal(h.ctx.currentBookId.value,'original');assert.equal(h.ctx.novel.value.outline,'原大纲');assert.equal(h.ctx.teamDraft.value,h.draft);
+  assert.equal(h.ctx.newBookInputCompleted,false);assert.equal(h.ctx.aiInputDrafts.has('team-fixture'),true);
   h.ctx.saveDataNow=async reason=>{h.writes.push(reason);return true;};
   assert.equal(await h.ctx.commitTeamDraft(),true);assert.equal(h.ctx.books.value.length,2);assert.equal(h.writes.length,1);
 });

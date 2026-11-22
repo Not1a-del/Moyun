@@ -1,0 +1,727 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "新书手动返回/关闭：原主题、书名、世界观和生成勾选不变",
+      "ok": true,
+      "data": {
+        "same": true,
+        "theme": "保留主题：雾港的守灯人"
+      }
+    },
+    {
+      "name": "角色 single http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "作者单角色要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "角色 batch http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "作者批量要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "角色 single invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "作者单角色要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "角色 batch invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "作者批量要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "角色 single http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "作者单角色要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "角色 batch http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "作者批量要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "角色 single invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "作者单角色要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "角色 batch invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "作者批量要求",
+        "count": 4,
+        "visible": true,
+        "chars": 0,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "角色手动停止后返回仍保留要求 Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "retained": true
+      }
+    },
+    {
+      "name": "角色手动停止后返回仍保留要求 Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "retained": true
+      }
+    },
+    {
+      "name": "一键开书失败返回，修改后再次失败不被旧快照覆盖 false",
+      "ok": true,
+      "data": {
+        "first": 1,
+        "phase": "done",
+        "theme": "返回后新补充的要求",
+        "words": 330000,
+        "failed": 1,
+        "calls": 2
+      }
+    },
+    {
+      "name": "一键开书失败返回，修改后再次失败不被旧快照覆盖 true",
+      "ok": true,
+      "data": {
+        "first": 1,
+        "phase": "done",
+        "theme": "返回后新补充的要求",
+        "words": 330000,
+        "failed": 1,
+        "calls": 2
+      }
+    },
+    {
+      "name": "团队策划错误、手动返回和二次修改错误均保留 false",
+      "ok": true,
+      "data": {
+        "brief": "团队作者原始想法\n补充：主角不要失忆",
+        "replan": "补充：主角不要失忆",
+        "restoredReplan": "补充：主角不要失忆",
+        "chapters": 17,
+        "phase": "review",
+        "plan": true
+      }
+    },
+    {
+      "name": "团队策划错误、手动返回和二次修改错误均保留 true",
+      "ok": true,
+      "data": {
+        "brief": "团队作者原始想法\n补充：主角不要失忆",
+        "replan": "补充：主角不要失忆",
+        "restoredReplan": "补充：主角不要失忆",
+        "chapters": 17,
+        "phase": "review",
+        "plan": true
+      }
+    },
+    {
+      "name": "团队未写入的结果可保留并返回，重开结果和输入一致",
+      "ok": true,
+      "data": {
+        "brief": "团队作者原始想法\n补充：主角不要失忆",
+        "title": "候选书名",
+        "raw": "已生成原文",
+        "phase": "done"
+      }
+    },
+    {
+      "name": "续规划与新书想法分开保留",
+      "ok": true,
+      "data": {
+        "fresh": "团队作者原始想法\n补充：主角不要失忆",
+        "append": "A书下一段要求"
+      }
+    },
+    {
+      "name": "aiGenerateDialogueType http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateStyles http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGeneratePresets http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 11,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateTemplate http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateTemplateBatch http Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateDialogueType invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateStyles invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGeneratePresets invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 11,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateTemplate invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateTemplateBatch invalid Gemini双开关 false",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": false
+      }
+    },
+    {
+      "name": "aiGenerateDialogueType http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateStyles http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGeneratePresets http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 11,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateTemplate http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateTemplateBatch http Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateDialogueType invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateStyles invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGeneratePresets invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 11,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateTemplate invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "aiGenerateTemplateBatch invalid Gemini双开关 true",
+      "ok": true,
+      "data": {
+        "input": "不能清除的作者要求",
+        "count": 6,
+        "calls": 1,
+        "tools": true
+      }
+    },
+    {
+      "name": "章节AI编辑错误/关闭重开保留选段和要求 false",
+      "ok": true,
+      "data": {
+        "input": "只增加心理动作，不改变事实",
+        "selected": true,
+        "content": "第一段：守灯人把铜钥匙交给船长。\n\n第二段：两人在旧码头告别。"
+      }
+    },
+    {
+      "name": "章节AI编辑错误/关闭重开保留选段和要求 true",
+      "ok": true,
+      "data": {
+        "input": "只增加心理动作，不改变事实",
+        "selected": true,
+        "content": "第一段：守灯人把铜钥匙交给船长。\n\n第二段：两人在旧码头告别。"
+      }
+    },
+    {
+      "name": "分支重写取消/重新打开保留要求，普通改名不受影响",
+      "ok": true,
+      "data": {
+        "retained": "保持铜钥匙去向，只改叙述",
+        "ordinary": "普通名称"
+      }
+    },
+    {
+      "name": "批量细纲覆盖确认取消后，弹窗中的修改仍在",
+      "ok": true,
+      "data": {
+        "value": "弹窗里新增的细纲要求"
+      }
+    },
+    {
+      "name": "设定/大纲/细纲要求切书后分别恢复，不串书",
+      "ok": true,
+      "data": {
+        "b": [
+          "",
+          "",
+          ""
+        ],
+        "a": [
+          "A设定要求",
+          "A大纲要求",
+          "A细纲要求"
+        ]
+      }
+    },
+    {
+      "name": "沉浸扩写失败后返回手写再进入，要求/字数/标签仍在",
+      "ok": true,
+      "data": {
+        "prompt": "保留钥匙去向，仅扩写气氛",
+        "target": 900,
+        "tags": {
+          "0": "insert"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 1280 亮",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 1280,
+        "rect": {
+          "x": 938,
+          "y": 557.25,
+          "width": 118,
+          "height": 44,
+          "top": 557.25,
+          "right": 1056,
+          "bottom": 601.25,
+          "left": 938
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 1280 暗",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 1280,
+        "rect": {
+          "x": 938,
+          "y": 557.25,
+          "width": 118,
+          "height": 44,
+          "top": 557.25,
+          "right": 1056,
+          "bottom": 601.25,
+          "left": 938
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 1024 亮",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 1024,
+        "rect": {
+          "x": 794,
+          "y": 844.25,
+          "width": 118,
+          "height": 44,
+          "top": 844.25,
+          "right": 912,
+          "bottom": 888.25,
+          "left": 794
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 1024 暗",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 1024,
+        "rect": {
+          "x": 794,
+          "y": 844.25,
+          "width": 118,
+          "height": 44,
+          "top": 844.25,
+          "right": 912,
+          "bottom": 888.25,
+          "left": 794
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 768 亮",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 768,
+        "rect": {
+          "x": 538,
+          "y": 561.25,
+          "width": 118,
+          "height": 44,
+          "top": 561.25,
+          "right": 656,
+          "bottom": 605.25,
+          "left": 538
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 768 暗",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 768,
+        "rect": {
+          "x": 538,
+          "y": 561.25,
+          "width": 118,
+          "height": 44,
+          "top": 561.25,
+          "right": 656,
+          "bottom": 605.25,
+          "left": 538
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 360 亮",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 360,
+        "rect": {
+          "x": 150,
+          "y": 676,
+          "width": 118,
+          "height": 44,
+          "top": 676,
+          "right": 268,
+          "bottom": 720,
+          "left": 150
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 360 暗",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 360,
+        "rect": {
+          "x": 150,
+          "y": 676,
+          "width": 118,
+          "height": 44,
+          "top": 676,
+          "right": 268,
+          "bottom": 720,
+          "left": 150
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 320 亮",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 320,
+        "rect": {
+          "x": 110,
+          "y": 676,
+          "width": 118,
+          "height": 44,
+          "top": 676,
+          "right": 228,
+          "bottom": 720,
+          "left": 110
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "真实输入/关闭重开与返回按钮布局 320 暗",
+      "ok": true,
+      "data": {
+        "overflow": false,
+        "width": 320,
+        "rect": {
+          "x": 110,
+          "y": 676,
+          "width": 118,
+          "height": 44,
+          "top": 676,
+          "right": 228,
+          "bottom": 720,
+          "left": 110
+        },
+        "hit": true,
+        "text": "返回修改要求",
+        "style": "min-height: 44px;",
+        "computed": {
+          "minHeight": "44px",
+          "height": "44px",
+          "transform": "none"
+        }
+      }
+    },
+    {
+      "name": "生图提示词取消重开保留，新来源优先，不串书",
+      "ok": true,
+      "data": {
+        "retained": "lighthouse, fog, moon",
+        "changed": "new original tags",
+        "other": "B tags"
+      }
+    },
+    {
+      "name": "细纲跳往角色选择保留，返回仍有批量和本章要求",
+      "ok": true,
+      "data": {
+        "batch": "全批保留港口事实",
+        "chapter": "本章仅改对话"
+      }
+    }
+  ],
+  "errors": []
+}

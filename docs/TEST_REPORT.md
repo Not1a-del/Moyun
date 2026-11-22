@@ -1,3 +1,9 @@
+# v0.0.19 AI 输入返回保留（2026-11-22，本地）
+
+改前四类丢字路径已从Git基线提取真实函数／模板在VM复现；改后新增单测31/31，浏览器专项55/55，普通gate9/9、完整gate:browser27/27（失败／跳过0）、v19功能363/363、结构审计通过。执行命令为 npm.cmd run audit、node --test scripts/v19-ai-input-retention.test.cjs scripts/v19-ai-input-validation.test.cjs、node scripts/v19-outline-review-browser.cjs --ai-input-retention、npm.cmd run gate、npm.cmd run gate:browser；完整浏览器门禁结果归档于 [专项报告](V0.0.19_AI_INPUT_RETENTION_REPORT.md)。
+
+隔离Edge访问主目录HTTP构建，合成两本书，模拟HTTP400、缺字段JSON及停止请求，Gemini输入改写／抗截断全开全关。验证一键开书连续失败恢复最新配置、角色错误返回、团队二次要求、工作台／生图提示词切书、细纲跳转往返和章节扩写要求保留。1280×800／1024×1366触屏／768×800／360×740／320×740明暗，按钮高44px、实际中心点击命中、无横向溢出。证据含原值／恢复值、请求配置、截图及审计；不等于真实服务商或真机验收。当前页面临时草稿不保证刷新／关页恢复，记忆和正文上下文策略未改；未上传。
+
 # v0.0.19 评论与截断双仓上线（2026-11-22）
 
 候选 f624e0c 已发布两仓，公测Pages#33、正式#96均成功。发布前重跑 npm.cmd run audit／npm.cmd run gate：通过、9/9。执行 npm.cmd run gate:release -- --repo-metadata .ui-check/comment-truncation-release/repo-metadata.json，两站各25项入口+30项平板，共110/110；8个启动文件与Git候选原始字节一致。随后顺序执行 node scripts/v19-outline-review-browser.cjs --comment-truncation --url <两站各自HTTPS地址>，公测55/55、正式55/55；线上合计220/220，失败／跳过0。

@@ -1,6 +1,9 @@
 {
   "_说明": "已删除功能的符号清单。删除某个函数、变量或界面入口后，把名字登记在 symbols 里，结构审计会确认 source/moyun.single.html 里没有任何残留引用。每项包含 name（符号名）、reason（删除原因）、step（所在步骤）三个字段。确需重新启用同名符号时，先删除对应记录并写明理由。",
   "symbols": [
+    {"name":"getNewBookCloseSnapshot","reason":"关闭新书配置直接保留原输入，不再把关闭当成放弃草稿","step":"v19 AI输入保留"},
+    {"name":"newBookCloseBaseline","reason":"移除已不需要的新书关闭丢弃判断","step":"v19 AI输入保留"},
+    {"name":"discardDetailedOutlineNavigationDraft","reason":"工作台跳转保留作者AI要求，不再因前往角色或设定清空输入","step":"v19 AI输入保留"},
     {"name":"shouldUseMobileBrowserBottomFallback","reason":"手机工作区按实际可视高度布局，移除按机型猜底栏高度的冗余逻辑","step":"v19 手机布局热更新"},
     {"name":"stripInheritedOutline","reason":"分支使用独立完整副本，不再差量继承","step":"v19 问题8"},
     {"name":"planningRowSignature","reason":"分支不再合并继承差量","step":"v19 问题8"},

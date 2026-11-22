@@ -678,6 +678,7 @@ if (process.env.MOYUN_CAPTURE) {
       branchList: R([]), activeBranchId: R('main'), branchData:R({}),staleMarks:R([]),chapterOutlines: R([]), chapterIndexDrafts: R([]),
       outlineReview:R({revisions:[]}),settingsRevisionState:R({status:'idle',rows:[],undo:null,error:''}),reverseOutlineState:R({status:'idle'}),
       settingsRevisionPrompt:R(''),settingsRevisionSelectedIds:R([]),settingsRevisionSelectionReady:R(false),settingsRevisionScopeOpen:R(false),settingsRevisionBusy:R(false),
+      outlineInput:R(''),doInput:R(''),aiInputDrafts:new Map(),
       outlineRevisions: R([]), selectedRevId: R(''), activeStyleIds: R([]), coverImage: R(''),
       promptPipeline: R([]), presets: R([]), writingStyles: R([]), currentWritingStyleId: R(''),
       modPacks: R([]), installedThemePacks: R([]), activeThemePackId: R(''), modPrivateData: R({}),
@@ -695,6 +696,8 @@ if (process.env.MOYUN_CAPTURE) {
       fnBlock('normalizeMemoryLibrary'), fnBlock('restoreLegacyBookContext'), NEW_SECTION,
       slice('    function normalizeStaleMarks(', '    function markStale('),fnBlock('parseChapterRefs'),
       slice('    function createDiffRevisions(', '    // 中文注释：修订一旦审完'),
+      fnBlock('getAiInputDraftKey'),
+      slice('    let workbenchAiInputScope =', '    function persistReviewStates('),
       slice('    function persistReviewStates(', '    function getSettingsRevisionTargets('),
       SYNC_BOOK_DATA, INIT_BOOKS, CREATE_AND_LOAD_BOOK, SAVE_SNAPSHOT, RESTORE_SNAPSHOT, CLEAR_ALL, EXPORT_FULL_BACKUP, RESOLVE_IMPORTED,
       'this.__api = { syncBookData, initBooks, createNewBook, loadBook, saveSnapshot, restoreSnapshot, clearAll, performExportBookFullBackup, resolveImportedBookData, normalizeNarrativePerson, normalizePromptPresetRole, normalizePromptPreset, normalizePromptPresetList, syncBuiltinPromptPresets, syncNarrativePersonPresets, BUILTIN_PROMPT_PRESETS, PROMPT_PRESET_DYNAMIC_MEMORY_SEGMENT, books, currentBookId, novel, chapters, structuredCharacters, storyBible, branchList, activeBranchId, chapterOutlines, chapterIndexDrafts, outlineRevisions, activeStyleIds, coverImage, promptPipeline, presets, writingStyles, currentWritingStyleId, modPacks, installedThemePacks, activeThemePackId, modPrivateData, atmosphereEnabled, atmospherePrompt, dialogueTypes, personalityTagPresets, summaries, narrativePerson, promptPresets, totalWordCount, legacyRemovedLibraryFields, legacyPresetRootFields, oneKeySystemPrompt, visiblePromptPresets, canEditPromptPresetContent, canDeletePromptPreset, canMovePromptPreset, movePromptPreset, togglePromptPresetEnabled, addPromptPreset, openPromptPresetEditor, savePromptPresetEditor, deletePromptPresetItem, cancelPromptPresetEditor, setNarrativePerson, uniquePromptPresetImportName, promptPresetEditor, showPromptPresetEditor };'

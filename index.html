@@ -780,8 +780,8 @@
       <div data-character-action-bar class="px-3 py-2 shrink-0" style="border-top:1px solid var(--bd);background:var(--bg-sidebar)">
         <div class="character-action-grid">
           <button type="button" @click="addCharacter()" class="btn-ghost text-xs">＋ 新建</button>
-          <button type="button" @click="showAiCharModal=true;aiCharDesc=''" class="btn-primary text-xs">✨ AI新建</button>
-          <button type="button" @click="showBatchCharModal=true;batchCharCount=3;batchCharPrompt=''"
+          <button type="button" @click="openAiCharacterInput()" class="btn-primary text-xs">✨ AI新建</button>
+          <button type="button" @click="openAiCharacterInput('batch')"
                   class="text-xs rounded-lg font-semibold" style="background:var(--warn);color:white">👥 批量</button>
           <button type="button" @click="openRelationshipGraph" class="text-xs rounded-lg font-semibold" style="background:var(--info-soft);color:var(--info)">关系图</button>
         </div>
@@ -5180,6 +5180,7 @@
       </div>
 
       <div class="px-4 md:px-5 py-3 flex items-center justify-end gap-2 flex-wrap shrink-0" style="border-top:1px solid var(--bd);padding-bottom:calc(12px + env(safe-area-inset-bottom))">
+        <button v-if="['create-one','create-batch'].includes(characterDraftReview.operation) && !['generating','applying'].includes(characterDraftReview.status)" type="button" data-character-input-return @click="returnToCharacterInput" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">返回修改要求</button>
         <template v-if="characterDraftReview.status==='review'">
           <button type="button" data-moyun-modal-close @click="requestCloseCharacterDraftReview" class="btn-ghost text-sm px-4 py-2" style="min-height:44px">放弃草案</button>
           <button type="button" @click="applyCharacterAiDraft({onlyFill:true})" :disabled="characterDraftCounts.safe===0 || characterDraftReview.status==='applying'" class="btn-ghost text-sm px-4 py-2" style="min-height:44px"
@@ -6907,7 +6908,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=a7cd16d9b94f"></script>
+<script src="./assets/js/moyun.js?v=070b83684057"></script>
 <!-- PART_1_END -->
 </body>
 </html>

@@ -246,8 +246,8 @@ test('停止后重试失败块不会复用已中止的请求信号', () => {
   assert.match(retry, /_teamAbort && !_teamAbort\.signal\.aborted/);
 });
 
-test('离开团队结果页前必须先留在页面或明确写入草稿', () => {
-  const confirmations = [], writes = [];
+test('离开团队结果页可保留返回，留在页面和写入草稿仍正常', () => {
+  const confirmations = [], writes = [];let returned=0;
   const ctx = vm.createContext({
     newBookMode:{ value:'team' }, teamDraft:{ value:{ needsFill:['细纲员'], committing:false } },
     teamBlocks:{ value:[{ id:'characters', status:'done' },{ id:'outline', status:'stopped' }] },
@@ -256,13 +256,21 @@ test('离开团队结果页前必须先留在页面或明确写入草稿', () =>
     commitPartialTeamDraft:()=>writes.push('partial'), commitTeamDraft:()=>writes.push('full')
   });
   vm.runInContext(extract('    function keepTeamDraftBeforeExit(', '    function requestCloseNewBookModal(') + '; globalThis.keepTeamDraftBeforeExit = keepTeamDraftBeforeExit;', ctx);
-  assert.equal(ctx.keepTeamDraftBeforeExit(), true);
-  assert.match(confirmations[0].config.message, /离开会丢失/);
-  assert.equal(confirmations[0].config.choices[1].label, '先写入已完成部分');
+  const draft=ctx.teamDraft.value;
+  assert.equal(ctx.keepTeamDraftBeforeExit(()=>returned++), true);
+  assert.match(confirmations[0].config.message, /保留/);
+  assert.equal(confirmations[0].config.choices.find(row=>row.id==='keep').label, '保留并返回');
+  assert.equal(confirmations[0].config.choices.find(row=>row.id==='save').label, '先写入已完成部分');
   confirmations[0].callback('stay');
-  assert.deepEqual(writes, []);
+  assert.deepEqual(writes, []);assert.equal(returned,0);
+  confirmations[0].callback('keep');
+  assert.equal(returned,1);assert.deepEqual(writes,[]);assert.equal(ctx.teamDraft.value,draft);
   confirmations[0].callback('save');
   assert.deepEqual(writes, ['partial']);
+  ctx.teamDraft.value={needsFill:[],committing:false};ctx.teamBlocks.value.forEach(row=>row.status='done');ctx.teamReview.value={status:'done'};
+  assert.equal(ctx.keepTeamDraftBeforeExit(()=>returned++),true);
+  assert.equal(confirmations[1].config.choices.find(row=>row.id==='save').label,'接受并写入');
+  confirmations[1].callback('save');assert.deepEqual(writes,['partial','full']);assert.equal(returned,1);
   assert.match(extract('    function backToManualBook()', '    function teamPlanFallback('), /keepTeamDraftBeforeExit()/);
 });
 

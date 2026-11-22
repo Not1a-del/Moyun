@@ -1897,17 +1897,26 @@ createApp({
       ? (settingsRevisionSelectedIds.value.length === settingsRevisionTargets.value.length ? '全部 ' + settingsRevisionTargets.value.length + '/' + settingsRevisionTargets.value.length : '局部 ' + settingsRevisionSelectedIds.value.length + '/' + settingsRevisionTargets.value.length)
       : '全部 ' + settingsRevisionTargets.value.length + '/' + settingsRevisionTargets.value.length);
     const settingsRevisionRequestReason = computed(() => getModuleRequestConfig('settings').reason || '');
+    let workbenchAiInputScope = '';
+    function restoreWorkbenchAiInputs() {
+      const key = getAiInputDraftKey('workbench');
+      if (key === workbenchAiInputScope) return;
+      if (workbenchAiInputScope) aiInputDrafts.set(workbenchAiInputScope, { settings:settingsRevisionPrompt.value, outline:outlineInput.value, detailed:doInput.value });
+      const draft = aiInputDrafts.get(key) || {};
+      settingsRevisionPrompt.value = draft.settings || ''; outlineInput.value = draft.outline || ''; doInput.value = draft.detailed || '';
+      workbenchAiInputScope = key;
+    }
     function persistReviewStates() {
       if(reverseOutlineState.value.status==='review')outlineReview.value.reverse={pendingVolumes:deepClone(reverseOutlineState.value.pendingVolumes||[]),pendingFinished:reverseOutlineState.value.pendingFinished===true,pendingCount:Number(reverseOutlineState.value.pendingCount)||0};
       novel.value.reviewStates = Object.assign({}, novel.value.reviewStates, { outline:deepClone(outlineReview.value), settings:deepClone(settingsRevisionState.value) });
       saveData();
     }
     function restoreReviewStates(book) {
+      restoreWorkbenchAiInputs();
       const saved = book?.novel?.reviewStates || {};
       outlineReview.value = Object.assign(createReviewState('outline'), deepClone(saved.outline || {}), { revisions:deepClone(saved.outline?.revisions || book?.outlineRevisions || []) });
       reverseOutlineState.value=outlineReview.value.reverse?Object.assign({status:'review',message:'已恢复细纲反推大纲的待审修改，卷纲会在审阅完成后应用。',raw:''},deepClone(outlineReview.value.reverse)):{status:'idle',message:'',raw:''};
       settingsRevisionState.value = Object.assign({status:'idle',rows:[],undo:null,error:''}, deepClone(saved.settings || {}));
-      settingsRevisionPrompt.value = '';
       settingsRevisionSelectedIds.value = [];
       settingsRevisionSelectionReady.value = false;
       settingsRevisionScopeOpen.value = false;
@@ -3819,11 +3828,6 @@ createApp({
       return String(doInput.value || '').trim() || chapterOutlines.value.some(outline => String(outline?.aiInput || '').trim());
     }
 
-    function discardDetailedOutlineNavigationDraft() {
-      doInput.value = '';
-      chapterOutlines.value.forEach(outline => { if (outline) outline.aiInput = ''; });
-    }
-
     async function executeC3Navigation(destination) {
       if (!destination || !destination.type) return false;
       try { document.activeElement?.blur?.(); } catch {}
@@ -3924,14 +3928,13 @@ createApp({
       if (showDetailedOutlineInMain.value && destination.type !== 'outline' && hasDetailedOutlineNavigationDraft()) {
         openConfirm({
           title:'存在未使用的细纲 AI 要求',
-          message:'这些临时要求尚未提交给 AI。继续编辑会留在当前细纲；放弃后前往会清空本章和批量细纲要求。',
+          message:'这些要求尚未提交给 AI。前往后会保留本章和批量细纲要求，返回时可以继续填写。',
           choices:[
             { id:'continue', label:'继续编辑' },
-            { id:'discard-go', label:'放弃要求并前往', tone:'danger' }
+            { id:'keep-go', label:'保留要求并前往' }
           ]
         }, actionId => {
-          if (actionId === 'discard-go') {
-            discardDetailedOutlineNavigationDraft();
+          if (actionId === 'keep-go') {
             executeC3Navigation(destination);
           }
         });
@@ -5009,6 +5012,7 @@ createApp({
     const immersiveExpandPrompt = ref('');
     const immersiveExpandTarget = ref(500);
     const immersiveExpandBusy = ref(false);
+    let immersiveExpansionInputKey = '';
     const immersiveDraftStatus = ref('草稿未修改');
     const immersiveToolbarHidden = ref(false);
     let immersiveDraftTimer = 0;
@@ -5220,17 +5224,22 @@ createApp({
     }
     function enterImmersiveExpansion() {
       if (immersiveExpandBusy.value) return;
+      if (immersiveExpansionInputKey) aiInputDrafts.set(immersiveExpansionInputKey, { source:immersiveExpandSource.value, prompt:immersiveExpandPrompt.value, target:immersiveExpandTarget.value, tags:deepClone(immersiveExpandTags.value), mode:immersiveExpandWhole.value ? 'full' : '', rewrite:immersiveExpandRewrite.value });
       if (!immersiveToolMode.value) immersiveChapterIndex.value = getImmersiveChapterIndex();
       const ch = immersiveWritingChapter.value;
       if (!ch && !immersiveNewDraft.value.trim()) { showToast('请先写下正文，再使用扩写', 'warning'); return; }
       if (!immersiveMode.value) toggleImmersive();
       const text = ch ? String(ch.isEditing ? ch.tempContent ?? ch.content : splitSnowwingChapterStoryTime(ch.content || '').content) : immersiveNewDraft.value;
       const saved = novel.value.immersiveExpansionReviews?.[immersiveReviewKey()];
+      immersiveExpansionInputKey = getAiInputDraftKey('immersive-expand', ch?.id || 'new');
+      const input = aiInputDrafts.get(immersiveExpansionInputKey);
       const expected = saved ? composeImmersiveExpansion(saved.source, saved.operations.filter(op => op.applied).map(op => ({ ...op, text:op.appliedText }))) : '';
       immersiveExpandReview.value = saved && expected === text ? saved : null;
       immersiveExpandSource.value = immersiveExpandReview.value?.source ?? text;
-      immersiveExpandTags.value = immersiveExpandReview.value?.tags || {}; immersiveExpandWhole.value = immersiveExpandReview.value?.mode === 'full'; immersiveExpandTagTool.value = 'insert'; immersiveExpandRewrite.value = immersiveExpandReview.value?.rewrite === true; immersiveExpandPrompt.value = immersiveExpandReview.value?.prompt || '';
-      immersiveExpandTarget.value = immersiveExpandReview.value?.target || 500;
+      const config = input || immersiveExpandReview.value || {};
+      immersiveExpandTags.value = config.source === immersiveExpandSource.value ? deepClone(config.tags || {}) : {};
+      immersiveExpandWhole.value = config.mode === 'full'; immersiveExpandTagTool.value = 'insert'; immersiveExpandRewrite.value = config.rewrite === true; immersiveExpandPrompt.value = config.prompt || '';
+      immersiveExpandTarget.value = config.target || 500;
       immersiveToolMode.value = 'expand'; immersivePromptVisible.value = false; immersiveToolbarHidden.value = false;
       document.activeElement?.blur?.(); nextTick(() => mainScroll.value?.scrollTo({ top:0, behavior:'auto' }));
     }
@@ -6329,19 +6338,34 @@ createApp({
     }
 
     /* 通用输入弹窗：替代原生 window.prompt（原生弹窗违反统一弹窗红线且部分移动端 WebView 不可用） */
+    // 暂存本次页面中的未提交要求；按书、分支、目标隔离，不新增浏览器存储。
+    const aiInputDrafts = new Map();
+    function getAiInputDraftKey(kind, target = '') {
+      return JSON.stringify([currentBookId.value || '', activeBranchId.value || 'main', kind, target]);
+    }
     const showInputPrompt = ref(false);
     const inputPromptCfg = ref({ title: '请输入', message: '', placeholder: '', multiline: false, confirmText: '确定', maxlength: 200 });
     const inputPromptValue = ref('');
     let _inputPromptCb = null;
+    let inputPromptDraftKey = '';
+    let inputPromptInitialValue = '';
     function openInputPrompt(cfg, cb) {
+      if (inputPromptDraftKey) aiInputDrafts.set(inputPromptDraftKey, { text:inputPromptValue.value, initial:inputPromptInitialValue });
+      inputPromptDraftKey = cfg?.draftKey ? getAiInputDraftKey('input-prompt', cfg.draftKey) : '';
+      inputPromptInitialValue = String(cfg?.initialValue ?? '');
+      const draft = aiInputDrafts.get(inputPromptDraftKey);
       inputPromptCfg.value = Object.assign({ title: '请输入', message: '', placeholder: '', multiline: false, confirmText: '确定', maxlength: 200 }, cfg || {});
-      inputPromptValue.value = String(cfg?.initialValue ?? '');
+      inputPromptValue.value = draft?.initial === inputPromptInitialValue ? draft.text : inputPromptInitialValue;
       _inputPromptCb = cb;
       showInputPrompt.value = true;
       nextTick(() => document.querySelector('[data-moyun-input-prompt-field]')?.focus());
     }
-    function cancelInputPrompt() { showInputPrompt.value = false; _inputPromptCb = null; }
+    function cancelInputPrompt() {
+      if (inputPromptDraftKey) aiInputDrafts.set(inputPromptDraftKey, { text:inputPromptValue.value, initial:inputPromptInitialValue });
+      showInputPrompt.value = false; _inputPromptCb = null;
+    }
     function execInputPrompt() {
+      if (inputPromptDraftKey) aiInputDrafts.set(inputPromptDraftKey, { text:inputPromptValue.value, initial:inputPromptInitialValue });
       showInputPrompt.value = false;
       const cb = _inputPromptCb; _inputPromptCb = null;
       if (typeof cb === 'function') return cb(inputPromptValue.value, Object.fromEntries((inputPromptCfg.value.checks || []).map(option=>[option.id,option.checked===true])));
@@ -7364,7 +7388,7 @@ function copyLastChapterContextText() {
     const okFailedSteps = ref([]);
     const okLastSummary = ref('');
     let _okAbort = null;
-    let newBookCloseBaseline = '';
+    let newBookInputCompleted = false;
 
     // v0.0.19 项目5：一段话团队开书。结果先放内存草稿，确认并完成审查后才创建书并一次写入。
     const newBookMode = ref('manual');
@@ -7394,15 +7418,28 @@ function copyLastChapterContextText() {
     });
     let _teamAbort = null;
     let _teamRunId = 0;
+    let teamInputScope = '';
+    function finishTeamBookInput() {
+      aiInputDrafts.delete(teamInputScope); teamInputScope = ''; newBookInputCompleted = true;
+    }
+    function activateTeamBookInput(existingBookId = '') {
+      const fields = [teamBrief,teamReplanInput,teamPlan,teamPlanRaw,teamPlanNeedsManual,teamBlocks,teamDraft,teamReview,teamRawView,teamPhase];
+      if (teamInputScope) aiInputDrafts.set(teamInputScope, { values:fields.map(field => deepClone(field.value)), options:{ ...teamPlanOptions } });
+      const key = existingBookId ? getAiInputDraftKey('team-append', existingBookId) : 'team-new-book';
+      const draft = aiInputDrafts.get(key);
+      const defaults = ['', '', null, '', false, [], null, null, '', 'input'];
+      fields.forEach((field,index) => { field.value = deepClone(draft ? draft.values[index] : defaults[index]); });
+      Object.assign(teamPlanOptions, draft?.options || { unfinishedMode:!!existingBookId, chapterCount:10 });
+      teamInputScope = key; teamExistingBookId = existingBookId; teamAppendMode = !!existingBookId;
+    }
 
     function openTeamBookMode() {
+      if (newBookInputCompleted) resetNewBookInput();
       if (_teamAbort) _teamAbort.abort();
-      _teamAbort = null; _teamRunId++; teamExistingBookId = ''; teamAppendMode = false;
-      newBookMode.value = 'team'; oneKeyPhase.value = 'config'; teamPhase.value = 'input';
-      teamBrief.value = ''; teamReplanInput.value = ''; teamPlan.value = null; teamPlanRaw.value = '';
-      teamPlanNeedsManual.value = false; teamBlocks.value = []; teamDraft.value = null; teamReview.value = null; teamRawView.value = '';
+      _teamAbort = null; _teamRunId++; activateTeamBookInput();
+      newBookMode.value = 'team'; oneKeyPhase.value = teamPhase.value === 'done' ? 'done' : 'config';
       teamBookRoutesOpen.value = false;
-      teamPlanOptions.unfinishedMode = false; teamPlanOptions.chapterCount = 10; showNewBook.value = true; newBookCloseBaseline = getNewBookCloseSnapshot();
+      showNewBook.value = true;
     }
     function cancelTeamPlanner() {
       if (_teamAbort) _teamAbort.abort();
@@ -7411,11 +7448,13 @@ function copyLastChapterContextText() {
       if (teamPhase.value === 'planning') teamPhase.value = 'input';
     }
     function backToManualBook() {
-      if (keepTeamDraftBeforeExit()) return false;
-      cancelTeamPlanner();
-      teamExistingBookId = ''; teamAppendMode = false;
-      newBookMode.value = 'manual'; oneKeyPhase.value = 'config';
-      if (teamBrief.value.trim() && !newBookForm.value.theme) newBookForm.value.theme = teamBrief.value.trim();
+      const back = () => {
+        cancelTeamPlanner();
+        newBookMode.value = 'manual'; oneKeyPhase.value = 'config';
+        if (teamBrief.value.trim() && !newBookForm.value.theme) newBookForm.value.theme = teamBrief.value.trim();
+      };
+      if (keepTeamDraftBeforeExit(back)) return false;
+      back();
     }
     function teamPlanFallback(text) {
       const count = Math.max(1, Math.min(200, Number(teamPlanOptions.chapterCount) || 10));
@@ -7482,7 +7521,13 @@ function copyLastChapterContextText() {
       teamPlan.value = normalizeTeamPlan(teamPlan.value || teamPlanFallback(teamBrief.value), teamBrief.value);
       return startTeamGeneration();
     }
-    function retryTeamPlanner() { const next = String(teamReplanInput.value || '').trim(); if (next) teamBrief.value = teamBrief.value + '\n' + next; teamReplanInput.value = ''; return splitTeamPlan(teamBrief.value); }
+    async function retryTeamPlanner() {
+      const input = teamReplanInput.value, next = String(input || '').trim();
+      const brief = next && !teamBrief.value.endsWith('\n' + next) ? teamBrief.value + '\n' + next : teamBrief.value;
+      const ok = await splitTeamPlan(brief);
+      if (ok && !teamPlanNeedsManual.value && teamReplanInput.value === input) teamReplanInput.value = '';
+      return ok;
+    }
     function teamSpecialistPrompt(id, plan) {
       const table = buildTeamSettingTable(plan);
       if (id === 'settings') return '你是设定员。依据下方设定总表和用户原话，输出 JSON：{"title":"","synopsis":"","worldView":"","negativePrompt":""}。只能补充不矛盾的细节。\n' + table + '\n用户原话：' + teamBrief.value;
@@ -7736,12 +7781,12 @@ function copyLastChapterContextText() {
           novel.value = appendBackup.novel; chapterOutlines.value = appendBackup.chapterOutlines; chapterIndexDrafts.value = appendBackup.chapterIndexDrafts; foreshadowMatrix.value = appendBackup.foreshadowMatrix;
           syncBookData(); showToast('追加规划保存失败，已恢复原书内容；请导出备份后重试','error'); return false;
         }
-        teamAppendMode = false; teamExistingBookId = ''; teamDraft.value = null; showNewBook.value = false; showToast(options.partial ? '已追加已完成的下一段规划，失败块仍标记为需补' : '下一段规划已追加，原有内容未覆盖','success'); return true;
+        teamAppendMode = false; teamExistingBookId = ''; teamDraft.value = null; finishTeamBookInput(); showNewBook.value = false; showToast(options.partial ? '已追加已完成的下一段规划，失败块仍标记为需补' : '下一段规划已追加，原有内容未覆盖','success'); return true;
       }
       const previousBookId = currentBookId.value; syncBookData(); const nid = createNewBook(draft.title,teamBrief.value,draft.worldView); loadBook(nid); novel.value.title = draft.title; novel.value.theme = teamBrief.value; novel.value.synopsis = draft.synopsis; novel.value.worldView = draft.worldView; novel.value.negativePrompt = draft.negativePrompt; novel.value.outline = draft.outline; novel.value.unfinishedMode = !!draft.unfinishedMode; novel.value.planReminded = [];
       novel.value.volumes = normalizeNovelVolumes(draft.volumes); chapterOutlines.value = deepClone(draft.chapterOutlines || []); chapterIndexDrafts.value = normalizeChapterIndexDrafts(draft.chapterIndexDrafts || []); foreshadowMatrix.value = normalizeForeshadowMatrix(draft.foreshadowMatrix || []); structuredCharacters.value = deepClone(draft.characters || []); novel.value.teamBookNeeds = options.partial ? (draft.needsFill || []) : []; const book = books.value.find(item => item.id === currentBookId.value); if (book) book.title = draft.title;
       if(draft.dialogueStyles?.length)dialogueTypes.value.push(...deepClone(draft.dialogueStyles).filter(row=>!dialogueTypes.value.some(existing=>existing.id===row.id)));
-      const saved = await saveDataNow('一段话团队开书一次写入'); if (!saved) { books.value = books.value.filter(item => item.id !== nid); if (previousBookId && books.value.some(item => item.id === previousBookId)) loadBook(previousBookId); else { currentBookId.value = ''; chapters.value = []; chapterOutlines.value = []; structuredCharacters.value = []; novel.value = {title:'',theme:'',synopsis:'',worldView:'',negativePrompt:'',isAdultMode:false,outline:''}; } showToast('一次写入失败，已恢复原书，未留下半成品；请导出备份后重试','error'); return false; } teamDraft.value = null; showNewBook.value = false; showToast(options.partial ? '已写入已完成的团队内容，失败块仍标记为需补' : '团队开书完成，已一次写入书库','success'); runModEventHandlers('bookCreated',{source:'teamBook',bookId:nid}); return true;
+      const saved = await saveDataNow('一段话团队开书一次写入'); if (!saved) { books.value = books.value.filter(item => item.id !== nid); if (previousBookId && books.value.some(item => item.id === previousBookId)) loadBook(previousBookId); else { currentBookId.value = ''; chapters.value = []; chapterOutlines.value = []; structuredCharacters.value = []; novel.value = {title:'',theme:'',synopsis:'',worldView:'',negativePrompt:'',isAdultMode:false,outline:''}; } showToast('一次写入失败，已恢复原书，未留下半成品；请导出备份后重试','error'); return false; } teamDraft.value = null; finishTeamBookInput(); showNewBook.value = false; showToast(options.partial ? '已写入已完成的团队内容，失败块仍标记为需补' : '团队开书完成，已一次写入书库','success'); runModEventHandlers('bookCreated',{source:'teamBook',bookId:nid}); return true;
       } finally { draft.committing = false; }
     }
     async function commitPartialTeamDraft() { return commitTeamDraft({partial:true}); }
@@ -9535,6 +9580,7 @@ function copyLastChapterContextText() {
       novel.value.unfinishedMode = !!okCfg.unfinishedMode;
       novel.value.unfinishedModeClosed = false;
       showNewBook.value = false;
+      newBookInputCompleted = true;
       saveData(); showToast('空书已创建', 'success');
       runModEventHandlers('bookCreated', { source: 'handleNewBookConfirm', bookId: nid });
     }
@@ -9606,17 +9652,19 @@ function copyLastChapterContextText() {
       const run = beginBookScopedAiRun('dialogue-type');
       if (!run) return;
       isGeneratingDialogueType.value = true;
-      const hint = newDialogueTypeDesc.value || '一个独特的说话风格';
+      const input = newDialogueTypeDesc.value;
+      const hint = input || '一个独特的说话风格';
       const prompt = '你是角色对话风格设计师。请设计一个全新的角色对话风格模板。\n\n用户描述: ' + hint + '\n\n返回JSON: {"id":"英文id","label":"中文名称(3字以内)","icon":"一个emoji","prompt":"详细的说话风格描述(80-150字，包含语气特点、用词习惯、句式偏好)"}\n不要代码块。';
       fetchAdapterCompletion(request, buildNsfwMessages(prompt, { taskType:'character' }), { stream:true, omitTemperature:true, signal:run.controller.signal })
       .then(result => {
         if (!isBookScopedAiRunCurrent(run)) return;
         const raw = getAdapterCompletionText(result);
         const dt = parseAiStructuredJson(raw, 'object');
+        if (!['label','prompt'].every(key => typeof dt[key] === 'string' && dt[key].trim())) throw new Error('AI 未返回有效的对话风格名称和内容，原输入已保留');
         dt.id = dt.id || uid();
         dt.isCustom = true;
         dialogueTypes.value.push(dt);
-        newDialogueTypeDesc.value = '';
+        if (newDialogueTypeDesc.value === input) newDialogueTypeDesc.value = '';
         saveData();
         showToast('对话风格「' + dt.label + '」已创建', 'success');
       })
@@ -9928,6 +9976,18 @@ function copyLastChapterContextText() {
     const showAiCharModal = ref(false);
     const showCharPreview = ref(false);
     const aiCharDesc = ref('');
+    let characterInputScope = '';
+    function openAiCharacterInput(kind = 'single') {
+      if (characterInputScope) aiInputDrafts.set(characterInputScope, { single:aiCharDesc.value, batch:batchCharPrompt.value, count:batchCharCount.value });
+      const key = getAiInputDraftKey('character-input');
+      if (key !== characterInputScope) {
+        const draft = aiInputDrafts.get(key) || {};
+        aiCharDesc.value = draft.single || ''; batchCharPrompt.value = draft.batch || ''; batchCharCount.value = draft.count ?? 3;
+        characterInputScope = key;
+      }
+      if (kind === 'batch') showBatchCharModal.value = true;
+      else showAiCharModal.value = true;
+    }
     const isGeneratingChar = ref(false);
     const tempChar = ref({ name:'', desc:'' });
 
@@ -9951,10 +10011,6 @@ function copyLastChapterContextText() {
 
     function requestCloseAiCharacterModal() {
       if (isGeneratingChar.value) return false;
-      if (String(aiCharDesc.value || '').trim()) {
-        confirmDiscardDraft('放弃角色描述', '当前角色描述尚未生成，关闭后会丢失本次填写。', () => { showAiCharModal.value = false; });
-        return false;
-      }
       showAiCharModal.value = false;
       return true;
     }
@@ -12003,6 +12059,15 @@ function cleanAIResponse(text) {
       clearCharacterDraftReview({ abort:false, hide:true });
       return true;
     }
+    function returnToCharacterInput() {
+      if (characterDraftReview.value.sourceBookId !== String(currentBookId.value || '')) return;
+      const kind = characterDraftReview.value.operation === 'create-batch' ? 'batch' : 'single';
+      const reopen = () => { clearCharacterDraftReview({ abort:false, hide:true }); openAiCharacterInput(kind); };
+      if (isGeneratingCharacterDraft.value || characterDraftReview.value.status === 'applying') return;
+      if (characterDraftReview.value.status === 'review' && characterDraftCounts.value.total > 0) {
+        openConfirm({ title:'返回修改要求', message:'将放弃尚未应用的角色候选，已填写的要求会保留。', confirmText:'返回修改' }, reopen);
+      } else reopen();
+    }
 
     async function startCharacterAiDraft(options = {}) {
       if (isGeneratingCharacterDraft.value) {
@@ -12268,10 +12333,6 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
 
     function requestCloseBatchCharacterModal() {
       if (isGeneratingBatch.value) return false;
-      if (String(batchCharPrompt.value || '').trim() || Number(batchCharCount.value) !== 3) {
-        confirmDiscardDraft('放弃批量角色配置', '当前批量角色配置尚未生成，关闭后会丢失本次填写。', () => { showBatchCharModal.value = false; });
-        return false;
-      }
       showBatchCharModal.value = false;
       return true;
     }
@@ -13446,7 +13507,8 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
       if (!run) return;
       isGeneratingPresets.value = true;
       const count = batchPresetCount.value || 3;
-      const hint = batchPresetHint.value || '适合当前小说的写作预设';
+      const input = batchPresetHint.value;
+      const hint = input || '适合当前小说的写作预设';
       const prompt = '你是AI写作系统的预设设计专家。请生成' + count + '个写作预设。\n\n小说标题: ' + (novel.value.title || '未定') + '\n主题: ' + (novel.value.theme || '暂无') + '\n\n用户要求: ' + hint + '\n\n返回JSON数组: [{"name":"预设名(简短)","content":"预设指令(100-300字的具体写作指令)","applyTo":["writing"]}]\n\napplyTo可选值: writing/outline/character/suggestion/review\n不要代码块标记。';
       fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:true, omitTemperature:true, signal:run.controller.signal })
       .then(result => {
@@ -13455,13 +13517,14 @@ existing.attitude = String(item.relationshipAttitude || '').trim().slice(0, 30);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const seen=new Set();
         const items = parseAiRecordArray(raw, ['name','content']).filter(p=>{const signature=String(p.name||'').trim()+'\n'+String(p.content||'').trim();if(seen.has(signature))return false;seen.add(signature);return true;}).slice(0,count);
+        if (!items.length || items.some(item => !['name','content'].every(key => typeof item[key] === 'string' && item[key].trim()))) throw new Error('AI 未返回有效的预设名称和内容，本批未写入，原输入已保留');
         items.forEach(p => {
           presets.value.push({
             id: uid(), name: p.name || '新预设', content: p.content || '',
             enabled: true, applyTo: p.applyTo || ['writing'], isBuiltin: false, _expanded: false
           });
         });
-        batchPresetHint.value = '';
+        if (batchPresetHint.value === input) batchPresetHint.value = '';
         saveData();
         showToast('已生成 ' + items.length + ' 个预设', 'success');
       })
@@ -28847,11 +28910,9 @@ function getModHubPermissionLabels(mod) {
 
     function continueUnfinishedPlanning() {
       if (!novel.value.unfinishedMode) { showToast('请先开启未完模式', 'info'); return; }
-      teamExistingBookId = currentBookId.value; teamAppendMode = true;
-      newBookMode.value = 'team'; oneKeyPhase.value = 'config'; teamPhase.value = 'input';
-      teamBrief.value = ''; teamReplanInput.value = ''; teamPlan.value = null; teamPlanRaw.value = ''; teamPlanNeedsManual.value = false;
-      teamBlocks.value = []; teamDraft.value = null; teamReview.value = null; teamRawView.value = '';
-      teamPlanOptions.unfinishedMode = true; teamPlanOptions.chapterCount = 10; showNewBook.value = true; newBookCloseBaseline = getNewBookCloseSnapshot();
+      activateTeamBookInput(currentBookId.value);
+      newBookMode.value = 'team'; oneKeyPhase.value = teamPhase.value === 'done' ? 'done' : 'config';
+      showNewBook.value = true;
     }
     function markUnfinishedPlanComplete() {
       if (!novel.value.unfinishedMode) return;
@@ -31639,7 +31700,7 @@ function getModHubPermissionLabels(mod) {
       if (!willOverwrite.length) { generateDetailedOutline(); return; }
       const totalChars = willOverwrite.reduce((sum, item) => sum + item.len, 0);
       openInputPrompt({
-        title: '会覆盖已写好的细纲',
+        title: '会覆盖已写好的细纲', draftKey:'detailed-overwrite:' + start + ':' + end,
         message: '「只补空白」当前是关闭的。将覆盖第' + start + '到' + end + '章范围内已有的 ' + willOverwrite.length + ' 章细纲（共 ' + totalChars + ' 字）。新稿成功写入时才替换，旧稿保存在各章历史里，最多保留三版。这次想怎么改？',
         placeholder: '可以不填；留空就按当前设定重新写',
         initialValue: doInput.value, multiline:true, confirmText:'重新生成',
@@ -32486,7 +32547,7 @@ function getModHubPermissionLabels(mod) {
     function editInlineImagePrompt(cacheKey, oldTag) {
       const sourceBookId = currentBookId.value;
       const record = inlineImageRecords.get(cacheKey), current = record?.versions[record.current];
-      openInputPrompt({ title:'编辑生图提示词', message:'英文 tags，逗号分隔。生成成功后保存为新版本，原图保留。', placeholder:'例如：a lighthouse, sea, sunset', initialValue:current?.tag || oldTag || '', maxlength:4000, confirmText:'生成新版本' }, next => {
+      openInputPrompt({ title:'编辑生图提示词', draftKey:'inline-image:' + cacheKey + ':' + (current?.id || 'original'), message:'英文 tags，逗号分隔。生成成功后保存为新版本，原图保留。', placeholder:'例如：a lighthouse, sea, sunset', initialValue:current?.tag || oldTag || '', maxlength:4000, confirmText:'生成新版本' }, next => {
         if (sourceBookId === currentBookId.value) regenerateInlineImage(cacheKey, next);
       });
     }
@@ -34063,7 +34124,7 @@ function getModHubPermissionLabels(mod) {
       const prerequisites=getWritingGenerationPrerequisites(false);
       if(!prerequisites){openConfirm({title:'分支重写需要正文模型',message:'请先在连接中心配置并分配正文模型。',confirmText:'打开连接中心'},()=>openSettingsTab('api'));return;}
       const bookId=currentBookId.value,parentId=activeBranchId.value,target=visibleChapters.value[idx];if(!target)return;
-      openInputPrompt({title:'分支重写第'+(idx+1)+'章',message:'原章保留在当前分支，新分支完整复制上一章及之前的内容。',multiline:true,initialValue:'',confirmText:'开始重写'},async prompt=>{
+      openInputPrompt({title:'分支重写第'+(idx+1)+'章',draftKey:'branch-rewrite:' + target.id,message:'原章保留在当前分支，新分支完整复制上一章及之前的内容。',multiline:true,initialValue:'',confirmText:'开始重写'},async prompt=>{
         if(bookId!==currentBookId.value||parentId!==activeBranchId.value||!canChangeBranch())return;
         if(!await confirmStorageHeadroom('新建分支'))return;
         if(bookId!==currentBookId.value||parentId!==activeBranchId.value||!canChangeBranch())return;
@@ -37915,13 +37976,10 @@ function getWritingModelLabel() {
       const retrying = oneKeyRetryTarget === currentBookId.value;
       const nid = retrying ? currentBookId.value : createNewBook(newBookForm.value.title || '生成中...', newBookForm.value.theme, newBookForm.value.worldView);
       oneKeyRetryTarget = '';
-      if (!retrying) { oneKeyLastConfig = deepClone(c); loadBook(nid); }
+      oneKeyLastConfig = deepClone(c);
+      if (!retrying) loadBook(nid);
       // 中文注释：记录创建前的表单和本次配置，失败后可回到同一新书继续重开，不丢作者输入。
-      if (!retrying || !oneKeyFailureSnapshot) {
-        oneKeyFailureSnapshot = { bookId:nid, form:deepClone(newBookForm.value), config:deepClone(oneKeyLastConfig || c), mode:newBookMode.value };
-      } else {
-        oneKeyFailureSnapshot.bookId = nid;
-      }
+      oneKeyFailureSnapshot = { bookId:nid, form:deepClone(newBookForm.value), config:deepClone(oneKeyLastConfig), mode:newBookMode.value };
       // ═══ 关键：临时启用NSFW，确保wrapPromptWithNSFW生效 ═══
       novel.value.isAdultMode = !!c.adultMode;
       novel.value.theme = newBookForm.value.theme;
@@ -38438,6 +38496,7 @@ function getWritingModelLabel() {
       } else if (!okLastSummary.value) {
         okLastSummary.value = '所有勾选模块均已生成成功。';
         oneKeyFailureSnapshot = null;
+        newBookInputCompleted = true;
       }
       oneKeyPhase.value = 'done';
       showToast(okFailedSteps.value.length ? '存在失败模块，请查看详情' : '🎉 书籍创建完成！', okFailedSteps.value.length ? 'error' : 'success');
@@ -38538,7 +38597,6 @@ function getWritingModelLabel() {
       }
       oneKeyPhase.value = 'config';
       newBookAdvancedOpen.value = true;
-      newBookCloseBaseline = getNewBookCloseSnapshot();
       showToast('已恢复上次配置和已写入内容', 'info');
     }
 
@@ -38557,19 +38615,16 @@ function getWritingModelLabel() {
       showToast('已中断，已保存当前进度', 'success');
     }
 
-    function getNewBookCloseSnapshot() {
-      return JSON.stringify({ form:newBookForm.value, config:{ ...okCfg }, mode:newBookMode.value, teamBrief:teamBrief.value, teamPlanOptions:{ ...teamPlanOptions } });
-    }
-
-    function keepTeamDraftBeforeExit() {
+    function keepTeamDraftBeforeExit(onLeave) {
       const draft = teamDraft.value;
       if (newBookMode.value !== 'team' || !draft || draft.committing) return false;
       const partial = !!draft.needsFill?.length || teamBlocks.value.some(row => row.id !== 'review' && row.status !== 'done') || teamReview.value?.status === 'incomplete';
       openConfirm({
         title:'团队开书结果还未保存',
-        message: partial ? '已完成内容还在当前草稿中。离开会丢失这些结果；可以先写入已完成部分，或留在这里重试、调整 API。' : '生成结果还在当前草稿中。离开会丢失这些结果；可以先接受并写入书库，或留在这里继续检查。',
-        choices:[{ id:'stay', label:'留在这里' },{ id:'save', label:partial ? '先写入已完成部分' : '接受并写入' }]
+        message:'输入和已生成内容会在本次页面中保留，可以暂时返回，稍后重新打开继续处理；也可以先写入书库。',
+        choices:[{ id:'stay', label:'留在这里' },{ id:'keep', label:'保留并返回' },{ id:'save', label:partial ? '先写入已完成部分' : '接受并写入' }]
       }, action => {
+        if (action === 'keep' && typeof onLeave === 'function') onLeave();
         if (action === 'save') { if (partial) commitPartialTeamDraft(); else commitTeamDraft(); }
       });
       return true;
@@ -38583,22 +38638,19 @@ function getWritingModelLabel() {
         });
         return false;
       }
-      if (keepTeamDraftBeforeExit()) return false;
-      if (oneKeyPhase.value === 'config' && newBookCloseBaseline && getNewBookCloseSnapshot() !== newBookCloseBaseline) {
-        confirmDiscardDraft('放弃新书配置', '当前新书配置尚未创建，关闭后会丢失本次填写和勾选。', () => {
-          if (newBookMode.value === 'team') cancelTeamPlanner();
-          showNewBook.value = false;
-          oneKeyPhase.value = 'config';
-        });
-        return false;
-      }
+      if (keepTeamDraftBeforeExit(() => { showNewBook.value = false; cancelTeamPlanner(); })) return false;
       showNewBook.value = false;
-      oneKeyPhase.value = 'config';
       if (newBookMode.value === 'team') cancelTeamPlanner();
       return true;
     }
 
     function openNewBookModal() {
+      if (newBookInputCompleted) resetNewBookInput();
+      if (newBookMode.value === 'team' && teamAppendMode) { openTeamBookMode(); return; }
+      showNewBook.value = true;
+    }
+    function resetNewBookInput() {
+      newBookInputCompleted = false;
       newBookMode.value = 'manual';
       oneKeyFailureSnapshot = null;
       oneKeyRetryTarget = '';
@@ -38611,8 +38663,6 @@ function getWritingModelLabel() {
       okSec.outline = false;
       okSec.presets = false;
       oneKeyPhase.value = 'config';
-      newBookCloseBaseline = getNewBookCloseSnapshot();
-      showNewBook.value = true;
     }
 
     /* ═══ 快照系统 ═══ */
@@ -40152,10 +40202,18 @@ function getWritingModelLabel() {
     const aiEditPhase = ref('select'); // 'select' | 'diff'
     let _aiEditOriginalText = '';
     let _aiEditNewText = '';
+    let aiEditDraftKey = '';
+    function rememberAiEditInput() {
+      if (aiEditDraftKey) aiInputDrafts.set(aiEditDraftKey, { source:aiEditParagraphs.value.map(p => p.text).join('\n\n'), instruction:aiEditInstruction.value, paragraphs:deepClone(aiEditParagraphs.value), diffs:deepClone(aiEditDiffs.value), phase:aiEditPhase.value, original:_aiEditOriginalText, result:_aiEditNewText });
+    }
 
     function openAiEdit(idx) {
+      if (isAiEditing.value) return;
       const ch = visibleChapters.value[idx];
       if (!ch) return;
+      rememberAiEditInput();
+      aiEditDraftKey = getAiInputDraftKey('chapter-edit', ch.id);
+      const draft = aiInputDrafts.get(aiEditDraftKey);
       aiEditChapterIdx.value = idx;
       const content = cleanNarrativeChapterContent(ch);
       // 按空行分割为段落
@@ -40163,22 +40221,21 @@ function getWritingModelLabel() {
       aiEditParagraphs.value = rawParagraphs.map((text, i) => ({
         text: text.trim(), selected: false, index: i
       })).filter(p => p.text.length > 0);
-      aiEditInstruction.value = '';
+      aiEditInstruction.value = draft?.instruction || '';
       aiEditDiffs.value = [];
       aiEditPhase.value = 'select';
+      _aiEditOriginalText = ''; _aiEditNewText = '';
+      if (draft?.source === aiEditParagraphs.value.map(p => p.text).join('\n\n')) {
+        aiEditParagraphs.value = deepClone(draft.paragraphs); aiEditDiffs.value = deepClone(draft.diffs); aiEditPhase.value = draft.phase;
+        _aiEditOriginalText = draft.original; _aiEditNewText = draft.result;
+      }
       isAiEditing.value = false;
       showAiEditModal.value = true;
     }
 
     function requestCloseAiEditModal() {
       if (isAiEditing.value) return false;
-      const hasDraft = String(aiEditInstruction.value || '').trim()
-        || aiEditParagraphs.value.some(item => item?.selected)
-        || aiEditDiffs.value.length > 0;
-      if (hasDraft) {
-        confirmDiscardDraft('放弃 AI 编辑', '当前选段、修改指令或待确认结果尚未应用，关闭后会丢失本次编辑。', () => { showAiEditModal.value = false; });
-        return false;
-      }
+      rememberAiEditInput();
       showAiEditModal.value = false;
       return true;
     }
@@ -40191,6 +40248,7 @@ function getWritingModelLabel() {
       if (!request.ok) { showToast(request.reason || '请配置正文生成 API', 'error'); return; }
 
       const ch = visibleChapters.value[aiEditChapterIdx.value];
+      if (!ch || aiEditDraftKey !== getAiInputDraftKey('chapter-edit', ch.id)) { showToast('章节已切换，请重新打开本章 AI 编辑', 'info'); return; }
       const run = beginBookScopedAiRun('ai-edit:' + String(ch?.id || aiEditChapterIdx.value));
       if (!run) return;
       _aiEditOriginalText = selected.map(p => p.text).join('\n\n');
@@ -40229,7 +40287,7 @@ function getWritingModelLabel() {
 
     function acceptAiEdit() {
       const ch = visibleChapters.value[aiEditChapterIdx.value];
-      if (!ch) return;
+      if (!ch || aiEditDraftKey !== getAiInputDraftKey('chapter-edit', ch.id)) { showToast('章节已切换，请重新打开本章 AI 编辑', 'info'); return; }
       // 保存版本
       if (!ch.versions) ch.versions = [];
       ch.versions.push({content:ch.content,title:ch.title,summary:ch.summary||'',wordCount:ch.wordCount||0,savedAt:Date.now()});
@@ -40250,6 +40308,7 @@ function getWritingModelLabel() {
       notifyModMemoryChapterChanged(ch, 'source-changed-by-ai-edit');
       saveData();
       showAiEditModal.value = false;
+      aiInputDrafts.delete(aiEditDraftKey); aiEditDraftKey = '';
       showToast('AI编辑已应用', 'success');
     }
 
@@ -40907,7 +40966,8 @@ function getWritingModelLabel() {
       if (!run) return;
       isGeneratingStyles.value = true;
 
-      const hint = aiStyleHint.value || '通用小说文风';
+      const input = aiStyleHint.value;
+      const hint = input || '通用小说文风';
       const count = batchStyleCount.value || 3;
       const prompt = '请生成' + count + '个不同的小说预设。\n\n用户要求方向: ' + hint + '\n小说主题: ' + (novel.value.theme || '暂无') + '\n\n返回JSON数组: [{"name":"文风名称","prompt":"详细的文风规则描述(100字以上)"}]\n不要代码块标记。';
 
@@ -40918,11 +40978,11 @@ function getWritingModelLabel() {
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
         const seen=new Set();
         const styles = parseAiRecordArray(raw, ['name','prompt']).filter(p=>{const signature=String(p.name||'').trim()+'\n'+String(p.prompt||'').trim();if(seen.has(signature))return false;seen.add(signature);return true;}).slice(0,count);
+        if (!styles.length || styles.some(item => !['name','prompt'].every(key => typeof item[key] === 'string' && item[key].trim()))) throw new Error('AI 未返回有效的文风名称和内容，本批未写入，原输入已保留');
         styles.forEach(s => {
           writingStyles.value.push({ id: uid(), name: s.name || '新文风', prompt: s.prompt || '', isBuiltin: false });
         });
-        showAiStyleGen.value = false;
-        aiStyleHint.value = '';
+        if (aiStyleHint.value === input) { showAiStyleGen.value = false; aiStyleHint.value = ''; }
         saveData();
         showToast('已生成 ' + styles.length + ' 个文风', 'success');
       })
@@ -41451,7 +41511,8 @@ function getWritingModelLabel() {
       if (!run) return;
       isGeneratingTemplate.value = true;
 
-      const hint = aiTemplateHint.value || '通用奇幻世界';
+      const input = aiTemplateHint.value;
+      const hint = input || '通用奇幻世界';
       const prompt = '你是世界观设计大师。请根据以下方向生成一个完整的小说世界观模板。\n\n方向: ' + hint + '\n\n返回JSON: {"name":"模板名称(4字以内)","icon":"一个emoji","genre":"分类标签(2字)","preview":"一句话简介(30字以内)","content":"完整世界观内容(800字以上，分为多个章节，包含背景、社会结构、力量体系、势力格局等)"}\n不要代码块标记。';
 
       fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:true, omitTemperature:true, signal:run.controller.signal })
@@ -41459,6 +41520,7 @@ function getWritingModelLabel() {
         if (!isBookScopedAiRunCurrent(run)) return;
         const raw = getAdapterCompletionText(result);
         const tpl = parseAiStructuredJson(raw, 'object');
+        if (!['name','content'].every(key => typeof tpl[key] === 'string' && tpl[key].trim())) throw new Error('AI 未返回有效的世界观模板名称和内容，原输入已保留');
         worldTemplates.push({
           name: tpl.name || '自定义模板',
           icon: tpl.icon || '🌐',
@@ -41467,7 +41529,7 @@ function getWritingModelLabel() {
           content: tpl.content || '',
           isCustom: true
         });
-        aiTemplateHint.value = '';
+        if (aiTemplateHint.value === input) aiTemplateHint.value = '';
         saveData();
         showToast('模板「' + tpl.name + '」已生成', 'success');
       })
@@ -41485,14 +41547,16 @@ function getWritingModelLabel() {
       if (!run) return;
       isGeneratingTemplate.value = true;
       const count = batchTemplateCount.value || 3;
-      const hint = aiTemplateHint.value || '各种风格的奇幻世界';
+      const input = aiTemplateHint.value;
+      const hint = input || '各种风格的奇幻世界';
       const prompt = '你是世界观设计大师。请生成' + count + '个不同风格的小说世界观模板。\n\n方向: ' + hint + '\n\n返回JSON数组: [{"name":"名称(4字以内)","icon":"一个emoji","genre":"分类(2字)","preview":"一句话简介(30字以内)","content":"完整世界观(每个至少500字，分章节描述背景、社会、力量、势力等)"}]\n\n要求：' + count + '个模板风格各异，不要雷同。不要代码块标记。';
       fetchAdapterCompletion(request, buildNsfwMessages(prompt), { stream:true, omitTemperature:true, signal:run.controller.signal })
       .then(result => {
         if (!isBookScopedAiRunCurrent(run)) return;
         let raw = getAdapterCompletionText(result);
         const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
-        const templates = parseAiRecordArray(raw, ['name','icon','description','worldView','theme']);
+        const templates = parseAiRecordArray(raw, ['name','icon','genre','preview','content']);
+        if (templates.some(item => !['name','content'].every(key => typeof item[key] === 'string' && item[key].trim()))) throw new Error('AI 未返回有效的世界观模板名称和内容，本批未写入，原输入已保留');
         templates.forEach(tpl => {
           worldTemplates.push({
             name: tpl.name || '模板', icon: tpl.icon || '🌐',
@@ -41500,7 +41564,7 @@ function getWritingModelLabel() {
             content: tpl.content || '', isCustom: true
           });
         });
-        aiTemplateHint.value = '';
+        if (aiTemplateHint.value === input) aiTemplateHint.value = '';
         saveData();
         showToast('已生成 ' + templates.length + ' 个模板', 'success');
       })
@@ -41920,7 +41984,7 @@ function getWritingModelLabel() {
       addSelectedCharacterStateLog, removeSelectedCharacterStateLog, formatCharacterStateLogTime,
       getCharacterChapterLabel, getCharacterOutlineLabel, isSelectedCharacterAssociationLinked, toggleSelectedCharacterAssociation,
       addSelectedCharacterRelationship, removeSelectedCharacterRelationship, getCharacterNameById,
-      showAiCharModal, showCharPreview, aiCharDesc, isGeneratingChar, tempChar,
+      showAiCharModal, showCharPreview, aiCharDesc, isGeneratingChar, tempChar, openAiCharacterInput, returnToCharacterInput,
       generateAiCharacter, confirmAiCharacter, requestCloseAiCharacterModal, requestCloseCharPreview, aiCompleteCharacter, charactersPromptString,
       showBatchCharModal, batchCharCount, batchCharPrompt, isGeneratingBatch,
       generateBatchCharacters, requestCloseBatchCharacterModal,

@@ -95,7 +95,7 @@ function runtime(options = {}) {
     setTimeout(fn) { const id = ++token; timers.set(id, fn); return id; }, clearTimeout:id => timers.delete(id),
     requestAnimationFrame:() => 1, cancelAnimationFrame:() => {},
     nextTick:fn => fn?.(), document:{ activeElement:null }, window:{ innerHeight:800 }, AbortController,
-    chapters, visibleChapters:chapters, currentChapterIndex:ref(0), currentBookId:ref('book-a'), activeBranchId:ref('main'), novel:ref({}), chapterOutlines:ref([]), mainScroll:ref(null),
+    chapters, visibleChapters:chapters, currentChapterIndex:ref(0), currentBookId:ref('book-a'), activeBranchId:ref('main'), aiInputDrafts:new Map(), novel:ref({}), chapterOutlines:ref([]), mainScroll:ref(null),
     streamContent:ref(''), interruptedContent:ref(''), isInterrupted:ref(false), _activeGenerationRun:null, nextChapterPrompt:ref(''),
     splitSnowwingChapterStoryTime:text => ({ content:text }), getSnowwingChapterStoryTime:() => '', normalizeSnowwingStoryTime:()=>'',
     normalizeManualChapterTitle:title => title, getDisplayChapterTitle:ch => ch.title, syncChapterTitleReferences:()=>{}, notifyModMemoryChapterChanged:()=>{}, runModEventHandlers:()=>{},
@@ -122,7 +122,9 @@ function runtime(options = {}) {
   const reviewEnd = source.indexOf('    // 中文注释：修订一旦审完', reviewStart);
   const blockStart = source.indexOf('    const immersiveMode = ref(false);');
   const blockEnd = source.indexOf('    function toggleDesktopSidebar(', blockStart);
-  vm.runInContext(source.slice(editStart, editEnd) + source.slice(reviewStart, reviewEnd) + source.slice(blockStart, blockEnd) + `
+  const keyStart = source.indexOf('    function getAiInputDraftKey('), keyEnd = source.indexOf('    const showInputPrompt =', keyStart);
+  assert.ok(keyStart >= 0 && keyEnd > keyStart);
+  vm.runInContext(source.slice(keyStart, keyEnd) + source.slice(editStart, editEnd) + source.slice(reviewStart, reviewEnd) + source.slice(blockStart, blockEnd) + `
     function toggleImmersive() { immersiveMode.value = !immersiveMode.value; }
     globalThis.api = { immersiveMode, immersiveToolMode, immersiveExpandTags, immersiveExpandTagTool, immersiveExpandWhole, immersiveExpandSource, immersiveExpandReview, immersiveExpandBusy, immersiveWritingText, immersiveDraftStatus, immersiveChapterIndex, immersiveNewDraft, immersiveNewTitle, enterImmersiveWriting, enterImmersiveExpansion, onImmersiveWritingInput, saveImmersiveWriting, runImmersiveExpansion, stopImmersiveExpansion, resetImmersiveTools, beginImmersiveWritingFromGeneration, applyImmersiveExpansion, updateImmersiveReview, discardImmersiveExpansion, setImmersiveExpandTagTool, toggleImmersiveExpandTag };
   `, context);
