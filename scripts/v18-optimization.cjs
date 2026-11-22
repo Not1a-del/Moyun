@@ -4,15 +4,17 @@ module.exports=async function(c,check,shot){
  const delay=ms=>new Promise(r=>setTimeout(r,ms));
  await check('章节迁移、最近N章原文与目标章节范围，不读取未来章节',async()=>{
   const d=await c.ev(async()=>{
-   const original=JSON.parse(JSON.stringify(__s.memoryLibrary)),chapters=__s.chapters,keep=__s.normalizeMemoryLibrary({settings:{summaryKeepFloors:14}}).settings.summaryKeepChapters;
+   const original=JSON.parse(JSON.stringify(__s.memoryLibrary)),chapters=__s.chapters,contextSettings={...__s.settings},keep=__s.normalizeMemoryLibrary({settings:{summaryKeepFloors:14}}).settings.summaryKeepChapters;
    try{
-    __s.cancelMemoryWork();__s.memoryLibrary=__s.normalizeMemoryLibrary({settings:{enabled:false,summaryKeepChapters:2,classicConcurrency:1}});
+    // 本场景主动开启记忆替换，并明确最近两章原文，避免继承前面导入用例的上下文设置。
+    Object.assign(__s.settings,{contextUseFullText:true,contextFullChapters:2,contextCompactMode:false,contextHistoryCharLimit:100000,contextUseRangeSummaries:false});
+    __s.cancelMemoryWork();__s.memoryLibrary=__s.normalizeMemoryLibrary({settings:{enabled:false,replaceHistoryWithSummaries:true,summaryKeepChapters:2,classicConcurrency:1}});
     __s.chapters=Array.from({length:5},(_,i)=>({id:'scope-'+i,branchId:'main',content:'CHAPTER_BODY_'+(i+1),summary:'WRONG_SHORT_SUMMARY_'+(i+1)}));
     const start=__wire.length;await __s.runMemoryBackfill();
     const prompts=__wire.slice(start).map(r=>JSON.stringify(r.body));
     __s.memoryLibrary.settings.enabled=true;__s.memoryLibrary.settings.autoSummarize=true;
     return {keep,prompts,rows:__s.getValidMemoryRows().length,history:__s.buildMemoryHistory(__s.visibleChapters).text};
-   }finally{__s.cancelMemoryWork();__s.chapters=chapters;__s.memoryLibrary=original;}
+   }finally{__s.cancelMemoryWork();__s.chapters=chapters;__s.memoryLibrary=original;Object.assign(__s.settings,contextSettings);}
   });assert.equal(d.keep,7);assert.equal(d.rows,5);assert.equal(d.prompts.length,5);
   for(let i=0;i<5;i++){const p=d.prompts[i];assert.ok(p.includes('唯一总结目标｜第 '+(i+1)+' 章'));assert.ok(p.includes('CHAPTER_BODY_'+(i+1)));assert.ok(!p.includes('WRONG_SHORT_SUMMARY'));for(let j=i+2;j<=5;j++)assert.ok(!p.includes('CHAPTER_BODY_'+j));if(i>=3)assert.ok(!p.includes('CHAPTER_BODY_'+(i-2)));}
   assert.ok(d.history.includes('【逐章记忆】'));assert.ok(d.history.includes('CHAPTER_BODY_4'));assert.ok(d.history.includes('CHAPTER_BODY_5'));assert.ok(!d.history.includes('CHAPTER_BODY_3'));return{keep:d.keep,chapters:d.rows,recentOriginal:2};

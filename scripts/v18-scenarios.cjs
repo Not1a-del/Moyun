@@ -98,9 +98,11 @@ module.exports=async function(c,check,shot){
    __s.chapters.find(m=>m.id==='memory-1').content='V18_REWRITTEN_FACT：铜钥匙已归还林舟';
    const stale=__s.getValidMemoryRows().some(m=>m.chapterId==='memory-1'),groups=__s.validMemoryGroups(__s.getValidMemoryRows()).length;
    const m=__s.memoryLibrary.memories.find(m=>m.chapterId==='memory-2');m.enabled=false;
-   // 当前版本默认按前文预算只带近章；本场景专门验证重写后的旧章正文，因此显式扩大测试预算。
-   __s.settings.contextUseFullText=true;__s.memoryLibrary.settings.summaryKeepChapters=31;__s.settings.contextHistoryCharLimit=100000;__s.settings.contextUseRangeSummaries=false;
-   const history=__s.buildMemoryHistory(__s.chapters.filter(ch=>String(ch.branchId||'main')==='main'));
+   const contextSettings={...__s.settings};
+   // 将待验证的两章放进显式配置的20章原文范围；只扩大字数预算不会覆盖全文章数设置。
+   __s.settings.contextUseFullText=true;__s.settings.contextFullChapters=20;__s.settings.contextCompactMode=false;__s.memoryLibrary.settings.summaryKeepChapters=31;__s.settings.contextHistoryCharLimit=100000;__s.settings.contextUseRangeSummaries=false;
+   const history=__s.buildMemoryHistory(__s.chapters.filter(ch=>String(ch.branchId||'main')==='main').slice(0,20));
+   Object.assign(__s.settings,contextSettings);
    __s.branchList=[{id:'main',name:'主线'},{id:'side',name:'支线',forkFromChapterId:'memory-3'}];
    __s.chapters.push({id:'side-1',branchId:'side',content:'支线独有事实',title:'分岔'});__s.activeBranchId='side';
    const ids=__s.getValidMemoryRows().map(m=>m.chapterId);__s.memoryLibrary.settings.enabled=false;

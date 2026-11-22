@@ -5,7 +5,7 @@ module.exports=async function(c,check,shot){
  for(const width of [1366,390]){
   await c.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<768});
   await c.ev(()=>{__s.mobileSidebarOpen=false;__s.showStoryBibleWorkbench=false;__s.showCharacterWorkbench=false;__s.activeSettingsTab='context';__s.showSettings_modal=true;});await delay(300);
-  for(const [kind,prior,setting]of [['gemini','三轮摘要补写','geminiTestInput'],['token','显示思维链','showTokenUsage']]){
+  for(const [kind,prior,setting]of [['gemini','截断设置','geminiTestInput'],['token','显示思维链','showTokenUsage']]){
    const selector=kind==='gemini'?'[data-settings-gemini-input]':'[data-settings-token-usage]';
    await check('设置开关位置与点击 '+kind+' '+width,async()=>{
     const d=await c.ev((selector,setting)=>{const row=document.querySelector(selector),button=row.querySelector('button'),track=button.querySelector('.toggle-track');row.scrollIntoView({block:'center'});const before=!!__s.settings[setting];button.click();const after=!!__s.settings[setting];button.click();const r=track.getBoundingClientRect(),hit=button.getBoundingClientRect();return{previous:row.previousElementSibling.textContent,before,after,restored:!!__s.settings[setting],width:r.width,height:r.height,hitHeight:hit.height,left:hit.left,right:hit.right,viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+1};},selector,setting);

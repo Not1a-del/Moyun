@@ -4,10 +4,11 @@ module.exports=async function(c,check){
  const delay=ms=>new Promise(r=>setTimeout(r,ms));
  await c.ev(()=>{
   __s.cancelMemoryWork();__s.syncBookData();
-  window.__memoryUi={book:__s.currentBookId,model:__s.settings.memoryEmbeddingModel,fetch};
+  window.__memoryUi={book:__s.currentBookId,model:__s.settings.memoryEmbeddingModel,contextSettings:{...__s.settings},fetch};
   __s.books.push({id:'v18-memory-ui',title:'记忆按钮隔离书',novel:{title:'记忆按钮隔离书'},chapters:[],characters:[]});__s.loadBook('v18-memory-ui');
   __s.chapters=[1,2].map(no=>({id:'ui-chapter-'+no,branchId:'main',title:'按钮测试'+no,content:'UI_CHAPTER_'+no+'：铜钥匙在阿雪手中。',summary:'UI_SUMMARY_'+no+'：铜钥匙由阿雪保管。'}));
-  __s.memoryLibrary=__s.normalizeMemoryLibrary({settings:{enabled:false,mode:'enhanced',summaryKeepChapters:1}});
+  Object.assign(__s.settings,{contextUseFullText:true,contextFullChapters:2,contextCompactMode:false,contextHistoryCharLimit:100000,contextUseRangeSummaries:false});
+  __s.memoryLibrary=__s.normalizeMemoryLibrary({settings:{enabled:false,replaceHistoryWithSummaries:true,mode:'enhanced',summaryKeepChapters:1}});
   __s.openStoryBibleWorkbench('memory');
  });await delay(450);
  try{
@@ -60,6 +61,6 @@ module.exports=async function(c,check){
    });assert.equal(d.running,true);assert.equal(d.busy,false);assert.equal(d.rows,0);assert.equal(d.stopped,true);return d;
   });
  }finally{
-  await c.ev(()=>{window.fetch=__memoryUi.fetch;__s.cancelMemoryWork();__s.loadBook(__memoryUi.book);__s.books=__s.books.filter(b=>b.id!=='v18-memory-ui');__s.settings.memoryEmbeddingModel=__memoryUi.model;__s.closeStoryBibleWorkbench();delete window.__memoryUi;});
+  await c.ev(()=>{window.fetch=__memoryUi.fetch;__s.cancelMemoryWork();__s.loadBook(__memoryUi.book);__s.books=__s.books.filter(b=>b.id!=='v18-memory-ui');Object.assign(__s.settings,__memoryUi.contextSettings);__s.settings.memoryEmbeddingModel=__memoryUi.model;__s.closeStoryBibleWorkbench();delete window.__memoryUi;});
  }
 };
