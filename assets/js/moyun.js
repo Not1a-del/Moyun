@@ -4029,7 +4029,7 @@ createApp({
       readerScrollNavEnabled: false, readerScrollShowSeconds: 0.5, readerScrollHideSeconds: 3,
       noOutputTimeoutSec: 45,
       enableReviewer: false, enableThinking: true,
-      commentInline: false,
+      commentInline: false, commentAutoGenerate: true,
       // v0.0.13 req2：二轮补写开关，默认开启；关闭后首轮字数不足不再自动追加第二次请求。
       secondRoundSupplementEnabled: true,
       thirdRoundSupplementEnabled: true,
@@ -36914,7 +36914,7 @@ function getWritingModelLabel() {
 
 
         // 书评处理
-        if (settings.value.commentInline && settings.value.enableReviewer) {
+        if (shouldAutoGenerateChapterComments() && settings.value.commentInline) {
           if (_inlineCommentsRaw) {
             let rcRaw = _inlineCommentsRaw.replace(/```json/g,'').replace(/```/g,'').trim();
             const rcMatch = rcRaw.match(/\[[\s\S]*\]/);
@@ -36924,14 +36924,14 @@ function getWritingModelLabel() {
                 const rl = () => locs[Math.floor(Math.random()*locs.length)];
                 const inlineComments = cleanReaderCommentTree(JSON.parse(rcMatch[0]));
                 inlineComments.forEach(c => { c.level=Math.floor(Math.random()*20)+1; if(!c.location)c.location=rl(); c.isLiked=false; c.replies=c.replies||[]; c.replies.forEach(r=>{r.level=Math.floor(Math.random()*15)+1;r.likes=r.likes||0;r.isLiked=false;if(!r.location)r.location=rl();}); });
-                newCh.comments = inlineComments;
+                newCh.comments = inlineComments.slice(0, getRequestedCommentCount());
               } catch(e) { console.warn('内联评论解析失败', e); }
             }
           }
           if (!newCh.comments || newCh.comments.length === 0) {
             generateChapterComments(storageChapterIndex);
           }
-        } else if (settings.value.enableReviewer) {
+        } else if (shouldAutoGenerateChapterComments()) {
           generateChapterComments(storageChapterIndex);
         }
 
@@ -38981,8 +38981,9 @@ function getWritingModelLabel() {
       {tab:'context',target:'settings-search-auto-scroll',title:'生成开始时定位',keywords:'自动滚动 自动定位 写作页 跳到最新章节 跳转正文 生成时跳转 滚动位置 scroll dingwei'},
       {tab:'context',target:'settings-search-reader-navigation',title:'正文上下跳转按钮',keywords:'上下箭头 上下顶按钮 回到顶部 返回顶部 到底部 页首 页尾 滚动导航 翻页 滑动 显示时间 隐藏时间 自动消失 秒数 开关 scroll'},
       {tab:'context',target:'settings-search-reviewer',title:'书评团功能',keywords:'自动评论 读者模拟 书评团点评全书 开启书评 关闭书评 自动书评 作品评价 读者反馈 review tuan pinglun'},
-      {tab:'context',target:'settings-search-inline-comment',title:'书评随正文生成',keywords:'评论和正文合并 同次 API 节省调用 同时评论 合并书评 随文点评 一次请求 inline comment suizhengwen'},
-      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'读者评论条数 自动评论数量 评论几条 读者人数 评论条数 点评数量 comment count pinglun shuliang'},
+      {tab:'context',target:'settings-search-inline-comment',title:'评论与正文合并生成',keywords:'书评随正文生成 评论和正文合并 同次 API 节省调用 同时评论 合并书评 随文点评 一次请求 inline comment suizhengwen'},
+      {tab:'context',target:'settings-search-auto-comment',title:'评论自动跟随生成',keywords:'自动评论 自动书评 关闭自动评论 写完生成评论 正文之后 自动跟随 评论跟随 评论开关 生成后点评 紧接生成 auto comment'},
+      {tab:'context',target:'settings-search-comment-count',title:'每章模拟评论数量',keywords:'书评数量 读者评论条数 自动评论数量 评论几条 读者人数 评论条数 点评数量 零条 0条 不生成评论 comment count pinglun shuliang'},
       {tab:'context',target:'settings-search-stream',title:'流式输出',keywords:'关闭流式 非流式 请求方式 边写边显示 逐字显示 实时输出 一次性返回 流式开关 stream streaming shuchu'},
       {tab:'context',target:'settings-search-timeout',title:'首字超时',keywords:'等待 首次输出 无响应 超时秒数 时间 等待时间 首字等待 超时时间 不出字 没反应 卡住 一直转圈 响应时间 秒数 timeout first token shouzi chaoshi'},
       {tab:'context',target:'settings-search-thinking',title:'显示思维链',keywords:'推理过程 思考过程 思维过程 思考显示 隐藏思考 推理可见 reasoning cot deepseek thinking sikao'},
@@ -40556,7 +40557,19 @@ function getWritingModelLabel() {
       }
     }
 
+    function getRequestedCommentCount() {
+      const value = settings.value.commentCount;
+      return value === '' || value == null || !Number.isFinite(Number(value)) ? 8 : Math.max(0, Math.min(20, Math.floor(Number(value))));
+    }
+
+    function shouldAutoGenerateChapterComments() {
+      return settings.value.enableReviewer && settings.value.commentAutoGenerate !== false && getRequestedCommentCount() > 0;
+    }
+
     function generateChapterComments(chapterIndex) {
+      const commentCount = getRequestedCommentCount();
+      if (!commentCount) { showToast('如果生成数量为0时，则不会生成评论哦', 'info'); return; }
+      if (!settings.value.enableReviewer) { showToast('请先开启上方「书评团功能」', 'info'); return; }
       const request = requireModuleRequest('comments', '评论 API');
       if (!request) return;
       const ch = chapters.value[chapterIndex];
@@ -40574,7 +40587,6 @@ function getWritingModelLabel() {
       const priorContext = vc.slice(recentStart, visibleChapterIndex).map((c, i) =>
         '第' + (recentStart + i + 1) + '章 ' + c.title + '（前情摘要）\n' + clipContextText(cleanNarrativeChapterContent(c), 1200, { keepHead: true })
       ).join('\n\n');
-      const commentCount = settings.value.commentCount || 8;
       const prompt = String(discussionPrompt.value || getDefaultDiscussionPrompt()).trim() || getDefaultDiscussionPrompt();
       const chapterHint = '最新一章（第' + visibleChapterNo + '章 ' + ch.title + '），共生成' + commentCount + '条。';
       const biblePackage = buildStoryBibleWritingContextPackage({ currentChapterNo: visibleChapterNo, nameMatchText: currentBody.slice(0, 6000) + ' ' + (ch.title || '') });
@@ -40596,7 +40608,7 @@ function getWritingModelLabel() {
           const arr = raw.match(/\[[\s\S]*\]/); if (arr) raw = arr[0];
           const comments = cleanReaderCommentTree(parseAiStructuredJson(raw, 'array'));
           comments.forEach(c => { c.level = Math.floor(Math.random()*20)+1; if(!c.location)c.location=rl(); c.isLiked=false; c.replies=c.replies||[]; c.replies.forEach(r=>{r.level=Math.floor(Math.random()*15)+1;r.likes=r.likes||0;r.isLiked=false;if(!r.location)r.location=rl();}); });
-          ch.comments = comments;
+          ch.comments = comments.slice(0, commentCount);
         } catch (error) {
           if (/^[\[{]/.test(raw.trim())) throw error;
           ch.comments = raw.split('\n').map(l=>stripSnowwingVisiblePromptLeaks(l).trim()).filter(Boolean).slice(0,commentCount).map(l=>({username:'热心书友',content:l.replace(/^\d+[\.、]\s*/,''),location:rl(),likes:Math.floor(Math.random()*100),time:'刚刚',level:Math.floor(Math.random()*10)+1,replies:[],isLiked:false}));
@@ -40613,6 +40625,7 @@ function getWritingModelLabel() {
     }
 
     function regenerateComments(idx) {
+      if (!getRequestedCommentCount()) { showToast('如果生成数量为0时，则不会生成评论哦', 'info'); return; }
       const ch = visibleChapters.value[idx];
       if (!ch || !cleanNarrativeChapterContent(ch)) { showToast('该章无内容', 'error'); return; }
       const realIdx = chapters.value.indexOf(ch);
@@ -42070,7 +42083,7 @@ function getWritingModelLabel() {
       summaryBackfillPicker,summaryBackfill,selectedSummaryBackfillCount,openSummaryBackfill,confirmSummaryBackfill,startSummaryBackfill,stopSummaryBackfill,adoptSummaryCandidate,buildBudgetedChapterHistory,normalizeContextSettings,
 	  
       // ── 每章书评系统 ──
-	  generateChapterComments, regenerateComments, likeComment, likeReply, toggleChapterComments,
+	  getRequestedCommentCount, shouldAutoGenerateChapterComments, generateChapterComments, regenerateComments, likeComment, likeReply, toggleChapterComments,
 	  
 
       // ── v2.3.0 承载增强：真实上下文 / MOD Hub / 段评 ──

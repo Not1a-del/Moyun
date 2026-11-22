@@ -5684,26 +5684,30 @@
           <div id="settings-search-reviewer" class="flex items-center justify-between py-2">
             <div class="pr-3">
               <span class="text-sm font-bold" style="color:var(--tx)">书评团功能</span><br>
-              <span class="text-[10px]" style="color:var(--tx3)">总开关，默认关闭。开启后：正文右上角出现「书评团」入口（吃瓜群众 / 十年老书虫 / 金牌主编三人格点评全书），章节底部出现「生成本章书评」，并且每写完一章会自动为该章生成模拟读者评论——这些都会各自发起真实模型调用。</span>
+              <span class="text-[10px]" style="color:var(--tx3)">总开关，默认关闭。开启后：正文右上角出现「书评团」入口（吃瓜群众 / 十年老书虫 / 金牌主编三人格点评全书），章节底部出现「生成本章书评」。每章是否自动生成模拟读者评论由下方开关控制；这些都会各自发起真实模型调用。</span>
             </div>
             <div @click="settings.enableReviewer=!settings.enableReviewer;saveData()"
                  class="toggle-track shrink-0" :class="settings.enableReviewer?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
           <div id="settings-search-inline-comment" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
             <div class="pr-3">
-              <span class="text-sm font-bold" style="color:var(--tx)">书评随正文生成</span><br>
+              <span class="text-sm font-bold" style="color:var(--tx)">评论与正文合并生成</span><br>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '本章评论与正文合并为一次 API 调用，节省费用' : '需先开启上方「书评团功能」才会生效' }}</span>
             </div>
             <div @click="settings.enableReviewer ? (settings.commentInline=!settings.commentInline, saveData()) : showToast('请先开启上方「书评团功能」','info')"
                  class="toggle-track shrink-0" :class="settings.commentInline?'toggle-on':'toggle-off'"><div class="toggle-thumb"></div></div>
           </div>
+          <div id="settings-search-auto-comment" class="flex items-center justify-between gap-3 py-2">
+            <div class="min-w-0"><span class="text-sm font-bold" style="color:var(--tx)">评论自动跟随生成</span><br><span class="text-[10px]" style="color:var(--tx3)">开启此功能以后，评论将会跟随正文生成后紧接生成</span></div>
+            <button type="button" @click="settings.commentAutoGenerate=settings.commentAutoGenerate===false;saveData()" class="moyun-toggle-hitbox shrink-0" role="switch" :aria-checked="settings.commentAutoGenerate!==false" aria-label="评论自动跟随生成"><span aria-hidden="true" class="toggle-track" :class="settings.commentAutoGenerate!==false?'toggle-on':'toggle-off'"><span class="toggle-thumb"></span></span></button>
+          </div>
           <div id="settings-search-comment-count" class="flex items-center justify-between py-2" :style="settings.enableReviewer?'':'opacity:.5'">
-            <div class="pr-3">
-              <span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><br>
+            <div class="pr-3 min-w-0">
+              <div class="flex items-center flex-wrap gap-1"><span class="text-sm font-bold" style="color:var(--tx)">书评数量</span><button v-if="getRequestedCommentCount()===0" type="button" class="btn-ghost text-[11px] min-h-[44px]" style="color:var(--warn)" v-moyun-tip="'如果生成数量为0时，则不会生成评论哦'" aria-label="评论数量为零提示">ⓘ 不生成</button></div>
               <span class="text-[10px]" style="color:var(--tx3)">{{ settings.enableReviewer ? '每章自动生成的模拟读者评论条数' : '需先开启上方「书评团功能」才会生效' }}</span>
             </div>
-            <input type="number" v-model.number="settings.commentCount" @change="saveData()" min="3" max="20" :disabled="!settings.enableReviewer"
-                   class="input-field text-center shrink-0" style="width:80px;height:32px">
+            <input type="number" v-model.number="settings.commentCount" @input="saveDataNow('更新书评数量')" @change="settings.commentCount=getRequestedCommentCount();saveData()" min="0" max="20" step="1" aria-label="书评数量" :disabled="!settings.enableReviewer"
+                   class="input-field text-center shrink-0" style="width:80px;min-height:44px">
           </div>
 
           <div class="space-y-2 py-2"><label class="flex items-start gap-2 text-sm"><input type="checkbox" v-model="settings.autoCheckContinuity" @change="saveData()" class="mt-1"><span>重新生成后自动检查衔接<span class="block text-[10px] mt-1" style="color:var(--tx3)">单章细纲在生成时初检；多章细纲完成后合并检查一次。</span></span></label><label class="flex items-start gap-2 text-sm"><input type="checkbox" v-model="settings.allowAiNeighborAdjustment" @change="saveData()" class="mt-1"><span>允许 AI 微调相邻章<span class="block text-[10px] mt-1" style="color:var(--tx3)">只在你点击调整后生成同卷前后各一章候选，逐章确认才写入。</span></span></label></div>
@@ -6899,7 +6903,7 @@
 <!-- PART_1_END -->
 </div><!-- #app 结束 -->
 
-<script src="./assets/js/moyun.js?v=c1ef1e39c01f"></script>
+<script src="./assets/js/moyun.js?v=b5b9b11262c5"></script>
 <!-- PART_1_END -->
 </body>
 </html>
