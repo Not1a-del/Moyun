@@ -1,0 +1,34 @@
+{
+  "candidate": "983ac881b5d730bf7a6de94747d537c26435d08c",
+  "passed": true,
+  "checks": 110,
+  "results": [
+    {
+      "file": "public-release.json",
+      "passed": true,
+      "checks": 25
+    },
+    {
+      "file": "public-tablet.json",
+      "passed": true,
+      "checks": 30
+    },
+    {
+      "file": "stable-release.json",
+      "passed": true,
+      "checks": 25
+    },
+    {
+      "file": "stable-tablet.json",
+      "passed": true,
+      "checks": 30
+    }
+  ],
+  "initialFailure": "首次正式站平板冷启动 Vue 未就绪，原 gate 失败报告保留；只按原参数补验平板专项，30/30通过。",
+  "notCovered": [
+    "真实模型",
+    "手机或平板真机",
+    "近期记忆问题修复"
+  ],
+  "generatedAt": "2026-11-22T12:35:12.989Z"
+}

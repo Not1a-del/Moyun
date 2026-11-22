@@ -1,3 +1,7 @@
+# v0.0.19 输入保留双仓上线（2026-11-22）
+
+候选983ac88已发布公测与正式库，Pages#35／#98成功，来源main:/、账号yydcm-129。发布前重跑audit通过、gate9/9；两站8个启动文件与候选一致。公测线上25+30、正式线上25+30，共110/110。正式首次平板子进程Vue冷启动未就绪，gate失败记录保留；只按原参数重跑平板专项，30/30通过，无代码或断言调整。具体命令、失败与补验、未覆盖真实模型／真机和回滚见 [发布报告](V0.0.19_AI_INPUT_RETENTION_RELEASE_REPORT.md)。版本19及1116公告不变，记忆问题暂停。
+
 # v0.0.19 AI 输入返回保留（2026-11-22，本地）
 
 改前四类丢字路径已从Git基线提取真实函数／模板在VM复现；改后新增单测31/31，浏览器专项55/55，普通gate9/9、完整gate:browser27/27（失败／跳过0）、v19功能363/363、结构审计通过。执行命令为 npm.cmd run audit、node --test scripts/v19-ai-input-retention.test.cjs scripts/v19-ai-input-validation.test.cjs、node scripts/v19-outline-review-browser.cjs --ai-input-retention、npm.cmd run gate、npm.cmd run gate:browser；完整浏览器门禁结果归档于 [专项报告](V0.0.19_AI_INPUT_RETENTION_REPORT.md)。

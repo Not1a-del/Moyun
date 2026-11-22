@@ -1,0 +1,1750 @@
+{
+  "passed": true,
+  "before": false,
+  "results": [
+    {
+      "name": "1024x1366-light开关形状和滑块位置",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "hit": {
+            "x": 697,
+            "y": 582.5,
+            "width": 44,
+            "height": 44,
+            "top": 582.5,
+            "right": 741,
+            "bottom": 626.5,
+            "left": 697
+          },
+          "track": {
+            "x": 697,
+            "y": 592.5,
+            "width": 44,
+            "height": 24,
+            "top": 592.5,
+            "right": 741,
+            "bottom": 616.5,
+            "left": 697
+          },
+          "thumb": {
+            "x": 720,
+            "y": 595.5,
+            "width": 18,
+            "height": 18,
+            "top": 595.5,
+            "right": 738,
+            "bottom": 613.5,
+            "left": 720
+          },
+          "checked": "true"
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "hit": {
+            "x": 697,
+            "y": 686.5,
+            "width": 44,
+            "height": 44,
+            "top": 686.5,
+            "right": 741,
+            "bottom": 730.5,
+            "left": 697
+          },
+          "track": {
+            "x": 697,
+            "y": 696.5,
+            "width": 44,
+            "height": 24,
+            "top": 696.5,
+            "right": 741,
+            "bottom": 720.5,
+            "left": 697
+          },
+          "thumb": {
+            "x": 720,
+            "y": 699.5,
+            "width": 18,
+            "height": 18,
+            "top": 699.5,
+            "right": 738,
+            "bottom": 717.5,
+            "left": 720
+          },
+          "checked": "true"
+        }
+      ]
+    },
+    {
+      "name": "1024x1366-light开关关闭与恢复",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        }
+      ]
+    },
+    {
+      "name": "1024x1366-light设置分类不随内容下移",
+      "data": {
+        "first": {
+          "exists": true,
+          "box": {
+            "x": 277,
+            "y": 314,
+            "width": 470,
+            "height": 41,
+            "top": 314,
+            "right": 747,
+            "bottom": 355,
+            "left": 277
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "last": {
+          "exists": true,
+          "box": {
+            "x": 277,
+            "y": 314,
+            "width": 470,
+            "height": 41,
+            "top": 314,
+            "right": 747,
+            "bottom": 355,
+            "left": 277
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light正常正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 1204,
+            "width": 640,
+            "height": 162,
+            "top": 1204,
+            "right": 1024,
+            "bottom": 1366,
+            "left": 384
+          },
+          "height": 162,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 907,
+            "y": 1309,
+            "width": 96,
+            "height": 44,
+            "top": 1309,
+            "right": 1003,
+            "bottom": 1353,
+            "left": 907
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 640,
+            "height": 1204,
+            "top": 0,
+            "right": 1024,
+            "bottom": 1204,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3898,
+          "clientHeight": 1204,
+          "scrollTop": 2694
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light正常设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 257.1632385253906,
+            "y": 232.2886962890625,
+            "width": 509.6735534667969,
+            "height": 69.9552001953125,
+            "top": 232.2886962890625,
+            "right": 766.8367919921875,
+            "bottom": 302.243896484375,
+            "left": 257.1632385253906
+          },
+          "height": 69.9552001953125,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 257.2772521972656,
+            "y": 1061.587890625,
+            "width": 509.4455261230469,
+            "height": 79.9130859375,
+            "top": 1061.587890625,
+            "right": 766.7227783203125,
+            "bottom": 1141.5009765625,
+            "left": 257.2772521972656
+          },
+          "height": 79.9130859375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 273.2598571777344,
+            "y": 1089.5576171875,
+            "width": 477.4802551269531,
+            "height": 43.9521484375,
+            "top": 1089.5576171875,
+            "right": 750.7401123046875,
+            "bottom": 1133.509765625,
+            "left": 273.2598571777344
+          },
+          "height": 43.9521484375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light正常分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light浏览器双栏正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 1072,
+            "width": 640,
+            "height": 162,
+            "top": 1072,
+            "right": 1024,
+            "bottom": 1234,
+            "left": 384
+          },
+          "height": 162,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 907,
+            "y": 1177,
+            "width": 96,
+            "height": 44,
+            "top": 1177,
+            "right": 1003,
+            "bottom": 1221,
+            "left": 907
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 640,
+            "height": 1072,
+            "top": 0,
+            "right": 1024,
+            "bottom": 1072,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3898,
+          "clientHeight": 1072,
+          "scrollTop": 2826
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light浏览器双栏设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 257,
+            "y": 166,
+            "width": 510,
+            "height": 70,
+            "top": 166,
+            "right": 767,
+            "bottom": 236,
+            "left": 257
+          },
+          "height": 70,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 257.0011901855469,
+            "y": 995.9982299804688,
+            "width": 509.9975891113281,
+            "height": 79.99957275390625,
+            "top": 995.9982299804688,
+            "right": 766.998779296875,
+            "bottom": 1075.997802734375,
+            "left": 257.0011901855469
+          },
+          "height": 79.99957275390625,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 273.00067138671875,
+            "y": 1023.9988403320312,
+            "width": 477.9986572265625,
+            "height": 43.99993896484375,
+            "top": 1023.9988403320312,
+            "right": 750.9993286132812,
+            "bottom": 1067.998779296875,
+            "left": 273.00067138671875
+          },
+          "height": 43.99993896484375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-light浏览器双栏分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark开关形状和滑块位置",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "hit": {
+            "x": 697,
+            "y": 582.5,
+            "width": 44,
+            "height": 44,
+            "top": 582.5,
+            "right": 741,
+            "bottom": 626.5,
+            "left": 697
+          },
+          "track": {
+            "x": 697,
+            "y": 592.5,
+            "width": 44,
+            "height": 24,
+            "top": 592.5,
+            "right": 741,
+            "bottom": 616.5,
+            "left": 697
+          },
+          "thumb": {
+            "x": 720,
+            "y": 595.5,
+            "width": 18,
+            "height": 18,
+            "top": 595.5,
+            "right": 738,
+            "bottom": 613.5,
+            "left": 720
+          },
+          "checked": "true"
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "hit": {
+            "x": 697,
+            "y": 686.5,
+            "width": 44,
+            "height": 44,
+            "top": 686.5,
+            "right": 741,
+            "bottom": 730.5,
+            "left": 697
+          },
+          "track": {
+            "x": 697,
+            "y": 696.5,
+            "width": 44,
+            "height": 24,
+            "top": 696.5,
+            "right": 741,
+            "bottom": 720.5,
+            "left": 697
+          },
+          "thumb": {
+            "x": 720,
+            "y": 699.5,
+            "width": 18,
+            "height": 18,
+            "top": 699.5,
+            "right": 738,
+            "bottom": 717.5,
+            "left": 720
+          },
+          "checked": "true"
+        }
+      ]
+    },
+    {
+      "name": "1024x1366-dark开关关闭与恢复",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        }
+      ]
+    },
+    {
+      "name": "1024x1366-dark设置分类不随内容下移",
+      "data": {
+        "first": {
+          "exists": true,
+          "box": {
+            "x": 277,
+            "y": 314,
+            "width": 470,
+            "height": 41,
+            "top": 314,
+            "right": 747,
+            "bottom": 355,
+            "left": 277
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "last": {
+          "exists": true,
+          "box": {
+            "x": 277,
+            "y": 314,
+            "width": 470,
+            "height": 41,
+            "top": 314,
+            "right": 747,
+            "bottom": 355,
+            "left": 277
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark正常正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 1204,
+            "width": 640,
+            "height": 162,
+            "top": 1204,
+            "right": 1024,
+            "bottom": 1366,
+            "left": 384
+          },
+          "height": 162,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 907,
+            "y": 1309,
+            "width": 96,
+            "height": 44,
+            "top": 1309,
+            "right": 1003,
+            "bottom": 1353,
+            "left": 907
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 640,
+            "height": 1204,
+            "top": 0,
+            "right": 1024,
+            "bottom": 1204,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3898,
+          "clientHeight": 1204,
+          "scrollTop": 2694
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark正常设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 257.0695495605469,
+            "y": 232.12295532226562,
+            "width": 509.8608703613281,
+            "height": 69.98089599609375,
+            "top": 232.12295532226562,
+            "right": 766.930419921875,
+            "bottom": 302.1038513183594,
+            "left": 257.0695495605469
+          },
+          "height": 69.98089599609375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 257.15875244140625,
+            "y": 1061.76416015625,
+            "width": 509.68243408203125,
+            "height": 79.9501953125,
+            "top": 1061.76416015625,
+            "right": 766.8411865234375,
+            "bottom": 1141.71435546875,
+            "left": 257.15875244140625
+          },
+          "height": 79.9501953125,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 273.1488037109375,
+            "y": 1089.74658203125,
+            "width": 477.702392578125,
+            "height": 43.97265625,
+            "top": 1089.74658203125,
+            "right": 750.8511962890625,
+            "bottom": 1133.71923828125,
+            "left": 273.1488037109375
+          },
+          "height": 43.97265625,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark正常分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1366,
+            "width": 1024,
+            "cssHeight": "1366px",
+            "bodyHeight": "1366px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark浏览器双栏正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 1072,
+            "width": 640,
+            "height": 162,
+            "top": 1072,
+            "right": 1024,
+            "bottom": 1234,
+            "left": 384
+          },
+          "height": 162,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 907,
+            "y": 1177,
+            "width": 96,
+            "height": 44,
+            "top": 1177,
+            "right": 1003,
+            "bottom": 1221,
+            "left": 907
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 640,
+            "height": 1072,
+            "top": 0,
+            "right": 1024,
+            "bottom": 1072,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3898,
+          "clientHeight": 1072,
+          "scrollTop": 2826
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark浏览器双栏设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 257.16009521484375,
+            "y": 166.28317260742188,
+            "width": 509.67987060546875,
+            "height": 69.9560546875,
+            "top": 166.28317260742188,
+            "right": 766.8399658203125,
+            "bottom": 236.23922729492188,
+            "left": 257.16009521484375
+          },
+          "height": 69.9560546875,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 257.16009521484375,
+            "y": 995.7620849609375,
+            "width": 509.67987060546875,
+            "height": 79.9498291015625,
+            "top": 995.7620849609375,
+            "right": 766.8399658203125,
+            "bottom": 1075.7119140625,
+            "left": 257.16009521484375
+          },
+          "height": 79.9498291015625,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 273.1500549316406,
+            "y": 1023.7445068359375,
+            "width": 477.6999206542969,
+            "height": 43.9722900390625,
+            "top": 1023.7445068359375,
+            "right": 750.8499755859375,
+            "bottom": 1067.716796875,
+            "left": 273.1500549316406
+          },
+          "height": 43.9722900390625,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1024x1366-dark浏览器双栏分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 1234,
+            "width": 1024,
+            "cssHeight": "1234px",
+            "bodyHeight": "1234px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-light开关形状和滑块位置",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "hit": {
+            "x": 825,
+            "y": 295.5,
+            "width": 44,
+            "height": 44,
+            "top": 295.5,
+            "right": 869,
+            "bottom": 339.5,
+            "left": 825
+          },
+          "track": {
+            "x": 825,
+            "y": 305.5,
+            "width": 44,
+            "height": 24,
+            "top": 305.5,
+            "right": 869,
+            "bottom": 329.5,
+            "left": 825
+          },
+          "thumb": {
+            "x": 848,
+            "y": 308.5,
+            "width": 18,
+            "height": 18,
+            "top": 308.5,
+            "right": 866,
+            "bottom": 326.5,
+            "left": 848
+          },
+          "checked": "true"
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "hit": {
+            "x": 825,
+            "y": 399.5,
+            "width": 44,
+            "height": 44,
+            "top": 399.5,
+            "right": 869,
+            "bottom": 443.5,
+            "left": 825
+          },
+          "track": {
+            "x": 825,
+            "y": 409.5,
+            "width": 44,
+            "height": 24,
+            "top": 409.5,
+            "right": 869,
+            "bottom": 433.5,
+            "left": 825
+          },
+          "thumb": {
+            "x": 848,
+            "y": 412.5,
+            "width": 18,
+            "height": 18,
+            "top": 412.5,
+            "right": 866,
+            "bottom": 430.5,
+            "left": 848
+          },
+          "checked": "true"
+        }
+      ]
+    },
+    {
+      "name": "1280x800-light开关关闭与恢复",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        }
+      ]
+    },
+    {
+      "name": "1280x800-light设置分类不随内容下移",
+      "data": {
+        "first": {
+          "exists": true,
+          "box": {
+            "x": 405,
+            "y": 115,
+            "width": 470,
+            "height": 41,
+            "top": 115,
+            "right": 875,
+            "bottom": 156,
+            "left": 405
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "last": {
+          "exists": true,
+          "box": {
+            "x": 405,
+            "y": 115,
+            "width": 470,
+            "height": 41,
+            "top": 115,
+            "right": 875,
+            "bottom": 156,
+            "left": 405
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-light桌面正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 686,
+            "width": 896,
+            "height": 114,
+            "top": 686,
+            "right": 1280,
+            "bottom": 800,
+            "left": 384
+          },
+          "height": 114,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 1107,
+            "y": 743,
+            "width": 96,
+            "height": 44,
+            "top": 743,
+            "right": 1203,
+            "bottom": 787,
+            "left": 1107
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 896,
+            "height": 686,
+            "top": 0,
+            "right": 1280,
+            "bottom": 686,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3856,
+          "clientHeight": 686,
+          "scrollTop": 3038
+        }
+      }
+    },
+    {
+      "name": "1280x800-light桌面设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 385.0658874511719,
+            "y": 33.09480667114258,
+            "width": 509.8682556152344,
+            "height": 69.98191833496094,
+            "top": 33.09480667114258,
+            "right": 894.9341430664062,
+            "bottom": 103.07672500610352,
+            "left": 385.0658874511719
+          },
+          "height": 69.98191833496094,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 385.0658874511719,
+            "y": 686.9258422851562,
+            "width": 509.8682556152344,
+            "height": 79.9793701171875,
+            "top": 686.9258422851562,
+            "right": 894.9341430664062,
+            "bottom": 766.9052124023438,
+            "left": 385.0658874511719
+          },
+          "height": 79.9793701171875,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 401.061767578125,
+            "y": 714.9186401367188,
+            "width": 477.87652587890625,
+            "height": 43.9886474609375,
+            "top": 714.9186401367188,
+            "right": 878.9382934570312,
+            "bottom": 758.9072875976562,
+            "left": 401.061767578125
+          },
+          "height": 43.9886474609375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-light桌面分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-dark开关形状和滑块位置",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "hit": {
+            "x": 825,
+            "y": 295.5,
+            "width": 44,
+            "height": 44,
+            "top": 295.5,
+            "right": 869,
+            "bottom": 339.5,
+            "left": 825
+          },
+          "track": {
+            "x": 825,
+            "y": 305.5,
+            "width": 44,
+            "height": 24,
+            "top": 305.5,
+            "right": 869,
+            "bottom": 329.5,
+            "left": 825
+          },
+          "thumb": {
+            "x": 848,
+            "y": 308.5,
+            "width": 18,
+            "height": 18,
+            "top": 308.5,
+            "right": 866,
+            "bottom": 326.5,
+            "left": 848
+          },
+          "checked": "true"
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "hit": {
+            "x": 825,
+            "y": 399.5,
+            "width": 44,
+            "height": 44,
+            "top": 399.5,
+            "right": 869,
+            "bottom": 443.5,
+            "left": 825
+          },
+          "track": {
+            "x": 825,
+            "y": 409.5,
+            "width": 44,
+            "height": 24,
+            "top": 409.5,
+            "right": 869,
+            "bottom": 433.5,
+            "left": 825
+          },
+          "thumb": {
+            "x": 848,
+            "y": 412.5,
+            "width": 18,
+            "height": 18,
+            "top": 412.5,
+            "right": 866,
+            "bottom": 430.5,
+            "left": 848
+          },
+          "checked": "true"
+        }
+      ]
+    },
+    {
+      "name": "1280x800-dark开关关闭与恢复",
+      "data": [
+        {
+          "label": "二轮补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        },
+        {
+          "label": "三轮摘要补写开关",
+          "checked": "false",
+          "width": 44,
+          "height": 24,
+          "left": 3
+        }
+      ]
+    },
+    {
+      "name": "1280x800-dark设置分类不随内容下移",
+      "data": {
+        "first": {
+          "exists": true,
+          "box": {
+            "x": 405,
+            "y": 115,
+            "width": 470,
+            "height": 41,
+            "top": 115,
+            "right": 875,
+            "bottom": 156,
+            "left": 405
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "last": {
+          "exists": true,
+          "box": {
+            "x": 405,
+            "y": 115,
+            "width": 470,
+            "height": 41,
+            "top": 115,
+            "right": 875,
+            "bottom": 156,
+            "left": 405
+          },
+          "height": 41,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-dark桌面正文操作在可视区",
+      "data": {
+        "data": {
+          "exists": true,
+          "box": {
+            "x": 384,
+            "y": 686,
+            "width": 896,
+            "height": 114,
+            "top": 686,
+            "right": 1280,
+            "bottom": 800,
+            "left": 384
+          },
+          "height": 114,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 1107,
+            "y": 743,
+            "width": 96,
+            "height": 44,
+            "top": 743,
+            "right": 1203,
+            "bottom": 787,
+            "left": 1107
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "reader": {
+          "reachedEnd": true,
+          "lastVisible": true,
+          "box": {
+            "x": 384,
+            "y": 0,
+            "width": 896,
+            "height": 686,
+            "top": 0,
+            "right": 1280,
+            "bottom": 686,
+            "left": 384
+          },
+          "chapters": 1,
+          "paragraphs": 60,
+          "scrollHeight": 3856,
+          "clientHeight": 686,
+          "scrollTop": 3038
+        }
+      }
+    },
+    {
+      "name": "1280x800-dark桌面设置弹窗在可视区",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 385.0681457519531,
+            "y": 33.098052978515625,
+            "width": 509.8637390136719,
+            "height": 69.9813003540039,
+            "top": 33.098052978515625,
+            "right": 894.931884765625,
+            "bottom": 103.07935333251953,
+            "left": 385.0681457519531
+          },
+          "height": 69.9813003540039,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "footer": {
+          "exists": true,
+          "box": {
+            "x": 385.0681457519531,
+            "y": 686.9232788085938,
+            "width": 509.8637390136719,
+            "height": 79.9786376953125,
+            "top": 686.9232788085938,
+            "right": 894.931884765625,
+            "bottom": 766.9019165039062,
+            "left": 385.0681457519531
+          },
+          "height": 79.9786376953125,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 401.0638732910156,
+            "y": 714.9158325195312,
+            "width": 477.8722839355469,
+            "height": 43.98822021484375,
+            "top": 714.9158325195312,
+            "right": 878.9361572265625,
+            "bottom": 758.904052734375,
+            "left": 401.0638732910156
+          },
+          "height": 43.98822021484375,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    },
+    {
+      "name": "1280x800-dark桌面分支弹窗不重复抬高",
+      "data": {
+        "header": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 17,
+            "width": 486,
+            "height": 44,
+            "top": 17,
+            "right": 503,
+            "bottom": 61,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        },
+        "button": {
+          "exists": true,
+          "box": {
+            "x": 17,
+            "y": 378.375,
+            "width": 163.328125,
+            "height": 44,
+            "top": 378.375,
+            "right": 180.328125,
+            "bottom": 422.375,
+            "left": 17
+          },
+          "height": 44,
+          "hit": true,
+          "viewport": {
+            "top": 0,
+            "height": 800,
+            "width": 1280,
+            "cssHeight": "800px",
+            "bodyHeight": "800px"
+          },
+          "overflow": false
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "consoleErrors": []
+}
