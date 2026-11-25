@@ -37,4 +37,3 @@ test('cleans a profile when browser startup fails before Edge is spawned',async(
   const error=await cleanupBrowserRun({profile,server:makeServer()});
   assert.equal(error,null);assert.equal(fs.existsSync(profile),false);
 });
-
